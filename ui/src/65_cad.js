@@ -24,9 +24,9 @@ function cadRefresh() {
   store.set("susp.cad", JSON.stringify(o));
 }
 function openCad() {
-  $("#cadFrame").innerHTML = Object.entries(CADX.FRAMES).map(([k, f]) => `<option value="${k}">${esc(f.label)}</option>`).join("");
+  $("#cadFrame").innerHTML = Object.entries(CADX.FRAMES).map(([k, f]) => `<option value="${attr(k)}">${esc(f.label)}</option>`).join("");
   let saved = {}; try { saved = JSON.parse(store.get("susp.cad") || "{}") || {}; } catch (e) { saved = {}; }
-  for (const [k, id] of [["fmt", "#cadFmt"], ["frame", "#cadFrame"], ["origin", "#cadOrigin"], ["units", "#cadUnits"]]) if (saved[k] && $(id).querySelector(`option[value="${saved[k]}"]`)) $(id).value = saved[k];
+  for (const [k, id] of [["fmt", "#cadFmt"], ["frame", "#cadFrame"], ["origin", "#cadOrigin"], ["units", "#cadUnits"]]) if (saved[k] && $(id).querySelector(`option[value="${cssq(saved[k])}"]`)) $(id).value = saved[k];
   if (Array.isArray(saved.poses)) [["bump", "#cadBump"], ["droop", "#cadDroop"], ["steer", "#cadSteer"]].forEach(([p, id]) => $(id).checked = saved.poses.includes(p));
   $("#cadDlg").hidden = false; cadRefresh(); setTimeout(() => $("#cadGo").focus(), 0);
 }

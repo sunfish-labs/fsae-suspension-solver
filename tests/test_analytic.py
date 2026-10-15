@@ -110,6 +110,10 @@ e = evaluate(corner(PAR, tilt))
 check("motion ratio, damper tilted 18.4 deg", e["metrics"]["motion_ratio"], a / b * 300 / math.hypot(100, 300), 1e-5, "lever ratio x cos(tilt); the solver takes the slope over the sweep, so ~1e-6 agreement")
 kr = 1 / (1 / (50.0 * (a / b) ** 2 * (300 / math.hypot(100, 300)) ** 2) + 1 / 150.0)
 check("ride rate with the tire, N/mm", e["metrics"]["ride_rate"], kr, 1e-3, "wheel rate and tire rate in series")
+veh = corner(PAR, tilt)["vehicle"]
+m_sprung = veh["mass"] * veh["weight_front"] / 2 - 10.0
+check("spring force at ride height, N", e["metrics"]["static_spring_force"], m_sprung * 9.81 / e["metrics"]["motion_ratio"], 1e-9,
+      "sprung corner weight / MR (the unsprung mass sits on the tire, not the spring)")
 
 dmp = dict(damper, damper_bump_low=2000.0, damper_rebound_high=1500.0)
 e = evaluate(corner(PAR, dmp))

@@ -137,6 +137,32 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   const car = JSON.parse(fs.readFileSync(await grab("#btnDownload", "#xmenu"), "utf8"));
   check("car JSON carries both corners and every corner's targets", car.type === "car" && car.front.targets && Object.keys(car.front.targets).length > 10 && car.rear.targets && car.car_targets);
 
+  console.log("\nTeam targets file and hostile input");
+  const tmpd = fs.mkdtempSync(path.join(os.tmpdir(), "susp-"));
+  await p.click('#axleSeg [data-ax="front"]'); await p.waitForTimeout(500);
+  fs.writeFileSync(path.join(tmpd, "team.json"), JSON.stringify({ front: { trans_min: [70, null], camberr: [-2, -1] } }));
+  await p.setInputFiles("#fileIn", path.join(tmpd, "team.json")); await p.waitForTimeout(800);
+  await p.click("#tab_checks"); await p.waitForTimeout(200);
+  check("a team targets file applies its ranges", (await p.inputValue('#pn_checks input[data-tkey="trans_min"][data-i="0"]')) === "70");
+  check("a misspelled target key is reported with a suggestion", /"camberr".*Did you mean "camber"\?/.test(await text(p, "#errBox")), await text(p, "#errBox"));
+  const saved = JSON.parse(fs.readFileSync(await grab("#btnDownload", "#xmenu"), "utf8"));
+  check("Save JSON keeps the link to the team file, not its ranges", saved.targets_file === "team.json" && !(saved.targets || {}).trans_min, JSON.stringify(saved.targets));
+  fs.writeFileSync(path.join(tmpd, "design.json"), JSON.stringify(saved));
+  fs.writeFileSync(path.join(tmpd, "team.json"), JSON.stringify({ front: { trans_min: [99, null] } }));
+  const py = require("child_process").execFileSync("python3", ["-c", `import sys; sys.path.insert(0, ${JSON.stringify(ROOT)})
+from susp.config import load_config, default_targets
+print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"))}))["trans_min"])`]).toString().trim();
+  check("a later change to the team file still applies to the saved design", py === "[99, None]", py);
+  const evil = '<img src=x onerror="window.__pwn=1">', hc = JSON.parse(fs.readFileSync(path.join(ROOT, "designs", "example_car.json"), "utf8"));
+  hc.name = evil; hc.front.name = '"' + evil; hc.front.targets = Object.assign({}, hc.front.targets, { ['"><img src=x onerror="window.__pwn=2">']: [0, 1] });
+  hc.car_targets = Object.assign({}, hc.car_targets, { [evil]: [0, 1] });
+  fs.writeFileSync(path.join(tmpd, "hostile.json"), JSON.stringify(hc));
+  await p.setInputFiles("#fileIn", path.join(tmpd, "hostile.json")); await p.waitForTimeout(1200);
+  for (const v of ["car", "front"]) { await p.click(`#axleSeg [data-ax="${v}"]`); await p.waitForTimeout(600); }
+  await p.click("#tab_checks"); await p.waitForTimeout(200);
+  check("a design file with hostile names and keys runs no script", (await p.evaluate(() => window.__pwn)) === undefined && (await p.evaluate(() => document.querySelectorAll("img[onerror]").length)) === 0);
+  await p.click('#axleSeg [data-ax="car"]'); await p.waitForTimeout(400);
+
   console.log("\nTheme");
   await p.click("#themeMenu summary"); await p.click('[data-theme-set="dark"]'); await p.waitForTimeout(300);
   await p.reload(); await p.waitForTimeout(1200);

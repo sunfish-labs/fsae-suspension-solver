@@ -38,7 +38,8 @@ except ImportError:  # pragma: no cover
 from susp import config as C                      # noqa: E402
 from susp import output as O                      # noqa: E402
 from susp import tools as T                       # noqa: E402
-from susp.kinematics import SolveError, evaluate  # noqa: E402
+from susp.errors import SuspError                # noqa: E402
+from susp.kinematics import evaluate              # noqa: E402
 
 
 def load(path, warn=True):
@@ -92,6 +93,9 @@ def cmd_car(a):
         if not C.is_car_file(a.front):
             sys.exit("give a car file (with 'front' and 'rear'), or a front config and a rear config")
         f, r, info = C.load_car(a.front)
+        from susp.ride import CAR_TARGETS
+        for m in C.unknown_car_target_keys(info["car_targets"], CAR_TARGETS):
+            print("WARNING: " + m)
     else:
         f, r = load(a.front), load(a.rear)
         if f["axle"] != "front" or r["axle"] != "rear":
@@ -261,7 +265,7 @@ def main():
     a = ap.parse_args()
     try:
         rc = a.fn(a)
-    except SolveError as e:
+    except SuspError as e:                      # bad input or an unreachable position: one clear line, no traceback
         sys.exit(f"\nERROR: {e}")
     sys.exit(rc or 0)
 

@@ -41,7 +41,7 @@ const CHALLENGES = [
 ];
 let chal = null;   // { def, start, prev, hint, done }
 const chalStore = () => { try { return JSON.parse(store.get("susp.chal") || "{}"); } catch (e) { return {}; } };
-const starsHtml = (n) => `<span class="stars" aria-label="${n} of 3 stars">${[0, 1, 2].map(i => `<span class="${i < n ? "on" : ""}">★</span>`).join("")}</span>`;
+const starsHtml = (n) => `<span class="stars" aria-label="${n} of 3 stars">${[0, 1, 2].map(i => `<span class="${attr(i < n ? "on" : "")}">★</span>`).join("")}</span>`;
 function chalPar(def) {
   if (def.par) return def.par;
   const a = presetCfg(def.start), b = presetCfg(def.ref); if (!a || !b) return null;
@@ -54,7 +54,7 @@ function openChallenges() {          // the chooser, shown in the rail
   const best = chalStore();
   $("#crail").innerHTML = `<div class="card crail-card"><div class="crhead"><h2>Challenges</h2><button class="btn small" type="button" id="chClose">Close</button></div>
     <p class="note">Short exercises on real geometry. Only the points named in each challenge can move, the goals update live, and hints unlock one at a time. Your current design is put back when you leave.</p>
-    ${CHALLENGES.map(d => `<button class="chpick" type="button" data-ch="${d.id}"><span class="chn">${d.n}</span><span><b>${esc(d.title)}</b><small>${esc(d.stage)}</small></span>${starsHtml(best[d.id] || 0)}</button>`).join("")}
+    ${CHALLENGES.map(d => `<button class="chpick" type="button" data-ch="${attr(d.id)}"><span class="chn">${d.n}</span><span><b>${esc(d.title)}</b><small>${esc(d.stage)}</small></span>${starsHtml(best[d.id] || 0)}</button>`).join("")}
     <p class="note">Stars: ★ goals met · ★ bonus · ★ moved no more than par (the total millimeters of a good solution).</p></div>`;
   $("#chClose").onclick = closeRail;
   $$("#crail [data-ch]").forEach(b => b.addEventListener("click", () => startChallenge(b.dataset.ch)));
@@ -92,7 +92,7 @@ function buildRail() {
     <div class="sub-h">Goals</div><div id="chGoals" class="meters"></div><div id="chDone"></div>
     <div class="sub-h">Points you can move <span class="muted">(X is fixed)</span></div>
     <table class="pt chpts"><thead><tr><th>Point</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody>
-    ${d.unlock.map(p => `<tr><td class="lab"><button class="lnk" type="button" data-chhp="${p}">${esc(lab(p))}</button></td>${[0, 1, 2].map(i => d.axes.includes(i)
+    ${d.unlock.map(p => `<tr><td class="lab"><button class="lnk" type="button" data-chhp="${attr(p)}">${esc(lab(p))}</button></td>${[0, 1, 2].map(i => d.axes.includes(i)
       ? `<td class="c"><input class="num" type="number" step="0.5" inputmode="decimal" data-chpath="${p}.${i}" aria-label="${esc(lab(p))} ${"XYZ"[i]}"></td>`
       : `<td class="c"><span class="num ro">${fmt(getPath(cfg, p)[i], 1)}</span></td>`).join("")}</tr>`).join("")}</tbody></table>
     <div class="chmove" id="chMove"></div>
@@ -115,7 +115,7 @@ function meter(key, c, lab, unit, dec) {
   const vs = Math.max(0, Math.min(100, +X(v)));
   const rng = `${lo == null ? "≤ " : fmt(lo, dec)}${lo != null && hi != null ? " to " : ""}${hi == null ? " or more" : fmt(hi, dec)}`;
   const can = !!meterChart(key, true), open = can && chal && chal.open && chal.open.has(key);
-  return `<div class="meter ${ok ? "ok" : "bad"}"><div class="mtop"><span>${can ? `<button class="lnk mexp" type="button" data-mexp="${key}" aria-expanded="${open}">${open ? "▾" : "▸"} ${esc(lab)}</button>` : esc(lab)} <small class="muted">target ${rng}</small></span><b>${fmt(v, dec)} <small>${esc(unit)}</small> ${ok ? "✓" : "✗"}</b></div>
+  return `<div class="meter ${ok ? "ok" : "bad"}"><div class="mtop"><span>${can ? `<button class="lnk mexp" type="button" data-mexp="${attr(key)}" aria-expanded="${attr(open)}">${open ? "▾" : "▸"} ${esc(lab)}</button>` : esc(lab)} <small class="muted">target ${rng}</small></span><b>${fmt(v, dec)} <small>${esc(unit)}</small> ${ok ? "✓" : "✗"}</b></div>
     <div class="mbar" title="green band = target ${rng} ${esc(unit)}"><span class="mband" style="left:${lo == null ? 0 : X(lo)}%;right:${hi == null ? 0 : (100 - X(hi))}%"></span><span class="mdot" style="left:${vs}%"></span></div>${open ? `<div class="mchart">${meterChart(key)}</div>` : ""}</div>`;
 }
 // the curve behind each goal, with the target band, so an abstract number becomes "flatten this line"

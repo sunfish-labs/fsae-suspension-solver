@@ -184,7 +184,7 @@
       if (cfg.spring.rocker_pivot != null) t.trans_min = [45.0, null];
       if (cfg.spring.damper_bump_low && cfg.spring.damper_rebound_low) { t.zeta_bump_low = [0.4, 0.9]; t.zeta_rebound_low = [0.5, 1.2]; }
     }
-    Object.assign(t, cfg.targets || {});
+    Object.assign(t, cfg._team_targets || {}, cfg.targets || {});   // general, then the team file, then the design's own
     for (const k of Object.keys(t)) if (t[k] == null) delete t[k];
     return t;
   }
@@ -195,6 +195,20 @@
   }
 
   // ------------------------------------------------------------------ input checks
+  // target keys that aren't metrics (usually a misspelling) would otherwise be ignored without a word
+  function closest(k, keys) {
+    const lev = (a, b) => { const d = Array.from({ length: b.length + 1 }, (_, j) => j);
+      for (let i = 1; i <= a.length; i++) { let prev = d[0]; d[0] = i;
+        for (let j = 1; j <= b.length; j++) { const t = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = t; } }
+      return d[b.length]; };
+    let best = null, bd = Infinity; for (const c of keys) { const v = lev(k, c); if (v < bd) { bd = v; best = c; } }
+    return bd <= Math.max(2, Math.floor(k.length * 0.35)) ? best : null;
+  }
+  function unknownTargetKeys(targets, known = METRICS, what = "target", where = " in targets") {
+    return Object.keys(targets || {}).filter(k => !k.startsWith("_") && !(k in known)).sort().map(k => { const near = closest(k, Object.keys(known));
+      return `${what === "target" ? "Target" : "Car target"} "${k}"${where} is not a ${what === "target" ? "metric the solver reports" : "car metric"}, so it is ignored` +
+        (near ? `. Did you mean "${near}"?` : ". Check the spelling against the Targets list."); });
+  }
   function validate(cfg) {
     const h = {}; for (const k of HP_ORDER) h[HP[k]] = cfg.hardpoints[k];
     const out = [], W = (m) => out.push(["warn", m]), E = (m) => out.push(["error", m]);
@@ -239,6 +253,8 @@
         }
       }
     }
+    for (const m of unknownTargetKeys(cfg.targets)) W(m);
+    for (const m of unknownTargetKeys(cfg._team_targets, METRICS, "target", " in the team targets file")) W(m);
     return out.sort((a, b) => (a[0] === "error" ? 0 : 1) - (b[0] === "error" ? 0 : 1));
   }
 
@@ -616,7 +632,7 @@
     const Lmax = Math.max(...L), Lmin = Math.min(...L), rk = sts.map(s => s.rocker_deg);
     const out = { motion_ratio: MR, mr_progression: (mr[mr.length - 1] - mr[0]) / MR * 100, wheel_rate: kw, ride_rate: kr,
       ride_freq: Math.sqrt(kr * 1000 / ms) / (2 * Math.PI), hop_freq: Math.sqrt((kw + kt) * 1000 / sc.unsprung_mass) / (2 * Math.PI),
-      damper_used: Lmax - Lmin, rocker_rot: Math.max(...rk) - Math.min(...rk), static_spring_force: mc * G / MR,
+      damper_used: Lmax - Lmin, rocker_rot: Math.max(...rk) - Math.min(...rk), static_spring_force: ms * G / MR,
       _m_sprung: ms, _m_corner: mc, _damper_len0: L[i0], _damper_len_range: [Lmin, L[i0], Lmax],
       _wheel_travel_per_stroke: sc.damper_stroke ? sc.damper_stroke / MR : null };
     if (sc.damper_stroke) {
@@ -915,6 +931,6 @@
   }
 
   root.Susp = { SolveError, HP, HP_ORDER, SPRING_POINTS, DEFAULTS, SPRING_DEFAULTS, METRICS, deepMerge, finishConfig,
-    defaultTargets, targetsFromFile, GENERAL_TARGETS, carBalance, CAR_TARGETS, CAR_LABELS, validate, Suspension, Spring, evaluate, runLoads, rackForAngle, MEMBERS, checkTargets,
+    defaultTargets, targetsFromFile, unknownTargetKeys, GENERAL_TARGETS, carBalance, CAR_TARGETS, CAR_LABELS, validate, Suspension, Spring, evaluate, runLoads, rackForAngle, MEMBERS, checkTargets,
     vec: { add, sub, mul, dot, cross, norm, unit, perp, rodrigues, matvec, deg, rad } };
 })(typeof window !== "undefined" ? window : globalThis);

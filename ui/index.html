@@ -829,7 +829,7 @@ body { border-top: 4px solid var(--gold); }
       if (cfg.spring.rocker_pivot != null) t.trans_min = [45.0, null];
       if (cfg.spring.damper_bump_low && cfg.spring.damper_rebound_low) { t.zeta_bump_low = [0.4, 0.9]; t.zeta_rebound_low = [0.5, 1.2]; }
     }
-    Object.assign(t, cfg.targets || {});
+    Object.assign(t, cfg._team_targets || {}, cfg.targets || {});   // general, then the team file, then the design's own
     for (const k of Object.keys(t)) if (t[k] == null) delete t[k];
     return t;
   }
@@ -840,6 +840,20 @@ body { border-top: 4px solid var(--gold); }
   }
 
   // ------------------------------------------------------------------ input checks
+  // target keys that aren't metrics (usually a misspelling) would otherwise be ignored without a word
+  function closest(k, keys) {
+    const lev = (a, b) => { const d = Array.from({ length: b.length + 1 }, (_, j) => j);
+      for (let i = 1; i <= a.length; i++) { let prev = d[0]; d[0] = i;
+        for (let j = 1; j <= b.length; j++) { const t = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = t; } }
+      return d[b.length]; };
+    let best = null, bd = Infinity; for (const c of keys) { const v = lev(k, c); if (v < bd) { bd = v; best = c; } }
+    return bd <= Math.max(2, Math.floor(k.length * 0.35)) ? best : null;
+  }
+  function unknownTargetKeys(targets, known = METRICS, what = "target", where = " in targets") {
+    return Object.keys(targets || {}).filter(k => !k.startsWith("_") && !(k in known)).sort().map(k => { const near = closest(k, Object.keys(known));
+      return `${what === "target" ? "Target" : "Car target"} "${k}"${where} is not a ${what === "target" ? "metric the solver reports" : "car metric"}, so it is ignored` +
+        (near ? `. Did you mean "${near}"?` : ". Check the spelling against the Targets list."); });
+  }
   function validate(cfg) {
     const h = {}; for (const k of HP_ORDER) h[HP[k]] = cfg.hardpoints[k];
     const out = [], W = (m) => out.push(["warn", m]), E = (m) => out.push(["error", m]);
@@ -884,6 +898,8 @@ body { border-top: 4px solid var(--gold); }
         }
       }
     }
+    for (const m of unknownTargetKeys(cfg.targets)) W(m);
+    for (const m of unknownTargetKeys(cfg._team_targets, METRICS, "target", " in the team targets file")) W(m);
     return out.sort((a, b) => (a[0] === "error" ? 0 : 1) - (b[0] === "error" ? 0 : 1));
   }
 
@@ -1261,7 +1277,7 @@ body { border-top: 4px solid var(--gold); }
     const Lmax = Math.max(...L), Lmin = Math.min(...L), rk = sts.map(s => s.rocker_deg);
     const out = { motion_ratio: MR, mr_progression: (mr[mr.length - 1] - mr[0]) / MR * 100, wheel_rate: kw, ride_rate: kr,
       ride_freq: Math.sqrt(kr * 1000 / ms) / (2 * Math.PI), hop_freq: Math.sqrt((kw + kt) * 1000 / sc.unsprung_mass) / (2 * Math.PI),
-      damper_used: Lmax - Lmin, rocker_rot: Math.max(...rk) - Math.min(...rk), static_spring_force: mc * G / MR,
+      damper_used: Lmax - Lmin, rocker_rot: Math.max(...rk) - Math.min(...rk), static_spring_force: ms * G / MR,
       _m_sprung: ms, _m_corner: mc, _damper_len0: L[i0], _damper_len_range: [Lmin, L[i0], Lmax],
       _wheel_travel_per_stroke: sc.damper_stroke ? sc.damper_stroke / MR : null };
     if (sc.damper_stroke) {
@@ -1560,7 +1576,7 @@ body { border-top: 4px solid var(--gold); }
   }
 
   root.Susp = { SolveError, HP, HP_ORDER, SPRING_POINTS, DEFAULTS, SPRING_DEFAULTS, METRICS, deepMerge, finishConfig,
-    defaultTargets, targetsFromFile, GENERAL_TARGETS, carBalance, CAR_TARGETS, CAR_LABELS, validate, Suspension, Spring, evaluate, runLoads, rackForAngle, MEMBERS, checkTargets,
+    defaultTargets, targetsFromFile, unknownTargetKeys, GENERAL_TARGETS, carBalance, CAR_TARGETS, CAR_LABELS, validate, Suspension, Spring, evaluate, runLoads, rackForAngle, MEMBERS, checkTargets,
     vec: { add, sub, mul, dot, cross, norm, unit, perp, rodrigues, matvec, deg, rad } };
 })(typeof window !== "undefined" ? window : globalThis);
 
@@ -1936,6 +1952,10 @@ const S = window.Susp, V = S.vec;
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "–" : (!Number.isFinite(v) ? "∞" : (+v).toFixed(d).replace(/^-(0\.?0*)$/, "$1").replace("-", "−"));
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// attr(): any value placed inside an HTML attribute (same escaping as esc; one name so every attribute is easy to audit).
+// cssq(): a value placed inside a quoted CSS attribute selector.
+const attr = esc;
+const cssq = (s) => String(s).replace(/["\\]/g, "\\$&");
 
 const HELP = {
   camber: "Wheel lean at ride height. Negative = top leans in. Set by shims, so it is easy to adjust later.",
@@ -1986,15 +2006,15 @@ const SP_LABELS = { rod_outboard: ["Pushrod outboard", "on the arm / upright"], 
 
 function numInput(path, opts = {}) {
   const id = "in_" + path.replace(/\./g, "_");
-  return `<input class="num" id="${id}" type="number" step="${opts.step ?? "any"}" inputmode="decimal" data-path="${path}" data-type="${opts.type ?? "num"}"${opts.scale ? ` data-scale="${opts.scale}"` : ""}${opts.opt ? " data-opt=\"1\"" : ""} aria-label="${esc(opts.aria ?? path)}">`;
+  return `<input class="num" id="${attr(id)}" type="number" step="${attr(opts.step ?? "any")}" inputmode="decimal" data-path="${attr(path)}" data-type="${attr(opts.type ?? "num")}"${opts.scale ? ` data-scale="${attr(opts.scale)}"` : ""}${opts.opt ? " data-opt=\"1\"" : ""} aria-label="${esc(opts.aria ?? path)}">`;
 }
 function field(label, unit, path, opts = {}) {
   const id = "in_" + path.replace(/\./g, "_");
-  if (opts.options) return `<div class="field"><label for="${id}">${label}</label><select id="${id}" data-path="${path}" data-type="select">${opts.options.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select></div>`;
-  return `<div class="field"><label for="${id}">${label} <i>${unit}</i></label>${numInput(path, { ...opts, aria: label })}</div>`;
+  if (opts.options) return `<div class="field"><label for="${attr(id)}">${label}</label><select id="${attr(id)}" data-path="${attr(path)}" data-type="select">${opts.options.map(([v, t]) => `<option value="${attr(v)}">${t}</option>`).join("")}</select></div>`;
+  return `<div class="field"><label for="${attr(id)}">${label} <i>${unit}</i></label>${numInput(path, { ...opts, aria: label })}</div>`;
 }
 function ptRows(tbody, list, prefix, labels) {
-  tbody.innerHTML = list.map(k => `<tr data-row="${k}"><td class="lab"${labels[k][1] ? ` title="${esc(labels[k][1])}"` : ""}>${k === "rocker_axis" ? labels[k][0] : `<button class="lnk hpbtn" type="button" data-hp="${prefix}.${k}" title="${labels[k][1] ? esc(labels[k][1]) + " · " : ""}click: what does moving this point do?">${labels[k][0]}</button>`}</td>` +
+  tbody.innerHTML = list.map(k => `<tr data-row="${attr(k)}"><td class="lab"${labels[k][1] ? ` title="${esc(labels[k][1])}"` : ""}>${k === "rocker_axis" ? labels[k][0] : `<button class="lnk hpbtn" type="button" data-hp="${prefix}.${k}" title="${labels[k][1] ? esc(labels[k][1]) + " · " : ""}click: what does moving this point do?">${labels[k][0]}</button>`}</td>` +
     [0, 1, 2].map(i => `<td class="c">${numInput(`${prefix}.${k}.${i}`, { aria: `${labels[k][0]} ${"XYZ"[i]}`, step: k === "rocker_axis" ? "0.1" : "0.1" })}</td>`).join("") + "</tr>").join("");
 }
 function buildForm() {
@@ -2070,7 +2090,7 @@ function fillForm() {
 }
 function syncRockerRows() {
   const direct = cfg.spring && cfg.spring.rocker_pivot == null;
-  ["rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper"].forEach(k => { const r = $(`#spTable tr[data-row="${k}"]`); if (r) r.hidden = !!direct; });
+  ["rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper"].forEach(k => { const r = $(`#spTable tr[data-row="${cssq(k)}"]`); if (r) r.hidden = !!direct; });
 }
 function syncAxle() {
   const rear = cfg.axle === "rear";
@@ -2122,7 +2142,7 @@ function run() {
   } catch (e) { err = e; console.warn(e); }
   const ms = performance.now() - t0;
   if (!chal) store.set("susp.cfg", JSON.stringify(cfg));
-  if (car && !chal) { store.set("susp.car", JSON.stringify(exportCar())); carRes = axleView === "car" ? evalCar() : null; }
+  if (car && !chal) { store.set("susp.car", JSON.stringify(exportCar(true))); carRes = axleView === "car" ? evalCar() : null; }
   $("#jsonBox").value = JSON.stringify(exportCfg(), null, 2);
   const T = cfg.sweep?.travel ?? 30, Rk = cfg.sweep?.rack_travel ?? 35;
   const pz = $("#poseZ"), pr = $("#poseR");
@@ -2163,24 +2183,24 @@ function chart({ title, cap = "", series, xlabel = "", marker = null, band = nul
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}">`;
   if (band) {
     const y1 = Y(band[1] ?? yt.hi), y0 = Y(band[0] ?? yt.lo);
-    s += `<rect x="${l}" y="${Math.min(y0, y1)}" width="${W - l - r}" height="${Math.abs(y0 - y1)}" fill="var(--ok)" opacity=".10"/>`;
+    s += `<rect x="${attr(l)}" y="${attr(Math.min(y0, y1))}" width="${attr(W - l - r)}" height="${attr(Math.abs(y0 - y1))}" fill="var(--ok)" opacity=".10"/>`;
   }
-  for (const v of yt.ticks) s += `<line x1="${l}" x2="${W - r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${l - 5}" y="${Y(v) + 3.5}" font-size="10" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${tickLabel(v, yt.step)}</text>`;
-  for (const v of xt.ticks) s += `<text x="${X(v)}" y="${H - b + 13}" font-size="10" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${tickLabel(v, xt.step)}</text>`;
-  if (xt.lo < 0 && xt.hi > 0) s += `<line x1="${X(0)}" x2="${X(0)}" y1="${t}" y2="${H - b}" stroke="var(--muted)" stroke-width=".7" opacity=".6"/>`;
-  s += `<text x="${(l + W - r) / 2}" y="${H - 3}" font-size="10" text-anchor="middle" fill="var(--muted)">${esc(xlabel)}</text>`;
+  for (const v of yt.ticks) s += `<line x1="${attr(l)}" x2="${attr(W - r)}" y1="${attr(Y(v))}" y2="${attr(Y(v))}" stroke="var(--line)" stroke-width="1"/><text x="${attr(l - 5)}" y="${attr(Y(v) + 3.5)}" font-size="10" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${tickLabel(v, yt.step)}</text>`;
+  for (const v of xt.ticks) s += `<text x="${attr(X(v))}" y="${attr(H - b + 13)}" font-size="10" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${tickLabel(v, xt.step)}</text>`;
+  if (xt.lo < 0 && xt.hi > 0) s += `<line x1="${attr(X(0))}" x2="${attr(X(0))}" y1="${attr(t)}" y2="${attr(H - b)}" stroke="var(--muted)" stroke-width=".7" opacity=".6"/>`;
+  s += `<text x="${attr((l + W - r) / 2)}" y="${attr(H - 3)}" font-size="10" text-anchor="middle" fill="var(--muted)">${esc(xlabel)}</text>`;
   series.forEach((sr) => {
     const d = sr.x.map((x, i) => Number.isFinite(sr.y[i]) ? `${X(x).toFixed(1)},${Y(sr.y[i]).toFixed(1)}` : null).filter(Boolean);
-    if (d.length) s += `<polyline points="${d.join(" ")}" fill="none" stroke="${sr.color}" stroke-width="${sr.w ?? 2}" ${sr.dash ? `stroke-dasharray="${sr.dash}"` : ""} stroke-linejoin="round"/>`;
+    if (d.length) s += `<polyline points="${attr(d.join(" "))}" fill="none" stroke="${attr(sr.color)}" stroke-width="${attr(sr.w ?? 2)}" ${sr.dash ? `stroke-dasharray="${attr(sr.dash)}"` : ""} stroke-linejoin="round"/>`;
   });
   if (marker != null && marker >= xt.lo && marker <= xt.hi) {
-    s += `<line x1="${X(marker)}" x2="${X(marker)}" y1="${t}" y2="${H - b}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>`;
+    s += `<line x1="${attr(X(marker))}" x2="${attr(X(marker))}" y1="${attr(t)}" y2="${attr(H - b)}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>`;
     const sr = series[series.length - 1]; const yi = interp(sr.x, sr.y, marker);
-    if (Number.isFinite(yi)) s += `<circle cx="${X(marker)}" cy="${Y(yi)}" r="3.5" fill="var(--accent)"/>`;
+    if (Number.isFinite(yi)) s += `<circle cx="${attr(X(marker))}" cy="${attr(Y(yi))}" r="3.5" fill="var(--accent)"/>`;
   }
   const named = series.filter(sr => sr.name);
   if (named.length > 1) named.forEach((sr, i) => {
-    s += `<line x1="${l + 6 + i * 92}" x2="${l + 20 + i * 92}" y1="${t + 6}" y2="${t + 6}" stroke="${sr.color}" stroke-width="2" ${sr.dash ? `stroke-dasharray="${sr.dash}"` : ""}/><text x="${l + 24 + i * 92}" y="${t + 9.5}" font-size="10" fill="var(--ink)">${esc(sr.name)}</text>`;
+    s += `<line x1="${attr(l + 6 + i * 92)}" x2="${attr(l + 20 + i * 92)}" y1="${attr(t + 6)}" y2="${attr(t + 6)}" stroke="${attr(sr.color)}" stroke-width="2" ${sr.dash ? `stroke-dasharray="${attr(sr.dash)}"` : ""}/><text x="${attr(l + 24 + i * 92)}" y="${attr(t + 9.5)}" font-size="10" fill="var(--ink)">${esc(sr.name)}</text>`;
   });
   return `<div class="chart"><h3>${esc(title)}</h3>${cap ? `<p class="cap">${cap}</p>` : ""}${s}</svg></div>`;
 }
@@ -2199,12 +2219,12 @@ function renderTabs() {
   const fails = ev && !err ? ev.checks.filter(c => c.status === "FAIL").length : 0, cur = MOTION.includes(tab) ? "motion" : tab;
   if (MOTION.includes(tab)) lastMotion = tab;
   const bar = TAB_BAR.concat(tab === "learn" ? [["learn", "Learn"]] : []);
-  $("#tabs").innerHTML = bar.map(([k, t]) => `<button role="tab" type="button" id="tab_${k}" aria-selected="${cur === k}" aria-controls="pn_${k === "motion" ? lastMotion : k}" data-tab="${k}">${t}${k === "checks" && fails ? `<span class="dot" aria-label="${fails} failing"></span>` : ""}</button>`).join("");
+  $("#tabs").innerHTML = bar.map(([k, t]) => `<button role="tab" type="button" id="tab_${k}" aria-selected="${attr(cur === k)}" aria-controls="pn_${k === "motion" ? lastMotion : k}" data-tab="${attr(k)}">${t}${k === "checks" && fails ? `<span class="dot" aria-label="${fails} failing"></span>` : ""}</button>`).join("");
   $$("#tabs button").forEach(b => b.addEventListener("click", () => { tab = b.dataset.tab === "motion" ? lastMotion : b.dataset.tab; store.set("susp.tab", tab); renderTabs(); showPanel(); }));
 }
 function motionSeg(k) {
   const items = [["heave", "Heave"], ["roll", "Roll"]].concat(cfg && cfg.axle === "rear" ? [] : [["steer", "Steering"]]);
-  return `<div class="seg msub" role="group" aria-label="Motion">${items.map(([v, t]) => `<button type="button" data-msub="${v}" aria-pressed="${v === k}">${t}</button>`).join("")}</div>`;
+  return `<div class="seg msub" role="group" aria-label="Motion">${items.map(([v, t]) => `<button type="button" data-msub="${attr(v)}" aria-pressed="${attr(v === k)}">${t}</button>`).join("")}</div>`;
 }
 function showPanel() { $$("#panels > .panel").forEach(p => p.hidden = p.dataset.tab !== tab); }
 
@@ -2218,7 +2238,7 @@ function renderAll(ms) {
     return;
   }
   const issues = S.validate(ev.cfg);
-  if (cfg.targets_file && !(cfg.targets && Object.keys(cfg.targets).length)) issues.push(["warn", `This design uses the team targets file "${cfg.targets_file}". The browser can't read files by path: click Open JSON and choose that file to apply your team's target ranges.`]);
+  if (cfg.targets_file && !cfg._team_targets) issues.push(["warn", `This design uses the team targets file "${cfg.targets_file}". The browser can't read files by path: click Open JSON and choose that file to apply your team's target ranges.`]);
   $("#errBox").innerHTML = issues.length ? `<div class="banner ${issues.some(i => i[0] === "error") ? "bad" : "warn"}"><b>Input checks</b><ul>${issues.map(i => `<li>${i[0] === "error" ? "<b>Error:</b> " : ""}${esc(i[1])}</li>`).join("")}</ul></div>` : "";
   const n = ev.checks.filter(c => c.status !== "n/a"), np = n.filter(c => c.status === "PASS").length;
   const m = ev.metrics;
@@ -2234,7 +2254,7 @@ function renderAll(ms) {
       : `<button class="btn small pinbtn" id="btnBase" type="button" title="Freeze these results; your next edits then show as changes and dashed curves">Pin as baseline</button>`);
   const pb = $("#btnBase"); if (pb) pb.addEventListener("click", () => { if (!ev || err) return; base = ev; baseName = cfg.name || "pinned design"; renderAll(0); });
   const cb = $("#btnClearBase"); if (cb) cb.addEventListener("click", () => { base = null; renderAll(0); });
-  P.innerHTML = TABS.map(([k]) => `<div class="panel" role="tabpanel" id="pn_${k}" aria-labelledby="tab_${k}" data-tab="${k}"></div>`).join("");
+  P.innerHTML = TABS.map(([k]) => `<div class="panel" role="tabpanel" id="pn_${k}" aria-labelledby="tab_${k}" data-tab="${attr(k)}"></div>`).join("");
   $("#pn_checks").innerHTML = panelChecks();
   $("#pn_heave").innerHTML = motionSeg("heave") + panelHeave();
   $("#pn_roll").innerHTML = motionSeg("roll") + panelRoll();
@@ -2258,7 +2278,7 @@ function panelChecks() {
     const [lab, unit, dec] = c.label ? [c.label, c.unit, c.dec] : metricLabel(c.key);
     const editable = !c.label, open = openRows.has(c.key);
     const st = c.status === "PASS" ? `<span class="pill ok">Met</span>` : c.status === "FAIL" ? `<span class="pill bad">Not met</span>` : `<span class="pill neutral">n/a</span>`;
-    const rng = editable ? `<span class="rng"><input class="num" type="number" step="any" data-tkey="${c.key}" data-i="0" value="${c.lo == null ? "" : +(+c.lo).toFixed(3)}" aria-label="${esc(lab)} minimum" placeholder="–"> to <input class="num" type="number" step="any" data-tkey="${c.key}" data-i="1" value="${c.hi == null ? "" : +(+c.hi).toFixed(3)}" aria-label="${esc(lab)} maximum" placeholder="–"></span>`
+    const rng = editable ? `<span class="rng"><input class="num" type="number" step="any" data-tkey="${attr(c.key)}" data-i="0" value="${attr(c.lo == null ? "" : +(+c.lo).toFixed(3))}" aria-label="${esc(lab)} minimum" placeholder="–"> to <input class="num" type="number" step="any" data-tkey="${attr(c.key)}" data-i="1" value="${attr(c.hi == null ? "" : +(+c.hi).toFixed(3))}" aria-label="${esc(lab)} maximum" placeholder="–"></span>`
       : `≥ ${fmt(c.lo, 1)}`;
     let bcol = "";
     if (bm) {
@@ -2266,13 +2286,13 @@ function panelChecks() {
       const d = (c.value != null && bv != null) ? c.value - bv : null;
       bcol = `<td class="n">${fmt(bv, dec)}</td><td class="n ${d > 0 ? "delta-up" : d < 0 ? "delta-dn" : ""}">${d == null || Math.abs(d) < 10 ** -(dec + 1) ? "–" : (d > 0 ? "+" : "") + fmt(d, dec)}</td>`;
     }
-    const fixBtn = c.status === "n/a" || chal ? "" : `<button class="btn small ${c.status === "FAIL" ? "primary" : ""}" type="button" data-fixgo="${c.key}">${c.status === "FAIL" ? "Fix: what moves this?" : "What moves this?"}</button>`;
-    rows += `<tr class="clickable${open ? " open" : ""}" data-help="${c.key}" aria-expanded="${open}"><td><span class="caret" aria-hidden="true">${open ? "▾" : "▸"}</span> ${esc(lab)}</td><td class="n">${fmt(c.value, dec)} <span class="muted">${unit}</span></td><td>${rng}</td>${bcol}<td>${st}</td></tr>`;
+    const fixBtn = c.status === "n/a" || chal ? "" : `<button class="btn small ${c.status === "FAIL" ? "primary" : ""}" type="button" data-fixgo="${attr(c.key)}">${c.status === "FAIL" ? "Fix: what moves this?" : "What moves this?"}</button>`;
+    rows += `<tr class="clickable${open ? " open" : ""}" data-help="${attr(c.key)}" aria-expanded="${attr(open)}"><td><span class="caret" aria-hidden="true">${open ? "▾" : "▸"}</span> ${esc(lab)}</td><td class="n">${fmt(c.value, dec)} <span class="muted">${unit}</span></td><td>${rng}</td>${bcol}<td>${st}</td></tr>`;
     const t = TERM_BY_METRIC[c.key], show = t && t.show;
-    rows += `<tr class="help" data-helprow="${c.key}"${open ? "" : " hidden"}><td colspan="${ncol}">
+    rows += `<tr class="help" data-helprow="${attr(c.key)}"${open ? "" : " hidden"}><td colspan="${attr(ncol)}">
       <p class="hdef">${esc(checkHelp(c.key))}</p>
-      <div class="tact">${show ? `<button class="btn small" type="button" data-show="${show}">Show me</button>` : ""}${t ? `<button class="lnk" type="button" data-term="${t.id}">More in Learn</button>` : ""}${fixBtn}</div>
-      <div class="fixbox" data-fixbox="${c.key}"></div></td></tr>`;
+      <div class="tact">${show ? `<button class="btn small" type="button" data-show="${attr(show)}">Show me</button>` : ""}${t ? `<button class="lnk" type="button" data-term="${attr(t.id)}">More in Learn</button>` : ""}${fixBtn}</div>
+      <div class="fixbox" data-fixbox="${attr(c.key)}"></div></td></tr>`;
   }
   return `<div class="tbl-wrap"><table class="data"><thead><tr><th>Target</th><th class="n">Value</th><th>Allowed range</th>${bm ? `<th class="n">Baseline</th><th class="n">Change</th>` : ""}<th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
   <p class="note">Click a row to see what the number means, draw it on the 3D view, or find which hardpoint moves fix it. Edit a range to change the target for this design (saved in the JSON under <span class="mono">targets</span>).</p>`;
@@ -2280,7 +2300,7 @@ function panelChecks() {
 function wireChecks() {
   $$("#pn_checks tr.clickable").forEach(tr => tr.addEventListener("click", (e) => {
     if (e.target.tagName === "INPUT") return;
-    const k = tr.dataset.help, h = $(`#pn_checks tr[data-helprow="${k}"]`); if (!h) return;
+    const k = tr.dataset.help, h = $(`#pn_checks tr[data-helprow="${cssq(k)}"]`); if (!h) return;
     h.hidden = !h.hidden; if (h.hidden) { openRows.delete(k); fixRows.delete(k); } else openRows.add(k);
     tr.classList.toggle("open", !h.hidden); tr.setAttribute("aria-expanded", String(!h.hidden)); $(".caret", tr).textContent = h.hidden ? "▸" : "▾";
   }));
@@ -2291,9 +2311,9 @@ function wireChecks() {
   }));
   $$("#pn_checks [data-show]").forEach(b => b.addEventListener("click", () => showMe(b.dataset.show)));
   $$("#pn_checks [data-term]").forEach(b => b.addEventListener("click", () => openTerm(b.dataset.term)));
-  $$("#pn_checks [data-fixgo]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.fixgo; fixRows.add(k); b.hidden = true; whatMoves(k, $(`#pn_checks [data-fixbox="${k}"]`)); }));
+  $$("#pn_checks [data-fixgo]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.fixgo; fixRows.add(k); b.hidden = true; whatMoves(k, $(`#pn_checks [data-fixbox="${cssq(k)}"]`)); }));
   // keep "What moves this?" results open across re-solves
-  for (const k of fixRows) { const box = $(`#pn_checks [data-fixbox="${k}"]`); if (box && ev.checks.some(c => c.key === k && c.status !== "n/a")) { const b = $(`#pn_checks [data-fixgo="${k}"]`); if (b) b.hidden = true; whatMoves(k, box); } else fixRows.delete(k); }
+  for (const k of fixRows) { const box = $(`#pn_checks [data-fixbox="${cssq(k)}"]`); if (box && ev.checks.some(c => c.key === k && c.status !== "n/a")) { const b = $(`#pn_checks [data-fixgo="${cssq(k)}"]`); if (b) b.hidden = true; whatMoves(k, box); } else fixRows.delete(k); }
 }
 
 const C = { s1: "var(--s1)", s2: "var(--s2)", s3: "var(--s3)", base: "var(--base)" };
@@ -2387,11 +2407,11 @@ function rockerSvg() {
   let s = `<svg viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" role="img" aria-label="Rocker at droop, ride height and bump" style="max-height:340px;min-height:220px">`;
   picks.forEach(([, lab, dash], j) => {
     const st = sts[j], ro = P(st.rod_out), ri = P(st.rod_in), dout = P(st.damper_out), dc = P(sp.dch);
-    s += `<line x1="${X(ri)}" y1="${Y(ri)}" x2="${X(ro)}" y2="${Y(ro)}" stroke="var(--bad)" stroke-width="2.5" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
-    s += `<line x1="${X(dout)}" y1="${Y(dout)}" x2="${X(dc)}" y2="${Y(dc)}" stroke="var(--s3)" stroke-width="${j === 1 ? 7 : 4}" opacity="${j === 1 ? .7 : .45}" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
-    if (!sp.direct) s += `<polygon points="${X([0, 0])},${Y([0, 0])} ${X(ri)},${Y(ri)} ${X(dout)},${Y(dout)}" fill="var(--accent)" fill-opacity="${j === 1 ? .35 : .1}" stroke="var(--accent)" stroke-width="2" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
+    s += `<line x1="${attr(X(ri))}" y1="${attr(Y(ri))}" x2="${attr(X(ro))}" y2="${attr(Y(ro))}" stroke="var(--bad)" stroke-width="2.5" ${dash ? `stroke-dasharray="${attr(dash)}"` : ""}/>`;
+    s += `<line x1="${attr(X(dout))}" y1="${attr(Y(dout))}" x2="${attr(X(dc))}" y2="${attr(Y(dc))}" stroke="var(--s3)" stroke-width="${attr(j === 1 ? 7 : 4)}" opacity="${attr(j === 1 ? .7 : .45)}" ${dash ? `stroke-dasharray="${attr(dash)}"` : ""}/>`;
+    if (!sp.direct) s += `<polygon points="${X([0, 0])},${Y([0, 0])} ${X(ri)},${Y(ri)} ${X(dout)},${Y(dout)}" fill="var(--accent)" fill-opacity="${attr(j === 1 ? .35 : .1)}" stroke="var(--accent)" stroke-width="2" ${dash ? `stroke-dasharray="${attr(dash)}"` : ""}/>`;
   });
-  if (!sp.direct) s += `<circle cx="${X([0, 0])}" cy="${Y([0, 0])}" r="4.5" fill="var(--ink)"/>`;
+  if (!sp.direct) s += `<circle cx="${attr(X([0, 0]))}" cy="${attr(Y([0, 0]))}" r="4.5" fill="var(--ink)"/>`;
   s += `</svg>`;
   return `<div class="chart"><h3>Rocker plane, looking along the pivot bolt</h3><p class="cap">Solid = ride height, dotted = full droop, dashed = full bump. Red = pushrod, green = damper, gold = rocker.</p>${s}</div>`;
 }
@@ -2487,7 +2507,7 @@ function partsHtml(L, label, mem) {
       <div><span>Mount position along the leg</span><b>${fmt(b.a, 0)} <small>of ${fmt(b.length, 0)} mm</small></b></div>
       <div><span>Mount offset from the leg's centerline</span><b>${fmt(b.offset, 0)} <small>mm</small></b></div>
       <div><span>Worst case (${esc(b.case)})</span><b>${fmt(b.moment / 1000, 1)} <small>N m</small> · ${fmt(b.stress, 0)} <small>MPa</small></b></div>
-      <div><span>FOS (bending + axial vs yield)</span><b class="${ok ? "ok-t" : "bad-t"}">${fmt(b.sf, 2)}</b></div></div>
+      <div><span>FOS (bending + axial vs yield)</span><b class="${attr(ok ? "ok-t" : "bad-t")}">${fmt(b.sf, 2)}</b></div></div>
     <p class="note">The ${esc(legName)} treated as a beam pinned at its inboard pivot and the ball joint, loaded across by the pushrod at the mount: M = P·a·(L−a)/L, stress = M·c/I + axial/A.
     ${ok ? "" : `<b>A bare tube is overloaded here.</b> Mount the pushrod on a gusset or bracket at the ball-joint node, move it closer to the ball joint, or use a stiffer leg; this check is conservative if a gusset carries the load. `}
     ${b.offset > 5 ? `The mount sits ${fmt(b.offset, 0)} mm off the leg's centerline, so its bracket also twists the leg (not modeled).` : ""}</p>`;
@@ -2505,8 +2525,8 @@ function partsHtml(L, label, mem) {
   if (C) {
     const lim = (v, l) => l == null ? "" : Math.abs(v) <= l ? "" : "bad-t";
     h += `<h3 class="sub-h">Compliance · how far the wheel moves when the links and mounts flex</h3>
-    <div class="kv"><div><span>Worst toe change, cornering / braking</span><b class="${C.toe_ok ? "ok-t" : "bad-t"}">${fmt(C.worst_toe.toe, 3)}° <small>${esc(C.worst_toe.case)}${C.toe_limit != null ? ` · limit ${fmt(C.toe_limit, 2)}` : ""}</small></b></div>
-      <div><span>Worst camber change, cornering / braking</span><b class="${C.camber_ok ? "ok-t" : "bad-t"}">${fmt(C.worst_camber.camber, 3)}° <small>${esc(C.worst_camber.case)}${C.camber_limit != null ? ` · limit ${fmt(C.camber_limit, 2)}` : ""}</small></b></div>
+    <div class="kv"><div><span>Worst toe change, cornering / braking</span><b class="${attr(C.toe_ok ? "ok-t" : "bad-t")}">${fmt(C.worst_toe.toe, 3)}° <small>${esc(C.worst_toe.case)}${C.toe_limit != null ? ` · limit ${fmt(C.toe_limit, 2)}` : ""}</small></b></div>
+      <div><span>Worst camber change, cornering / braking</span><b class="${attr(C.camber_ok ? "ok-t" : "bad-t")}">${fmt(C.worst_camber.camber, 3)}° <small>${esc(C.worst_camber.case)}${C.camber_limit != null ? ` · limit ${fmt(C.camber_limit, 2)}` : ""}</small></b></div>
       <div><span>Link stiffness (two rod ends + tube + mount)</span><b>${fmt(Math.min(...Object.values(C.stiffness)), 0)}–${fmt(Math.max(...Object.values(C.stiffness)), 0)} <small>N/mm</small></b></div></div>
     <div class="tbl-wrap"><table class="data"><thead><tr><th>Case</th><th class="n">Camber change, °</th><th class="n">Toe-in change, °</th><th class="n">Contact patch moves sideways, mm</th><th class="n">Largest link stretch, mm</th></tr></thead><tbody>
     ${C.cases.map(x => `<tr${x.driving ? "" : ` class="muted"`}><td>${esc(x.case)}${x.driving ? "" : " *"}</td><td class="n ${x.driving ? lim(x.camber, C.camber_limit) : ""}">${x.camber > 0 ? "+" : ""}${fmt(x.camber, 3)}</td>
@@ -2589,7 +2609,7 @@ function layoutLabels() {
     const over = col.length ? col[col.length - 1].ly - bot : 0;
     if (over > 0) { col.forEach(q => q.ly -= over); for (let i = 0; i < col.length; i++) col[i].ly = Math.max(col[i].ly, i ? col[i - 1].ly + gap : top); }
     for (const q of col) {
-      svg += `<line x1="${q.x.toFixed(1)}" y1="${q.y.toFixed(1)}" x2="${xs.toFixed(1)}" y2="${q.ly.toFixed(1)}"/><circle cx="${q.x.toFixed(1)}" cy="${q.y.toFixed(1)}" r="2.5"/>`;
+      svg += `<line x1="${attr(q.x.toFixed(1))}" y1="${attr(q.y.toFixed(1))}" x2="${attr(xs.toFixed(1))}" y2="${attr(q.ly.toFixed(1))}"/><circle cx="${attr(q.x.toFixed(1))}" cy="${attr(q.y.toFixed(1))}" r="2.5"/>`;
       const b = document.createElement("button"); b.type = "button"; b.className = "vlab " + side; b.textContent = q.text;
       b.style.left = xs + "px"; b.style.top = q.ly + "px"; b.title = "What does moving this point do?";
       b.addEventListener("click", () => openInfluence(q.path)); box.appendChild(b);
@@ -2826,7 +2846,7 @@ const OVERLAYS = {
   bump_steer: { mode: "top", name: "Bump steer", anim: true }, track_change: { mode: "front", name: "Track change", anim: true },
   motion_ratio: { mode: "iso", name: "Motion ratio", anim: true },
 };
-$("#showSel").innerHTML = `<option value="">Show me…</option>` + Object.entries(OVERLAYS).filter(([k]) => k !== "labels").map(([k, o]) => `<option value="${k}">${esc(o.name)}</option>`).join("");
+$("#showSel").innerHTML = `<option value="">Show me…</option>` + Object.entries(OVERLAYS).filter(([k]) => k !== "labels").map(([k, o]) => `<option value="${attr(k)}">${esc(o.name)}</option>`).join("");
 function axisGround(p) { // steering axis through the ball joints, and where it meets the ground
   const k = V.unit(V.sub(p.ub, p.lb)), t = (p.cp[2] - p.lb[2]) / k[2];
   return { k, g: V.add(p.lb, V.mul(k, t)) };
@@ -3093,7 +3113,7 @@ function panelLearn() {
         <p>${esc(t.def)}</p>
         ${t.conv ? `<p class="kv2"><b>Sign:</b> ${esc(t.conv)}</p>` : ""}
         ${t.moves ? `<p class="kv2"><b>What moves it:</b> ${esc(t.moves)}</p>` : ""}
-        <div class="tact">${termValue(t)}${t.show ? `<button class="btn small" type="button" data-show="${t.show}">Show me</button>` : ""}${t.metric && ev && ev.checks.some(r => r.key === t.metric) ? `<button class="btn small" type="button" data-fixkey="${t.metric}">What moves this?</button>` : ""}</div>
+        <div class="tact">${termValue(t)}${t.show ? `<button class="btn small" type="button" data-show="${attr(t.show)}">Show me</button>` : ""}${t.metric && ev && ev.checks.some(r => r.key === t.metric) ? `<button class="btn small" type="button" data-fixkey="${attr(t.metric)}">What moves this?</button>` : ""}</div>
       </article>`).join("")}</div></section>`).join("")}`;
 }
 function wireLearn() {
@@ -3191,13 +3211,13 @@ async function whatMoves(key, el) {
     if (key === "ride_freq" && ev.ride && cfg.spring) {
       const tgt = lo != null && hi != null ? (lo + hi) / 2 : (lo ?? hi), ms = ev.ride._m_sprung, MR = ev.metrics.motion_ratio, kt = cfg.spring.tire_rate;
       const kr = ms * (2 * Math.PI * tgt) ** 2 / 1000, ks = kr < kt ? (kr * kt / (kt - kr)) / (MR * MR) : NaN;
-      if (Number.isFinite(ks)) extra = `<tr class="fixrow" data-spring="${ks.toFixed(1)}"><td>Change the spring rate to <b>${fmt(ks, 1)} N/mm</b> (${fmt(ks * 5.71, 0)} lbf/in) for ${fmt(tgt, 2)} Hz</td><td class="n">${fmt(tgt, 2)} Hz</td><td><span class="chip ok">none</span></td><td class="acts"><button class="btn small" type="button" data-apply-spring="${ks.toFixed(1)}">Apply</button></td></tr>`;
+      if (Number.isFinite(ks)) extra = `<tr class="fixrow" data-spring="${attr(ks.toFixed(1))}"><td>Change the spring rate to <b>${fmt(ks, 1)} N/mm</b> (${fmt(ks * 5.71, 0)} lbf/in) for ${fmt(tgt, 2)} Hz</td><td class="n">${fmt(tgt, 2)} Hz</td><td><span class="chip ok">none</span></td><td class="acts"><button class="btn small" type="button" data-apply-spring="${attr(ks.toFixed(1))}">Apply</button></td></tr>`;
     }
     html = top.length || extra ? `<p class="note">Single moves that bring <b>${esc(row.label || metricLabel(key)[0])}</b> into range, re-solved for real and re-checked against every other target. Fewest side effects first.</p>
       <div class="tbl-wrap"><table class="data fixt"><thead><tr><th>Move</th><th class="n">Result</th><th>Side effects</th><th></th></tr></thead><tbody>${extra}${top.map((r, i) => `
-        <tr class="fixrow" data-i="${i}"><td>${esc(describeMove(r.c, r.mm))}</td><td class="n">${r.bad ? "–" : fmt(r.val, dec)} ${esc(unit || "")}</td>
+        <tr class="fixrow" data-i="${attr(i)}"><td>${esc(describeMove(r.c, r.mm))}</td><td class="n">${r.bad ? "–" : fmt(r.val, dec)} ${esc(unit || "")}</td>
         <td>${r.bad ? `<span class="chip bad">does not solve</span>` : r.fails.length ? r.fails.map(k => `<span class="chip bad">breaks ${esc(k === "link_clearance" ? "clearance" : metricLabel(k)[0])}</span>`).join(" ") : `<span class="chip ok">none</span>`}</td>
-        <td class="acts">${r.bad ? "" : `<button class="btn small" type="button" data-preview="${i}">Preview</button><button class="btn small primary" type="button" data-apply="${i}">Apply</button>`}</td></tr>`).join("")}</tbody></table></div>`
+        <td class="acts">${r.bad ? "" : `<button class="btn small" type="button" data-preview="${attr(i)}">Preview</button><button class="btn small primary" type="button" data-apply="${attr(i)}">Apply</button>`}</td></tr>`).join("")}</tbody></table></div>`
       : `<p class="note">No single move within 40 mm fixes this${lockPack ? " with the ball joints locked. Try unlocking packaging points, or change two points" : ". Try changing two points together"}.</p>`;
     el._fix = top;
   } else {
@@ -3205,9 +3225,9 @@ async function whatMoves(key, el) {
     const top = res.slice(0, 5), [, unit, dec] = metricLabel(key);
     html = top.length ? `<p class="note">This target already passes. These are the biggest levers on it: what +5 mm does (−5 mm does roughly the opposite).</p>
       <div class="tbl-wrap"><table class="data fixt"><thead><tr><th>Move</th><th class="n">Change</th><th>Side effects</th><th></th></tr></thead><tbody>${top.map((r, i) => `
-        <tr class="fixrow" data-i="${i}"><td>${esc(describeMove(r.c, 5))}</td><td class="n">${r.effect > 0 ? "+" : ""}${fmt(r.effect, Math.max(dec, 1))} ${esc(unit || "")}</td>
+        <tr class="fixrow" data-i="${attr(i)}"><td>${esc(describeMove(r.c, 5))}</td><td class="n">${r.effect > 0 ? "+" : ""}${fmt(r.effect, Math.max(dec, 1))} ${esc(unit || "")}</td>
         <td>${r.fails.length ? r.fails.map(k => `<span class="chip bad">breaks ${esc(metricLabel(k)[0])}</span>`).join(" ") : `<span class="chip ok">none</span>`}</td>
-        <td class="acts"><button class="btn small" type="button" data-preview="${i}">Preview</button><button class="btn small primary" type="button" data-apply="${i}">Apply</button></td></tr>`).join("")}</tbody></table></div>`
+        <td class="acts"><button class="btn small" type="button" data-preview="${attr(i)}">Preview</button><button class="btn small primary" type="button" data-apply="${attr(i)}">Apply</button></td></tr>`).join("")}</tbody></table></div>`
       : `<p class="note">${lockPack ? "None of the free points changes this. It is set by the locked packaging points (ball joints, contact patch, rocker pivot), which come from the upright and wheel design. Untick the box below to see their effect." : "None of the movable points changes this noticeably."}</p>`;
     el._fix = top.map(r => ({ ...r, mm: 5 }));
   }
@@ -3233,7 +3253,7 @@ const openRows = new Set();
 function openFixRow(key) {
   tab = "checks"; store.set("susp.tab", tab); renderTabs(); showPanel();
   openRows.add(key); fixRows.add(key); $("#pn_checks").innerHTML = panelChecks(); wireChecks();
-  const box = $(`#pn_checks [data-fixbox="${key}"]`);
+  const box = $(`#pn_checks [data-fixbox="${cssq(key)}"]`);
   if (box) box.closest("tr").scrollIntoView({ block: "center" });
 }
 
@@ -3298,16 +3318,16 @@ function openInfluence(path) {
       const t = tg[k], span = t && t[0] != null && t[1] != null ? Math.abs(t[1] - t[0]) : Math.max(Math.abs(b0) * 0.5, 10 ** -dec * 20);
       const strength = Math.min(1, Math.abs(d) / (span * 0.25 || 1));
       const breaks = e.checks.some(r => r.key === k && r.status === "FAIL") && !fb.has(k);
-      return `<td class="n${breaks ? " brk" : ""}" style="--s:${strength.toFixed(2)}" data-sign="${d > 0 ? "+" : d < 0 ? "-" : "0"}">${Math.abs(d) < 10 ** -(dec + 1) ? "·" : (d > 0 ? "+" : "") + fmt(d, Math.max(dec, 1))}</td>`;
+      return `<td class="n${breaks ? " brk" : ""}" style="--s:${strength.toFixed(2)}" data-sign="${attr(d > 0 ? "+" : d < 0 ? "-" : "0")}">${Math.abs(d) < 10 ** -(dec + 1) ? "·" : (d > 0 ? "+" : "") + fmt(d, Math.max(dec, 1))}</td>`;
     }).join("");
     const tid = (TERM_BY_METRIC[k] || {}).id;
-    rows += `<tr><td>${tid ? `<button class="lnk" type="button" data-term="${tid}">${esc(lab)}</button>` : esc(lab)}</td><td class="n muted">${fmt(ev.metrics[k], dec)}</td>${cells}</tr>`;
+    rows += `<tr><td>${tid ? `<button class="lnk" type="button" data-term="${attr(tid)}">${esc(lab)}</button>` : esc(lab)}</td><td class="n muted">${fmt(ev.metrics[k], dec)}</td>${cells}</tr>`;
   }
   dr.innerHTML = `<div class="drhead"><div><h3>${esc(pointName(path))}</h3><p class="note mono">${esc(path.replace("hardpoints.", ""))} · ${pt.map(v => fmt(v, 1)).join(", ")}</p></div><button class="btn small" type="button" id="drClose" aria-label="Close">✕</button></div>
     ${locked ? (chal ? `<p class="lockmsg">This point is fixed in this challenge. The effects below are for learning.</p>` : `<p class="lockmsg">Locked: usually set by the ${isSpring ? "chassis" : "upright and wheel"} package. The effects below are for learning. <button class="lnk" type="button" id="drUnlock">Unlock</button></p>`) : ""}
     <p class="note">What moving this point <b>5 mm</b> does. Color strength = size of the change; red outline = a target that would start failing. Moving the other way does roughly the opposite.</p>
     <div class="tbl-wrap"><table class="data inf"><thead><tr><th>Metric</th><th class="n">Now</th>${dirs.map(([, lab]) => `<th class="n">${lab} 5</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>
-    ${locked ? "" : `<div class="tact drpv"><span class="note">Preview a 5 mm move:</span>${dirs.filter(([ax]) => chalAx.includes(ax)).map(([ax, , long]) => `<button class="btn small" type="button" data-pv="${ax}">${long}</button>`).join("")}</div>`}`;
+    ${locked ? "" : `<div class="tact drpv"><span class="note">Preview a 5 mm move:</span>${dirs.filter(([ax]) => chalAx.includes(ax)).map(([ax, , long]) => `<button class="btn small" type="button" data-pv="${attr(ax)}">${long}</button>`).join("")}</div>`}`;
   $("#drClose").onclick = closeInfluence;
   const ul = $("#drUnlock"); if (ul) ul.onclick = () => setLock(false);
   $$("#drawer [data-pv]").forEach(b => b.addEventListener("click", () => { const ax = +b.dataset.pv, c = { pts: [path], axis: ax, name: pointName(path) }; startPreview(movedCfg(cfg, c, 5), describeMove(c, 5)); }));
@@ -3359,7 +3379,7 @@ const CHALLENGES = [
 ];
 let chal = null;   // { def, start, prev, hint, done }
 const chalStore = () => { try { return JSON.parse(store.get("susp.chal") || "{}"); } catch (e) { return {}; } };
-const starsHtml = (n) => `<span class="stars" aria-label="${n} of 3 stars">${[0, 1, 2].map(i => `<span class="${i < n ? "on" : ""}">★</span>`).join("")}</span>`;
+const starsHtml = (n) => `<span class="stars" aria-label="${n} of 3 stars">${[0, 1, 2].map(i => `<span class="${attr(i < n ? "on" : "")}">★</span>`).join("")}</span>`;
 function chalPar(def) {
   if (def.par) return def.par;
   const a = presetCfg(def.start), b = presetCfg(def.ref); if (!a || !b) return null;
@@ -3372,7 +3392,7 @@ function openChallenges() {          // the chooser, shown in the rail
   const best = chalStore();
   $("#crail").innerHTML = `<div class="card crail-card"><div class="crhead"><h2>Challenges</h2><button class="btn small" type="button" id="chClose">Close</button></div>
     <p class="note">Short exercises on real geometry. Only the points named in each challenge can move, the goals update live, and hints unlock one at a time. Your current design is put back when you leave.</p>
-    ${CHALLENGES.map(d => `<button class="chpick" type="button" data-ch="${d.id}"><span class="chn">${d.n}</span><span><b>${esc(d.title)}</b><small>${esc(d.stage)}</small></span>${starsHtml(best[d.id] || 0)}</button>`).join("")}
+    ${CHALLENGES.map(d => `<button class="chpick" type="button" data-ch="${attr(d.id)}"><span class="chn">${d.n}</span><span><b>${esc(d.title)}</b><small>${esc(d.stage)}</small></span>${starsHtml(best[d.id] || 0)}</button>`).join("")}
     <p class="note">Stars: ★ goals met · ★ bonus · ★ moved no more than par (the total millimeters of a good solution).</p></div>`;
   $("#chClose").onclick = closeRail;
   $$("#crail [data-ch]").forEach(b => b.addEventListener("click", () => startChallenge(b.dataset.ch)));
@@ -3410,7 +3430,7 @@ function buildRail() {
     <div class="sub-h">Goals</div><div id="chGoals" class="meters"></div><div id="chDone"></div>
     <div class="sub-h">Points you can move <span class="muted">(X is fixed)</span></div>
     <table class="pt chpts"><thead><tr><th>Point</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody>
-    ${d.unlock.map(p => `<tr><td class="lab"><button class="lnk" type="button" data-chhp="${p}">${esc(lab(p))}</button></td>${[0, 1, 2].map(i => d.axes.includes(i)
+    ${d.unlock.map(p => `<tr><td class="lab"><button class="lnk" type="button" data-chhp="${attr(p)}">${esc(lab(p))}</button></td>${[0, 1, 2].map(i => d.axes.includes(i)
       ? `<td class="c"><input class="num" type="number" step="0.5" inputmode="decimal" data-chpath="${p}.${i}" aria-label="${esc(lab(p))} ${"XYZ"[i]}"></td>`
       : `<td class="c"><span class="num ro">${fmt(getPath(cfg, p)[i], 1)}</span></td>`).join("")}</tr>`).join("")}</tbody></table>
     <div class="chmove" id="chMove"></div>
@@ -3433,7 +3453,7 @@ function meter(key, c, lab, unit, dec) {
   const vs = Math.max(0, Math.min(100, +X(v)));
   const rng = `${lo == null ? "≤ " : fmt(lo, dec)}${lo != null && hi != null ? " to " : ""}${hi == null ? " or more" : fmt(hi, dec)}`;
   const can = !!meterChart(key, true), open = can && chal && chal.open && chal.open.has(key);
-  return `<div class="meter ${ok ? "ok" : "bad"}"><div class="mtop"><span>${can ? `<button class="lnk mexp" type="button" data-mexp="${key}" aria-expanded="${open}">${open ? "▾" : "▸"} ${esc(lab)}</button>` : esc(lab)} <small class="muted">target ${rng}</small></span><b>${fmt(v, dec)} <small>${esc(unit)}</small> ${ok ? "✓" : "✗"}</b></div>
+  return `<div class="meter ${ok ? "ok" : "bad"}"><div class="mtop"><span>${can ? `<button class="lnk mexp" type="button" data-mexp="${attr(key)}" aria-expanded="${attr(open)}">${open ? "▾" : "▸"} ${esc(lab)}</button>` : esc(lab)} <small class="muted">target ${rng}</small></span><b>${fmt(v, dec)} <small>${esc(unit)}</small> ${ok ? "✓" : "✗"}</b></div>
     <div class="mbar" title="green band = target ${rng} ${esc(unit)}"><span class="mband" style="left:${lo == null ? 0 : X(lo)}%;right:${hi == null ? 0 : (100 - X(hi))}%"></span><span class="mdot" style="left:${vs}%"></span></div>${open ? `<div class="mchart">${meterChart(key)}</div>` : ""}</div>`;
 }
 // the curve behind each goal, with the target band, so an abstract number becomes "flatten this line"
@@ -3627,7 +3647,7 @@ function cmpCols() {   // live design first, then saved ones
 const CMP_EXTRA = [["fvsa", "Front-view swing arm"], ["track_change", ""], ["roll_camber", ""], ["steer_arm", ""], ["turn_radius", ""], ["motion_ratio", ""], ["mr_progression", ""], ["wheel_rate", ""], ["damper_used", ""], ["rocker_rot", ""]];
 function panelCompare() {
   const cols = cmpCols(), ok = cols.filter(c => c.r && c.r.ev), refC = cols[cmpRef + 1] && cmpRef + 1 < cols.length ? cols[cmpRef + 1] : cols[0];
-  const presetOpts = PRESETS.map((p, i) => `<option value="${i}">${esc(p.label)}</option>`).join("");
+  const presetOpts = PRESETS.map((p, i) => `<option value="${attr(i)}">${esc(p.label)}</option>`).join("");
   const head = `<div class="cmpbar">
     <span class="cmpadd"><input class="num cmpname" id="cmpName" type="text" placeholder="Name, e.g. raised pivots" aria-label="Name for the saved design" value="${esc(cfg.name || "")}"><button class="btn small primary" type="button" id="cmpSaveCur">Save current design</button></span>
     <select class="sel cmpsel" id="cmpPreset" aria-label="Add an example design"><option value="">Add an example…</option>${presetOpts}</select>
@@ -3635,10 +3655,10 @@ function panelCompare() {
     ${cmp.length ? `<button class="btn small" type="button" id="cmpCsv">Copy table (CSV)</button><button class="btn small" type="button" id="cmpClear">Remove all</button>` : ""}</div>`;
   if (!cmp.length) return head + `<p class="note">Save the design on screen, add an example or open design files to compare up to four designs with the live one: every target side by side with the change from a reference, the hardpoints that differ, the curves overlaid, and ghosts in the 3D view. Saved designs stay in this browser only.</p>`;
   const legend = `<div class="cmpleg">${cols.map((c, j) => `<div class="cmpcol" style="--c:${c.hex}">
-      <span class="sw"></span>${c.live ? `<b>${esc(c.name)}</b>` : `<input class="num cmpren" type="text" value="${esc(c.name)}" data-ren="${c.idx}" aria-label="Rename">`}
-      <label class="small-check"><input type="radio" name="cmpref" value="${j - 1}" ${refC === c ? "checked" : ""}> reference</label>
-      ${c.live ? "" : `<label class="small-check"><input type="checkbox" data-ghost="${c.idx}" ${cmpGhost.has(c.idx) ? "checked" : ""}> 3D</label>
-      <button class="btn small" type="button" data-load="${c.idx}" title="Make this the design you are editing">Load</button><button class="btn small" type="button" data-del="${c.idx}" aria-label="Remove">✕</button>`}
+      <span class="sw"></span>${c.live ? `<b>${esc(c.name)}</b>` : `<input class="num cmpren" type="text" value="${esc(c.name)}" data-ren="${attr(c.idx)}" aria-label="Rename">`}
+      <label class="small-check"><input type="radio" name="cmpref" value="${attr(j - 1)}" ${refC === c ? "checked" : ""}> reference</label>
+      ${c.live ? "" : `<label class="small-check"><input type="checkbox" data-ghost="${attr(c.idx)}" ${cmpGhost.has(c.idx) ? "checked" : ""}> 3D</label>
+      <button class="btn small" type="button" data-load="${attr(c.idx)}" title="Make this the design you are editing">Load</button><button class="btn small" type="button" data-del="${attr(c.idx)}" aria-label="Remove">✕</button>`}
       ${c.r && c.r.err ? `<span class="bad-t">does not solve</span>` : ""}</div>`).join("")}</div>`;
   // metric rows
   const keys = [...new Set(ok.flatMap(c => c.r.ev.checks.map(r => r.key)))];
@@ -3657,7 +3677,7 @@ function panelCompare() {
       const v = vals[j]; if (v == null || !Number.isFinite(v)) return `<td class="n muted">–</td>`;
       const ck = c.r.ev.checks.find(r => r.key === k), st = k === "min_fos" ? (v >= c.r.ev.cfg.members.sf_target ? "PASS" : "FAIL") : ck ? ck.status : null;
       const dlt = c !== refC && rv != null && Number.isFinite(rv) ? v - rv : null;
-      return `<td class="n ${st === "PASS" ? "cpass" : st === "FAIL" ? "cfail" : ""}">${fmt(v, dec)}${dlt != null && Math.abs(dlt) >= 10 ** -(dec + 1) * 5 ? `<small class="${dlt > 0 ? "delta-up" : "delta-dn"}">${dlt > 0 ? "+" : ""}${fmt(dlt, dec)}</small>` : ""}</td>`; }).join("")}</tr>`;
+      return `<td class="n ${st === "PASS" ? "cpass" : st === "FAIL" ? "cfail" : ""}">${fmt(v, dec)}${dlt != null && Math.abs(dlt) >= 10 ** -(dec + 1) * 5 ? `<small class="${attr(dlt > 0 ? "delta-up" : "delta-dn")}">${dlt > 0 ? "+" : ""}${fmt(dlt, dec)}</small>` : ""}</td>`; }).join("")}</tr>`;
   }
   const table = `<div class="tbl-wrap"><table class="data cmpt"><thead><tr><th>Metric</th>${cols.map(c => `<th class="n" style="--c:${c.hex}"><span class="sw"></span>${esc(c.name)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>
     <p class="note">Green = meets that design's own target, red = misses it. Small numbers are the change from the reference. <label class="small-check" style="display:inline-flex"><input type="checkbox" id="cmpDiff" ${cmpOnlyDiff ? "checked" : ""}> only rows that differ</label></p>`;
@@ -3669,7 +3689,7 @@ function panelCompare() {
     const rv = (getPath(refCfg, p) || [])[i];
     const vs = cols.map(c => (getPath(cfgOf(c), p) || [])[i]);
     if (vs.every(v => v == null || rv == null || Math.abs(v - rv) < 0.05)) continue;
-    hpRows.push(`<tr><td>${esc(pointName(p))} <b class="axis${i}">${"XYZ"[i]}</b></td>${vs.map((v, j) => v == null ? `<td class="n muted">–</td>` : `<td class="n">${fmt(v, 1)}${cols[j] !== refC && rv != null && Math.abs(v - rv) >= 0.05 ? `<small class="${v > rv ? "delta-up" : "delta-dn"}">${v > rv ? "+" : ""}${fmt(v - rv, 1)}</small>` : ""}</td>`).join("")}</tr>`);
+    hpRows.push(`<tr><td>${esc(pointName(p))} <b class="axis${i}">${"XYZ"[i]}</b></td>${vs.map((v, j) => v == null ? `<td class="n muted">–</td>` : `<td class="n">${fmt(v, 1)}${cols[j] !== refC && rv != null && Math.abs(v - rv) >= 0.05 ? `<small class="${attr(v > rv ? "delta-up" : "delta-dn")}">${v > rv ? "+" : ""}${fmt(v - rv, 1)}</small>` : ""}</td>`).join("")}</tr>`);
   }
   const hp = `<h3 class="sub-h">Hardpoints that differ from the reference, mm</h3>${hpRows.length ? `<div class="tbl-wrap"><table class="data cmpt"><thead><tr><th>Point</th>${cols.map(c => `<th class="n" style="--c:${c.hex}"><span class="sw"></span>${esc(c.name)}</th>`).join("")}</tr></thead><tbody>${hpRows.join("")}</tbody></table></div>` : `<p class="note">All hardpoints match the reference.</p>`}`;
   // curves
@@ -3735,16 +3755,17 @@ function cornerFrom(raw) {
 function carFrom(raw) {
   const veh = S.deepMerge(S.DEFAULTS.vehicle, Object.assign({}, raw.front.vehicle || {}, raw.vehicle || {}));
   const c = { name: raw.name || "Car", vehicle: veh, arb: { front: +((raw.arb || {}).front || 0), rear: +((raw.arb || {}).rear || 0) },
-    car_targets: Object.assign({}, S.CAR_TARGETS, raw.car_targets || {}), src: { front: raw.name || "car file", rear: raw.name || "car file" } };
+    car_targets: Object.assign({}, S.CAR_TARGETS, raw.car_targets || {}), warn: S.unknownTargetKeys(raw.car_targets, S.CAR_TARGETS, "car", ""), src: { front: raw.name || "car file", rear: raw.name || "car file" } };
   for (const ax of ["front", "rear"]) { c[ax] = cornerFrom(Object.assign({}, raw[ax], { axle: ax })); c[ax].vehicle = veh; }
   return c;
 }
 function exampleCarRaw() { const p = PRESETS.find(q => isCarRaw(q.cfg)); return p ? p.cfg : null; }
-function exportCar() {
-  // every corner's full target ranges are written out (built-in defaults, team file and edits merged), so a car file
-  // carries its targets with it and opens the same anywhere
+function exportCar(local = false) {
+  // Each corner keeps only the target ranges its user set (its own "targets"), plus the link to the team targets file.
+  // Built-in defaults and the team file's ranges are never frozen into the file, so a later change to the team file
+  // still applies. The browser's own saved state (local) also keeps the team ranges it has read.
   const strip = (c) => { const o = {}; for (const k of ["name", "targets_file", "hardpoints", "wheel", "sweep", "clearance", "rack_direction", "targets", "spring", "loads", "members"]) if (c[k] != null) o[k] = c[k];
-    try { const e = carEvalCorner(c).ev; if (e) o.targets = Object.fromEntries(Object.entries(S.defaultTargets(e.cfg)).filter(([k]) => !k.startsWith("_"))); } catch (x) { /* keep what is there */ }
+    if (local && c._team_targets) o._team_targets = c._team_targets;
     return o; };
   return { type: "car", name: car.name, vehicle: car.vehicle, arb: car.arb, car_targets: car.car_targets, front: strip(car.front), rear: strip(car.rear) };
 }
@@ -3801,8 +3822,8 @@ function evalCar() {
 // ---------------------------------------------------------------- car inputs column
 function carField(label, unit, path, opts = {}) {
   const v = getPath(car, path), val = v == null ? "" : (opts.scale ? +(v * opts.scale).toFixed(6) : v);
-  if (opts.options) return `<div class="field"><label>${label}<select data-cpath="${path}" data-type="select">${opts.options.map(([k, t]) => `<option value="${k}"${k === v ? " selected" : ""}>${t}</option>`).join("")}</select></label></div>`;
-  return `<div class="field"><label>${label} <i>${unit}</i></label><input class="num" type="number" step="${opts.step ?? "any"}" data-cpath="${path}"${opts.scale ? ` data-scale="${opts.scale}"` : ""} value="${val}" aria-label="${esc(label)}"></div>`;
+  if (opts.options) return `<div class="field"><label>${label}<select data-cpath="${attr(path)}" data-type="select">${opts.options.map(([k, t]) => `<option value="${attr(k)}"${k === v ? " selected" : ""}>${t}</option>`).join("")}</select></label></div>`;
+  return `<div class="field"><label>${label} <i>${unit}</i></label><input class="num" type="number" step="${attr(opts.step ?? "any")}" data-cpath="${attr(path)}"${opts.scale ? ` data-scale="${attr(opts.scale)}"` : ""} value="${attr(val)}" aria-label="${esc(label)}"></div>`;
 }
 function renderCarIn() {
   const box = $("#carIn"); if (!box || !car) return;
@@ -3812,12 +3833,13 @@ function renderCarIn() {
     return `<div class="slot"><div><b>${ax === "front" ? "Front" : "Rear"}</b> <span class="muted">${esc(car[ax].name || "")}</span>
       <small class="muted">${esc(car.src[ax] || "")}</small></div>
       <div class="tact">${e.ev ? `<span class="pill ${p === n.length ? "ok" : "bad"}">${p}/${n.length} targets</span>` : `<span class="pill bad">no solution</span>`}
-      <button class="btn small" type="button" data-edit="${ax}">Edit ${ax}</button><button class="btn small" type="button" data-open="${ax}">Open ${ax} file…</button></div></div>`; };
-  const rng = (k, lab, unit) => `<div class="field wide"><label>${lab} <i>${unit}</i></label><span class="rng"><input class="num" type="number" step="any" data-ctg="${k}" data-i="0" value="${tg[k][0] ?? ""}" aria-label="${esc(lab)} minimum"> to <input class="num" type="number" step="any" data-ctg="${k}" data-i="1" value="${tg[k][1] ?? ""}" aria-label="${esc(lab)} maximum"></span></div>`;
+      <button class="btn small" type="button" data-edit="${attr(ax)}">Edit ${ax}</button><button class="btn small" type="button" data-open="${attr(ax)}">Open ${ax} file…</button></div></div>`; };
+  const rng = (k, lab, unit) => `<div class="field wide"><label>${lab} <i>${unit}</i></label><span class="rng"><input class="num" type="number" step="any" data-ctg="${attr(k)}" data-i="0" value="${attr(tg[k][0] ?? "")}" aria-label="${esc(lab)} minimum"> to <input class="num" type="number" step="any" data-ctg="${attr(k)}" data-i="1" value="${attr(tg[k][1] ?? "")}" aria-label="${esc(lab)} maximum"></span></div>`;
   box.innerHTML = `
     <div class="card"><div class="hd"><h2>Car</h2><span class="hint">front + rear</span></div><div class="body">
       <div class="field"><label>Car name</label><input class="num" style="text-align:left;font-family:var(--f-body)" type="text" data-cpath="name" data-type="text" value="${esc(car.name || "")}"></div>
       ${slot("front")}${slot("rear")}
+      ${(car.warn || []).map(m => `<div class="banner warn">${esc(m)}</div>`).join("")}
       <p class="note">Save JSON in this view saves both corners in one car file. Single-corner files still open: they go into the front or rear slot.</p></div></div>
     <div class="card"><div class="hd"><h2>Vehicle</h2><span class="hint">shared by both axles</span></div><div class="body"><div class="fields">
       ${carField("Car mass with driver", "kg", "vehicle.mass")}${carField("Weight on front", "%", "vehicle.weight_front", { scale: 100, step: 0.5 })}
@@ -4005,13 +4027,13 @@ function reportHtml() {
         tbl(["Member", "Tube", "Worst compression, N", "FOS buckling", "Worst |force|, N", "FOS yield", ""], k.L.checks.map(q => { const fos = Math.min(q.sf_buckle, q.sf_yield);
           return `<tr><td>${memLabel(q.member, e)}</td><td class="n">${fmt(q.od, 2)} × ${fmt(q.wall, 3)}</td><td class="n">${fmt(q.compression, 0)}</td><td class="n">${fmt(q.sf_buckle, 1)}</td><td class="n">${fmt(q.peak, 0)}</td><td class="n">${fmt(q.sf_yield, 1)}</td><td>${fos >= mem.sf_target ? `<span class="ok">OK</span>` : `<span class="bad">Below FOS</span>`}</td></tr>`; }));
       const b = k.L.bending_check;
-      if (b) body += `<p class="note"><b>Pushrod mount bending:</b> ${esc(memLabel(b.leg, e).toLowerCase())} as a beam pinned at both ends, mount ${fmt(b.a, 0)} of ${fmt(b.length, 0)} mm from the pivot and ${fmt(b.offset, 0)} mm off its centerline. Worst case ${esc(b.case)}: ${fmt(b.moment / 1000, 1)} N m, ${fmt(b.stress, 0)} MPa, FOS <b class="${b.sf >= mem.sf_target ? "ok" : "bad"}">${fmt(b.sf, 2)}</b>${b.sf >= mem.sf_target ? "" : " (needs a gusset or bracket at the node, or a stiffer leg)"}.</p>`;
+      if (b) body += `<p class="note"><b>Pushrod mount bending:</b> ${esc(memLabel(b.leg, e).toLowerCase())} as a beam pinned at both ends, mount ${fmt(b.a, 0)} of ${fmt(b.length, 0)} mm from the pivot and ${fmt(b.offset, 0)} mm off its centerline. Worst case ${esc(b.case)}: ${fmt(b.moment / 1000, 1)} N m, ${fmt(b.stress, 0)} MPa, FOS <b class="${attr(b.sf >= mem.sf_target ? "ok" : "bad")}">${fmt(b.sf, 2)}</b>${b.sf >= mem.sf_target ? "" : " (needs a gusset or bracket at the node, or a stiffer leg)"}.</p>`;
       body += tbl(["Member", "Worst |force|, N", `Bolt FOS (${esc(String(mem.bolt_dia))} mm ${esc(String(mem.bolt_grade))}, ${mem.bolt_shear_planes == 1 ? "single" : "double"} shear)`, "Rod-end FOS"],
         k.L.parts.map(q => `<tr><td>${memLabel(q.member, e)}</td><td class="n">${fmt(q.peak, 0)}</td><td class="n">${q.sf_bolt == null ? "–" : fmt(q.sf_bolt, 1)}</td><td class="n">${q.sf_rod_end == null ? "rating not entered" : fmt(q.sf_rod_end, 1)}</td></tr>`));
       const C = k.L.compliance;
       if (C) body += `<h3>Compliance (rod ends ${fmt(+mem.rod_end_k || 0, 0)} N/mm each, tabs ${fmt(+mem.mount_k || 0, 0)} N/mm, estimates)</h3>` +
         tbl(["Case", "Camber change, deg", "Toe-in change, deg", "Contact patch sideways, mm"], C.cases.map(x => `<tr><td>${esc(x.case)}${x.driving ? "" : " (impact, not limited)"}</td><td class="n">${fmt(x.camber, 3)}</td><td class="n">${fmt(x.toe, 3)}</td><td class="n">${fmt(x.cp_y, 2)}</td></tr>`)) +
-        `<p class="note">Worst driving-case toe change ${fmt(C.worst_toe.toe, 3)}° (${esc(C.worst_toe.case)})${C.toe_limit != null ? `, limit ${fmt(C.toe_limit, 2)}: <b class="${C.toe_ok ? "ok" : "bad"}">${C.toe_ok ? "OK" : "too soft"}</b>` : ""}; camber ${fmt(C.worst_camber.camber, 3)}° (${esc(C.worst_camber.case)})${C.camber_limit != null ? `, limit ${fmt(C.camber_limit, 2)}: <b class="${C.camber_ok ? "ok" : "bad"}">${C.camber_ok ? "OK" : "too soft"}</b>` : ""}.</p>`;
+        `<p class="note">Worst driving-case toe change ${fmt(C.worst_toe.toe, 3)}° (${esc(C.worst_toe.case)})${C.toe_limit != null ? `, limit ${fmt(C.toe_limit, 2)}: <b class="${attr(C.toe_ok ? "ok" : "bad")}">${C.toe_ok ? "OK" : "too soft"}</b>` : ""}; camber ${fmt(C.worst_camber.camber, 3)}° (${esc(C.worst_camber.case)})${C.camber_limit != null ? `, limit ${fmt(C.camber_limit, 2)}: <b class="${attr(C.camber_ok ? "ok" : "bad")}">${C.camber_ok ? "OK" : "too soft"}</b>` : ""}.</p>`;
     }
   }
   body += `<footer>Rigid links, quasi-static, no tire model; the car balance assumes a rigid chassis and roll centers at ride height. Confirm the final design in CAD. Generated by the FSAE Suspension Solver.</footer>`;
@@ -4100,7 +4122,7 @@ function wireExport() {
   const om = $("#openMenu");
   document.addEventListener("click", (e) => { if (om.open && !om.contains(e.target)) om.open = false; });
   om.addEventListener("toggle", () => { if (om.open) { menu.open = false; ex.open = false; } });
-  const grp = (lab, f) => { const o = PRESETS.map((p, i) => [p, i]).filter(([p]) => f(p.cfg)); return o.length ? `<p class="note">${lab}</p>${o.map(([p, i]) => `<button type="button" role="menuitem" data-pi="${i}"><b>${esc(p.label)}</b></button>`).join("")}` : ""; };
+  const grp = (lab, f) => { const o = PRESETS.map((p, i) => [p, i]).filter(([p]) => f(p.cfg)); return o.length ? `<p class="note">${lab}</p>${o.map(([p, i]) => `<button type="button" role="menuitem" data-pi="${attr(i)}"><b>${esc(p.label)}</b></button>`).join("")}` : ""; };
   $("#openPop").innerHTML = `<button type="button" role="menuitem" id="omFile"><b>A file from your computer…</b><span>A design, a car file or a team targets file. Read in your browser, never uploaded.</span></button><hr>` +
     grp("Example cars", isCarRaw) + grp("Front corners", c => c.hardpoints && c.axle !== "rear") + grp("Rear corners", c => c.hardpoints && c.axle === "rear");
   $("#omFile").addEventListener("click", () => { om.open = false; $("#fileIn").click(); });
@@ -4133,9 +4155,9 @@ function cadRefresh() {
   store.set("susp.cad", JSON.stringify(o));
 }
 function openCad() {
-  $("#cadFrame").innerHTML = Object.entries(CADX.FRAMES).map(([k, f]) => `<option value="${k}">${esc(f.label)}</option>`).join("");
+  $("#cadFrame").innerHTML = Object.entries(CADX.FRAMES).map(([k, f]) => `<option value="${attr(k)}">${esc(f.label)}</option>`).join("");
   let saved = {}; try { saved = JSON.parse(store.get("susp.cad") || "{}") || {}; } catch (e) { saved = {}; }
-  for (const [k, id] of [["fmt", "#cadFmt"], ["frame", "#cadFrame"], ["origin", "#cadOrigin"], ["units", "#cadUnits"]]) if (saved[k] && $(id).querySelector(`option[value="${saved[k]}"]`)) $(id).value = saved[k];
+  for (const [k, id] of [["fmt", "#cadFmt"], ["frame", "#cadFrame"], ["origin", "#cadOrigin"], ["units", "#cadUnits"]]) if (saved[k] && $(id).querySelector(`option[value="${cssq(saved[k])}"]`)) $(id).value = saved[k];
   if (Array.isArray(saved.poses)) [["bump", "#cadBump"], ["droop", "#cadDroop"], ["steer", "#cadSteer"]].forEach(([p, id]) => $(id).checked = saved.poses.includes(p));
   $("#cadDlg").hidden = false; cadRefresh(); setTimeout(() => $("#cadGo").focus(), 0);
 }
@@ -4173,7 +4195,7 @@ function loadCfg(raw, name, opts = {}) {
   }
   fillForm(); run(); return true;
 }
-{ const grp = (lab, f) => { const o = PRESETS.map((p, i) => [p, i]).filter(([p]) => f(p.cfg)); return o.length ? `<optgroup label="${lab}">${o.map(([p, i]) => `<option value="${i}">${esc(p.label)}</option>`).join("")}</optgroup>` : ""; };
+{ const grp = (lab, f) => { const o = PRESETS.map((p, i) => [p, i]).filter(([p]) => f(p.cfg)); return o.length ? `<optgroup label="${attr(lab)}">${o.map(([p, i]) => `<option value="${attr(i)}">${esc(p.label)}</option>`).join("")}</optgroup>` : ""; };
   $("#preset").innerHTML = grp("Whole cars", isCarRaw) + grp("Front corners", c => c.hardpoints && c.axle !== "rear") + grp("Rear corners", c => c.hardpoints && c.axle === "rear") + `<option value="custom" hidden>Your edits</option>`; }
 $("#preset").addEventListener("change", (e) => {
   if (e.target.value === "custom") return; if (chal) exitChallenge(true); view.target = null;
@@ -4188,11 +4210,12 @@ $("#fileIn").addEventListener("change", async (e) => {
     const raw = JSON.parse(await f.text());
     if (isCarRaw(raw)) { if (chal) exitChallenge(true); axleView = "car"; store.set("susp.view", "car"); applyViewClasses(); if (loadCar(raw, f.name)) $("#preset").value = "custom"; }
     else if (!raw.hardpoints && (raw.front || raw.rear || raw.targets || Object.values(raw).some(v => Array.isArray(v) && v.length === 2))) {
-      const t = S.targetsFromFile(raw, cfg.axle); delete t._note;
-      cfg.targets = Object.assign({}, t, cfg.targets || {});
-      if (car && axleView === "car") { const o = car.rear === cfg ? car.front : car.rear, t2 = S.targetsFromFile(raw, o.axle); delete t2._note; o.targets = Object.assign({}, t2, o.targets || {}); }
+      // team targets sit between the general ranges and the design's own; saved files keep only the link (targets_file)
+      const apply = (c) => { const t = S.targetsFromFile(raw, c.axle); delete t._note; c._team_targets = t; if (!c.targets_file) c.targets_file = f.name; return t; };
+      const t = apply(cfg);
+      if (car && axleView === "car") apply(car.rear === cfg ? car.front : car.rear);
       $("#preset").value = "custom"; run();
-      $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner warn">Applied ${Object.keys(t).length} target ranges from ${esc(f.name)} to this design. They are now saved in its JSON under <span class="mono">targets</span>.</div>`);
+      $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner warn">Applied ${Object.keys(t).length} target ranges from ${esc(f.name)}. Saved designs keep a link to it (<span class="mono">targets_file</span>), so later changes to the team file still apply; your own edits to a range are saved with the design and win.</div>`);
     } else { if (chal) exitChallenge(true); view.target = null; if (loadCfg(raw, f.name, { toView: raw.axle === "rear" ? "rear" : "front" })) $("#preset").value = "custom"; }
   }
   catch (ex) { $("#errBox").innerHTML = `<div class="banner bad">${esc(f.name)} is not a valid config: ${esc(ex.message)}</div>`; }

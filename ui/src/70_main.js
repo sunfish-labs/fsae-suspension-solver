@@ -15,7 +15,7 @@ function loadCfg(raw, name, opts = {}) {
   }
   fillForm(); run(); return true;
 }
-{ const grp = (lab, f) => { const o = PRESETS.map((p, i) => [p, i]).filter(([p]) => f(p.cfg)); return o.length ? `<optgroup label="${lab}">${o.map(([p, i]) => `<option value="${i}">${esc(p.label)}</option>`).join("")}</optgroup>` : ""; };
+{ const grp = (lab, f) => { const o = PRESETS.map((p, i) => [p, i]).filter(([p]) => f(p.cfg)); return o.length ? `<optgroup label="${attr(lab)}">${o.map(([p, i]) => `<option value="${attr(i)}">${esc(p.label)}</option>`).join("")}</optgroup>` : ""; };
   $("#preset").innerHTML = grp("Whole cars", isCarRaw) + grp("Front corners", c => c.hardpoints && c.axle !== "rear") + grp("Rear corners", c => c.hardpoints && c.axle === "rear") + `<option value="custom" hidden>Your edits</option>`; }
 $("#preset").addEventListener("change", (e) => {
   if (e.target.value === "custom") return; if (chal) exitChallenge(true); view.target = null;
@@ -30,11 +30,12 @@ $("#fileIn").addEventListener("change", async (e) => {
     const raw = JSON.parse(await f.text());
     if (isCarRaw(raw)) { if (chal) exitChallenge(true); axleView = "car"; store.set("susp.view", "car"); applyViewClasses(); if (loadCar(raw, f.name)) $("#preset").value = "custom"; }
     else if (!raw.hardpoints && (raw.front || raw.rear || raw.targets || Object.values(raw).some(v => Array.isArray(v) && v.length === 2))) {
-      const t = S.targetsFromFile(raw, cfg.axle); delete t._note;
-      cfg.targets = Object.assign({}, t, cfg.targets || {});
-      if (car && axleView === "car") { const o = car.rear === cfg ? car.front : car.rear, t2 = S.targetsFromFile(raw, o.axle); delete t2._note; o.targets = Object.assign({}, t2, o.targets || {}); }
+      // team targets sit between the general ranges and the design's own; saved files keep only the link (targets_file)
+      const apply = (c) => { const t = S.targetsFromFile(raw, c.axle); delete t._note; c._team_targets = t; if (!c.targets_file) c.targets_file = f.name; return t; };
+      const t = apply(cfg);
+      if (car && axleView === "car") apply(car.rear === cfg ? car.front : car.rear);
       $("#preset").value = "custom"; run();
-      $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner warn">Applied ${Object.keys(t).length} target ranges from ${esc(f.name)} to this design. They are now saved in its JSON under <span class="mono">targets</span>.</div>`);
+      $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner warn">Applied ${Object.keys(t).length} target ranges from ${esc(f.name)}. Saved designs keep a link to it (<span class="mono">targets_file</span>), so later changes to the team file still apply; your own edits to a range are saved with the design and win.</div>`);
     } else { if (chal) exitChallenge(true); view.target = null; if (loadCfg(raw, f.name, { toView: raw.axle === "rear" ? "rear" : "front" })) $("#preset").value = "custom"; }
   }
   catch (ex) { $("#errBox").innerHTML = `<div class="banner bad">${esc(f.name)} is not a valid config: ${esc(ex.message)}</div>`; }

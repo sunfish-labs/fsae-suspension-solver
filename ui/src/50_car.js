@@ -16,16 +16,17 @@ function cornerFrom(raw) {
 function carFrom(raw) {
   const veh = S.deepMerge(S.DEFAULTS.vehicle, Object.assign({}, raw.front.vehicle || {}, raw.vehicle || {}));
   const c = { name: raw.name || "Car", vehicle: veh, arb: { front: +((raw.arb || {}).front || 0), rear: +((raw.arb || {}).rear || 0) },
-    car_targets: Object.assign({}, S.CAR_TARGETS, raw.car_targets || {}), src: { front: raw.name || "car file", rear: raw.name || "car file" } };
+    car_targets: Object.assign({}, S.CAR_TARGETS, raw.car_targets || {}), warn: S.unknownTargetKeys(raw.car_targets, S.CAR_TARGETS, "car", ""), src: { front: raw.name || "car file", rear: raw.name || "car file" } };
   for (const ax of ["front", "rear"]) { c[ax] = cornerFrom(Object.assign({}, raw[ax], { axle: ax })); c[ax].vehicle = veh; }
   return c;
 }
 function exampleCarRaw() { const p = PRESETS.find(q => isCarRaw(q.cfg)); return p ? p.cfg : null; }
-function exportCar() {
-  // every corner's full target ranges are written out (built-in defaults, team file and edits merged), so a car file
-  // carries its targets with it and opens the same anywhere
+function exportCar(local = false) {
+  // Each corner keeps only the target ranges its user set (its own "targets"), plus the link to the team targets file.
+  // Built-in defaults and the team file's ranges are never frozen into the file, so a later change to the team file
+  // still applies. The browser's own saved state (local) also keeps the team ranges it has read.
   const strip = (c) => { const o = {}; for (const k of ["name", "targets_file", "hardpoints", "wheel", "sweep", "clearance", "rack_direction", "targets", "spring", "loads", "members"]) if (c[k] != null) o[k] = c[k];
-    try { const e = carEvalCorner(c).ev; if (e) o.targets = Object.fromEntries(Object.entries(S.defaultTargets(e.cfg)).filter(([k]) => !k.startsWith("_"))); } catch (x) { /* keep what is there */ }
+    if (local && c._team_targets) o._team_targets = c._team_targets;
     return o; };
   return { type: "car", name: car.name, vehicle: car.vehicle, arb: car.arb, car_targets: car.car_targets, front: strip(car.front), rear: strip(car.rear) };
 }
@@ -82,8 +83,8 @@ function evalCar() {
 // ---------------------------------------------------------------- car inputs column
 function carField(label, unit, path, opts = {}) {
   const v = getPath(car, path), val = v == null ? "" : (opts.scale ? +(v * opts.scale).toFixed(6) : v);
-  if (opts.options) return `<div class="field"><label>${label}<select data-cpath="${path}" data-type="select">${opts.options.map(([k, t]) => `<option value="${k}"${k === v ? " selected" : ""}>${t}</option>`).join("")}</select></label></div>`;
-  return `<div class="field"><label>${label} <i>${unit}</i></label><input class="num" type="number" step="${opts.step ?? "any"}" data-cpath="${path}"${opts.scale ? ` data-scale="${opts.scale}"` : ""} value="${val}" aria-label="${esc(label)}"></div>`;
+  if (opts.options) return `<div class="field"><label>${label}<select data-cpath="${attr(path)}" data-type="select">${opts.options.map(([k, t]) => `<option value="${attr(k)}"${k === v ? " selected" : ""}>${t}</option>`).join("")}</select></label></div>`;
+  return `<div class="field"><label>${label} <i>${unit}</i></label><input class="num" type="number" step="${attr(opts.step ?? "any")}" data-cpath="${attr(path)}"${opts.scale ? ` data-scale="${attr(opts.scale)}"` : ""} value="${attr(val)}" aria-label="${esc(label)}"></div>`;
 }
 function renderCarIn() {
   const box = $("#carIn"); if (!box || !car) return;
@@ -93,12 +94,13 @@ function renderCarIn() {
     return `<div class="slot"><div><b>${ax === "front" ? "Front" : "Rear"}</b> <span class="muted">${esc(car[ax].name || "")}</span>
       <small class="muted">${esc(car.src[ax] || "")}</small></div>
       <div class="tact">${e.ev ? `<span class="pill ${p === n.length ? "ok" : "bad"}">${p}/${n.length} targets</span>` : `<span class="pill bad">no solution</span>`}
-      <button class="btn small" type="button" data-edit="${ax}">Edit ${ax}</button><button class="btn small" type="button" data-open="${ax}">Open ${ax} file…</button></div></div>`; };
-  const rng = (k, lab, unit) => `<div class="field wide"><label>${lab} <i>${unit}</i></label><span class="rng"><input class="num" type="number" step="any" data-ctg="${k}" data-i="0" value="${tg[k][0] ?? ""}" aria-label="${esc(lab)} minimum"> to <input class="num" type="number" step="any" data-ctg="${k}" data-i="1" value="${tg[k][1] ?? ""}" aria-label="${esc(lab)} maximum"></span></div>`;
+      <button class="btn small" type="button" data-edit="${attr(ax)}">Edit ${ax}</button><button class="btn small" type="button" data-open="${attr(ax)}">Open ${ax} file…</button></div></div>`; };
+  const rng = (k, lab, unit) => `<div class="field wide"><label>${lab} <i>${unit}</i></label><span class="rng"><input class="num" type="number" step="any" data-ctg="${attr(k)}" data-i="0" value="${attr(tg[k][0] ?? "")}" aria-label="${esc(lab)} minimum"> to <input class="num" type="number" step="any" data-ctg="${attr(k)}" data-i="1" value="${attr(tg[k][1] ?? "")}" aria-label="${esc(lab)} maximum"></span></div>`;
   box.innerHTML = `
     <div class="card"><div class="hd"><h2>Car</h2><span class="hint">front + rear</span></div><div class="body">
       <div class="field"><label>Car name</label><input class="num" style="text-align:left;font-family:var(--f-body)" type="text" data-cpath="name" data-type="text" value="${esc(car.name || "")}"></div>
       ${slot("front")}${slot("rear")}
+      ${(car.warn || []).map(m => `<div class="banner warn">${esc(m)}</div>`).join("")}
       <p class="note">Save JSON in this view saves both corners in one car file. Single-corner files still open: they go into the front or rear slot.</p></div></div>
     <div class="card"><div class="hd"><h2>Vehicle</h2><span class="hint">shared by both axles</span></div><div class="body"><div class="fields">
       ${carField("Car mass with driver", "kg", "vehicle.mass")}${carField("Weight on front", "%", "vehicle.weight_front", { scale: 100, step: 0.5 })}

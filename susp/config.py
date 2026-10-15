@@ -5,9 +5,10 @@ import copy
 import json
 import math
 import os
-import sys
 
 import numpy as np
+
+from .errors import ConfigError
 
 HP = {  # json key -> short name used internally
     "upper_inboard_front": "uif", "upper_inboard_rear": "uir",
@@ -173,25 +174,25 @@ def finish_config(cfg, where="config"):
     hp = cfg.get("hardpoints", {})
     missing = [k for k in HP if k not in hp]
     if missing:
-        sys.exit(f"{where}: missing hardpoints: {', '.join(missing)}")
+        raise ConfigError(f"{where}: missing hardpoints: {', '.join(missing)}")
     cfg["hardpoints"] = {k: [float(c) for c in hp[k]] for k in HP}
     for k, v in cfg["hardpoints"].items():
         if len(v) != 3:
-            sys.exit(f"{where}: hardpoint {k} needs [x, y, z]")
+            raise ConfigError(f"{where}: hardpoint {k} needs [x, y, z]")
     if cfg["axle"] not in ("front", "rear"):
-        sys.exit(f"{where}: axle must be 'front' or 'rear'")
+        raise ConfigError(f"{where}: axle must be 'front' or 'rear'")
     if cfg.get("spring"):
         sp = deep_merge(SPRING_DEFAULTS, cfg["spring"])
         if sp["rod_on"] not in ("lower", "upper", "upright"):
-            sys.exit(f"{where}: spring.rod_on must be 'lower', 'upper' or 'upright'")
+            raise ConfigError(f"{where}: spring.rod_on must be 'lower', 'upper' or 'upright'")
         need = ["rod_outboard", "damper_chassis"]
         rocker = [k for k in ("rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper") if sp.get(k) is not None]
         if rocker and len(rocker) < 4:
-            sys.exit(f"{where}: spring needs all of rocker_pivot, rocker_axis, rocker_rod, rocker_damper "
+            raise ConfigError(f"{where}: spring needs all of rocker_pivot, rocker_axis, rocker_rod, rocker_damper "
                      "(or none of them for a direct-acting damper)")
         miss = [k for k in need if sp.get(k) is None]
         if miss:
-            sys.exit(f"{where}: spring block is missing {', '.join(miss)}")
+            raise ConfigError(f"{where}: spring block is missing {', '.join(miss)}")
         cfg["spring"] = sp
     return cfg
 
@@ -201,13 +202,13 @@ def load_config(path):
         with open(path) as f:
             raw = json.load(f)
     except json.JSONDecodeError as e:
-        sys.exit(f"{path}: not valid JSON ({e})")
+        raise ConfigError(f"{path}: not valid JSON ({e})")
     cfg = finish_config(deep_merge(DEFAULTS, raw), path)
     tf = raw.get("targets_file")
     if tf:
         tp = tf if os.path.isabs(tf) else os.path.join(os.path.dirname(os.path.abspath(path)), tf)
         if not os.path.exists(tp):
-            sys.exit(f"{path}: targets_file '{tf}' not found (looked for {tp})")
+            raise ConfigError(f"{path}: targets_file '{tf}' not found (looked for {tp})")
         cfg["_team_targets"] = load_targets_file(tp, cfg["axle"])
     return cfg
 
@@ -219,9 +220,9 @@ def load_car(path):
         with open(path) as f:
             raw = json.load(f)
     except json.JSONDecodeError as e:
-        sys.exit(f"{path}: not valid JSON ({e})")
+        raise ConfigError(f"{path}: not valid JSON ({e})")
     if not (isinstance(raw.get("front"), dict) and isinstance(raw.get("rear"), dict) and "hardpoints" in raw["front"] and "hardpoints" in raw["rear"]):
-        sys.exit(f"{path}: a car file needs a 'front' and a 'rear' corner")
+        raise ConfigError(f"{path}: a car file needs a 'front' and a 'rear' corner")
     out = []
     for axle in ("front", "rear"):
         c = dict(raw[axle])
@@ -233,7 +234,7 @@ def load_car(path):
         if tf:
             tp = tf if os.path.isabs(tf) else os.path.join(os.path.dirname(os.path.abspath(path)), tf)
             if not os.path.exists(tp):
-                sys.exit(f"{path}: targets_file '{tf}' not found (looked for {tp})")
+                raise ConfigError(f"{path}: targets_file '{tf}' not found (looked for {tp})")
             cfg["_team_targets"] = load_targets_file(tp, axle)
         out.append(cfg)
     arb = raw.get("arb") or {}
@@ -386,7 +387,34 @@ def validate(cfg):
                 if abs(tq) < 0.2 * np.linalg.norm(r - (r @ ax) * ax):
                     W("the pushrod points almost through the rocker pivot - tiny lever arm, rocker will be "
                       "near a toggle position.")
+    out += [("warn", m) for m in unknown_target_keys(cfg)]
     return sorted(out, key=lambda t: t[0] != "error")
+
+
+def unknown_target_keys(cfg):
+    """Messages for target keys that aren't metrics the solver reports (usually a misspelling), from the design's
+    own targets and its team targets file. Those targets would otherwise be ignored without a word."""
+    import difflib
+    msgs = []
+    for src, tab in (("targets", cfg.get("targets")), ("the team targets file", cfg.get("_team_targets"))):
+        for k in sorted((tab or {}).keys()):
+            if k.startswith("_") or k in METRICS:
+                continue
+            near = difflib.get_close_matches(k, list(METRICS), n=1, cutoff=0.6)
+            msgs.append(f"target '{k}' in {src} is not a metric the solver reports, so it is ignored"
+                        + (f" - did you mean '{near[0]}'?" if near else ". Check the spelling against the Targets list."))
+    return msgs
+
+
+def unknown_car_target_keys(car_targets, known):
+    msgs = []
+    import difflib
+    for k in sorted((car_targets or {}).keys()):
+        if k not in known and not k.startswith("_"):
+            near = difflib.get_close_matches(k, list(known), n=1, cutoff=0.6)
+            msgs.append(f"car target '{k}' is not a car metric, so it is ignored" + (f" - did you mean '{near[0]}'?" if near else
+                        f" (car targets: {', '.join(known)})."))
+    return msgs
 
 
 # Templates: invented example geometry (also in designs/). Not any real team's car - replace with your own.

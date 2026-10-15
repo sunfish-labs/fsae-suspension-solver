@@ -187,10 +187,13 @@ rebound given, the Targets list checks ζ bump 0.4–0.9 and rebound 0.5–1.2 (
   `rod_end_rating` (N), `bolt_dia` (mm), `bolt_grade`, `bolt_shear_planes`; compliance `rod_end_k`, `mount_k` (N/mm),
   `toe_comp_limit`, `camber_comp_limit` (deg).
 - `sweep`: heave travel, rack travel, roll angle and step counts. `clearance`: tube ODs and margin.
-- `targets`: override any target range, e.g. `"roll_center": [30, 60]`, or `null` to drop one.
+- `targets`: override any target range, e.g. `"roll_center": [30, 60]`, or `null` to drop one. A key that isn't a
+  metric the solver reports (usually a typo) is reported with the nearest match, e.g. `'camberr' ... did you mean
+  'camber'?`, instead of being ignored.
 - `targets_file`: optional path (relative to the design file) to a shared team targets file:
   `{"front": {...}, "rear": {...}}` or one flat `{metric: [lo, hi]}` table. Applied after the general defaults and
-  before the design's own `targets`. In the web app, open that file with **Open ▾** to apply it.
+  before the design's own `targets`. In the web app, open that file with **Open ▾** to apply it. Saved designs and car
+  files keep only the link and the ranges you set yourself, so a later change to the team file still applies.
 
 The built-in defaults are deliberately broad sanity ranges (see the guide's target table). Set your own team's
 goals with `targets` or `targets_file`. `designs/case_study/` shows how the case-study car does it.
@@ -255,6 +258,7 @@ After editing, run `python3 ui/build.py`, then the checks:
     python3 ui/test_port.py              # browser solver matches the Python solver
     python3 tests/test_analytic.py       # hand calculations with exact answers
     python3 tests/test_parity.py         # 200 randomly perturbed designs: Python and browser agree
+    python3 tests/test_config.py         # input handling: typed errors, misspelled target keys
     ruff check .                         # Python lint (pip install -e ".[dev]")
     (cd tests && node lint_bundle.js && npx eslint .)   # JavaScript lint
     python3 tests/test_cad.py            # CAD export read back in OpenCascade (pip install cadquery-ocp)

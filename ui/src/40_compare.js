@@ -24,7 +24,7 @@ function cmpCols() {   // live design first, then saved ones
 const CMP_EXTRA = [["fvsa", "Front-view swing arm"], ["track_change", ""], ["roll_camber", ""], ["steer_arm", ""], ["turn_radius", ""], ["motion_ratio", ""], ["mr_progression", ""], ["wheel_rate", ""], ["damper_used", ""], ["rocker_rot", ""]];
 function panelCompare() {
   const cols = cmpCols(), ok = cols.filter(c => c.r && c.r.ev), refC = cols[cmpRef + 1] && cmpRef + 1 < cols.length ? cols[cmpRef + 1] : cols[0];
-  const presetOpts = PRESETS.map((p, i) => `<option value="${i}">${esc(p.label)}</option>`).join("");
+  const presetOpts = PRESETS.map((p, i) => `<option value="${attr(i)}">${esc(p.label)}</option>`).join("");
   const head = `<div class="cmpbar">
     <span class="cmpadd"><input class="num cmpname" id="cmpName" type="text" placeholder="Name, e.g. raised pivots" aria-label="Name for the saved design" value="${esc(cfg.name || "")}"><button class="btn small primary" type="button" id="cmpSaveCur">Save current design</button></span>
     <select class="sel cmpsel" id="cmpPreset" aria-label="Add an example design"><option value="">Add an example…</option>${presetOpts}</select>
@@ -32,10 +32,10 @@ function panelCompare() {
     ${cmp.length ? `<button class="btn small" type="button" id="cmpCsv">Copy table (CSV)</button><button class="btn small" type="button" id="cmpClear">Remove all</button>` : ""}</div>`;
   if (!cmp.length) return head + `<p class="note">Save the design on screen, add an example or open design files to compare up to four designs with the live one: every target side by side with the change from a reference, the hardpoints that differ, the curves overlaid, and ghosts in the 3D view. Saved designs stay in this browser only.</p>`;
   const legend = `<div class="cmpleg">${cols.map((c, j) => `<div class="cmpcol" style="--c:${c.hex}">
-      <span class="sw"></span>${c.live ? `<b>${esc(c.name)}</b>` : `<input class="num cmpren" type="text" value="${esc(c.name)}" data-ren="${c.idx}" aria-label="Rename">`}
-      <label class="small-check"><input type="radio" name="cmpref" value="${j - 1}" ${refC === c ? "checked" : ""}> reference</label>
-      ${c.live ? "" : `<label class="small-check"><input type="checkbox" data-ghost="${c.idx}" ${cmpGhost.has(c.idx) ? "checked" : ""}> 3D</label>
-      <button class="btn small" type="button" data-load="${c.idx}" title="Make this the design you are editing">Load</button><button class="btn small" type="button" data-del="${c.idx}" aria-label="Remove">✕</button>`}
+      <span class="sw"></span>${c.live ? `<b>${esc(c.name)}</b>` : `<input class="num cmpren" type="text" value="${esc(c.name)}" data-ren="${attr(c.idx)}" aria-label="Rename">`}
+      <label class="small-check"><input type="radio" name="cmpref" value="${attr(j - 1)}" ${refC === c ? "checked" : ""}> reference</label>
+      ${c.live ? "" : `<label class="small-check"><input type="checkbox" data-ghost="${attr(c.idx)}" ${cmpGhost.has(c.idx) ? "checked" : ""}> 3D</label>
+      <button class="btn small" type="button" data-load="${attr(c.idx)}" title="Make this the design you are editing">Load</button><button class="btn small" type="button" data-del="${attr(c.idx)}" aria-label="Remove">✕</button>`}
       ${c.r && c.r.err ? `<span class="bad-t">does not solve</span>` : ""}</div>`).join("")}</div>`;
   // metric rows
   const keys = [...new Set(ok.flatMap(c => c.r.ev.checks.map(r => r.key)))];
@@ -54,7 +54,7 @@ function panelCompare() {
       const v = vals[j]; if (v == null || !Number.isFinite(v)) return `<td class="n muted">–</td>`;
       const ck = c.r.ev.checks.find(r => r.key === k), st = k === "min_fos" ? (v >= c.r.ev.cfg.members.sf_target ? "PASS" : "FAIL") : ck ? ck.status : null;
       const dlt = c !== refC && rv != null && Number.isFinite(rv) ? v - rv : null;
-      return `<td class="n ${st === "PASS" ? "cpass" : st === "FAIL" ? "cfail" : ""}">${fmt(v, dec)}${dlt != null && Math.abs(dlt) >= 10 ** -(dec + 1) * 5 ? `<small class="${dlt > 0 ? "delta-up" : "delta-dn"}">${dlt > 0 ? "+" : ""}${fmt(dlt, dec)}</small>` : ""}</td>`; }).join("")}</tr>`;
+      return `<td class="n ${st === "PASS" ? "cpass" : st === "FAIL" ? "cfail" : ""}">${fmt(v, dec)}${dlt != null && Math.abs(dlt) >= 10 ** -(dec + 1) * 5 ? `<small class="${attr(dlt > 0 ? "delta-up" : "delta-dn")}">${dlt > 0 ? "+" : ""}${fmt(dlt, dec)}</small>` : ""}</td>`; }).join("")}</tr>`;
   }
   const table = `<div class="tbl-wrap"><table class="data cmpt"><thead><tr><th>Metric</th>${cols.map(c => `<th class="n" style="--c:${c.hex}"><span class="sw"></span>${esc(c.name)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>
     <p class="note">Green = meets that design's own target, red = misses it. Small numbers are the change from the reference. <label class="small-check" style="display:inline-flex"><input type="checkbox" id="cmpDiff" ${cmpOnlyDiff ? "checked" : ""}> only rows that differ</label></p>`;
@@ -66,7 +66,7 @@ function panelCompare() {
     const rv = (getPath(refCfg, p) || [])[i];
     const vs = cols.map(c => (getPath(cfgOf(c), p) || [])[i]);
     if (vs.every(v => v == null || rv == null || Math.abs(v - rv) < 0.05)) continue;
-    hpRows.push(`<tr><td>${esc(pointName(p))} <b class="axis${i}">${"XYZ"[i]}</b></td>${vs.map((v, j) => v == null ? `<td class="n muted">–</td>` : `<td class="n">${fmt(v, 1)}${cols[j] !== refC && rv != null && Math.abs(v - rv) >= 0.05 ? `<small class="${v > rv ? "delta-up" : "delta-dn"}">${v > rv ? "+" : ""}${fmt(v - rv, 1)}</small>` : ""}</td>`).join("")}</tr>`);
+    hpRows.push(`<tr><td>${esc(pointName(p))} <b class="axis${i}">${"XYZ"[i]}</b></td>${vs.map((v, j) => v == null ? `<td class="n muted">–</td>` : `<td class="n">${fmt(v, 1)}${cols[j] !== refC && rv != null && Math.abs(v - rv) >= 0.05 ? `<small class="${attr(v > rv ? "delta-up" : "delta-dn")}">${v > rv ? "+" : ""}${fmt(v - rv, 1)}</small>` : ""}</td>`).join("")}</tr>`);
   }
   const hp = `<h3 class="sub-h">Hardpoints that differ from the reference, mm</h3>${hpRows.length ? `<div class="tbl-wrap"><table class="data cmpt"><thead><tr><th>Point</th>${cols.map(c => `<th class="n" style="--c:${c.hex}"><span class="sw"></span>${esc(c.name)}</th>`).join("")}</tr></thead><tbody>${hpRows.join("")}</tbody></table></div>` : `<p class="note">All hardpoints match the reference.</p>`}`;
   // curves

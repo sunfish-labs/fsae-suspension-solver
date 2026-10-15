@@ -62,7 +62,7 @@ function layoutLabels() {
     const over = col.length ? col[col.length - 1].ly - bot : 0;
     if (over > 0) { col.forEach(q => q.ly -= over); for (let i = 0; i < col.length; i++) col[i].ly = Math.max(col[i].ly, i ? col[i - 1].ly + gap : top); }
     for (const q of col) {
-      svg += `<line x1="${q.x.toFixed(1)}" y1="${q.y.toFixed(1)}" x2="${xs.toFixed(1)}" y2="${q.ly.toFixed(1)}"/><circle cx="${q.x.toFixed(1)}" cy="${q.y.toFixed(1)}" r="2.5"/>`;
+      svg += `<line x1="${attr(q.x.toFixed(1))}" y1="${attr(q.y.toFixed(1))}" x2="${attr(xs.toFixed(1))}" y2="${attr(q.ly.toFixed(1))}"/><circle cx="${attr(q.x.toFixed(1))}" cy="${attr(q.y.toFixed(1))}" r="2.5"/>`;
       const b = document.createElement("button"); b.type = "button"; b.className = "vlab " + side; b.textContent = q.text;
       b.style.left = xs + "px"; b.style.top = q.ly + "px"; b.title = "What does moving this point do?";
       b.addEventListener("click", () => openInfluence(q.path)); box.appendChild(b);
@@ -299,7 +299,7 @@ const OVERLAYS = {
   bump_steer: { mode: "top", name: "Bump steer", anim: true }, track_change: { mode: "front", name: "Track change", anim: true },
   motion_ratio: { mode: "iso", name: "Motion ratio", anim: true },
 };
-$("#showSel").innerHTML = `<option value="">Show me…</option>` + Object.entries(OVERLAYS).filter(([k]) => k !== "labels").map(([k, o]) => `<option value="${k}">${esc(o.name)}</option>`).join("");
+$("#showSel").innerHTML = `<option value="">Show me…</option>` + Object.entries(OVERLAYS).filter(([k]) => k !== "labels").map(([k, o]) => `<option value="${attr(k)}">${esc(o.name)}</option>`).join("");
 function axisGround(p) { // steering axis through the ball joints, and where it meets the ground
   const k = V.unit(V.sub(p.ub, p.lb)), t = (p.cp[2] - p.lb[2]) / k[2];
   return { k, g: V.add(p.lb, V.mul(k, t)) };

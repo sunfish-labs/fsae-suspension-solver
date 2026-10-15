@@ -143,7 +143,7 @@ def ride_metrics(cfg, susp, sp, rows):
                hop_freq=math.sqrt((k_w + k_t) * 1000 / sc["unsprung_mass"]) / (2 * math.pi),
                damper_used=float(L.max() - L.min()), rocker_rot=float(max(s["rocker_deg"] for s in sts)
                                                                      - min(s["rocker_deg"] for s in sts)),
-               static_spring_force=m_corner * G / MR if MR > 1e-6 else float("nan"),
+               static_spring_force=m_s * G / MR if MR > 1e-6 else float("nan"),
                _m_sprung=m_s, _m_corner=m_corner, _damper_len0=float(L[i0]),
                _wheel_travel_per_stroke=(sc["damper_stroke"] / MR) if sc.get("damper_stroke") and MR > 1e-6 else None)
     if sc.get("damper_stroke"):

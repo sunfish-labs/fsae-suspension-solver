@@ -12,6 +12,7 @@ import numpy as np
 
 from .config import (HP, HP_ORDER, METRICS, SHORT2LONG, SPRING_POINTS, TEMPLATE_FRONT, TEMPLATE_REAR,
                      cfg_to_json)
+from .errors import ConfigError, GoalError, UnknownPointError
 from .kinematics import SolveError, check_targets, evaluate
 from .output import f_num, table
 
@@ -61,7 +62,7 @@ def compute_sens(cfg, delta=5.0, points=None, spring=False):
     base = quick(cfg)
     if spring:
         if not cfg.get("spring"):
-            sys.exit("this config has no 'spring' block")
+            raise ConfigError("this config has no 'spring' block")
         cols = spring_cols(cfg)
         pts = [f"spring.{k}" for k in SPRING_POINTS if k != "rocker_axis" and cfg["spring"].get(k) is not None]
     else:
@@ -85,7 +86,7 @@ def compute_sens(cfg, delta=5.0, points=None, spring=False):
 def print_sens(cfg, delta, cols, rows, base, metric=None, top=None):
     if metric:
         if metric not in cols:
-            sys.exit(f"--metric must be one of: {', '.join(cols)}")
+            raise GoalError(f"--metric must be one of: {', '.join(cols)}")
         j = cols.index(metric)
         rows = sorted(rows, key=lambda r: -abs(r[1][j]))
         rows = rows[:top] if top else rows
@@ -223,7 +224,7 @@ def parse_goal(s):
                 return k.strip(), float(tgt), (float(tol) if tol else None), op
             except ValueError:
                 break
-    sys.exit(f"bad --goal '{s}' (use metric=target[:tol], metric>=limit or metric<=limit, e.g. roll_center=35:4)")
+    raise GoalError(f"bad --goal '{s}' (use metric=target[:tol], metric>=limit or metric<=limit, e.g. roll_center=35:4)")
 
 
 def point_ref(cfg, name):
@@ -231,11 +232,11 @@ def point_ref(cfg, name):
     if name.startswith("spring."):
         key = name.split(".", 1)[1]
         if not cfg.get("spring") or key not in SPRING_POINTS or cfg["spring"].get(key) is None:
-            sys.exit(f"'{name}' is not a spring point in this config. Spring points: "
+            raise UnknownPointError(f"'{name}' is not a spring point in this config. Spring points: "
                      + ", ".join(f"spring.{k}" for k in SPRING_POINTS if (cfg.get("spring") or {}).get(k) is not None))
         return cfg["spring"][key]
     if name not in HP:
-        sys.exit(f"unknown point '{name}'. choose from: {', '.join(HP)} or spring.<point>")
+        raise UnknownPointError(f"unknown point '{name}'. choose from: {', '.join(HP)} or spring.<point>")
     return cfg["hardpoints"][name]
 
 
@@ -251,7 +252,7 @@ def parse_vary(cfg, spec):
         point_ref(cfg, p)
         for a in (ax or "xyz"):
             if a not in "xyz":
-                sys.exit(f"bad axis in '{item}'")
+                raise GoalError(f"bad axis in '{item}'")
             vary.append((p, a))
     return vary
 
@@ -261,10 +262,12 @@ def optimize(cfg, vary_spec, goal_specs, bound=40.0, reg=0.005, min_clearance=No
     from scipy.optimize import least_squares
     goals = [parse_goal(g) for g in goal_specs]
     for k, _, tol, _ in goals:
-        if k not in TOL and tol is None:
-            sys.exit(f"goal metric '{k}' needs a tolerance (e.g. {k}=10:2), or choose from: {', '.join(TOL)}")
         if k not in METRICS:
-            sys.exit(f"unknown goal metric '{k}'. Metrics: {', '.join(METRICS)}")
+            import difflib
+            near = difflib.get_close_matches(k, list(METRICS), n=1, cutoff=0.6)
+            raise GoalError(f"unknown goal metric '{k}'" + (f" - did you mean '{near[0]}'?" if near else f". Metrics: {', '.join(METRICS)}"))
+        if k not in TOL and tol is None:
+            raise GoalError(f"goal metric '{k}' needs a tolerance (e.g. {k}=10:2), or choose from: {', '.join(TOL)}")
     vary = parse_vary(cfg, vary_spec)
     need_steer = any(g[0] in ("ackermann", "turn_radius") for g in goals)
     need_pack = min_clearance is not None or keep_clear
@@ -385,7 +388,7 @@ def show_history(path, metrics=None, plot=None):
     with open(path, newline="") as f:
         rd = list(csv.DictReader(f))
     if not rd:
-        sys.exit("empty history")
+        raise ConfigError("empty history")
     cols = metrics.split(",") if metrics else ["roll_center", "camber_gain", "roll_camber", "bump_steer", "caster",
                                                "scrub", "ackermann", "clearance_min"]
     cols = [c for c in cols if c in rd[0]]
@@ -431,11 +434,11 @@ def import_csv(path, axle, mapping="x,y,z", scale=1.0, offset="0,0,0", name=None
         sign = -1.0 if spec.startswith("-") else 1.0
         idx = "xyz".find(spec.lstrip("+-").lower())
         if idx < 0:
-            sys.exit(f"bad --map term '{spec}' (use x, y, z with optional minus, e.g. 'z,-x,y')")
+            raise ConfigError(f"bad --map term '{spec}' (use x, y, z with optional minus, e.g. 'z,-x,y')")
         return sign, idx
     mp = [term(t.strip()) for t in mapping.split(",")]
     if len(mp) != 3:
-        sys.exit("--map needs three terms, e.g. 'x,y,z'")
+        raise ConfigError("--map needs three terms, e.g. 'x,y,z'")
     off = [float(v) for v in offset.split(",")]
     pts, spring = {}, {}
     with open(path, newline="") as f:
@@ -463,7 +466,7 @@ def import_csv(path, axle, mapping="x,y,z", scale=1.0, offset="0,0,0", name=None
             pts[key] = v
     miss = [k for k in HP if k not in pts]
     if miss:
-        sys.exit("missing points: " + ", ".join(miss) + "\nnames accepted: " + ", ".join(HP) + " (or short names "
+        raise ConfigError("missing points: " + ", ".join(miss) + "\nnames accepted: " + ", ".join(HP) + " (or short names "
                  + ", ".join(HP.values()) + ")")
     t = copy.deepcopy(TEMPLATE_FRONT if axle == "front" else TEMPLATE_REAR)
     t["name"] = name or f"{axle} from {path}"

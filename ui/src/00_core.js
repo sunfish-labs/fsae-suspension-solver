@@ -3,6 +3,10 @@ const S = window.Susp, V = S.vec;
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "–" : (!Number.isFinite(v) ? "∞" : (+v).toFixed(d).replace(/^-(0\.?0*)$/, "$1").replace("-", "−"));
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// attr(): any value placed inside an HTML attribute (same escaping as esc; one name so every attribute is easy to audit).
+// cssq(): a value placed inside a quoted CSS attribute selector.
+const attr = esc;
+const cssq = (s) => String(s).replace(/["\\]/g, "\\$&");
 
 const HELP = {
   camber: "Wheel lean at ride height. Negative = top leans in. Set by shims, so it is easy to adjust later.",
@@ -53,15 +57,15 @@ const SP_LABELS = { rod_outboard: ["Pushrod outboard", "on the arm / upright"], 
 
 function numInput(path, opts = {}) {
   const id = "in_" + path.replace(/\./g, "_");
-  return `<input class="num" id="${id}" type="number" step="${opts.step ?? "any"}" inputmode="decimal" data-path="${path}" data-type="${opts.type ?? "num"}"${opts.scale ? ` data-scale="${opts.scale}"` : ""}${opts.opt ? " data-opt=\"1\"" : ""} aria-label="${esc(opts.aria ?? path)}">`;
+  return `<input class="num" id="${attr(id)}" type="number" step="${attr(opts.step ?? "any")}" inputmode="decimal" data-path="${attr(path)}" data-type="${attr(opts.type ?? "num")}"${opts.scale ? ` data-scale="${attr(opts.scale)}"` : ""}${opts.opt ? " data-opt=\"1\"" : ""} aria-label="${esc(opts.aria ?? path)}">`;
 }
 function field(label, unit, path, opts = {}) {
   const id = "in_" + path.replace(/\./g, "_");
-  if (opts.options) return `<div class="field"><label for="${id}">${label}</label><select id="${id}" data-path="${path}" data-type="select">${opts.options.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select></div>`;
-  return `<div class="field"><label for="${id}">${label} <i>${unit}</i></label>${numInput(path, { ...opts, aria: label })}</div>`;
+  if (opts.options) return `<div class="field"><label for="${attr(id)}">${label}</label><select id="${attr(id)}" data-path="${attr(path)}" data-type="select">${opts.options.map(([v, t]) => `<option value="${attr(v)}">${t}</option>`).join("")}</select></div>`;
+  return `<div class="field"><label for="${attr(id)}">${label} <i>${unit}</i></label>${numInput(path, { ...opts, aria: label })}</div>`;
 }
 function ptRows(tbody, list, prefix, labels) {
-  tbody.innerHTML = list.map(k => `<tr data-row="${k}"><td class="lab"${labels[k][1] ? ` title="${esc(labels[k][1])}"` : ""}>${k === "rocker_axis" ? labels[k][0] : `<button class="lnk hpbtn" type="button" data-hp="${prefix}.${k}" title="${labels[k][1] ? esc(labels[k][1]) + " · " : ""}click: what does moving this point do?">${labels[k][0]}</button>`}</td>` +
+  tbody.innerHTML = list.map(k => `<tr data-row="${attr(k)}"><td class="lab"${labels[k][1] ? ` title="${esc(labels[k][1])}"` : ""}>${k === "rocker_axis" ? labels[k][0] : `<button class="lnk hpbtn" type="button" data-hp="${prefix}.${k}" title="${labels[k][1] ? esc(labels[k][1]) + " · " : ""}click: what does moving this point do?">${labels[k][0]}</button>`}</td>` +
     [0, 1, 2].map(i => `<td class="c">${numInput(`${prefix}.${k}.${i}`, { aria: `${labels[k][0]} ${"XYZ"[i]}`, step: k === "rocker_axis" ? "0.1" : "0.1" })}</td>`).join("") + "</tr>").join("");
 }
 function buildForm() {
@@ -137,7 +141,7 @@ function fillForm() {
 }
 function syncRockerRows() {
   const direct = cfg.spring && cfg.spring.rocker_pivot == null;
-  ["rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper"].forEach(k => { const r = $(`#spTable tr[data-row="${k}"]`); if (r) r.hidden = !!direct; });
+  ["rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper"].forEach(k => { const r = $(`#spTable tr[data-row="${cssq(k)}"]`); if (r) r.hidden = !!direct; });
 }
 function syncAxle() {
   const rear = cfg.axle === "rear";
@@ -189,7 +193,7 @@ function run() {
   } catch (e) { err = e; console.warn(e); }
   const ms = performance.now() - t0;
   if (!chal) store.set("susp.cfg", JSON.stringify(cfg));
-  if (car && !chal) { store.set("susp.car", JSON.stringify(exportCar())); carRes = axleView === "car" ? evalCar() : null; }
+  if (car && !chal) { store.set("susp.car", JSON.stringify(exportCar(true))); carRes = axleView === "car" ? evalCar() : null; }
   $("#jsonBox").value = JSON.stringify(exportCfg(), null, 2);
   const T = cfg.sweep?.travel ?? 30, Rk = cfg.sweep?.rack_travel ?? 35;
   const pz = $("#poseZ"), pr = $("#poseR");
@@ -230,24 +234,24 @@ function chart({ title, cap = "", series, xlabel = "", marker = null, band = nul
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}">`;
   if (band) {
     const y1 = Y(band[1] ?? yt.hi), y0 = Y(band[0] ?? yt.lo);
-    s += `<rect x="${l}" y="${Math.min(y0, y1)}" width="${W - l - r}" height="${Math.abs(y0 - y1)}" fill="var(--ok)" opacity=".10"/>`;
+    s += `<rect x="${attr(l)}" y="${attr(Math.min(y0, y1))}" width="${attr(W - l - r)}" height="${attr(Math.abs(y0 - y1))}" fill="var(--ok)" opacity=".10"/>`;
   }
-  for (const v of yt.ticks) s += `<line x1="${l}" x2="${W - r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${l - 5}" y="${Y(v) + 3.5}" font-size="10" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${tickLabel(v, yt.step)}</text>`;
-  for (const v of xt.ticks) s += `<text x="${X(v)}" y="${H - b + 13}" font-size="10" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${tickLabel(v, xt.step)}</text>`;
-  if (xt.lo < 0 && xt.hi > 0) s += `<line x1="${X(0)}" x2="${X(0)}" y1="${t}" y2="${H - b}" stroke="var(--muted)" stroke-width=".7" opacity=".6"/>`;
-  s += `<text x="${(l + W - r) / 2}" y="${H - 3}" font-size="10" text-anchor="middle" fill="var(--muted)">${esc(xlabel)}</text>`;
+  for (const v of yt.ticks) s += `<line x1="${attr(l)}" x2="${attr(W - r)}" y1="${attr(Y(v))}" y2="${attr(Y(v))}" stroke="var(--line)" stroke-width="1"/><text x="${attr(l - 5)}" y="${attr(Y(v) + 3.5)}" font-size="10" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${tickLabel(v, yt.step)}</text>`;
+  for (const v of xt.ticks) s += `<text x="${attr(X(v))}" y="${attr(H - b + 13)}" font-size="10" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${tickLabel(v, xt.step)}</text>`;
+  if (xt.lo < 0 && xt.hi > 0) s += `<line x1="${attr(X(0))}" x2="${attr(X(0))}" y1="${attr(t)}" y2="${attr(H - b)}" stroke="var(--muted)" stroke-width=".7" opacity=".6"/>`;
+  s += `<text x="${attr((l + W - r) / 2)}" y="${attr(H - 3)}" font-size="10" text-anchor="middle" fill="var(--muted)">${esc(xlabel)}</text>`;
   series.forEach((sr) => {
     const d = sr.x.map((x, i) => Number.isFinite(sr.y[i]) ? `${X(x).toFixed(1)},${Y(sr.y[i]).toFixed(1)}` : null).filter(Boolean);
-    if (d.length) s += `<polyline points="${d.join(" ")}" fill="none" stroke="${sr.color}" stroke-width="${sr.w ?? 2}" ${sr.dash ? `stroke-dasharray="${sr.dash}"` : ""} stroke-linejoin="round"/>`;
+    if (d.length) s += `<polyline points="${attr(d.join(" "))}" fill="none" stroke="${attr(sr.color)}" stroke-width="${attr(sr.w ?? 2)}" ${sr.dash ? `stroke-dasharray="${attr(sr.dash)}"` : ""} stroke-linejoin="round"/>`;
   });
   if (marker != null && marker >= xt.lo && marker <= xt.hi) {
-    s += `<line x1="${X(marker)}" x2="${X(marker)}" y1="${t}" y2="${H - b}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>`;
+    s += `<line x1="${attr(X(marker))}" x2="${attr(X(marker))}" y1="${attr(t)}" y2="${attr(H - b)}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>`;
     const sr = series[series.length - 1]; const yi = interp(sr.x, sr.y, marker);
-    if (Number.isFinite(yi)) s += `<circle cx="${X(marker)}" cy="${Y(yi)}" r="3.5" fill="var(--accent)"/>`;
+    if (Number.isFinite(yi)) s += `<circle cx="${attr(X(marker))}" cy="${attr(Y(yi))}" r="3.5" fill="var(--accent)"/>`;
   }
   const named = series.filter(sr => sr.name);
   if (named.length > 1) named.forEach((sr, i) => {
-    s += `<line x1="${l + 6 + i * 92}" x2="${l + 20 + i * 92}" y1="${t + 6}" y2="${t + 6}" stroke="${sr.color}" stroke-width="2" ${sr.dash ? `stroke-dasharray="${sr.dash}"` : ""}/><text x="${l + 24 + i * 92}" y="${t + 9.5}" font-size="10" fill="var(--ink)">${esc(sr.name)}</text>`;
+    s += `<line x1="${attr(l + 6 + i * 92)}" x2="${attr(l + 20 + i * 92)}" y1="${attr(t + 6)}" y2="${attr(t + 6)}" stroke="${attr(sr.color)}" stroke-width="2" ${sr.dash ? `stroke-dasharray="${attr(sr.dash)}"` : ""}/><text x="${attr(l + 24 + i * 92)}" y="${attr(t + 9.5)}" font-size="10" fill="var(--ink)">${esc(sr.name)}</text>`;
   });
   return `<div class="chart"><h3>${esc(title)}</h3>${cap ? `<p class="cap">${cap}</p>` : ""}${s}</svg></div>`;
 }
@@ -266,12 +270,12 @@ function renderTabs() {
   const fails = ev && !err ? ev.checks.filter(c => c.status === "FAIL").length : 0, cur = MOTION.includes(tab) ? "motion" : tab;
   if (MOTION.includes(tab)) lastMotion = tab;
   const bar = TAB_BAR.concat(tab === "learn" ? [["learn", "Learn"]] : []);
-  $("#tabs").innerHTML = bar.map(([k, t]) => `<button role="tab" type="button" id="tab_${k}" aria-selected="${cur === k}" aria-controls="pn_${k === "motion" ? lastMotion : k}" data-tab="${k}">${t}${k === "checks" && fails ? `<span class="dot" aria-label="${fails} failing"></span>` : ""}</button>`).join("");
+  $("#tabs").innerHTML = bar.map(([k, t]) => `<button role="tab" type="button" id="tab_${k}" aria-selected="${attr(cur === k)}" aria-controls="pn_${k === "motion" ? lastMotion : k}" data-tab="${attr(k)}">${t}${k === "checks" && fails ? `<span class="dot" aria-label="${fails} failing"></span>` : ""}</button>`).join("");
   $$("#tabs button").forEach(b => b.addEventListener("click", () => { tab = b.dataset.tab === "motion" ? lastMotion : b.dataset.tab; store.set("susp.tab", tab); renderTabs(); showPanel(); }));
 }
 function motionSeg(k) {
   const items = [["heave", "Heave"], ["roll", "Roll"]].concat(cfg && cfg.axle === "rear" ? [] : [["steer", "Steering"]]);
-  return `<div class="seg msub" role="group" aria-label="Motion">${items.map(([v, t]) => `<button type="button" data-msub="${v}" aria-pressed="${v === k}">${t}</button>`).join("")}</div>`;
+  return `<div class="seg msub" role="group" aria-label="Motion">${items.map(([v, t]) => `<button type="button" data-msub="${attr(v)}" aria-pressed="${attr(v === k)}">${t}</button>`).join("")}</div>`;
 }
 function showPanel() { $$("#panels > .panel").forEach(p => p.hidden = p.dataset.tab !== tab); }
 
@@ -285,7 +289,7 @@ function renderAll(ms) {
     return;
   }
   const issues = S.validate(ev.cfg);
-  if (cfg.targets_file && !(cfg.targets && Object.keys(cfg.targets).length)) issues.push(["warn", `This design uses the team targets file "${cfg.targets_file}". The browser can't read files by path: click Open JSON and choose that file to apply your team's target ranges.`]);
+  if (cfg.targets_file && !cfg._team_targets) issues.push(["warn", `This design uses the team targets file "${cfg.targets_file}". The browser can't read files by path: click Open JSON and choose that file to apply your team's target ranges.`]);
   $("#errBox").innerHTML = issues.length ? `<div class="banner ${issues.some(i => i[0] === "error") ? "bad" : "warn"}"><b>Input checks</b><ul>${issues.map(i => `<li>${i[0] === "error" ? "<b>Error:</b> " : ""}${esc(i[1])}</li>`).join("")}</ul></div>` : "";
   const n = ev.checks.filter(c => c.status !== "n/a"), np = n.filter(c => c.status === "PASS").length;
   const m = ev.metrics;
@@ -301,7 +305,7 @@ function renderAll(ms) {
       : `<button class="btn small pinbtn" id="btnBase" type="button" title="Freeze these results; your next edits then show as changes and dashed curves">Pin as baseline</button>`);
   const pb = $("#btnBase"); if (pb) pb.addEventListener("click", () => { if (!ev || err) return; base = ev; baseName = cfg.name || "pinned design"; renderAll(0); });
   const cb = $("#btnClearBase"); if (cb) cb.addEventListener("click", () => { base = null; renderAll(0); });
-  P.innerHTML = TABS.map(([k]) => `<div class="panel" role="tabpanel" id="pn_${k}" aria-labelledby="tab_${k}" data-tab="${k}"></div>`).join("");
+  P.innerHTML = TABS.map(([k]) => `<div class="panel" role="tabpanel" id="pn_${k}" aria-labelledby="tab_${k}" data-tab="${attr(k)}"></div>`).join("");
   $("#pn_checks").innerHTML = panelChecks();
   $("#pn_heave").innerHTML = motionSeg("heave") + panelHeave();
   $("#pn_roll").innerHTML = motionSeg("roll") + panelRoll();
@@ -325,7 +329,7 @@ function panelChecks() {
     const [lab, unit, dec] = c.label ? [c.label, c.unit, c.dec] : metricLabel(c.key);
     const editable = !c.label, open = openRows.has(c.key);
     const st = c.status === "PASS" ? `<span class="pill ok">Met</span>` : c.status === "FAIL" ? `<span class="pill bad">Not met</span>` : `<span class="pill neutral">n/a</span>`;
-    const rng = editable ? `<span class="rng"><input class="num" type="number" step="any" data-tkey="${c.key}" data-i="0" value="${c.lo == null ? "" : +(+c.lo).toFixed(3)}" aria-label="${esc(lab)} minimum" placeholder="–"> to <input class="num" type="number" step="any" data-tkey="${c.key}" data-i="1" value="${c.hi == null ? "" : +(+c.hi).toFixed(3)}" aria-label="${esc(lab)} maximum" placeholder="–"></span>`
+    const rng = editable ? `<span class="rng"><input class="num" type="number" step="any" data-tkey="${attr(c.key)}" data-i="0" value="${attr(c.lo == null ? "" : +(+c.lo).toFixed(3))}" aria-label="${esc(lab)} minimum" placeholder="–"> to <input class="num" type="number" step="any" data-tkey="${attr(c.key)}" data-i="1" value="${attr(c.hi == null ? "" : +(+c.hi).toFixed(3))}" aria-label="${esc(lab)} maximum" placeholder="–"></span>`
       : `≥ ${fmt(c.lo, 1)}`;
     let bcol = "";
     if (bm) {
@@ -333,13 +337,13 @@ function panelChecks() {
       const d = (c.value != null && bv != null) ? c.value - bv : null;
       bcol = `<td class="n">${fmt(bv, dec)}</td><td class="n ${d > 0 ? "delta-up" : d < 0 ? "delta-dn" : ""}">${d == null || Math.abs(d) < 10 ** -(dec + 1) ? "–" : (d > 0 ? "+" : "") + fmt(d, dec)}</td>`;
     }
-    const fixBtn = c.status === "n/a" || chal ? "" : `<button class="btn small ${c.status === "FAIL" ? "primary" : ""}" type="button" data-fixgo="${c.key}">${c.status === "FAIL" ? "Fix: what moves this?" : "What moves this?"}</button>`;
-    rows += `<tr class="clickable${open ? " open" : ""}" data-help="${c.key}" aria-expanded="${open}"><td><span class="caret" aria-hidden="true">${open ? "▾" : "▸"}</span> ${esc(lab)}</td><td class="n">${fmt(c.value, dec)} <span class="muted">${unit}</span></td><td>${rng}</td>${bcol}<td>${st}</td></tr>`;
+    const fixBtn = c.status === "n/a" || chal ? "" : `<button class="btn small ${c.status === "FAIL" ? "primary" : ""}" type="button" data-fixgo="${attr(c.key)}">${c.status === "FAIL" ? "Fix: what moves this?" : "What moves this?"}</button>`;
+    rows += `<tr class="clickable${open ? " open" : ""}" data-help="${attr(c.key)}" aria-expanded="${attr(open)}"><td><span class="caret" aria-hidden="true">${open ? "▾" : "▸"}</span> ${esc(lab)}</td><td class="n">${fmt(c.value, dec)} <span class="muted">${unit}</span></td><td>${rng}</td>${bcol}<td>${st}</td></tr>`;
     const t = TERM_BY_METRIC[c.key], show = t && t.show;
-    rows += `<tr class="help" data-helprow="${c.key}"${open ? "" : " hidden"}><td colspan="${ncol}">
+    rows += `<tr class="help" data-helprow="${attr(c.key)}"${open ? "" : " hidden"}><td colspan="${attr(ncol)}">
       <p class="hdef">${esc(checkHelp(c.key))}</p>
-      <div class="tact">${show ? `<button class="btn small" type="button" data-show="${show}">Show me</button>` : ""}${t ? `<button class="lnk" type="button" data-term="${t.id}">More in Learn</button>` : ""}${fixBtn}</div>
-      <div class="fixbox" data-fixbox="${c.key}"></div></td></tr>`;
+      <div class="tact">${show ? `<button class="btn small" type="button" data-show="${attr(show)}">Show me</button>` : ""}${t ? `<button class="lnk" type="button" data-term="${attr(t.id)}">More in Learn</button>` : ""}${fixBtn}</div>
+      <div class="fixbox" data-fixbox="${attr(c.key)}"></div></td></tr>`;
   }
   return `<div class="tbl-wrap"><table class="data"><thead><tr><th>Target</th><th class="n">Value</th><th>Allowed range</th>${bm ? `<th class="n">Baseline</th><th class="n">Change</th>` : ""}<th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
   <p class="note">Click a row to see what the number means, draw it on the 3D view, or find which hardpoint moves fix it. Edit a range to change the target for this design (saved in the JSON under <span class="mono">targets</span>).</p>`;
@@ -347,7 +351,7 @@ function panelChecks() {
 function wireChecks() {
   $$("#pn_checks tr.clickable").forEach(tr => tr.addEventListener("click", (e) => {
     if (e.target.tagName === "INPUT") return;
-    const k = tr.dataset.help, h = $(`#pn_checks tr[data-helprow="${k}"]`); if (!h) return;
+    const k = tr.dataset.help, h = $(`#pn_checks tr[data-helprow="${cssq(k)}"]`); if (!h) return;
     h.hidden = !h.hidden; if (h.hidden) { openRows.delete(k); fixRows.delete(k); } else openRows.add(k);
     tr.classList.toggle("open", !h.hidden); tr.setAttribute("aria-expanded", String(!h.hidden)); $(".caret", tr).textContent = h.hidden ? "▸" : "▾";
   }));
@@ -358,9 +362,9 @@ function wireChecks() {
   }));
   $$("#pn_checks [data-show]").forEach(b => b.addEventListener("click", () => showMe(b.dataset.show)));
   $$("#pn_checks [data-term]").forEach(b => b.addEventListener("click", () => openTerm(b.dataset.term)));
-  $$("#pn_checks [data-fixgo]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.fixgo; fixRows.add(k); b.hidden = true; whatMoves(k, $(`#pn_checks [data-fixbox="${k}"]`)); }));
+  $$("#pn_checks [data-fixgo]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.fixgo; fixRows.add(k); b.hidden = true; whatMoves(k, $(`#pn_checks [data-fixbox="${cssq(k)}"]`)); }));
   // keep "What moves this?" results open across re-solves
-  for (const k of fixRows) { const box = $(`#pn_checks [data-fixbox="${k}"]`); if (box && ev.checks.some(c => c.key === k && c.status !== "n/a")) { const b = $(`#pn_checks [data-fixgo="${k}"]`); if (b) b.hidden = true; whatMoves(k, box); } else fixRows.delete(k); }
+  for (const k of fixRows) { const box = $(`#pn_checks [data-fixbox="${cssq(k)}"]`); if (box && ev.checks.some(c => c.key === k && c.status !== "n/a")) { const b = $(`#pn_checks [data-fixgo="${cssq(k)}"]`); if (b) b.hidden = true; whatMoves(k, box); } else fixRows.delete(k); }
 }
 
 const C = { s1: "var(--s1)", s2: "var(--s2)", s3: "var(--s3)", base: "var(--base)" };
@@ -454,11 +458,11 @@ function rockerSvg() {
   let s = `<svg viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" role="img" aria-label="Rocker at droop, ride height and bump" style="max-height:340px;min-height:220px">`;
   picks.forEach(([, lab, dash], j) => {
     const st = sts[j], ro = P(st.rod_out), ri = P(st.rod_in), dout = P(st.damper_out), dc = P(sp.dch);
-    s += `<line x1="${X(ri)}" y1="${Y(ri)}" x2="${X(ro)}" y2="${Y(ro)}" stroke="var(--bad)" stroke-width="2.5" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
-    s += `<line x1="${X(dout)}" y1="${Y(dout)}" x2="${X(dc)}" y2="${Y(dc)}" stroke="var(--s3)" stroke-width="${j === 1 ? 7 : 4}" opacity="${j === 1 ? .7 : .45}" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
-    if (!sp.direct) s += `<polygon points="${X([0, 0])},${Y([0, 0])} ${X(ri)},${Y(ri)} ${X(dout)},${Y(dout)}" fill="var(--accent)" fill-opacity="${j === 1 ? .35 : .1}" stroke="var(--accent)" stroke-width="2" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
+    s += `<line x1="${attr(X(ri))}" y1="${attr(Y(ri))}" x2="${attr(X(ro))}" y2="${attr(Y(ro))}" stroke="var(--bad)" stroke-width="2.5" ${dash ? `stroke-dasharray="${attr(dash)}"` : ""}/>`;
+    s += `<line x1="${attr(X(dout))}" y1="${attr(Y(dout))}" x2="${attr(X(dc))}" y2="${attr(Y(dc))}" stroke="var(--s3)" stroke-width="${attr(j === 1 ? 7 : 4)}" opacity="${attr(j === 1 ? .7 : .45)}" ${dash ? `stroke-dasharray="${attr(dash)}"` : ""}/>`;
+    if (!sp.direct) s += `<polygon points="${X([0, 0])},${Y([0, 0])} ${X(ri)},${Y(ri)} ${X(dout)},${Y(dout)}" fill="var(--accent)" fill-opacity="${attr(j === 1 ? .35 : .1)}" stroke="var(--accent)" stroke-width="2" ${dash ? `stroke-dasharray="${attr(dash)}"` : ""}/>`;
   });
-  if (!sp.direct) s += `<circle cx="${X([0, 0])}" cy="${Y([0, 0])}" r="4.5" fill="var(--ink)"/>`;
+  if (!sp.direct) s += `<circle cx="${attr(X([0, 0]))}" cy="${attr(Y([0, 0]))}" r="4.5" fill="var(--ink)"/>`;
   s += `</svg>`;
   return `<div class="chart"><h3>Rocker plane, looking along the pivot bolt</h3><p class="cap">Solid = ride height, dotted = full droop, dashed = full bump. Red = pushrod, green = damper, gold = rocker.</p>${s}</div>`;
 }
@@ -554,7 +558,7 @@ function partsHtml(L, label, mem) {
       <div><span>Mount position along the leg</span><b>${fmt(b.a, 0)} <small>of ${fmt(b.length, 0)} mm</small></b></div>
       <div><span>Mount offset from the leg's centerline</span><b>${fmt(b.offset, 0)} <small>mm</small></b></div>
       <div><span>Worst case (${esc(b.case)})</span><b>${fmt(b.moment / 1000, 1)} <small>N m</small> · ${fmt(b.stress, 0)} <small>MPa</small></b></div>
-      <div><span>FOS (bending + axial vs yield)</span><b class="${ok ? "ok-t" : "bad-t"}">${fmt(b.sf, 2)}</b></div></div>
+      <div><span>FOS (bending + axial vs yield)</span><b class="${attr(ok ? "ok-t" : "bad-t")}">${fmt(b.sf, 2)}</b></div></div>
     <p class="note">The ${esc(legName)} treated as a beam pinned at its inboard pivot and the ball joint, loaded across by the pushrod at the mount: M = P·a·(L−a)/L, stress = M·c/I + axial/A.
     ${ok ? "" : `<b>A bare tube is overloaded here.</b> Mount the pushrod on a gusset or bracket at the ball-joint node, move it closer to the ball joint, or use a stiffer leg; this check is conservative if a gusset carries the load. `}
     ${b.offset > 5 ? `The mount sits ${fmt(b.offset, 0)} mm off the leg's centerline, so its bracket also twists the leg (not modeled).` : ""}</p>`;
@@ -572,8 +576,8 @@ function partsHtml(L, label, mem) {
   if (C) {
     const lim = (v, l) => l == null ? "" : Math.abs(v) <= l ? "" : "bad-t";
     h += `<h3 class="sub-h">Compliance · how far the wheel moves when the links and mounts flex</h3>
-    <div class="kv"><div><span>Worst toe change, cornering / braking</span><b class="${C.toe_ok ? "ok-t" : "bad-t"}">${fmt(C.worst_toe.toe, 3)}° <small>${esc(C.worst_toe.case)}${C.toe_limit != null ? ` · limit ${fmt(C.toe_limit, 2)}` : ""}</small></b></div>
-      <div><span>Worst camber change, cornering / braking</span><b class="${C.camber_ok ? "ok-t" : "bad-t"}">${fmt(C.worst_camber.camber, 3)}° <small>${esc(C.worst_camber.case)}${C.camber_limit != null ? ` · limit ${fmt(C.camber_limit, 2)}` : ""}</small></b></div>
+    <div class="kv"><div><span>Worst toe change, cornering / braking</span><b class="${attr(C.toe_ok ? "ok-t" : "bad-t")}">${fmt(C.worst_toe.toe, 3)}° <small>${esc(C.worst_toe.case)}${C.toe_limit != null ? ` · limit ${fmt(C.toe_limit, 2)}` : ""}</small></b></div>
+      <div><span>Worst camber change, cornering / braking</span><b class="${attr(C.camber_ok ? "ok-t" : "bad-t")}">${fmt(C.worst_camber.camber, 3)}° <small>${esc(C.worst_camber.case)}${C.camber_limit != null ? ` · limit ${fmt(C.camber_limit, 2)}` : ""}</small></b></div>
       <div><span>Link stiffness (two rod ends + tube + mount)</span><b>${fmt(Math.min(...Object.values(C.stiffness)), 0)}–${fmt(Math.max(...Object.values(C.stiffness)), 0)} <small>N/mm</small></b></div></div>
     <div class="tbl-wrap"><table class="data"><thead><tr><th>Case</th><th class="n">Camber change, °</th><th class="n">Toe-in change, °</th><th class="n">Contact patch moves sideways, mm</th><th class="n">Largest link stretch, mm</th></tr></thead><tbody>
     ${C.cases.map(x => `<tr${x.driving ? "" : ` class="muted"`}><td>${esc(x.case)}${x.driving ? "" : " *"}</td><td class="n ${x.driving ? lim(x.camber, C.camber_limit) : ""}">${x.camber > 0 ? "+" : ""}${fmt(x.camber, 3)}</td>

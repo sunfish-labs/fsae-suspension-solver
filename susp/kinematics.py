@@ -8,8 +8,7 @@ import numpy as np
 from .config import HP, default_targets
 
 
-class SolveError(RuntimeError):
-    pass
+from .errors import SolveError  # noqa: F401 - re-exported (older code imports it from here)
 
 
 # --------------------------------------------------------------------------- #
