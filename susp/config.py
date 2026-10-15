@@ -59,7 +59,7 @@ SPRING_DEFAULTS = {
     "damper_stroke": None,      # mm, optional - checks stroke used over the heave sweep
     "damper_eye_to_eye": None,  # mm, fully extended length, optional - checks top-out / bottom-out and sag
     "unsprung_mass": 11.0,      # kg per corner
-    "tire_rate": 110.0,         # N/mm vertical tyre stiffness - check your tyre data
+    "tire_rate": 110.0,         # N/mm vertical tire stiffness - check your tire data
     "target_freq_hz": None,     # optional: report the spring rate that gives this ride frequency
 }
 
@@ -85,7 +85,7 @@ METRICS = {  # key: (label, unit, decimals)
     "steer_arm": ("Steering arm length", "mm", 1),
     "motion_ratio": ("Motion ratio (damper/wheel)", "", 3),
     "mr_progression": ("Motion ratio change over travel", "%", 1),
-    "wheel_rate": ("Wheel rate", "N/mm", 1), "ride_rate": ("Ride rate (with tyre)", "N/mm", 1),
+    "wheel_rate": ("Wheel rate", "N/mm", 1), "ride_rate": ("Ride rate (with tire)", "N/mm", 1),
     "ride_freq": ("Ride frequency", "Hz", 2), "spring_for_target": ("Spring rate for target freq", "N/mm", 1),
     "damper_used": ("Damper stroke used", "mm", 1), "damper_margin": ("Damper stroke left", "mm", 1),
     "rocker_rot": ("Rocker rotation over travel", "deg", 1),
@@ -105,25 +105,25 @@ METRIC_HELP = {
     "scrub": "Distance from the steering axis ground point to the contact patch (+ = axis meets ground inboard). Large = kickback and heavy steering.",
     "trail": "Distance from the steering axis ground point to the contact patch along X. Gives self-centring torque.",
     "toe": "Static toe. + = toe-in. Front usually slight toe-out, rear slight toe-in.",
-    "roll_center": "Height of the roll centre above ground. Higher = more load transfer through links, less body roll; big swings hurt consistency.",
-    "fvsa": "Front-view swing arm length. Sets camber gain and where the roll centre moves in heave.",
+    "roll_center": "Height of the roll center above ground. Higher = more load transfer through links, less body roll; big swings hurt consistency.",
+    "fvsa": "Front-view swing arm length. Sets camber gain and where the roll center moves in heave.",
     "bump_steer": "Toe change per inch of bump (+ = toe-in). Should be near 0. Fixed with tie-rod inboard/outboard heights.",
     "bump_steer_max": "Largest toe change anywhere in the sweep. Catches curved toe traces that a slope hides.",
     "bump_steer_curve": "Curved (U-shaped) part of the toe trace: toe at full bump and full droop averaged. Comes from tie-rod "
                         "LENGTH/angle (move trackrod_inboard.y); the slope part comes from tie-rod HEIGHT.",
-    "track_change": "Sideways contact-patch movement over the sweep. Big = tyre scrub and unpredictable grip.",
+    "track_change": "Sideways contact-patch movement over the sweep. Big = tire scrub and unpredictable grip.",
     "antidive": "Share of braking weight transfer taken through the links at the front. 0 = all through springs.",
     "antisquat": "Share of acceleration weight transfer taken through the links at the rear.",
     "antilift": "Rear equivalent of anti-dive: link share of braking transfer at the rear.",
     "ackermann": "How closely the steering matches the true-turning-geometry angle split. 0 = parallel steer, 100 = full Ackermann.",
-    "clearance_min": "Smallest centre-line distance between moving links (tie rod, pushrod, wishbone legs) over heave and steer.",
+    "clearance_min": "Smallest center-line distance between moving links (tie rod, pushrod, wishbone legs) over heave and steer.",
     "rim_margin": "Gap between the farthest hardpoint and the rim radius (radial only).",
     "roll_camber": "Camber change of the outer wheel relative to the GROUND per degree of body roll. 1.0 = wheel leans with the body "
                    "(no compensation, e.g. equal parallel arms); 0 = wheel stays at static camber. More camber gain lowers it.",
-    "rc_lat": "How far the roll centre moves sideways per degree of roll. Large values make the car's balance change through a corner.",
+    "rc_lat": "How far the roll center moves sideways per degree of roll. Large values make the car's balance change through a corner.",
     "roll_steer": "Toe change of the outer wheel per degree of roll (+ = toe-in). Mostly bump steer seen through roll.",
     "motion_ratio": "Damper travel per unit wheel travel at ride height. Wheel rate = spring rate x MR^2.",
-    "ride_freq": "Natural frequency of the sprung corner on its springs and tyre. Sets how stiff the car feels; FSAE cars often run 2.5-4.5 Hz.",
+    "ride_freq": "Natural frequency of the sprung corner on its springs and tire. Sets how stiff the car feels; FSAE cars often run 2.5-4.5 Hz.",
     "turn_radius": "Path radius of the outer front wheel at full rack travel (kinematic, no slip). Must fit the tightest hairpin.",
     "trans_min": "Angle between the rod (or damper) and the rocker arm it acts on, worst case over travel. 90 deg = best "
                  "leverage; below ~45 deg the rocker approaches a toggle and the motion ratio changes quickly.",
@@ -144,7 +144,7 @@ def deep_merge(base, over):
 
 
 def finish_config(cfg, where="config"):
-    """Normalise a merged config (shared by load_config, selftests and tools)."""
+    """Normalize a merged config (shared by load_config, selftests and tools)."""
     hp = cfg.get("hardpoints", {})
     missing = [k for k in HP if k not in hp]
     if missing:
@@ -267,10 +267,10 @@ def validate(cfg):
               "Unusual - check the pivot coordinates.")
     for nm, p in (("upper_outboard", "ubj"), ("lower_outboard", "lbj"), ("trackrod_outboard", "tro")):
         if h[p][1] > h["cp"][1] + 5:
-            W(f"{nm} is outboard of the tyre centre plane (Y {h[p][1]:.0f} > {h['cp'][1]:.0f}). "
+            W(f"{nm} is outboard of the tire center plane (Y {h[p][1]:.0f} > {h['cp'][1]:.0f}). "
               "Possible with lots of wheel offset, but check it fits inside the rim.")
         if h[p][2] > 2 * R:
-            W(f"{nm} is above the top of the tyre - check units (mm) and Z.")
+            W(f"{nm} is above the top of the tire - check units (mm) and Z.")
     if abs(h["tro"][1] - h["tri"][1]) < 100:
         W("tie rod is very short (< 100 mm laterally). Bump steer will be hard to control.")
     # steering arm: distance from TRO to the kingpin axis

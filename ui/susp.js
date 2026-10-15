@@ -106,7 +106,7 @@
   const METRICS = {
     camber: ["Static camber", "deg", 2], toe: ["Static toe (+ = in)", "deg", 3], caster: ["Caster", "deg", 2],
     kpi: ["KPI", "deg", 2], scrub: ["Scrub radius", "mm", 1], trail: ["Mechanical trail", "mm", 1],
-    roll_center: ["Roll centre height", "mm", 1], fvsa: ["Front-view swing arm", "mm", 0],
+    roll_center: ["Roll center height", "mm", 1], fvsa: ["Front-view swing arm", "mm", 0],
     camber_gain: ["Camber gain", "deg/in", 3], bump_steer: ["Bump steer (+ = in)", "deg/in", 3],
     bump_steer_max: ["Max |toe change|", "deg", 3], bump_steer_curve: ["Toe curvature (+ = in)", "deg", 3],
     track_change: ["Track change", "mm", 2], antidive: ["Anti-dive", "%", 1], antisquat: ["Anti-squat", "%", 1],
@@ -115,11 +115,11 @@
     rim_margin: ["Rim radial margin", "mm", 1],
     roll_camber: ["Roll camber (outer, to ground)", "deg/deg", 3],
     roll_camber_max: ["Outer camber to ground at max roll", "deg", 2],
-    rc_lat: ["Roll centre lateral shift", "mm/deg", 1], rc_height_roll: ["Roll centre height at max roll", "mm", 1],
+    rc_lat: ["Roll center lateral shift", "mm/deg", 1], rc_height_roll: ["Roll center height at max roll", "mm", 1],
     roll_steer: ["Roll steer (outer, + = in)", "deg/deg", 3],
     turn_radius: ["Turning radius (outer front wheel)", "m", 2], steer_arm: ["Steering arm length", "mm", 1],
     motion_ratio: ["Motion ratio (damper/wheel)", "", 3], mr_progression: ["Motion ratio change over travel", "%", 1],
-    wheel_rate: ["Wheel rate", "N/mm", 1], ride_rate: ["Ride rate (with tyre)", "N/mm", 1],
+    wheel_rate: ["Wheel rate", "N/mm", 1], ride_rate: ["Ride rate (with tire)", "N/mm", 1],
     ride_freq: ["Ride frequency", "Hz", 2], spring_for_target: ["Spring rate for target freq", "N/mm", 1],
     damper_used: ["Damper stroke used", "mm", 1], damper_margin: ["Damper stroke left", "mm", 1],
     rocker_rot: ["Rocker rotation over travel", "deg", 1], static_spring_force: ["Spring force at ride height", "N", 0],
@@ -201,8 +201,8 @@
       if (Math.abs(u[0]) < 0.5) W(`${arm} wishbone pivot axis is ${deg(Math.acos(Math.min(1, Math.abs(u[0])))).toFixed(0)} deg off fore-aft. Check the pivot coordinates.`);
     }
     for (const [nm, p] of [["Upper ball joint", "ubj"], ["Lower ball joint", "lbj"], ["Trackrod outboard", "tro"]]) {
-      if (h[p][1] > h.cp[1] + 5) W(`${nm} is outboard of the tyre centre plane (Y ${h[p][1].toFixed(0)} > ${h.cp[1].toFixed(0)}). Check it fits inside the rim.`);
-      if (h[p][2] > 2 * R) W(`${nm} is above the top of the tyre. Check units (mm) and Z.`);
+      if (h[p][1] > h.cp[1] + 5) W(`${nm} is outboard of the tire center plane (Y ${h[p][1].toFixed(0)} > ${h.cp[1].toFixed(0)}). Check it fits inside the rim.`);
+      if (h[p][2] > 2 * R) W(`${nm} is above the top of the tire. Check units (mm) and Z.`);
     }
     if (Math.abs(h.tro[1] - h.tri[1]) < 100) W("Tie rod is under 100 mm long laterally. Bump steer will be hard to control.");
     const k = unit(sub(h.ubj, h.lbj)), arm = norm(perp(sub(h.tro, h.lbj), k));
@@ -775,10 +775,10 @@
   }
 
   function runLoads(cfg, susp, sp) {
-    const [cases, info] = loadCases(cfg, susp), results = {}, desc = {}, tyre = {}, fz = {};
+    const [cases, info] = loadCases(cfg, susp), results = {}, desc = {}, tire = {}, fz = {};
     for (const [name, forces, d, parts] of cases) {
       results[name] = solveCase(susp, sp, forces); desc[name] = d; fz[name] = parts;
-      tyre[name] = forces.reduce((acc, [f]) => add(acc, f), [0, 0, 0]);
+      tire[name] = forces.reduce((acc, [f]) => add(acc, f), [0, 0, 0]);
     }
     const mem = cfg.members, [, inb, outb] = loadGeometry(susp, sp);
     const size = { upper_front: "wishbone", upper_rear: "wishbone", lower_front: "wishbone", lower_rear: "wishbone", tie_rod: "tie_rod", pushrod: "pushrod" };
@@ -793,7 +793,7 @@
         compression: comp, c_case: cmin[1], Pcr, Py, peak: pk[0], p_case: pk[1],
         sf_buckle: comp > 1e-6 ? Pcr / comp : Infinity, sf_yield: pk[0] > 1e-6 ? Py / pk[0] : Infinity };
     });
-    return { results, desc, tyre, fz_parts: fz, info, checks };
+    return { results, desc, tire, fz_parts: fz, info, checks };
   }
 
   root.Susp = { SolveError, HP, HP_ORDER, SPRING_POINTS, DEFAULTS, SPRING_DEFAULTS, METRICS, deepMerge, finishConfig,

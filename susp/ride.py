@@ -173,7 +173,7 @@ def ride_metrics(cfg, susp, sp, rows):
             k_w_t = k_r_t * k_t / (k_t - k_r_t)
             out["spring_for_target"] = k_w_t / MR ** 2
         else:
-            out["spring_for_target"] = float("nan")      # tyre alone is softer than the target
+            out["spring_for_target"] = float("nan")      # tire alone is softer than the target
     if MR < 1e-6:
         raise SolveError("Motion ratio is zero - the damper does not move with the wheel. Check the spring geometry.")
     return out
@@ -198,7 +198,7 @@ def car_balance(fcfg, fev, rcfg, rev, target_grad=None, target_lltd=None):
     z_ra = zrf + (zrr - zrf) * a_s / WB
     d = hs - z_ra                               # roll moment arm
     deg = math.pi / 180
-    # roll stiffness of each axle from its ride rate (springs + tyre in series): K = k * t^2 / 2  [Nm/rad]
+    # roll stiffness of each axle from its ride rate (springs + tire in series): K = k * t^2 / 2  [Nm/rad]
     Kf = fr["ride_rate"] * 1000 * tf ** 2 / 2 * deg   # Nm/deg
     Kr = rr["ride_rate"] * 1000 * tr ** 2 / 2 * deg
     grad = ms * G * d / (Kf + Kr)               # deg per g

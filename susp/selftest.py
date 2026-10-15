@@ -76,9 +76,9 @@ def physics_checks():
     check("parallel arms: camber change over heave (deg)", max(cam) - min(cam), 0.0, 1e-6)
     check("parallel arms: bump steer (deg over travel)", m["bump_steer_max"], 0.0, 1e-6)
     check("parallel arms: roll camber (deg/deg)", m["roll_camber"], 1.0, 1e-6)
-    check("parallel arms: roll centre height (mm)", m["roll_center"], 0.0, 1e-6)
+    check("parallel arms: roll center height (mm)", m["roll_center"], 0.0, 1e-6)
 
-    # 2. roll sweep at 0 deg reproduces the heave roll centre; symmetric roll keeps RC on centreline
+    # 2. roll sweep at 0 deg reproduces the heave roll center; symmetric roll keeps RC on centerline
     ev = evaluate(make_config(TEMPLATE_FRONT))
     m, R = ev["metrics"], ev["roll"]
     r0 = R[len(R) // 2]

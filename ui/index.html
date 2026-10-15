@@ -237,7 +237,7 @@ textarea.json { width: 100%; min-height: 160px; font: 12px/1.4 var(--f-mono); bo
               <select id="rockerOn"><option value="1">Rocker (bellcrank)</option><option value="0">Direct-acting damper</option></select></div>
           </div>
           <table class="pt" id="spTable"><thead><tr><th>Point</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody></tbody></table>
-          <div class="sub-h" style="margin-top:8px">Spring, damper &amp; tyre</div>
+          <div class="sub-h" style="margin-top:8px">Spring, damper &amp; tire</div>
           <div class="fields" id="spFields"></div>
         </div>
       </div>
@@ -278,7 +278,7 @@ textarea.json { width: 100%; min-height: 160px; font: 12px/1.4 var(--f-mono); bo
             <button type="button" data-view="top" aria-pressed="false">Top</button>
           </div>
           <div class="seg" role="group" aria-label="Overlays">
-            <button type="button" id="tgRC" aria-pressed="true">Roll centre</button>
+            <button type="button" id="tgRC" aria-pressed="true">Roll center</button>
             <button type="button" id="tgMirror" aria-pressed="false">Other side</button>
           </div>
         </div>
@@ -300,7 +300,7 @@ textarea.json { width: 100%; min-height: 160px; font: 12px/1.4 var(--f-mono); bo
     </div>
   </section>
 </div>
-<p class="foot">Results match the Python <span class="mono">susp_solver.py</span> to machine precision. The solver is quasi-static with rigid links and no tyre model, so confirm the final design in CAD.</p>
+<p class="foot">Results match the Python <span class="mono">susp_solver.py</span> to machine precision. The solver is quasi-static with rigid links and no tire model, so confirm the final design in CAD.</p>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -412,7 +412,7 @@ textarea.json { width: 100%; min-height: 160px; font: 12px/1.4 var(--f-mono); bo
   const METRICS = {
     camber: ["Static camber", "deg", 2], toe: ["Static toe (+ = in)", "deg", 3], caster: ["Caster", "deg", 2],
     kpi: ["KPI", "deg", 2], scrub: ["Scrub radius", "mm", 1], trail: ["Mechanical trail", "mm", 1],
-    roll_center: ["Roll centre height", "mm", 1], fvsa: ["Front-view swing arm", "mm", 0],
+    roll_center: ["Roll center height", "mm", 1], fvsa: ["Front-view swing arm", "mm", 0],
     camber_gain: ["Camber gain", "deg/in", 3], bump_steer: ["Bump steer (+ = in)", "deg/in", 3],
     bump_steer_max: ["Max |toe change|", "deg", 3], bump_steer_curve: ["Toe curvature (+ = in)", "deg", 3],
     track_change: ["Track change", "mm", 2], antidive: ["Anti-dive", "%", 1], antisquat: ["Anti-squat", "%", 1],
@@ -421,11 +421,11 @@ textarea.json { width: 100%; min-height: 160px; font: 12px/1.4 var(--f-mono); bo
     rim_margin: ["Rim radial margin", "mm", 1],
     roll_camber: ["Roll camber (outer, to ground)", "deg/deg", 3],
     roll_camber_max: ["Outer camber to ground at max roll", "deg", 2],
-    rc_lat: ["Roll centre lateral shift", "mm/deg", 1], rc_height_roll: ["Roll centre height at max roll", "mm", 1],
+    rc_lat: ["Roll center lateral shift", "mm/deg", 1], rc_height_roll: ["Roll center height at max roll", "mm", 1],
     roll_steer: ["Roll steer (outer, + = in)", "deg/deg", 3],
     turn_radius: ["Turning radius (outer front wheel)", "m", 2], steer_arm: ["Steering arm length", "mm", 1],
     motion_ratio: ["Motion ratio (damper/wheel)", "", 3], mr_progression: ["Motion ratio change over travel", "%", 1],
-    wheel_rate: ["Wheel rate", "N/mm", 1], ride_rate: ["Ride rate (with tyre)", "N/mm", 1],
+    wheel_rate: ["Wheel rate", "N/mm", 1], ride_rate: ["Ride rate (with tire)", "N/mm", 1],
     ride_freq: ["Ride frequency", "Hz", 2], spring_for_target: ["Spring rate for target freq", "N/mm", 1],
     damper_used: ["Damper stroke used", "mm", 1], damper_margin: ["Damper stroke left", "mm", 1],
     rocker_rot: ["Rocker rotation over travel", "deg", 1], static_spring_force: ["Spring force at ride height", "N", 0],
@@ -507,8 +507,8 @@ textarea.json { width: 100%; min-height: 160px; font: 12px/1.4 var(--f-mono); bo
       if (Math.abs(u[0]) < 0.5) W(`${arm} wishbone pivot axis is ${deg(Math.acos(Math.min(1, Math.abs(u[0])))).toFixed(0)} deg off fore-aft. Check the pivot coordinates.`);
     }
     for (const [nm, p] of [["Upper ball joint", "ubj"], ["Lower ball joint", "lbj"], ["Trackrod outboard", "tro"]]) {
-      if (h[p][1] > h.cp[1] + 5) W(`${nm} is outboard of the tyre centre plane (Y ${h[p][1].toFixed(0)} > ${h.cp[1].toFixed(0)}). Check it fits inside the rim.`);
-      if (h[p][2] > 2 * R) W(`${nm} is above the top of the tyre. Check units (mm) and Z.`);
+      if (h[p][1] > h.cp[1] + 5) W(`${nm} is outboard of the tire center plane (Y ${h[p][1].toFixed(0)} > ${h.cp[1].toFixed(0)}). Check it fits inside the rim.`);
+      if (h[p][2] > 2 * R) W(`${nm} is above the top of the tire. Check units (mm) and Z.`);
     }
     if (Math.abs(h.tro[1] - h.tri[1]) < 100) W("Tie rod is under 100 mm long laterally. Bump steer will be hard to control.");
     const k = unit(sub(h.ubj, h.lbj)), arm = norm(perp(sub(h.tro, h.lbj), k));
@@ -1081,10 +1081,10 @@ textarea.json { width: 100%; min-height: 160px; font: 12px/1.4 var(--f-mono); bo
   }
 
   function runLoads(cfg, susp, sp) {
-    const [cases, info] = loadCases(cfg, susp), results = {}, desc = {}, tyre = {}, fz = {};
+    const [cases, info] = loadCases(cfg, susp), results = {}, desc = {}, tire = {}, fz = {};
     for (const [name, forces, d, parts] of cases) {
       results[name] = solveCase(susp, sp, forces); desc[name] = d; fz[name] = parts;
-      tyre[name] = forces.reduce((acc, [f]) => add(acc, f), [0, 0, 0]);
+      tire[name] = forces.reduce((acc, [f]) => add(acc, f), [0, 0, 0]);
     }
     const mem = cfg.members, [, inb, outb] = loadGeometry(susp, sp);
     const size = { upper_front: "wishbone", upper_rear: "wishbone", lower_front: "wishbone", lower_rear: "wishbone", tie_rod: "tie_rod", pushrod: "pushrod" };
@@ -1099,7 +1099,7 @@ textarea.json { width: 100%; min-height: 160px; font: 12px/1.4 var(--f-mono); bo
         compression: comp, c_case: cmin[1], Pcr, Py, peak: pk[0], p_case: pk[1],
         sf_buckle: comp > 1e-6 ? Pcr / comp : Infinity, sf_yield: pk[0] > 1e-6 ? Py / pk[0] : Infinity };
     });
-    return { results, desc, tyre, fz_parts: fz, info, checks };
+    return { results, desc, tire, fz_parts: fz, info, checks };
   }
 
   root.Susp = { SolveError, HP, HP_ORDER, SPRING_POINTS, DEFAULTS, SPRING_DEFAULTS, METRICS, deepMerge, finishConfig,
@@ -1127,18 +1127,18 @@ const HELP = {
   scrub: "Steering axis ground point to contact patch, sideways. Large = kickback and heavy steering.",
   trail: "Steering axis ground point to contact patch, fore-aft. Gives self-centring torque.",
   toe: "Static toe, + = toe-in. Set by tie-rod length.",
-  roll_center: "Roll centre height at ride height. Higher = more load transfer through links, less body roll.",
+  roll_center: "Roll center height at ride height. Higher = more load transfer through links, less body roll.",
   antidive: "Share of braking weight transfer taken by the links at the front. Negative = pro-dive.",
   antisquat: "Share of acceleration weight transfer taken by the links at the rear.",
   ackermann: "0 % = parallel steer, 100 % = full Ackermann, negative = anti-Ackermann.",
   bump_steer: "Toe change per inch of bump. Fix the slope with tie-rod height.",
   bump_steer_max: "Largest toe change anywhere in the travel. Catches U-shaped toe curves (fix those with tie-rod length).",
-  ride_freq: "Natural frequency of the sprung corner on spring and tyre. FSAE cars often run 2.5–4.5 Hz.",
+  ride_freq: "Natural frequency of the sprung corner on spring and tire. FSAE cars often run 2.5–4.5 Hz.",
   damper_margin: "Damper stroke left over after the full wheel travel.",
   damper_topout: "Room before the damper fully extends at full droop.",
   damper_bottomout: "Room before the damper fully compresses at full bump.",
   trans_min: "Angle between pushrod or damper and the rocker arm it drives, worst over travel. 90° is best; under 45° the rocker nears a toggle.",
-  link_clearance: "Tightest centre-line gap between moving links over travel and steer, against tube radii plus margin.",
+  link_clearance: "Tightest center-line gap between moving links over travel and steer, against tube radii plus margin.",
   rim_margin: "Gap from the farthest outboard joint to the rim radius (radial check only).",
 };
 
@@ -1194,7 +1194,7 @@ function buildForm() {
     field("Body roll ±", "deg", "sweep.roll_deg", { step: 0.25 }), field("Ackermann at outer wheel", "deg", "sweep.ackermann_at_outer_deg", { step: 1 })].join("");
   $("#spFields").innerHTML = [field("Spring rate", "N/mm", "spring.spring_rate", { step: 1 }), field("Target ride freq", "Hz", "spring.target_freq_hz", { step: 0.1, opt: 1 }),
     field("Damper eye-to-eye (extended)", "mm", "spring.damper_eye_to_eye", { opt: 1 }), field("Damper stroke", "mm", "spring.damper_stroke", { opt: 1 }),
-    field("Unsprung mass / corner", "kg", "spring.unsprung_mass", { step: 0.5 }), field("Tyre vertical rate", "N/mm", "spring.tire_rate", { step: 5 })].join("");
+    field("Unsprung mass / corner", "kg", "spring.unsprung_mass", { step: 0.5 }), field("Tire vertical rate", "N/mm", "spring.tire_rate", { step: 5 })].join("");
   $("#loadFields").innerHTML = [field("Bump", "g", "loads.bump_g", { step: 0.1 }), field("Cornering", "g", "loads.corner_g", { step: 0.1 }),
     field("Braking", "g", "loads.brake_g", { step: 0.1 }), field("Brake + corner", "g", "loads.combined_g", { step: 0.1 }),
     field("Acceleration (rear)", "g", "loads.accel_g", { step: 0.1 })].join("");
@@ -1439,12 +1439,12 @@ function panelHeave() {
     <div><span>Bump steer slope</span><b>${fmt(m.bump_steer, 3)} <small>deg/in</small></b></div>
     <div><span>Max toe change</span><b>${fmt(m.bump_steer_max, 3)} <small>deg</small></b></div>
     <div><span>Front-view swing arm</span><b>${fmt(m.fvsa, 0)} <small>mm</small></b></div>
-    <div><span>Roll centre range</span><b>${fmt(m.rc_min, 0)}…${fmt(m.rc_max, 0)} <small>mm</small></b></div>
+    <div><span>Roll center range</span><b>${fmt(m.rc_min, 0)}…${fmt(m.rc_max, 0)} <small>mm</small></b></div>
     <div><span>Track change</span><b>${fmt(m.track_change, 2)} <small>mm</small></b></div></div>
   <div class="charts">
     ${mk("Camber, deg", `gain ${fmt(m.camber_gain, 3)} deg/in`, r => r.camber)}
     ${mk("Toe change, deg (+ in)", `max ${fmt(m.bump_steer_max, 3)} deg over ±${T} mm`, r => r.toe - toe0, r => r.toe - btoe0)}
-    ${mk("Roll centre height, mm", "above ground", r => r.roll_center)}
+    ${mk("Roll center height, mm", "above ground", r => r.roll_center)}
     ${mk("Caster, deg", "", r => r.caster)}
     ${mk("KPI, deg", "", r => r.kpi)}
     ${mk("Scrub radius, mm", "", r => r.scrub)}
@@ -1460,18 +1460,18 @@ function panelRoll() {
   return `<div class="kv">
     <div><span>Roll camber (outer, to ground)</span><b>${fmt(m.roll_camber, 3)} <small>deg/deg</small></b></div>
     <div><span>Outer camber at ${fmt(m.roll_max_deg, 1)}° roll</span><b>${fmt(m.roll_camber_max, 2)} <small>deg</small></b></div>
-    <div><span>Roll centre sideways shift</span><b>${fmt(m.rc_lat, 1)} <small>mm/deg</small></b></div>
-    <div><span>Roll centre height at max roll</span><b>${fmt(m.rc_height_roll, 1)} <small>mm</small></b></div>
+    <div><span>Roll center sideways shift</span><b>${fmt(m.rc_lat, 1)} <small>mm/deg</small></b></div>
+    <div><span>Roll center height at max roll</span><b>${fmt(m.rc_height_roll, 1)} <small>mm</small></b></div>
     <div><span>Roll steer (outer)</span><b>${fmt(m.roll_steer, 3)} <small>deg/deg</small></b></div></div>
   <div class="charts">
     ${chart({ title: "Camber to ground, deg", cap: "1.0 deg/deg roll camber = wheel leans with the body", xlabel: "body roll, deg (+ right wheel outer)",
       series: [...bser(r => r.camber_outer), { name: "outer", x, y: R.map(r => r.camber_outer), color: C.s1 }, { name: "inner", x, y: R.map(r => r.camber_inner), color: C.s2, dash: "5 3" }] })}
-    ${chart({ title: "Roll centre height, mm", cap: "kinematic, above the ground line", xlabel: "body roll, deg",
+    ${chart({ title: "Roll center height, mm", cap: "kinematic, above the ground line", xlabel: "body roll, deg",
       series: [...bser(r => r.rc_height), { name: bR ? "current" : null, x, y: R.map(r => r.rc_height), color: C.s1 }] })}
-    ${chart({ title: "Roll centre sideways position, mm", cap: "+ = toward the outer wheel", xlabel: "body roll, deg",
+    ${chart({ title: "Roll center sideways position, mm", cap: "+ = toward the outer wheel", xlabel: "body roll, deg",
       series: [...bser(r => r.rc_lateral), { name: bR ? "current" : null, x, y: R.map(r => r.rc_lateral), color: C.s1 }] })}
   </div>
-  <p class="note">Roll is modelled as equal and opposite wheel travel with the left wheel mirrored. The force-based roll centre moves once the tyres are loaded unevenly.</p>`;
+  <p class="note">Roll is modeled as equal and opposite wheel travel with the left wheel mirrored. The force-based roll center moves once the tires are loaded unevenly.</p>`;
 }
 function panelSteer() {
   if (!ev.steer) return `<p class="note">Steering applies to the front axle. On the rear axle the toe link is fixed, so there is no steering sweep.</p>`;
@@ -1486,7 +1486,7 @@ function panelSteer() {
     <div><span>Rack for 25° inner</span><b>${r25i == null ? "> range" : fmt(r25i, 1)} <small>${r25i == null ? "" : "mm"}</small></b></div>
     <div><span>Rack for 25° outer</span><b>${r25o == null ? "> range" : fmt(r25o, 1)} <small>${r25o == null ? "" : "mm"}</small></b></div>
     <div><span>Steering arm</span><b>${fmt(m.steer_arm, 1)} <small>mm</small></b></div>
-    ${cf ? `<div><span>Steering wheel, centre to lock</span><b>${fmt(ev.cfg.sweep.rack_travel / cf * 360, 0)} <small>deg</small></b></div>` : ""}</div>
+    ${cf ? `<div><span>Steering wheel, center to lock</span><b>${fmt(ev.cfg.sweep.rack_travel / cf * 360, 0)} <small>deg</small></b></div>` : ""}</div>
   <div class="charts">
     ${chart({ title: "Wheel steer angle, deg", xlabel: "rack travel, mm", marker: Math.abs(pose.rack),
       series: [{ name: "inner", x, y: st.map(r => r.inner), color: C.s1 }, { name: "outer", x, y: st.map(r => r.outer), color: C.s2, dash: "5 3" }] })}
@@ -1495,7 +1495,7 @@ function panelSteer() {
     ${chart({ title: "Camber while steering, deg", xlabel: "rack travel, mm",
       series: [{ name: "inner", x, y: st.map(r => r.camber_inner), color: C.s1 }, { name: "outer", x, y: st.map(r => r.camber_outer), color: C.s2, dash: "5 3" }] })}
   </div>
-  <p class="note">Turning radius is the outer front wheel's path at full rack, with no tyre slip. Compare its diameter with the tightest hairpin in the current FSAE rules.</p>`;
+  <p class="note">Turning radius is the outer front wheel's path at full rack, with no tire slip. Compare its diameter with the tightest hairpin in the current FSAE rules.</p>`;
 }
 function rockerSvg() {
   const sp = ev.spring, rows = ev.rows;
@@ -1530,7 +1530,7 @@ function panelSpring() {
   const bRows = base && base.ride ? base.rows : null;
   return `<div class="kv">
     ${kv("Motion ratio (damper/wheel)", "motion_ratio", "", 3)}${kv("MR change over travel", "mr_progression", "%", 1)}
-    ${kv("Wheel rate", "wheel_rate", "N/mm", 1)}${kv("Ride rate with tyre", "ride_rate", "N/mm", 1)}
+    ${kv("Wheel rate", "wheel_rate", "N/mm", 1)}${kv("Ride rate with tire", "ride_rate", "N/mm", 1)}
     ${kv("Ride frequency", "ride_freq", "Hz", 2)}${kv(`Spring for ${fmt(sc.target_freq_hz, 1)} Hz`, "spring_for_target", "N/mm", 1)}
     ${kv("Spring force at ride height", "static_spring_force", "N", 0)}${kv("Damper stroke used", "damper_used", "mm", 1)}
     ${kv("Damper at ride height", "damper_static_pos", "% of stroke", 0)}${kv("Room to full extension", "damper_topout", "mm", 1)}
@@ -1554,7 +1554,7 @@ function panelLoads() {
   const L = loads, I = L.info, mem = ev.cfg.members, names = Object.keys(L.results);
   const label = (k) => { const h = ev.susp.h; return { upper_front: `Upper leg (pivot X ${h.uif[0].toFixed(0)})`, upper_rear: `Upper leg (pivot X ${h.uir[0].toFixed(0)})`,
     lower_front: `Lower leg (pivot X ${h.lif[0].toFixed(0)})`, lower_rear: `Lower leg (pivot X ${h.lir[0].toFixed(0)})`, tie_rod: ev.cfg.axle === "rear" ? "Toe link" : "Tie rod", pushrod: "Pushrod" }[k]; };
-  const ty = names.map(n => `<tr><td>${esc(n)}</td><td class="n">${fmt(L.tyre[n][0], 0)}</td><td class="n">${fmt(L.tyre[n][1], 0)}</td><td class="n">${fmt(L.tyre[n][2], 0)}</td><td class="mono" style="font-size:12px">${esc(L.fz_parts[n])}</td></tr>`).join("");
+  const ty = names.map(n => `<tr><td>${esc(n)}</td><td class="n">${fmt(L.tire[n][0], 0)}</td><td class="n">${fmt(L.tire[n][1], 0)}</td><td class="n">${fmt(L.tire[n][2], 0)}</td><td class="mono" style="font-size:12px">${esc(L.fz_parts[n])}</td></tr>`).join("");
   const mrow = (lab, get) => `<tr><td>${lab}</td>${names.map(n => { const v = get(L.results[n]); return `<td class="n">${v > 0 ? "+" : ""}${fmt(v, 0)}</td>`; }).join("")}</tr>`;
   const mr = S.MEMBERS.map(k => mrow(label(k), r => r[k])).join("") + mrow("Damper / spring", r => r.damper) +
     (ev.spring.direct ? "" : `<tr><td>Rocker pivot (resultant)</td>${names.map(n => `<td class="n">${fmt(L.results[n].rocker_pivot, 0)}</td>`).join("")}</tr>`) +
@@ -1566,7 +1566,7 @@ function panelLoads() {
       <td>${ok ? `<span class="pill ok">OK</span>` : `<span class="pill bad">Below FOS</span>`}</td></tr>`; }).join("");
   return `<p class="note">One config covers both corners of this axle. The solved wheel is the outer wheel in a left turn and the inner wheel in a right turn, so both are checked.
   Static wheel load ${fmt(I.Fz0, 0)} N; longitudinal transfer ${fmt(I.long_per_g, 0)} N/g; lateral transfer ${fmt(I.lat_per_g, 0)} N/g per wheel. Side and brake forces = g level × that wheel's load.</p>
-  <h3 class="sub-h">Tyre forces on the wheel, N</h3>
+  <h3 class="sub-h">Tire forces on the wheel, N</h3>
   <div class="tbl-wrap"><table class="data"><thead><tr><th>Case</th><th class="n">Fx</th><th class="n">Fy</th><th class="n">Fz</th><th>Fz built from</th></tr></thead><tbody>${ty}</tbody></table></div>
   <h3 class="sub-h">Member axial forces, N (+ tension, − compression)</h3>
   <div class="tbl-wrap"><table class="data"><thead><tr><th>Member</th>${names.map(n => `<th class="n">${esc(n)}</th>`).join("")}</tr></thead><tbody>${mr}</tbody></table></div>
@@ -1579,7 +1579,7 @@ function panelPack() {
   const rows = Object.entries(p.pairs).sort((a, b) => (a[1][0] - a[1][3]) - (b[1][0] - b[1][3])).map(([n, [d, hz, rk, need]]) =>
     `<tr><td>${esc(n)}</td><td class="n">${fmt(d, 1)}</td><td class="n">${fmt(need, 1)}</td><td class="n">${fmt(hz, 0)}</td>${rear ? "" : `<td class="n">${fmt(rk, 0)}</td>`}<td>${d >= need ? `<span class="pill ok">Clear</span>` : `<span class="pill bad">Too close</span>`}</td></tr>`).join("");
   return `<div class="tbl-wrap"><table class="data"><thead><tr><th>Link pair</th><th class="n">Min gap, mm</th><th class="n">Needs</th><th class="n">At travel</th>${rear ? "" : `<th class="n">At rack</th>`}<th></th></tr></thead><tbody>${rows}</tbody></table></div>
-  <p class="note">Centre-line distances, checked at full droop, ride height and full bump${rear ? "" : " with full left and right rack"}. "Needs" = half of each tube's OD plus ${fmt(ev.cfg.clearance.margin, 0)} mm margin.
+  <p class="note">Center-line distances, checked at full droop, ride height and full bump${rear ? "" : " with full left and right rack"}. "Needs" = half of each tube's OD plus ${fmt(ev.cfg.clearance.margin, 0)} mm margin.
   Rim: the farthest joint is ${fmt(p.rim_max, 1)} mm from the wheel axis against a ${fmt(p.rim_radius, 1)} mm rim radius, leaving ${fmt(p.rim_margin, 1)} mm (radial check only).</p>`;
 }
 
@@ -1655,7 +1655,7 @@ function updateScene() {
   const mat = (c, extra = {}) => new T.MeshStandardMaterial({ color: new T.Color(c), roughness: 0.55, metalness: 0.25, ...extra });
   const steel = mat("#8d99a6"), steelD = mat("#5d6975"), arm1 = mat(col.s1 || "#1d6aa8"), tie = mat("#6c7a89"), push = mat(col.bad || "#b42318"),
     rocker = mat(col.accent || "#cf4a12", { side: T.DoubleSide }), springM = mat("#26338f", { metalness: 0.4 }), damperM = mat("#e0b21c", { metalness: 0.3 }),
-    tyre = mat("#202326", { roughness: 0.92, metalness: 0 }), rimM = mat("#b9c2cb", { metalness: 0.7, roughness: 0.35, transparent: true, opacity: 0.45, side: T.DoubleSide });
+    tire = mat("#202326", { roughness: 0.92, metalness: 0 }), rimM = mat("#b9c2cb", { metalness: 0.7, roughness: 0.35, transparent: true, opacity: 0.45, side: T.DoubleSide });
   const groupFor = (mirror) => {
     const g = new T.Group();
     const tube = (a, b, r, m) => { const A = toT(a), B = toT(b), d = new T.Vector3().subVectors(B, A), L = d.length(); if (L < 1e-6) return;
@@ -1670,13 +1670,13 @@ function updateScene() {
     for (const q of [p.ub, p.lb, p.tro]) ball(q, 11, steel);
     // upright
     tube(p.ub, p.lb, 13, steelD); tube(p.lb, p.tro, 9, steelD); tube(p.ub, p.c, 9, steelD); tube(p.lb, p.c, 9, steelD);
-    // wheel: hollow tyre (lathe) + translucent rim barrel
+    // wheel: hollow tire (lathe) + translucent rim barrel
     const R = s.R, w = s.cfg.wheel.tire_width, rr = s.cfg.wheel.rim_diameter_in * 25.4 / 2, prof = [];
     const rnd = Math.min(28, (R - rr) / 2);
     for (let i = 0; i <= 8; i++) { const a = -Math.PI / 2 + i / 8 * Math.PI / 2; prof.push(new T.Vector2(R - rnd + rnd * Math.cos(a), -w / 2 + rnd + rnd * Math.sin(a))); }
     for (let i = 0; i <= 8; i++) { const a = i / 8 * Math.PI / 2; prof.push(new T.Vector2(R - rnd + rnd * Math.cos(a), w / 2 - rnd + rnd * Math.sin(a))); }
     prof.push(new T.Vector2(rr, w / 2 - 4)); prof.unshift(new T.Vector2(rr, -w / 2 + 4));
-    const ty = new T.Mesh(new T.LatheGeometry(prof, 72), tyre);
+    const ty = new T.Mesh(new T.LatheGeometry(prof, 72), tire);
     const rim = new T.Mesh(new T.CylinderGeometry(rr, rr, w * 0.92, 48, 1, true), rimM);
     const axle = toT(p.a).normalize(), q = new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 1, 0), axle);
     for (const me of [ty, rim]) { me.position.copy(toT(p.c)); me.quaternion.copy(q); g.add(me); }
@@ -1709,7 +1709,7 @@ function updateScene() {
   };
   dyn.add(groupFor(false));
   if (view.mirror) dyn.add(groupFor(true));
-  // ground grid, centreline, roll centre
+  // ground grid, centerline, roll center
   const gsize = Math.max(2400, s.track + 1200);
   const grid = new T.GridHelper(gsize, 24, new T.Color(col.muted || "#5a6876"), new T.Color(col.line || "#cfd7de"));
   grid.position.set(h.cp[0], 0, 0); grid.material.transparent = true; grid.material.opacity = 0.6; dyn.add(grid);

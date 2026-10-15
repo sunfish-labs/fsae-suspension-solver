@@ -1,6 +1,6 @@
 """Quasi-static load cases -> forces in the wishbone legs, tie rod, pushrod, damper and rocker.
 
-Members are pin-ended (rod ends / spherical bearings). The upright is in equilibrium under the tyre force and
+Members are pin-ended (rod ends / spherical bearings). The upright is in equilibrium under the tire force and
 the link forces. If the pushrod sits on a wishbone, that wishbone is a three-force body: its ball-joint force is
 solved first, then the moment about its pivot axis gives the pushrod force, and the remaining load at the outer
 node is split between the two legs. Any part the legs cannot take in tension/compression is reported as a
@@ -21,7 +21,7 @@ MEMBER_LABEL = {"upper_front": "Upper leg (pivot {uif})", "upper_rear": "Upper l
 
 
 def load_cases(cfg, susp):
-    """Tyre forces on this corner (the right-hand wheel) for each case.
+    """Tire forces on this corner (the right-hand wheel) for each case.
 
     The car is symmetric, so one config covers both corners of its axle: in a left turn this wheel is the
     OUTER wheel, in a right turn it is the INNER wheel. Both are checked because the inner wheel's lateral force
@@ -60,7 +60,7 @@ def load_cases(cfg, susp):
     ay = L["corner_g"]
     for side, nm in ((1, "outer"), (-1, "inner")):
         Fz, parts = wheel(ay=ay, side=side)
-        # both tyres push the car toward the turn centre: -Y for the outer (right) wheel, +Y for the inner
+        # both tires push the car toward the turn center: -Y for the outer (right) wheel, +Y for the inner
         cases.append((f"corner {nm}", [(np.array([0, 0, Fz]), cp), (np.array([0, -side * ay * Fz, 0]), cp)],
                       f"{ay:g} g lateral, {nm} wheel", parts))
     ax = -L["brake_g"]
@@ -94,7 +94,7 @@ def _geometry(susp, sp):
 
 
 def solve_case(susp, sp, forces):
-    """Member forces (N, + = tension) for tyre forces [(F, point)] applied to the upright."""
+    """Member forces (N, + = tension) for tire forces [(F, point)] applied to the upright."""
     pts, inb, outb, st = _geometry(susp, sp)
     F = sum(f for f, _ in forces)
     M = sum(np.cross(pts[p], f) for f, p in forces)
@@ -189,12 +189,12 @@ def member_checks(cfg, susp, sp, results):
 
 def run_loads(cfg, susp, sp):
     cases, info = load_cases(cfg, susp)
-    res, desc, tyre, fz = {}, {}, {}, {}
+    res, desc, tire, fz = {}, {}, {}, {}
     for name, forces, d, parts in cases:
         res[name] = solve_case(susp, sp, forces)
         desc[name], fz[name] = d, parts
-        tyre[name] = sum(f for f, _ in forces)
-    return dict(results=res, desc=desc, tyre=tyre, fz_parts=fz, Fz0=info["Fz0"], info=info,
+        tire[name] = sum(f for f, _ in forces)
+    return dict(results=res, desc=desc, tire=tire, fz_parts=fz, Fz0=info["Fz0"], info=info,
                 checks=member_checks(cfg, susp, sp, res))
 
 

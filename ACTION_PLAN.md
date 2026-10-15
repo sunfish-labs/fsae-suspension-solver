@@ -3,7 +3,7 @@
 Written for a first-year FSAE team with no car yet. Over the next months the team has to:
 (1) pick hardpoints, (2) pick springs and route the pushrod or pullrod, (3) size the wishbones, tie rods,
 rod ends and tabs, and (4) check that the front and rear work together as one car.
-The old tool covered only step 1. This plan covers all four without adding a GUI, a tyre model or a lap sim.
+The old tool covered only step 1. This plan covers all four without adding a GUI, a tire model or a lap sim.
 
 ## What the old tool did well (keep)
 
@@ -18,7 +18,7 @@ The old tool covered only step 1. This plan covers all four without adding a GUI
 
 | # | Problem | Why it matters for a first-year team |
 |---|---------|---------------------------------------|
-| 1 | **No roll analysis.** Camber gain is reported only in heave (deg/in). | The car corners in roll. Camber relative to the ground in roll, and how far the roll centre moves sideways, decide tyre grip. Heave camber gain alone can look fine while the outer tyre rolls onto its sidewall. |
+| 1 | **No roll analysis.** Camber gain is reported only in heave (deg/in). | The car corners in roll. Camber relative to the ground in roll, and how far the roll center moves sideways, decide tire grip. Heave camber gain alone can look fine while the outer tire rolls onto its sidewall. |
 | 2 | **No spring/damper geometry.** There's no pushrod, pullrod, rocker or damper, so no motion ratio, wheel rate or ride frequency. | Choosing springs and a damper is the next decision after hardpoints. Without a motion ratio the team can't buy springs, check damper stroke, or check that the pushrod clears the wishbones. |
 | 3 | **No loads.** There are no member forces, so tubes, rod ends and tabs can't be sized. | Every first-year car needs wishbone, tie-rod and pushrod forces for its standard load cases, plus a buckling check. Today that's a separate hand calculation that rarely matches the geometry actually being run. |
 | 4 | **No whole-car view.** Front and rear are separate files and nothing combines them. | You can't get roll gradient, lateral load transfer distribution (LLTD), front/rear frequency split or "do we need an anti-roll bar, and how stiff" without both axles. |
@@ -36,11 +36,11 @@ The old tool covered only step 1. This plan covers all four without adding a GUI
 **A. Roll sweep (fixes 1).** Roll the body with equal and opposite wheel travel (Lotus-style), using the
 mirrored left wheel. Report ground-referenced camber for the outer and inner wheels, **roll camber**
 (deg camber per deg roll; 0 = wheel stays upright, 1 = wheel leans with the body), and the
-**kinematic roll centre** height and lateral migration per degree of roll.
+**kinematic roll center** height and lateral migration per degree of roll.
 
 **B. Spring/damper module (fixes 2).** An optional `spring` block: pushrod or pullrod mounted on the lower arm,
 upper arm or upright, an optional rocker (bellcrank) with its pivot axis, and the damper's chassis mount.
-Outputs over the heave sweep: **motion ratio** (damper/wheel), wheel rate, ride rate (tyre in series),
+Outputs over the heave sweep: **motion ratio** (damper/wheel), wheel rate, ride rate (tire in series),
 **ride frequency**, damper stroke used against stroke available, and the **spring rate needed to hit a target
 frequency**. This is the answer to "which spring do we buy?". The pushrod is added to the clearance check.
 
@@ -62,8 +62,8 @@ contact patch. There's a new `bump_steer_max` target. Turning radius and steerin
 joints outboard of the pivots, hardpoints inside the wheel, a very short steering arm, degenerate rocker or
 pushrod geometry, and pushrod angle. Each warning says what's likely wrong.
 
-**G. Geometry view (fixes 11).** Front, side and top views of all links, the instant centres and the
-roll centre, added to `--plot` and the HTML report.
+**G. Geometry view (fixes 11).** Front, side and top views of all links, the instant centers and the
+roll center, added to `--plot` and the HTML report.
 
 **H. Restructure and test (fixes 9, 10).** A small package `susp/` with config, kinematics, ride, loads,
 output and tools modules. `susp_solver.py` stays the single command you run. `selftest` now runs the
@@ -71,12 +71,12 @@ KineSolver checks plus these physics checks:
 - Statics balance to machine precision.
 - Damper force from statics equals Fz / motion ratio from kinematics (virtual work). This ties the two halves
   of the code together.
-- Equal parallel arms give zero camber change, roll camber = 1 and a roll centre at the ground.
-- Roll-sweep roll centre at 0 deg equals the heave roll centre.
+- Equal parallel arms give zero camber change, roll camber = 1 and a roll center at the ground.
+- Roll-sweep roll center at 0 deg equals the heave roll center.
 - The suggested spring rate gives the target frequency.
 
 ## Deliberately NOT added (bloat for a team with no car)
-GUI, tyre model, compliance/bushings, lap simulation, a full 3D CAD viewer, and multi-link or MacPherson
+GUI, tire model, compliance/bushings, lap simulation, a full 3D CAD viewer, and multi-link or MacPherson
 layouts. Each is a large maintenance cost and won't change a first-year design decision.
 Anti-roll bar *geometry* is also left out. The `car` command gives the *stiffness* you need, which is what
 you design the bar to.

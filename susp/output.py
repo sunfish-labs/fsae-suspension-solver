@@ -114,7 +114,7 @@ def print_report(cfg, ev):
         print(f"steering arm (tie-rod joint to kingpin axis): {m['steer_arm']:.1f} mm")
         cf = cfg["vehicle"].get("rack_c_factor")
         if cf:
-            print(f"steering wheel lock-to-centre: {cfg['sweep']['rack_travel'] / cf * 360:.0f} deg "
+            print(f"steering wheel lock-to-center: {cfg['sweep']['rack_travel'] / cf * 360:.0f} deg "
                   f"(c-factor {cf:g} mm/rev)")
 
     if ev.get("ride"):
@@ -124,7 +124,7 @@ def print_report(cfg, ev):
         p = ev["pack"]
         print(f"\nPackaging (heave +/-{T:.0f}"
               + (f", rack +/-{cfg['sweep']['rack_travel']:.0f}" if s.axle == "front" else "")
-              + "; centre-line distances)")
+              + "; center-line distances)")
         fr = s.axle == "front"
         table(["link pair", "min mm", "needs", "at heave"] + (["at rack"] if fr else []) + [""],
               [[n, f"{d:.1f}", f"{need:.1f}", f"{hz:+.0f}"] + ([f"{rk:+.0f}"] if fr else [])
@@ -147,7 +147,7 @@ def print_ride(cfg, ev):
     sc = cfg["spring"]
     kind = "direct-acting damper" if ev["spring"].direct else "rocker"
     print(f"\nSpring and damper ({sc['rod_on']}-arm rod, {kind}; spring {sc['spring_rate']:g} N/mm, "
-          f"tyre {sc['tire_rate']:g} N/mm, sprung corner {rd['_m_sprung']:.1f} kg)")
+          f"tire {sc['tire_rate']:g} N/mm, sprung corner {rd['_m_sprung']:.1f} kg)")
     keys = ["motion_ratio", "mr_progression", "wheel_rate", "ride_rate", "ride_freq", "static_spring_force",
             "spring_for_target", "damper_used", "damper_margin", "damper_static_pos", "damper_topout",
             "damper_bottomout", "rod_angle", "rocker_rot", "trans_min"]
@@ -168,7 +168,7 @@ def print_ride(cfg, ev):
     if rd.get("_wheel_travel_per_stroke"):
         print(f"  damper stroke {sc['damper_stroke']:g} mm allows about {rd['_wheel_travel_per_stroke']:.0f} mm "
               "of total wheel travel at this motion ratio.")
-    print(f"  wheel-hop frequency ~{rd['hop_freq']:.1f} Hz (unsprung mass on spring + tyre).")
+    print(f"  wheel-hop frequency ~{rd['hop_freq']:.1f} Hz (unsprung mass on spring + tire).")
 
 
 def write_csv(prefix, ev):
@@ -210,7 +210,7 @@ def _mpl():
 
 
 def draw_front(ax, ev, color="C0", full=True):
-    """Front view (Y-Z) of the right corner, with the roll-centre construction."""
+    """Front view (Y-Z) of the right corner, with the roll-center construction."""
     s, h = ev["susp"], ev["susp"].h
     o = ev["rows"][len(ev["rows"]) // 2]
     p = o["_pts"]
@@ -219,7 +219,7 @@ def draw_front(ax, ev, color="C0", full=True):
         L(h[piv], p[bj], color=color, lw=2)
     L(p["ub"], p["lb"], color=color, lw=3)
     L(h["tri"], p["tro"], color=color, lw=1.5, ls="--")
-    # tyre outline
+    # tire outline
     a = p["a"]
     up = np.array([0, 0, 1.0]) - a[2] * a
     up /= np.linalg.norm(up)
@@ -235,13 +235,13 @@ def draw_front(ax, ev, color="C0", full=True):
             ax.plot([st["rod_in"][1], sp.c[1], st["damper_out"][1]], [st["rod_in"][2], sp.c[2], st["damper_out"][2]],
                     color="C3" if full else color, lw=2.5)
         L(st["damper_out"], sp.dch, color="C2" if full else color, lw=4, alpha=0.7)
-    # roll-centre construction (mirror for the left side)
+    # roll-center construction (mirror for the left side)
     cpy, cpz, dy, dz = o["fv_line"]
     rc = o["roll_center"]
     if not math.isnan(rc):
         ax.plot([cpy, 0, -cpy], [cpz, rc + cpz, cpz], color=color, lw=0.8, ls=":")
         ax.plot([0], [rc + cpz], "o", color=color, ms=5)
-    # line from the contact patch toward the front-view instant centre
+    # line from the contact patch toward the front-view instant center
     ax.plot([cpy, cpy + 3 * dy], [cpz, cpz + 3 * dz], color=color, lw=0.6, ls="--", alpha=0.6)
     if full:
         ax.axhline(0, color="k", lw=0.8)
@@ -250,7 +250,7 @@ def draw_front(ax, ev, color="C0", full=True):
         ax.set_xlim(-80, max(q[1] for q in corners) + 60)
         ax.set_ylim(-40, zmax)
     ax.set_aspect("equal", adjustable="box")
-    ax.set_title("Front view (Y-Z): red pushrod/rocker, green damper,\ndotted = roll-centre construction", fontsize=10)
+    ax.set_title("Front view (Y-Z): red pushrod/rocker, green damper,\ndotted = roll-center construction", fontsize=10)
 
 
 def draw_side(ax, ev, color="C0", full=True):
@@ -340,7 +340,7 @@ def make_plot(evs, labels, path, quiet=False):
         R = ev["roll"]
         ax.plot([r["roll"] for r in R], [r["rc_height"] for r in R], label=f"{lab} height")
         ax.plot([r["roll"] for r in R], [r["rc_lateral"] for r in R], "--", label=f"{lab} lateral")
-    ax.set_title("Kinematic roll centre in roll (mm)", fontsize=10)
+    ax.set_title("Kinematic roll center in roll (mm)", fontsize=10)
     ax.set_xlabel("roll (deg)")
     ax.grid(alpha=0.3)
     ax.legend(fontsize=8)
@@ -490,19 +490,19 @@ def print_loads(cfg, ev, L):
     print(f"\n=== Loads: {cfg['name']} ({cfg['axle']} axle) ===")
     print("One config = both corners of this axle (the car is symmetric). The solved corner is the outer wheel in a\n"
           "left turn and the inner wheel in a right turn, so both are checked.")
-    print("\nHow the wheel loads are built (quasi-static, rigid car, same friction use at every tyre):")
+    print("\nHow the wheel loads are built (quasi-static, rigid car, same friction use at every tire):")
     print(f"  car weight W = {veh['mass']:g} kg x 9.81 = {info['W']:.0f} N; this axle carries "
           f"{info['share'] * 100:.0f} % -> static wheel load {info['Fz0']:.0f} N")
     print(f"  longitudinal transfer per wheel per g = W x CG height / wheelbase / 2 = {info['W']:.0f} x "
           f"{info['h']:g} / {info['WB']:g} / 2 = {info['long_per_g']:.0f} N")
     print(f"  lateral transfer per wheel per g = W x CG height / track x axle share ({info['lat_share'] * 100:.0f} %) = "
           f"{info['lat_per_g']:.0f} N")
-    print("  tyre side/brake force = g level x that wheel's vertical load; forces act at the contact patch"
-          + (" (brake force at the wheel centre: inboard brakes)" if veh["brakes"] == "inboard" else ""))
+    print("  tire side/brake force = g level x that wheel's vertical load; forces act at the contact patch"
+          + (" (brake force at the wheel center: inboard brakes)" if veh["brakes"] == "inboard" else ""))
     names = list(L["results"])
-    print("\nTyre force on the wheel (N)")
+    print("\nTire force on the wheel (N)")
     table(["case", "Fx", "Fy", "Fz", "Fz built from", "description"],
-          [[n, f"{L['tyre'][n][0]:.0f}", f"{L['tyre'][n][1]:.0f}", f"{L['tyre'][n][2]:.0f}", L["fz_parts"][n],
+          [[n, f"{L['tire'][n][0]:.0f}", f"{L['tire'][n][1]:.0f}", f"{L['tire'][n][2]:.0f}", L["fz_parts"][n],
             L["desc"][n]] for n in names], left=1)
     print("\nMember axial forces (N, + = tension, - = compression)")
     rows = []
@@ -541,7 +541,7 @@ def print_car(cfg_f, cfg_r, out):
     print(f"sprung mass {out['ms']:.0f} kg, sprung CG {out['hs']:.0f} mm, roll axis at the CG {out['z_ra']:.0f} mm, "
           f"roll moment arm {out['arm']:.0f} mm")
     rows = [["Ride frequency", f"{out['freq_f']:.2f}", f"{out['freq_r']:.2f}", "Hz"],
-            ["Roll stiffness from springs + tyres", f"{out['Kf']:.0f}", f"{out['Kr']:.0f}", "Nm/deg"],
+            ["Roll stiffness from springs + tires", f"{out['Kf']:.0f}", f"{out['Kr']:.0f}", "Nm/deg"],
             ["Load transfer per wheel per g", f"{out['dFz_f']:.0f}", f"{out['dFz_r']:.0f}", "N/g"],
             ["  of which geometric (through links)", f"{out['geo_f']:.0f}", f"{out['geo_r']:.0f}", "N/g"]]
     table(["", "front", "rear", "unit"], rows)
@@ -566,7 +566,7 @@ def print_car(cfg_f, cfg_r, out):
               f"{k_:.0f} Nm/deg (roll gradient would become "
               f"{out['grad'] * (out['Kf'] + out['Kr']) / (out['Kf'] + out['Kr'] + k_):.2f} deg/g), "
               f"or soften the {other} springs.")
-    print("\nAssumes a rigid chassis, steady state, roll centres at ride height. Set targets with --grad and --lltd.")
+    print("\nAssumes a rigid chassis, steady state, roll centers at ride height. Set targets with --grad and --lltd.")
 
 
 # --------------------------------------------------------------------------- #
@@ -618,7 +618,7 @@ th{color:var(--mut);font-weight:600}.pass{color:var(--ok);font-weight:700}.fail{
 @media print{body{max-width:none}}</style>""")
     s = ev["susp"]
     A(f"<h1>{E(cfg['name'])}</h1><div class=sub>{cfg['axle']} axle · wheelbase {s.WB:.0f} mm · track "
-      f"{s.track:.0f} mm · CG {s.CG:.0f} mm · mass {cfg['vehicle']['mass']:g} kg · tyre R {s.R:.0f} mm · "
+      f"{s.track:.0f} mm · CG {s.CG:.0f} mm · mass {cfg['vehicle']['mass']:g} kg · tire R {s.R:.0f} mm · "
       f"generated {datetime.datetime.now():%Y-%m-%d %H:%M} · rigid-link kinematics</div>")
     if issues:
         A("<div class=warnbox><b>Input checks</b><ul>" + "".join(
@@ -688,7 +688,7 @@ th{color:var(--mut);font-weight:600}.pass{color:var(--ok);font-weight:700}.fail{
     if R:
         A(f"<h2>Roll</h2><p class=small>Body roll with equal and opposite wheel travel. Camber relative to the ground. "
           f"Roll camber {f_num(m['roll_camber'], 3)} deg/deg (1.0 = wheel leans with the body). "
-          f"Roll centre moves {f_num(m['rc_lat'], 1)} mm sideways per degree.</p>")
+          f"Roll center moves {f_num(m['rc_lat'], 1)} mm sideways per degree.</p>")
         A("<div class=scroll><table><tr><th>Roll (°)<th>Outer camber<th>Inner camber<th>Outer toe<th>RC height"
           "<th>RC lateral</tr>")
         for r in R[len(R) // 2:]:
@@ -718,7 +718,7 @@ th{color:var(--mut);font-weight:600}.pass{color:var(--ok);font-weight:700}.fail{
         rd, sc = ev["ride"], cfg["spring"]
         A(f"<h2>Spring and damper</h2><p class=small>{sc['rod_on']}-arm rod, "
           f"{'direct-acting damper' if ev['spring'].direct else 'rocker'}; spring {sc['spring_rate']:g} N/mm, "
-          f"tyre {sc['tire_rate']:g} N/mm, sprung corner mass {rd['_m_sprung']:.1f} kg.</p><table>")
+          f"tire {sc['tire_rate']:g} N/mm, sprung corner mass {rd['_m_sprung']:.1f} kg.</p><table>")
         for k in ("motion_ratio", "mr_progression", "wheel_rate", "ride_rate", "ride_freq", "static_spring_force",
                   "spring_for_target", "damper_used", "damper_margin", "damper_static_pos", "damper_topout",
                   "damper_bottomout", "rod_angle", "rocker_rot", "trans_min"):
@@ -793,11 +793,11 @@ th{color:var(--mut);font-weight:600}.pass{color:var(--ok);font-weight:700}.fail{
         if k in METRIC_HELP:
             A(f"<tr><td>{E(METRICS[k][0])}<td style='text-align:left'>{E(METRIC_HELP[k])}</tr>")
     A("</table></div>")
-    A("<h2>Limits of this model</h2><ul class=small><li>Rigid links, no compliance or tyre model; one corner "
-      "(the other side is its mirror).</li><li>Roll is modelled as equal and opposite wheel travel; the force-based "
-      "roll centre will differ once the tyres are loaded unevenly.</li>"
+    A("<h2>Limits of this model</h2><ul class=small><li>Rigid links, no compliance or tire model; one corner "
+      "(the other side is its mirror).</li><li>Roll is modeled as equal and opposite wheel travel; the force-based "
+      "roll center will differ once the tires are loaded unevenly.</li>"
       "<li>Loads are quasi-static at ride-height geometry; no fatigue, impact factors or tab/weld checks.</li>"
-      "<li>Clearance is centre-line to centre-line plus tube radii; rim check is radial only.</li>"
+      "<li>Clearance is center-line to center-line plus tube radii; rim check is radial only.</li>"
       "<li>Always confirm the final design in CAD.</li></ul>")
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(out))

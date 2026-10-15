@@ -88,7 +88,7 @@ class Suspension:
         up = np.array([0, 0, 1.0]) - self.a0[2] * self.a0
         up /= np.linalg.norm(up)
         self.cpz0 = h["cp"][2]
-        self.c0 = h["cp"] + self.R * up                           # wheel centre
+        self.c0 = h["cp"] + self.R * up                           # wheel center
         self.P0 = np.vstack([h["ubj"], h["lbj"], h["tro"], self.c0])
         self.ref = self.c0.copy()
         self.tri0 = h["tri"]
@@ -213,7 +213,7 @@ class Suspension:
         else:
             pt = np.linalg.solve(np.vstack([n1, n2, dv]), [d1, d2, 0.0])
             dv_f = dv_s = dv
-        # front view: line from the contact patch through the instant centre
+        # front view: line from the contact patch through the instant center
         if pt is not None and abs(dv[0]) > 1e-9:
             q = pt + ((cp[0] - pt[0]) / dv[0]) * dv
             dy, dzz = q[1] - cp[1], q[2] - cp[2]
@@ -268,7 +268,7 @@ class Suspension:
         """Body roll with equal and opposite wheel travel (right wheel = outer, in bump, for roll > 0).
 
         The left wheel is the mirror image of this one. Camber is reported relative to the ground.
-        The kinematic roll centre is where the two contact-patch-to-instant-centre lines cross."""
+        The kinematic roll center is where the two contact-patch-to-instant-center lines cross."""
         sw = self.cfg["sweep"]
         m = float(max_deg if max_deg is not None else sw["roll_deg"])
         n = int(steps if steps is not None else sw["roll_steps"])
@@ -348,7 +348,7 @@ class Suspension:
 
     # ---- packaging ----------------------------------------------------------
     def packaging(self, spring=None, heaves=None, racks=None):
-        """Centre-line clearance between moving links, and a radial rim check, over heave (x rack, front)."""
+        """Center-line clearance between moving links, and a radial rim check, over heave (x rack, front)."""
         sw = self.cfg["sweep"]
         T, Rk = sw["travel"], sw["rack_travel"]
         heaves = heaves if heaves is not None else [-T, 0.0, T]

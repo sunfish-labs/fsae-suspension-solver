@@ -26,7 +26,7 @@ It covers the four suspension decisions a team makes before it has a car:
 
 | Decision | Command | What you get |
 |---|---|---|
-| Hardpoints | `run`, `sens`, `optimize` | camber/toe/caster/KPI/scrub/trail, roll centre, anti-dive/squat, **roll camber and roll-centre migration**, bump steer (slope and curvature), Ackermann, turning radius, link clearance |
+| Hardpoints | `run`, `sens`, `optimize` | camber/toe/caster/KPI/scrub/trail, roll center, anti-dive/squat, **roll camber and roll-center migration**, bump steer (slope and curvature), Ackermann, turning radius, link clearance |
 | Springs and dampers | `run` (with a `spring` block) | **motion ratio**, wheel and ride rate, **ride frequency**, damper stroke used, **spring rate needed for a target frequency** |
 | Tube, rod-end and tab sizing | `loads` | wishbone-leg, tie-rod, pushrod, damper and rocker forces for bump, cornering, braking and combined cases, plus **buckling and yield safety factors** |
 | Whole car | `car front.json rear.json` | front/rear frequencies, **roll gradient**, **LLTD**, and the **anti-roll bar stiffness** needed |
@@ -38,8 +38,8 @@ It needs no install or server; an internet connection loads the 3D library and f
 - **Inputs** match KineSolver's panels: hardpoints, wheel settings, vehicle and anti-geometry, and simulation
   ranges. Further panels cover the pushrod, rocker and damper, the load cases, tube sizes and material.
 - **3D corner view:** drag to orbit, right-drag or shift-drag to pan, scroll to zoom. The Travel and Rack sliders
-  move the suspension, and the readout shows camber, toe, caster, roll centre and damper length at that position.
-  Toggles show the roll-centre construction and the other side of the car.
+  move the suspension, and the readout shows camber, toe, caster, roll center and damper length at that position.
+  Toggles show the roll-center construction and the other side of the car.
 - **Results update live** in seven tabs: Targets (ranges are editable, click a row for an explanation), Heave, Roll,
   Steering, Spring & damper (rocker plane view, motion ratio, damper length against its limits), Loads (wheel loads,
   member forces, FOS) and Packaging.
@@ -84,8 +84,8 @@ the other way, which can put a different leg into compression.
    + longitudinal transfer (W x CG height / wheelbase / 2 per g)
    + lateral transfer (W x CG height / track x axle share per g).
    The printout shows this sum for every case.
-2. Tyre side and brake forces = g level x that wheel's vertical load (equal friction use at every tyre). They act at
-   the contact patch, or at the wheel centre for inboard brakes and drive.
+2. Tire side and brake forces = g level x that wheel's vertical load (equal friction use at every tire). They act at
+   the contact patch, or at the wheel center for inboard brakes and drive.
 3. The upright is put in static equilibrium against the link forces. Every link is a pin-ended two-force member,
    and the wishbone carrying the pushrod is solved as a three-force body.
 4. Strength: **buckling FOS** = Euler load (pi^2 E I / L^2, pinned ends) / worst compression.
@@ -110,7 +110,7 @@ the other way, which can put a different leg into compression.
 
 ## Config (JSON)
 - `hardpoints` (mm): the 9 points, using KineSolver names. The solver only uses the coordinates; "front"/"rear" are just labels.
-- `wheel`: static camber/toe, tyre radius/width, rim diameter.
+- `wheel`: static camber/toe, tire radius/width, rim diameter.
 - `vehicle`: wheelbase, cg_height, **mass** (with driver), **weight_front** (fraction), brake share, inboard/outboard
   brakes and drive, optional `rack_c_factor` (mm of rack per steering-wheel turn).
 - `spring` (optional, needed for ride and loads):
@@ -139,22 +139,22 @@ Member forces: + = tension.
 - KineSolver comparison: if `private/kinesolver_cases.json` exists, reproduces those KineSolver runs' chart values
   (to about 0.03 deg / 0.3 mm / 0.04 % on our runs). It's kept private because it contains team hardpoints.
 - Physics checks that don't depend on KineSolver:
-  - Equal parallel arms give zero camber change, roll camber 1.0 and a roll centre at the ground.
+  - Equal parallel arms give zero camber change, roll camber 1.0 and a roll center at the ground.
   - The upright is in exact equilibrium.
-  - **Virtual work**: the damper force from statics equals the tyre force divided by the motion ratio from
+  - **Virtual work**: the damper force from statics equals the tire force divided by the motion ratio from
     kinematics. This ties the statics and the kinematics together.
   - The suggested spring gives the target frequency.
   - Car load transfer adds up to m·g·h.
 
 ## Limitations
-- Rigid links. No compliance, bushings, tyre model, or chassis torsion.
-- Roll uses equal and opposite wheel travel, so it gives the kinematic roll centre. The force-based roll centre
-  moves once the tyres are loaded unevenly.
+- Rigid links. No compliance, bushings, tire model, or chassis torsion.
+- Roll uses equal and opposite wheel travel, so it gives the kinematic roll center. The force-based roll center
+  moves once the tires are loaded unevenly.
 - Loads are quasi-static, use the ride-height geometry and the outer wheel only, and assume equal friction use at
-  every tyre. There are no impact factors or fatigue, and no checks on tabs, welds or inserts.
+  every tire. There are no impact factors or fatigue, and no checks on tabs, welds or inserts.
 - The pushrod arm is solved as one node. A pushrod mounted well inboard of the ball joint shows up as "bending
   load" and isn't stress-checked.
-- Clearance is centre-line distance plus tube radii. The rim check is radial only.
+- Clearance is center-line distance plus tube radii. The rim check is radial only.
 - Default targets (ride frequency 2.5-4.5 Hz, bump steer, LLTD = front weight + 5 %, 1 deg/g) are starting points,
   not rules. Check wheelbase and turning limits against the current FSAE rulebook.
 - The optimizer finds one local solution. Always re-run `run` on the result.
