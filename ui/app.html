@@ -276,6 +276,15 @@ table.fixt td:first-child { white-space: normal; }
 .mrng { font-size: 11px; color: var(--muted); }
 .chpts td.lab { width: 40%; } .num.ro { display: block; color: var(--muted); background: transparent; border-color: transparent; }
 .chmove { font-size: 12.5px; color: var(--muted); } .chmove b { color: var(--ink); font-family: var(--f-mono); font-weight: 500; }
+table.lvt { font-size: 12px; background: var(--panel); margin: 6px 0 4px; }
+table.lvt th { white-space: normal; font-size: 10.5px; padding: 4px 5px; } table.lvt td { padding: 4px 5px; }
+table.lvt td:first-child { white-space: normal; }
+.lv-now td { background: var(--panel-2); }
+.lv-good { background: color-mix(in srgb, var(--ok-bg) 85%, transparent); color: var(--ok); font-weight: 600; }
+.lv-bad { background: color-mix(in srgb, var(--bad-bg) 85%, transparent); color: var(--bad); }
+.lv-bonus td:first-child { color: var(--muted); font-style: italic; }
+.lvk { padding: 0 4px; border-radius: 3px; }
+.hint p { margin: 4px 0; }
 .hint { margin: 0 0 6px; font-size: 13px; background: var(--panel-2); border-left: 3px solid var(--accent); padding: 6px 9px; border-radius: 4px; }
 .chwin { border: 2px solid var(--ok); background: var(--ok-bg); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
 .chwin p { margin: 0; font-size: 13px; }
@@ -1597,7 +1606,7 @@ function startPreview(nc, label) {
 function endPreview() { preview = null; $("#pvbar").hidden = true; updateScene(); }
 function applyCfg(nc, label) {
   undoStack.push(JSON.parse(JSON.stringify(cfg)));
-  if (!err && ev) { base = ev; baseName = "before: " + label; }
+  if (!err && ev && !chal) { base = ev; baseName = "before: " + label; }
   preview = null; $("#pvbar").hidden = true;
   cfg = JSON.parse(JSON.stringify(nc)); $("#preset").value = "custom";
   fillForm(); run();
@@ -1671,25 +1680,38 @@ function closeInfluence() { drawerPath = null; $("#drawer").hidden = true; $("#v
 // screen space: the brief, live goal meters, only the points you may move, a hint ladder and the score.
 const presetCfg = (prefix) => { const p = PRESETS.find(q => (q.label || "").startsWith(prefix)); return p ? JSON.parse(JSON.stringify(p.cfg)) : null; };
 const CHALLENGES = [
-  { id: "rc", n: 1, title: "Lift the roll center", stage: "Stage 1 · inboard pivots", start: "Case study 1", ref: "Case study 2", tab: "roll", overlay: "roll_center",
+  { id: "rc", n: 1, title: "Lift the roll center", stage: "Stage 1 · inboard pivots", start: "Case study 1", ref: "Case study 2", tab: "roll", overlay: "roll_center", par: 130,
     brief: "This first-draft front corner has its roll center 5 mm off the ground, and it slides almost 400 mm sideways for every degree of body roll. Move only the four inboard pivots, up/down (Z) and in/out (Y), until the roll center is 25–60 mm high, stays put in roll, and the camber gain is reasonable.",
     unlock: ["hardpoints.upper_inboard_front", "hardpoints.upper_inboard_rear", "hardpoints.lower_inboard_front", "hardpoints.lower_inboard_rear"], axes: [1, 2],
     goals: ["roll_center", "rc_lat", "camber_gain"],
     bonus: { key: "antidive", text: "Anti-dive 5–20 %" },
-    hints: [
-      "The roll center is where the line from each contact patch through that side's instant center crosses the middle of the car (Show me → Roll center). To raise it, the instant center has to rise. Start by raising both lower inboard pivots by the same amount and watch the roll-center meter climb.",
-      "If camber gain goes too high, the front-view swing arm has become too short: the arms converge too steeply. Lengthen it without losing roll-center height by raising the upper pivots by about as much as the lower ones, and moving both lower pivots inboard (smaller Y). Always move the two pivots of one arm together.",
-      "The influence panel is now unlocked: click any of your four pivots in the 3D view to see what 5 mm up or outboard does to every goal. For the bonus, anti-dive comes from tilting the lower arm's pivot axis in side view: lower the front lower pivot (larger X) a few millimeters and raise the rear one by the same amount.",
+    concept: [
+      "In the front view, extend both wishbones inboard until their lines cross. That crossing is the instant center (IC): the wheel moves as if it swings about it. A line from the contact patch through the IC meets the car's centerline at the roll center.",
+      "Two things to remember. A higher IC gives a higher roll center. A closer IC (a shorter swing arm) gives more camber gain. So the job is to raise the IC without pulling it closer, and no single pivot move does both. That is why you will need to combine moves.",
+    ],
+    show: "roll_center", step: 5,
+    levers: [
+      { name: "Lower arm up", mv: [["hardpoints.lower_inboard_front", 2, 1], ["hardpoints.lower_inboard_rear", 2, 1]] },
+      { name: "Upper arm up", mv: [["hardpoints.upper_inboard_front", 2, 1], ["hardpoints.upper_inboard_rear", 2, 1]] },
+      { name: "Lower arm inboard", mv: [["hardpoints.lower_inboard_front", 1, -1], ["hardpoints.lower_inboard_rear", 1, -1]] },
+      { name: "Upper arm outboard", mv: [["hardpoints.upper_inboard_front", 1, 1], ["hardpoints.upper_inboard_rear", 1, 1]] },
+      { name: "Tilt lower arm (front down, rear up)", mv: [["hardpoints.lower_inboard_rear", 2, -0.5], ["hardpoints.lower_inboard_front", 2, 0.5]], bonusOnly: true },
     ] },
-  { id: "bs", n: 2, title: "Kill the bump steer", stage: "Stage 2 · tie rod", start: "Case study 2", tab: "heave", overlay: "bump_steer", par: 31,
+  { id: "bs", n: 2, title: "Kill the bump steer", stage: "Stage 2 · tie rod", start: "Case study 2", tab: "heave", overlay: "bump_steer", par: 18,
     brief: "The pivots are done, but this wheel steers itself 0.09° per inch of bump and its toe wanders 0.18° over the travel. A car like that darts over every bump. Move only the tie-rod ends, in/out (Y) and up/down (Z), until bump steer is within ±0.03 deg/in and toe never changes by more than 0.05°, without wrecking the Ackermann.",
     unlock: ["hardpoints.trackrod_inboard", "hardpoints.trackrod_outboard"], axes: [1, 2],
     goals: ["bump_steer", "bump_steer_max", "ackermann"],
     bonus: { fn: (c, c0) => V.norm(V.sub(c.hardpoints.trackrod_outboard, c0.hardpoints.trackrod_outboard)) < 0.05, text: "Leave the outer end alone (it is on the upright, which is already made)" },
-    hints: [
-      "Bump steer appears when the tie rod swings on a different arc from the wishbones. Look at the Toe change chart in the Heave tab: a sloped straight line means the tie-rod height is wrong; a U or arch means its length is wrong.",
-      "Height (Z of the inner end) mostly sets the slope; length (Y of the inner end) mostly sets the curve. Move one at a time in 2–5 mm steps and watch the chart flatten.",
-      "The influence panel is now unlocked: click the tie-rod inner end in the 3D view to see what 5 mm up or outboard does to bump steer and the toe curve.",
+    concept: [
+      "As the wheel moves up, the tie rod's outer end swings on an arc around its inner end, and the ball joints swing on arcs set by the wishbones. If those arcs differ, the tie rod pushes or pulls the steering arm and the wheel steers itself: bump steer.",
+      "Rule of thumb: the inner end's height (Z) sets the slope of the toe curve (a straight sloped line in Heave → Toe change), and the tie rod's length (Y) sets its curvature (a U or arch shape). Moving the outer end in or out also changes the steering-arm geometry, so watch Ackermann.",
+    ],
+    show: "bump_steer", step: 2,
+    levers: [
+      { name: "Inner end up", mv: [["hardpoints.trackrod_inboard", 2, 1]] },
+      { name: "Inner end outboard", mv: [["hardpoints.trackrod_inboard", 1, 1]] },
+      { name: "Outer end up", mv: [["hardpoints.trackrod_outboard", 2, 1]] },
+      { name: "Outer end outboard", mv: [["hardpoints.trackrod_outboard", 1, 1]] },
     ] },
 ];
 let chal = null;   // { def, start, prev, hint, done }
@@ -1708,7 +1730,7 @@ function openChallenges() {          // the chooser, shown in the rail
   $("#crail").innerHTML = `<div class="card crail-card"><div class="crhead"><h2>Challenges</h2><button class="btn small" type="button" id="chClose">Close</button></div>
     <p class="note">Short exercises on real geometry. Only the points named in each challenge can move, the goals update live, and hints unlock one at a time. Your current design is put back when you leave.</p>
     ${CHALLENGES.map(d => `<button class="chpick" type="button" data-ch="${d.id}"><span class="chn">${d.n}</span><span><b>${esc(d.title)}</b><small>${esc(d.stage)}</small></span>${starsHtml(best[d.id] || 0)}</button>`).join("")}
-    <p class="note">Stars: ★ goals met · ★ bonus · ★ moved no more than par (the total millimeters a reference solution moves).</p></div>`;
+    <p class="note">Stars: ★ goals met · ★ bonus · ★ moved no more than par (the total millimeters of a good solution).</p></div>`;
   $("#chClose").onclick = closeRail;
   $$("#crail [data-ch]").forEach(b => b.addEventListener("click", () => startChallenge(b.dataset.ch)));
   $("#crail").scrollIntoView({ block: "nearest" });
@@ -1776,9 +1798,7 @@ function updateRail() {
   $("#chGoals").innerHTML = d.goals.map(k => { const c = row(k); if (!c) return ""; const [lab, unit, dec] = metricLabel(k); return meter(k, c, lab, unit, dec); }).join("") + bonusHtml;
   const moved = chalMoved(), par = chal.par;
   $("#chMove").innerHTML = `Moved <b>${fmt(moved, 1)} mm</b> in total${par ? ` · par ${fmt(par, 0)} mm` : ""}`;
-  $("#chHints").innerHTML = d.hints.map((h, i) => i < chal.hint ? `<p class="hint"><b>Hint ${i + 1}.</b> ${esc(h)}</p>` : "").join("") +
-    (chal.hint < d.hints.length ? `<button class="btn small" type="button" id="chHint">Show hint ${chal.hint + 1} of ${d.hints.length}${chal.hint === d.hints.length - 1 ? " (unlocks the influence panel)" : ""}</button>` : "");
-  const hb = $("#chHint"); if (hb) hb.onclick = () => { chal.hint++; updateRail(); };
+  renderHints();
   const stars = goalsOk ? 1 + (bonusOk ? 1 : 0) + (par && moved <= par + 0.5 ? 1 : 0) : 0;
   if (goalsOk) {
     const best = chalStore(); if ((best[d.id] || 0) < stars) { best[d.id] = stars; store.set("susp.chal", JSON.stringify(best)); }
@@ -1791,7 +1811,82 @@ function updateRail() {
     $("#chKeep").onclick = () => exitChallenge(true);
   } else $("#chDone").innerHTML = "";
 }
-const influenceAllowed = (path) => !chal || (chal.hint >= chal.def.hints.length);
+const influenceAllowed = (path) => !chal || chal.hint >= 3;
+
+// Hints are computed by the solver from the student's current geometry, so they cannot point the wrong way.
+// 1 = the concept (text checked against the solver) + Show me; 2 = live lever table; 3 = a suggested next step.
+function leverCfg(c, lv, k) { const nc = JSON.parse(JSON.stringify(c)); for (const [p, ax, s] of lv.mv) { const pt = getPath(nc, p); pt[ax] = +(pt[ax] + s * k).toFixed(2); } return nc; }
+function chalViol(e, keys) {
+  let t = 0;
+  for (const k of keys) { const c = e.checks.find(r => r.key === k); if (!c || c.value == null) continue;
+    const w = c.lo != null && c.hi != null ? c.hi - c.lo : Math.abs(c.lo ?? c.hi) || 1;
+    t += c.lo != null && c.value < c.lo ? (c.lo - c.value) / w : c.hi != null && c.value > c.hi ? (c.value - c.hi) / w : 0; }
+  return t;
+}
+const chalQuick = (c) => S.evaluate(c, { full: false, steer: cfg.axle === "front" && chal.def.goals.includes("ackermann"), pack: false });
+const chalFull = (c) => S.evaluate(c, { steer: cfg.axle === "front" && chal.def.goals.includes("ackermann"), pack: false });
+function leverTable() {
+  const d = chal.def, keys = d.goals.concat(d.bonus.key ? [d.bonus.key] : []);
+  let e0; try { e0 = chalFull(cfg); } catch (x) { return `<p class="note">The current geometry does not solve.</p>`; }
+  const head = keys.map(k => `<th class="n">${esc(metricLabel(k)[0])}</th>`).join("");
+  const now = keys.map(k => { const c = e0.checks.find(r => r.key === k), [, , dec] = metricLabel(k); return `<td class="n"><b>${fmt(c.value, dec)}</b></td>`; }).join("");
+  const rows = d.levers.map(lv => {
+    let e1; try { e1 = chalFull(leverCfg(cfg, lv, d.step)); } catch (x) { return ""; }
+    const cells = keys.map(k => {
+      const c0 = e0.checks.find(r => r.key === k), c1 = e1.checks.find(r => r.key === k), [, , dec] = metricLabel(k);
+      const v0 = chalViol(e0, [k]), v1 = chalViol(e1, [k]), cls = v1 < v0 - 1e-9 ? "lv-good" : v1 > v0 + 1e-9 ? "lv-bad" : "";
+      return `<td class="n ${cls}">${fmt(c1.value, dec)}</td>`; }).join("");
+    return `<tr${lv.bonusOnly ? ' class="lv-bonus"' : ""}><td>${esc(lv.name)} ${d.step} mm</td>${cells}</tr>`; }).join("");
+  return `<div class="tbl-wrap"><table class="data lvt"><thead><tr><th>If you…</th>${head}</tr></thead><tbody><tr class="lv-now"><td>Now</td>${now}</tr>${rows}</tbody></table></div>
+    <p class="note">Re-solved live from your current geometry. <span class="lv-good lvk">green</span> = closer to its target, <span class="lv-bad lvk">red</span> = further away. Look for moves whose side effects cancel each other; the opposite move does roughly the opposite.</p>`;
+}
+const stepCache = new Map();
+async function nextStep(box) {
+  const d = chal.def, sig = JSON.stringify(cfg.hardpoints) + d.id;
+  if (stepCache.has(sig)) { box.innerHTML = stepCache.get(sig); wireStep(box); return; }
+  const keys = d.goals, bonusKeys = d.bonus.key ? [d.bonus.key] : [], ks = [-4, -3, -2, -1, 1, 2, 3, 4], L = d.levers.filter(l => !l.bonusOnly);
+  const score = (e, c) => chalViol(e, keys) + 0.25 * chalViol(e, bonusKeys) + (d.bonus.fn && !d.bonus.fn(c, chal.start) ? 1 : 0);
+  let best = null, n = 0; const c0 = JSON.parse(JSON.stringify(cfg));
+  try { const e0 = chalQuick(c0); best = { s: score(e0, c0), moves: [], e: e0 }; } catch (x) { box.innerHTML = `<p class="note">The current geometry does not solve.</p>`; return; }
+  const tries = [];
+  L.forEach((a, i) => { ks.forEach(k => tries.push([[a, k]])); L.slice(i + 1).forEach(b => ks.forEach(k => ks.forEach(j => tries.push([[a, k], [b, j]])))); });
+  for (const t of tries) {
+    if (++n % 40 === 0) { box.innerHTML = `<p class="note">Searching small combinations… ${Math.round(n / tries.length * 100)} %</p>`; await new Promise(r => setTimeout(r, 0)); if (!chal || chal.def !== d) return; }
+    let c = c0; for (const [lv, k] of t) c = leverCfg(c, lv, k * d.step);
+    let e; try { e = chalQuick(c); } catch (x) { continue; }
+    const s = score(e, c) + 0.0004 * t.reduce((a, [, k]) => a + Math.abs(k), 0);
+    if (s < best.s - 1e-9) best = { s, moves: t, e, c };
+  }
+  if (best.c) { try { best.e = chalFull(best.c); } catch (x) { /* keep the quick result */ } }
+  let html;
+  if (!best.moves.length) html = `<p class="hint"><b>Hint 3.</b> No combination of two of these moves improves things from here. Try <b>Start over</b>, and change pairs of pivots together.</p>`;
+  else {
+    const txt = best.moves.map(([lv, k]) => `<b>${esc(lv.name.replace(/ (up|inboard|outboard)/, (m) => k > 0 ? m : { " up": " down", " inboard": " outboard", " outboard": " inboard" }[m]))} ${Math.abs(k) * d.step} mm</b>`).join(" and ");
+    const res = keys.map(k => { const c = best.e.checks.find(r => r.key === k), [lab, unit, dec] = metricLabel(k); return `${esc(lab)} ${fmt(c.value, dec)} ${esc(unit)} ${c.status === "PASS" ? "✓" : "✗"}`; }).join(" · ");
+    html = `<div class="hint"><b>Hint 3: a next step.</b> From where you are now, try ${txt}. That gives: ${res}.
+      ${chalViol(best.e, keys) > 0 ? " Not solved yet: take the step, then look at the lever table again." : ""}
+      <div class="tact" style="margin-top:6px"><button class="btn small" type="button" id="chStepPv">Preview it</button></div></div>`;
+    stepCfg.set(sig, best.c);
+  }
+  stepCache.set(sig, html); box.innerHTML = html; wireStep(box);
+}
+function wireStep(box) { const b = $("#chStepPv", box), c = stepCfg.get(JSON.stringify(cfg.hardpoints) + chal.def.id); if (b && c) b.onclick = () => startPreview(c, "suggested next step"); else if (b) b.hidden = true; }
+const stepCfg = new Map();
+function renderHints() {
+  const d = chal.def, H = $("#chHints"); if (!H) return;
+  let html = "";
+  if (chal.hint >= 1) html += `<div class="hint"><b>Hint 1: the idea.</b> ${d.concept.map(p => `<p>${esc(p)}</p>`).join("")}<button class="btn small" type="button" id="chHintShow">Show me ${esc(OVERLAYS[d.show].name.toLowerCase())}</button></div>`;
+  if (chal.hint >= 2) html += `<div class="hint"><b>Hint 2: what each move does right now.</b>${leverTable()}</div>`;
+  if (chal.hint >= 3) { const sig = JSON.stringify(cfg.hardpoints) + d.id;
+    html += `<div id="chStep">${stepCache.get(sig) || `<button class="btn small primary" type="button" id="chStepGo">Hint 3: suggest a next step from here</button>`}</div><p class="note">The influence panel is unlocked: click any of your points in the 3D view.</p>`; }
+  const labels = ["Hint 1: the idea", "Hint 2: what each move does now", "Hint 3: a next step (also unlocks the influence panel)"];
+  if (chal.hint < 3) html += `<button class="btn small" type="button" id="chHint">${labels[chal.hint]}</button>`;
+  if (chal.hint === 3 && !stepCache.has(JSON.stringify(cfg.hardpoints) + d.id)) { /* step search runs on request */ }
+  H.innerHTML = html;
+  const hb = $("#chHint"); if (hb) hb.onclick = () => { chal.hint++; renderHints(); if (chal.hint === 3) { const st2 = $("#chStep"); if (st2) nextStep(st2); } };
+  const sb = $("#chHintShow"); if (sb) sb.onclick = () => showMe(d.show);
+  const st = $("#chStep"); if (st) { wireStep(st); const g = $("#chStepGo"); if (g) g.onclick = () => nextStep(st); }
+}
 
 // ------------------------------------------------------------------ compare
 // Saved designs (kept in this browser) side by side with the live design: every target and key metric with its
