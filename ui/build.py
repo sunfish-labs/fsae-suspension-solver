@@ -16,7 +16,8 @@ if not presets:
     sys.exit("no designs/*.json found")
 html = open(os.path.join(here, "app.html")).read()
 js = open(os.path.join(here, "susp.js")).read()
-html = html.replace("/*SUSP_JS*/", js).replace("/*PRESETS*/", json.dumps(presets))
+glossary = open(os.path.join(here, "glossary.js")).read()
+html = html.replace("/*SUSP_JS*/", js).replace("/*GLOSSARY_JS*/", glossary).replace("/*PRESETS*/", json.dumps(presets))
 SITE = "https://sunfish-labs.github.io/fsae-suspension-solver/ui/"
 local_html = html.replace("/*GUIDE_URL*/", "guide.html")
 html = html.replace("/*GUIDE_URL*/", SITE + "guide.html")   # the hosted Claude page links to the public guide

@@ -79,7 +79,7 @@ footer { margin-top: 48px; color: var(--muted); font-size: 14px; border-top: 1px
 </header>
 <nav class="toc" aria-label="Contents">
   <a href="#start">Five-minute start</a><a href="#private">Keeping designs private</a><a href="#order">Order of work</a>
-  <a href="#case">Case study</a><a href="#targets">Targets</a><a href="#mistakes">Common mistakes</a><a href="#limits">Limits</a>
+  <a href="#learn">Learning tools</a><a href="#case">Case study</a><a href="#targets">Targets</a><a href="#mistakes">Common mistakes</a><a href="#limits">Limits</a>
 </nav>
 
 <p class="lead">The solver takes the nine hardpoints of a double-wishbone corner, plus an optional pushrod, rocker and damper. It shows how
@@ -105,6 +105,18 @@ browser and sends nothing anywhere. The only designs built into the site are the
   <li>Your own target ranges can travel with your designs. Put them in each design's <code>targets</code>, or in one shared <code>team_targets.json</code> that designs point to with <code>"targets_file"</code>. In the app, open that targets file with <b>Open JSON</b> to apply it to the design on screen.</li>
   <li>Never commit design files to the public repository. Before each commit, <code>git status</code> should list no JSON outside <code>designs/</code>.</li>
 </ul>
+
+<h2 id="learn">Learning the terms, and finding what to move</h2>
+<p>New to suspension? These tools explain each number on your own design, not on a textbook car.</p>
+<ul>
+  <li><b>Learn tab:</b> a searchable glossary of every term the app uses, such as scrub radius, roll center, anti-dive and motion ratio. Each card gives the sign convention, what moves it and its value on the design on screen.</li>
+  <li><b>Show me:</b> draws the idea on the 3D corner. Examples are the steering axis meeting the ground, the wishbones extended to the instant center, and the wheel sweeping through bump while camber or toe changes. <b>Names</b> on the viewer labels every hardpoint.</li>
+  <li><b>Fix a failing target:</b> in the Targets tab, click the row, then <b>Fix: what moves this?</b> The app tries every single-point move and the paired moves (both pivots of an arm, or the whole tie rod). It lists the smallest moves that bring the number into range, with the millimeters needed. Each move is re-solved and checked against every other target, and only targets it would newly break are listed as side effects. On a target that already passes, the same button shows the biggest levers on it.</li>
+  <li><b>Click a joint</b> in the 3D view, or a hardpoint name in the inputs. A panel shows what moving that point 5 mm up, outboard or forward does to each metric. Blue cells go up, orange cells go down, darker means bigger, and a red outline marks a target that would start failing.</li>
+  <li><b>Preview, Apply, Undo:</b> Preview shows the moved corner as an orange ghost with a summary of the change. Apply makes the move and pins the old design as the baseline, so every change column shows what you gained. Undo steps back.</li>
+  <li>Ball joints, contact patch and rocker pivot are <b>locked</b> by default, because the upright, wheel and chassis set them. Untick the box to include them.</li>
+</ul>
+<div class="callout tip"><b>Treat the suggestions as a starting point.</b> They change one thing at a time and know nothing about frame tubes or bolt access. Check every move in CAD before you trust it.</div>
 
 <h2 id="order">The order that works</h2>
 <p>Each stage changes things the earlier stages fixed, so work in this order and recheck everything after each one.</p>

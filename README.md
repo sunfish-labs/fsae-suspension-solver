@@ -40,9 +40,17 @@ It needs no install or server; an internet connection loads the 3D library and f
 - **3D corner view:** drag to orbit, right-drag or shift-drag to pan, scroll to zoom. The Travel and Rack sliders
   move the suspension, and the readout shows camber, toe, caster, roll center and damper length at that position.
   Toggles show the roll-center construction and the other side of the car.
-- **Results update live** in seven tabs: Targets (ranges are editable, click a row for an explanation), Heave, Roll,
+- **Results update live** in eight tabs: Targets (ranges are editable, click a row for an explanation), Heave, Roll,
   Steering, Spring & damper (rocker plane view, motion ratio, damper length against its limits), Loads (wheel loads,
-  member forces, FOS) and Packaging.
+  member forces, FOS), Packaging and Learn (glossary).
+- **Learning tools for new members:**
+  - **Show me** draws a term on the 3D corner, such as the steering axis, the instant center or the roll-center construction, or animates bump.
+  - **Names** labels every hardpoint.
+  - **What moves this?** on a Targets row lists the smallest single or paired hardpoint moves that bring the target into range. It shows the millimeters needed and any targets the move would newly break.
+  - **Clicking a joint**, in 3D or in the inputs, shows what a 5 mm move up, outboard or forward does to each metric.
+  - **Preview / Apply / Undo:** moves show as a ghost first, and Apply pins the old design as the baseline.
+  - Ball joints, contact patch and rocker pivot stay locked unless you unlock them.
+  - The glossary text is in `ui/glossary.js` and is inlined by `ui/build.py`.
 - **Pin as baseline** freezes the current results. Your next edits then show as change columns and dashed
   baseline curves, which suits the one-coordinate-at-a-time workflow.
 - **Same JSON format as the CLI:** open any config file, or copy or download the current one and run it through
