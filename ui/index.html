@@ -7,50 +7,54 @@
 </head>
 <body>
 <title>FSAE Suspension Solver</title>
+<script>try { const t = localStorage.getItem("susp.theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) { /* storage blocked */ }</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: engineering workbench. Inputs column on the left, a live 3D corner and results on the right.
-   Drafting-film neutrals, ink text, one signal-orange accent; condensed display face for labels like a spec sheet. */
+   Wake Forest palette: warm paper neutrals, ink text, Old Gold accents (brand.wfu.edu), slate blue for geometry
+   lines and the current-value series; condensed display face for labels like a spec sheet. */
 :root {
-  --bg: #e9edf0;
+  --bg: #f1f0ec;
   --panel: #ffffff;
-  --panel-2: #f4f6f8;
-  --ink: #15212b;
-  --muted: #5a6876;
-  --line: #cfd7de;
-  --accent: #cf4a12;
-  --accent-ink: #ffffff;
-  --s1: #1d6aa8;
-  --s2: #cf4a12;
-  --s3: #2f8f6b;
-  --base: #8a96a3;
-  --ok: #1f7a46;
-  --ok-bg: #dcf1e4;
-  --bad: #b42318;
-  --bad-bg: #fbe3df;
-  --warn: #8a5a00;
-  --warn-bg: #fdf0cf;
-  --viewer: #dfe5ea;
+  --panel-2: #f7f6f2;
+  --ink: #1f1f1f;
+  --muted: #53565A;
+  --line: #dcd9d1;
+  --accent: #9E7E38;
+  --accent-ink: #111111;
+  --s1: #2F5D7C;
+  --s2: #9E7E38;
+  --s3: #4C7A5A;
+  --base: #9a9ca0;
+  --ok: #276b43;
+  --ok-bg: #e4f1e8;
+  --bad: #b3261e;
+  --bad-bg: #f9e4e2;
+  --warn: #7a5800;
+  --warn-bg: #fbf1d4;
+  --viewer: #e9e7e1;
+  --gold: #9E7E38;
+  --hi: #E4572E;       /* 3D construction lines, labels and ghosts: orange stands out on the model */
   --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e151b; --panel: #151f28; --panel-2: #1b2732; --ink: #e2e9ef; --muted: #8d9cab; --line: #2a3947;
-    --accent: #ff7a3d; --accent-ink: #1a0d05; --s1: #5aa8e8; --s2: #ff7a3d; --s3: #4cc496; --base: #6f7d8b;
-    --ok: #5fd08f; --ok-bg: #12301f; --bad: #ff8a7a; --bad-bg: #3a1714; --warn: #f2c14e; --warn-bg: #33280f;
-    --viewer: #101a22; color-scheme: dark;
+    --bg: #141311; --panel: #1d1c19; --panel-2: #252420; --ink: #ece9e2; --muted: #a8a49b; --line: #34322d;
+    --accent: #CEB888; --accent-ink: #141311; --s1: #8fb8d8; --s2: #CEB888; --s3: #8cc29b; --base: #6f6c66;
+    --ok: #7ed3a0; --ok-bg: #15291d; --bad: #ff8f80; --bad-bg: #3a1a16; --warn: #FDC314; --warn-bg: #30270c;
+    --viewer: #181715; --gold: #CEB888; --hi: #FF8A4C; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0e151b; --panel: #151f28; --panel-2: #1b2732; --ink: #e2e9ef; --muted: #8d9cab; --line: #2a3947;
-  --accent: #ff7a3d; --accent-ink: #1a0d05; --s1: #5aa8e8; --s2: #ff7a3d; --s3: #4cc496; --base: #6f7d8b;
-  --ok: #5fd08f; --ok-bg: #12301f; --bad: #ff8a7a; --bad-bg: #3a1714; --warn: #f2c14e; --warn-bg: #33280f;
-  --viewer: #101a22; color-scheme: dark;
+  --bg: #141311; --panel: #1d1c19; --panel-2: #252420; --ink: #ece9e2; --muted: #a8a49b; --line: #34322d;
+  --accent: #CEB888; --accent-ink: #141311; --s1: #8fb8d8; --s2: #CEB888; --s3: #8cc29b; --base: #6f6c66;
+  --ok: #7ed3a0; --ok-bg: #15291d; --bad: #ff8f80; --bad-bg: #3a1a16; --warn: #FDC314; --warn-bg: #30270c;
+  --viewer: #181715; --gold: #CEB888; --hi: #FF8A4C; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -221,17 +225,17 @@ table.inf td:first-child { white-space: normal; }
 .hpbtn { font-size: 12.5px; line-height: 1.2; }
 .vlabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .vlabels svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.vlabels svg line { stroke: var(--accent); stroke-width: 1.2; }
-.vlabels svg circle { fill: var(--accent); }
-.vlab { position: absolute; pointer-events: auto; font: 600 11.5px/1 var(--f-body); white-space: nowrap; color: var(--ink); background: var(--panel); border: 1.5px solid var(--accent);
+.vlabels svg line { stroke: var(--hi); stroke-width: 1.2; }
+.vlabels svg circle { fill: var(--hi); }
+.vlab { position: absolute; pointer-events: auto; font: 600 11.5px/1 var(--f-body); white-space: nowrap; color: var(--ink); background: var(--panel); border: 1.5px solid var(--hi);
   border-radius: 4px; padding: 3px 6px; cursor: pointer; transform: translateY(-50%); }
 .vlab.l { transform: translate(-100%, -50%); }
-.vlab:hover { background: var(--accent); color: var(--accent-ink); }
+.vlab:hover { background: var(--hi); color: #fff; }
 .ovcap { position: absolute; left: 10px; right: 10px; bottom: 48px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px;
-  background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--accent); border-radius: 8px; padding: 6px 10px; }
+  background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--hi); border-radius: 8px; padding: 6px 10px; }
 .ovcap > span:first-child { margin-right: auto; }
 .pvbar { position: absolute; left: 10px; right: 10px; bottom: 48px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px;
-  background: var(--panel); border: 2px dashed var(--accent); border-radius: 8px; padding: 6px 10px; }
+  background: var(--panel); border: 2px dashed var(--hi); border-radius: 8px; padding: 6px 10px; }
 .pvbar > span:first-child { margin-right: auto; }
 .pvbtns { display: inline-flex; gap: 6px; }
 table.data tr.clickable.open td { background: var(--panel-2); }
@@ -367,6 +371,10 @@ select.sel { min-height: 32px; }
 .toast { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 70; background: var(--ink); color: var(--panel); padding: 8px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
 .pinbtn { margin-left: 2px; }
 .status .pill { max-width: 100%; white-space: normal; }
+.legkey i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; vertical-align: middle; margin: 0 4px 0 2px; }
+.legkey .lk-f { background: var(--s1); } .legkey .lk-r { background: var(--gold); margin-left: 8px; }
+.hpbtn[data-leg]::before { content: ""; display: inline-block; width: 10px; height: 4px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.hpbtn[data-leg="front"]::before { background: var(--s1); } .hpbtn[data-leg="rear"]::before { background: var(--gold); }
 .msub { margin-bottom: 2px; align-self: flex-start; }
 .vright { display: flex; gap: 6px; align-items: center; margin-left: auto; }
 .dispmenu .xpop { width: 230px; }
@@ -388,6 +396,15 @@ select.sel { min-height: 32px; }
 .vwrap.open .ovcap, .vwrap.open .pvbar { right: 360px; }
 @media (max-width: 760px) { .vwrap .drawer { position: static; width: auto; max-height: none; box-shadow: none; margin-top: 10px; } .vwrap.open .ovcap, .vwrap.open .pvbar { right: 10px; } }
 .pt td.lab { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; }
+/* Wake Forest touches: ink title with a short gold rule, gold accents used sparingly */
+body { border-top: 4px solid var(--gold); }
+.brand h1 { color: var(--ink) !important; }
+.brand h1::after { content: ""; display: block; width: 64px; height: 3px; margin-top: 6px; background: var(--gold); border-radius: 2px; }
+.seg button[aria-pressed="true"] { box-shadow: inset 0 -3px 0 var(--gold); }
+.wcard { border-top: 4px solid var(--gold); }
+.wcard h2, .chtitle { color: var(--ink) !important; }
+.card { box-shadow: 0 1px 0 rgba(0,0,0,.03); }
+.thmenu .xpop { width: 240px; right: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 
@@ -397,6 +414,11 @@ select.sel { min-height: 32px; }
     <div class="toolbar">
       <div class="seg axseg" id="axleSeg" role="group" aria-label="Which part of the car"><button type="button" data-ax="front" aria-pressed="false">Front</button><button type="button" data-ax="rear" aria-pressed="false">Rear</button><button type="button" data-ax="car" aria-pressed="false">Car</button></div>
       <button class="btn small" id="btnLearn" type="button">Learn</button>
+      <details class="xmenu thmenu" id="themeMenu"><summary class="btn small" title="Light, dark or follow your computer">Theme ▾</summary>
+        <div class="xpop" role="menu"><p class="note">Color theme</p>
+          <button type="button" class="tg" data-theme-set="" aria-pressed="true"><b>Auto</b><span>Follow your computer's light or dark setting</span></button>
+          <button type="button" class="tg" data-theme-set="light" aria-pressed="false"><b>Light</b></button>
+          <button type="button" class="tg" data-theme-set="dark" aria-pressed="false"><b>Dark</b></button></div></details>
       <button class="btn small" id="btnStart" type="button">Start here</button></div>
   </div>
   <div class="toprow">
@@ -445,7 +467,7 @@ select.sel { min-height: 32px; }
       <div class="body">
         <div class="field"><label for="in_name">Design name</label><input id="in_name" class="num" style="text-align:left;font-family:var(--f-body)" data-path="name" data-type="text"></div>
         <table class="pt" id="hpTable"><thead><tr><th>Hardpoint</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody></tbody></table>
-        <p class="note">"Front"/"rear" follow KineSolver's labels: the pivot with the smaller X. With X forward that is physically the rear pivot.</p>
+        <p class="note">Names say which pivot is physically at the front (the larger X), with the same blue / gold as the arm legs in 3D. The JSON keys keep KineSolver's names, where "front" means the smaller X; hover a name to see its key.</p>
       </div>
     </details>
 
@@ -1659,6 +1681,20 @@ function buildForm() {
     const vr = $("#vwrap").getBoundingClientRect(); if (vr.bottom < 80 || vr.top > window.innerHeight - 120) $("#vwrap").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" }); }));
 }
 
+// label the four inboard pivots by where they physically are (larger X = front), whatever their KineSolver key says
+function syncLegLabels() {
+  const hp = cfg && cfg.hardpoints; if (!hp) return;
+  for (const arm of ["upper", "lower"]) {
+    const a = hp[`${arm}_inboard_front`], b = hp[`${arm}_inboard_rear`]; if (!a || !b) continue;
+    const aFront = a[0] >= b[0];
+    for (const [key, isFront] of [[`${arm}_inboard_front`, aFront], [`${arm}_inboard_rear`, !aFront]]) {
+      const btn = $(`#hpTable [data-hp="hardpoints.${key}"]`); if (!btn) continue;
+      btn.textContent = `${arm === "upper" ? "Upper" : "Lower"} ${isFront ? "front" : "rear"} pivot`;
+      btn.dataset.leg = isFront ? "front" : "rear";
+      btn.title = `JSON key: ${key} (KineSolver "${key.endsWith("front") ? "front" : "rear"}" = ${key.endsWith("front") ? "smaller" : "larger"} X) · click: what does moving this point do?`;
+    }
+  }
+}
 function fillForm() {
   $$("[data-path]").forEach(el => {
     const path = el.dataset.path;
@@ -1672,7 +1708,7 @@ function fillForm() {
   $("#springBody").hidden = !cfg.spring;
   $("#rockerOn").value = cfg.spring && cfg.spring.rocker_pivot == null ? "0" : "1";
   syncRockerRows();
-  syncAxle();
+  syncAxle(); syncLegLabels();
 }
 function syncRockerRows() {
   const direct = cfg.spring && cfg.spring.rocker_pivot == null;
@@ -1735,7 +1771,7 @@ function run() {
   pz.min = -T; pz.max = T; pr.min = -Rk; pr.max = Rk;
   pose.dz = Math.max(-T, Math.min(T, pose.dz)); pose.rack = cfg.axle === "rear" ? 0 : Math.max(-Rk, Math.min(Rk, pose.rack));
   pz.value = pose.dz; pr.value = pose.rack;
-  renderAll(ms); showCurName();
+  renderAll(ms); showCurName(); syncLegLabels();
   if (car && axleView === "car" && !chal) { renderCarIn(); renderCarBox(); }
   updateScene();
 }
@@ -2002,7 +2038,7 @@ function rockerSvg() {
   });
   if (!sp.direct) s += `<circle cx="${X([0, 0])}" cy="${Y([0, 0])}" r="4.5" fill="var(--ink)"/>`;
   s += `</svg>`;
-  return `<div class="chart"><h3>Rocker plane, looking along the pivot bolt</h3><p class="cap">Solid = ride height, dotted = full droop, dashed = full bump. Red = pushrod, green = damper, orange = rocker.</p>${s}</div>`;
+  return `<div class="chart"><h3>Rocker plane, looking along the pivot bolt</h3><p class="cap">Solid = ride height, dotted = full droop, dashed = full bump. Red = pushrod, green = damper, gold = rocker.</p>${s}</div>`;
 }
 function panelSpring() {
   if (!ev.spring) return `<p class="note">Turn on "Model the spring and damper" in the inputs to get motion ratio, ride frequency, damper stroke checks and member loads.</p>`;
@@ -2173,9 +2209,11 @@ $("#tgMirror").addEventListener("click", (e) => { view.mirror = !view.mirror; e.
 $("#tgLabels").addEventListener("click", (e) => { const on = view.overlay !== "labels"; showMe(on ? "labels" : null); });
 $("#showSel").addEventListener("change", (e) => { const v = e.target.value; showMe(v || null); });
 
+const legKey = () => `<span class="legkey"><i class="lk-f"></i>front leg <i class="lk-r"></i>rear leg</span>`;
 function themeColors() {
   const cs = getComputedStyle(document.documentElement), g = (n) => cs.getPropertyValue(n).trim();
-  return { bg: g("--viewer"), accent: g("--accent"), ink: g("--ink"), line: g("--line"), s1: g("--s1"), s2: g("--s2"), s3: g("--s3"), bad: g("--bad"), ok: g("--ok"), muted: g("--muted"), panel: g("--panel") };
+  // in 3D the "accent" is the orange highlight; the page itself uses gold
+  return { bg: g("--viewer"), accent: g("--hi") || g("--accent"), gold: g("--gold"), ink: g("--ink"), line: g("--line"), s1: g("--s1"), s2: g("--s2"), s3: g("--s3"), bad: g("--bad"), ok: g("--ok"), muted: g("--muted"), panel: g("--panel") };
 }
 
 // physical names for points, from the actual geometry (X forward)
@@ -2228,7 +2266,7 @@ function updateScene() {
   const grid = new T.GridHelper(gsize, 24, new T.Color(col.muted || "#5a6876"), new T.Color(col.line || "#cfd7de"));
   grid.position.set(h.cp[0], 0, 0); grid.material.transparent = true; grid.material.opacity = 0.6; dyn.add(grid);
   D.line([[h.cp[0] - 700, 0, 0.5], [h.cp[0] + 700, 0, 0.5]], col.muted, true);
-  const cpm = new T.Mesh(new T.RingGeometry(14, 24, 32), new T.MeshBasicMaterial({ color: new T.Color(col.accent || "#cf4a12"), side: T.DoubleSide }));
+  const cpm = new T.Mesh(new T.RingGeometry(14, 24, 32), new T.MeshBasicMaterial({ color: new T.Color(col.accent || "#9E7E38"), side: T.DoubleSide }));
   cpm.rotation.x = -Math.PI / 2; cpm.position.copy(toT([p.cp[0], p.cp[1], p.cp[2] + 0.8])); dyn.add(cpm);
   if (view.rc && (!view.overlay || view.overlay === "labels") && Number.isFinite(o.roll_center)) {
     const rcPt = [p.cp[0], 0, o.roll_center + p.cp[2]];
@@ -2238,14 +2276,14 @@ function updateScene() {
   if (view.hl) drawHighlight(DT, view.hl, o, sst, col);
   if (!view.target) { view.target = toT([h.cp[0], h.cp[1] * 0.62, 230]); setMode("iso"); }
   const sp2 = sst ? ` · <b>damper</b> ${fmt(sst.damper_len, 1)} mm` : "";
-  $("#hud").innerHTML = `<span><b>travel</b> ${fmt(pose.dz, 1)} mm${cfg.axle === "front" ? ` · <b>rack</b> ${fmt(pose.rack, 1)} mm` : ""}</span><span><b>camber</b> ${fmt(o.camber, 2)}°</span><span><b>toe</b> ${fmt(o.toe, 3)}°</span><span><b>caster</b> ${fmt(o.caster, 2)}°</span><span><b>RC</b> ${fmt(o.roll_center, 1)} mm${sp2}</span>`;
+  $("#hud").innerHTML = legKey() + `<span><b>travel</b> ${fmt(pose.dz, 1)} mm${cfg.axle === "front" ? ` · <b>rack</b> ${fmt(pose.rack, 1)} mm` : ""}</span><span><b>camber</b> ${fmt(o.camber, 2)}°</span><span><b>toe</b> ${fmt(o.toe, 3)}°</span><span><b>caster</b> ${fmt(o.caster, 2)}°</span><span><b>RC</b> ${fmt(o.roll_center, 1)} mm${sp2}</span>`;
   const hb = ($("#hud").offsetHeight || 30) + 18 + "px"; for (const id of ["#ovcap", "#pvbar", "#vhint"]) $(id).style.bottom = hb;
   three.need = true;
 }
 
 function drawKit(group, col, onTop = false) {
   const T = three.T, top = onTop ? { depthTest: false, transparent: true } : {};
-  const basic = (c, extra = {}) => new T.MeshBasicMaterial({ color: new T.Color(c || "#cf4a12"), ...top, ...extra });
+  const basic = (c, extra = {}) => new T.MeshBasicMaterial({ color: new T.Color(c || "#9E7E38"), ...top, ...extra });
   const add = (o) => { if (onTop) o.renderOrder = 5; group.add(o); return o; };
   return {
     line(pts, c, dashed) {
@@ -2281,17 +2319,19 @@ function drawKit(group, col, onTop = false) {
 
 function buildCorner(e, o, sst, { col, mirror = false, ghost = false, xray = false, ghostCol = null, solid = false }) {
   const T = three.T, s = e.susp, sp = e.spring, p = o._pts, h = s.h, g = new T.Group();
-  const mat = (c, extra = {}) => ghost ? new T.MeshBasicMaterial({ color: new T.Color(ghostCol || col.accent || "#cf4a12"), transparent: true, opacity: 0.42, depthWrite: false })
+  const mat = (c, extra = {}) => ghost ? new T.MeshBasicMaterial({ color: new T.Color(ghostCol || col.accent || "#9E7E38"), transparent: true, opacity: 0.42, depthWrite: false })
     : new T.MeshStandardMaterial({ color: new T.Color(c), roughness: 0.55, metalness: 0.25, ...extra });
-  const steel = mat("#8d99a6"), steelD = mat("#5d6975"), arm1 = mat(col.s1 || "#1d6aa8"), tie = mat("#6c7a89"), push = mat(col.bad || "#b42318"),
-    rocker = mat(col.accent || "#cf4a12", { side: T.DoubleSide }), springM = mat("#26338f", { metalness: 0.4 }), damperM = mat("#e0b21c", { metalness: 0.3 }),
+  const steel = mat("#8d99a6"), steelD = mat("#5d6975"), arm1 = mat(col.s1 || "#2F5D7C"), tie = mat("#6c7a89"), push = mat(col.bad || "#b42318"),
+    rocker = mat(col.accent || "#9E7E38", { side: T.DoubleSide }), springM = mat("#26338f", { metalness: 0.4 }), damperM = mat("#e0b21c", { metalness: 0.3 }),
     tire = mat("#202326", xray ? { roughness: 0.92, metalness: 0, transparent: true, opacity: 0.22, depthWrite: false } : { roughness: 0.92, metalness: 0 }), rimM = mat("#b9c2cb", { metalness: 0.7, roughness: 0.35, transparent: true, opacity: 0.45, side: T.DoubleSide });
   const pickable = (me, hp) => { if (!mirror && !ghost && hp) { me.userData.hp = hp; three.pickables.push(me); } };
   const tube = (a, b, r, m) => { const A = toT(a), B = toT(b), d = new T.Vector3().subVectors(B, A), L = d.length(); if (L < 1e-6) return;
     const me = new T.Mesh(new T.CylinderGeometry(r, r, L, 14), m); me.position.copy(A).addScaledVector(d, 0.5); me.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); g.add(me); };
   const ball = (q, r, m, hp) => { const me = new T.Mesh(new T.SphereGeometry(r, 18, 12), m); me.position.copy(toT(q)); g.add(me); pickable(me, hp); };
   const box = (q, sz, m, hp) => { const me = new T.Mesh(new T.BoxGeometry(sz, sz, sz), m); me.position.copy(toT(q)); g.add(me); pickable(me, hp); };
-  tube(h.uif, p.ub, 8, arm1); tube(h.uir, p.ub, 8, arm1); tube(h.lif, p.lb, 8, arm1); tube(h.lir, p.lb, 8, arm1);
+  // front leg (pivot with the larger X) blue, rear leg gold, so the two legs of each wishbone are easy to tell apart
+  const armR = mat(col.gold || "#9E7E38"), leg = (a, b) => a[0] >= b[0] ? arm1 : armR;
+  tube(h.uif, p.ub, 8, leg(h.uif, h.uir)); tube(h.uir, p.ub, 8, leg(h.uir, h.uif)); tube(h.lif, p.lb, 8, leg(h.lif, h.lir)); tube(h.lir, p.lb, 8, leg(h.lir, h.lif));
   tube(p.tri, p.tro, 6.5, tie);
   box(h.uif, 22, steelD, "hardpoints.upper_inboard_front"); box(h.uir, 22, steelD, "hardpoints.upper_inboard_rear");
   box(h.lif, 22, steelD, "hardpoints.lower_inboard_front"); box(h.lir, 22, steelD, "hardpoints.lower_inboard_rear");
@@ -3107,7 +3147,7 @@ function renderHints() {
 // ------------------------------------------------------------------ compare
 // Saved designs (kept in this browser) side by side with the live design: every target and key metric with its
 // change from a chosen reference, the hardpoints that differ, overlaid curves, and optional ghosts in the 3D view.
-const CMP_COLORS = ["#1d6aa8", "#cf4a12", "#2f8f6b", "#7a4fd0", "#b08400"];
+const CMP_COLORS = ["#2F5D7C", "#9E7E38", "#4C7A5A", "#7a4fd0", "#b3261e"];
 let cmp = (() => { try { return JSON.parse(store.get("susp.cmp") || "[]"); } catch (e) { return []; } })();
 let cmpRef = -1, cmpOnlyDiff = false;
 const cmpGhost = new Set();
@@ -3429,7 +3469,7 @@ function updateCarScene() {
   DT.label([xf, half + 260, 40], "FRONT", col.s1); DT.label([xr, half + 260, 40], "REAR", col.s2);
   if (!view.target) { view.target = toT([(xf + xr) / 2, 0, 120]); view.r = fitR(Math.abs(xf - xr) + 700, 900); setMode("iso"); }
   const B = r.bal;
-  $("#hud").innerHTML = `<span><b>travel</b> ${fmt(pose.dz, 1)} mm · <b>rack</b> ${fmt(pose.rack, 1)} mm</span><span><b>RC</b> front ${fmt(r.F.ev.metrics.roll_center, 0)} / rear ${fmt(r.R.ev.metrics.roll_center, 0)} mm</span>` +
+  $("#hud").innerHTML = legKey() + `<span><b>travel</b> ${fmt(pose.dz, 1)} mm · <b>rack</b> ${fmt(pose.rack, 1)} mm</span><span><b>RC</b> front ${fmt(r.F.ev.metrics.roll_center, 0)} / rear ${fmt(r.R.ev.metrics.roll_center, 0)} mm</span>` +
     (B ? `<span><b>roll</b> ${fmt(B.grad, 2)} deg/g</span><span><b>front LLTD</b> ${fmt(B.lltd * 100, 1)} %</span>` : "");
   const hb = ($("#hud").offsetHeight || 30) + 18 + "px"; for (const id of ["#ovcap", "#pvbar", "#vhint"]) $(id).style.bottom = hb;
   three.need = true;
@@ -3485,11 +3525,11 @@ function reportHtml() {
     body += tbl(["Target", "Value", "Range", "Status"], checkRows(e).map(c => `<tr><td>${esc(c.lab)}</td><td class="n">${fmt(c.value, c.dec)} ${esc(c.unit)}</td><td>${rngTxt(c.lo, c.hi, c.dec)}</td><td>${st(c.status)}</td></tr>`));
     const pts = S.HP_ORDER.map(p => [HP_LABELS[p][0], hp[p]]).concat(sp ? S.SPRING_POINTS.filter(p => sp[p]).map(p => [SP_LABELS[p][0], sp[p]]) : []);
     body += `<h3>Hardpoints, mm</h3>` + tbl(["Point", "X", "Y", "Z"], pts.map(([l, v]) => `<tr><td>${l}</td>${v.map(q => `<td class="n">${fmt(q, 1)}</td>`).join("")}</tr>`));
-    const rows = e.rows, toe0 = rows.reduce((a, r) => Math.abs(r.dz) < Math.abs(a.dz) ? r : a).toe, x = rows.map(r => r.dz), sr = (y, c = "#1d6aa8") => [{ x, y: rows.map(y), color: c }];
+    const rows = e.rows, toe0 = rows.reduce((a, r) => Math.abs(r.dz) < Math.abs(a.dz) ? r : a).toe, x = rows.map(r => r.dz), sr = (y, c = "#2F5D7C") => [{ x, y: rows.map(y), color: c }];
     body += `<h3>Curves</h3><div class="charts">${chart({ title: "Camber, deg", xlabel: "wheel travel, mm", series: sr(r => r.camber) })}${chart({ title: "Toe change, deg", xlabel: "wheel travel, mm", series: sr(r => r.toe - toe0) })}
       ${chart({ title: "Roll center height, mm", xlabel: "wheel travel, mm", series: sr(r => r.roll_center) })}${e.spring ? chart({ title: "Motion ratio", xlabel: "wheel travel, mm", series: sr(r => r.motion_ratio) }) : ""}
-      ${e.steer ? chart({ title: "Ackermann, %", xlabel: "outer wheel angle, deg", series: [{ x: e.steer.filter(r => Number.isFinite(r.ackermann)).map(r => r.outer), y: e.steer.filter(r => Number.isFinite(r.ackermann)).map(r => r.ackermann), color: "#1d6aa8" }] }) : ""}
-      ${chart({ title: "Camber to ground in roll, deg", xlabel: "body roll, deg", series: [{ name: "outer", x: e.roll.map(r => r.roll), y: e.roll.map(r => r.camber_outer), color: "#1d6aa8" }, { name: "inner", x: e.roll.map(r => r.roll), y: e.roll.map(r => r.camber_inner), color: "#cf4a12", dash: "5 3" }] })}</div>`;
+      ${e.steer ? chart({ title: "Ackermann, %", xlabel: "outer wheel angle, deg", series: [{ x: e.steer.filter(r => Number.isFinite(r.ackermann)).map(r => r.outer), y: e.steer.filter(r => Number.isFinite(r.ackermann)).map(r => r.ackermann), color: "#2F5D7C" }] }) : ""}
+      ${chart({ title: "Camber to ground in roll, deg", xlabel: "body roll, deg", series: [{ name: "outer", x: e.roll.map(r => r.roll), y: e.roll.map(r => r.camber_outer), color: "#2F5D7C" }, { name: "inner", x: e.roll.map(r => r.roll), y: e.roll.map(r => r.camber_inner), color: "#9E7E38", dash: "5 3" }] })}</div>`;
     if (k.L) {
       const mem = e.cfg.members;
       body += `<h3>Member strength (${esc(mem.material || "steel")}, yield ${fmt(mem.yield, 0)} MPa, required FOS ${fmt(mem.sf_target, 1)})</h3>` +
@@ -3498,7 +3538,7 @@ function reportHtml() {
     }
   }
   body += `<footer>Rigid links, quasi-static, no tire model; the car balance assumes a rigid chassis and roll centers at ride height. Confirm the final design in CAD. Generated by the FSAE Suspension Solver.</footer>`;
-  const css = `:root{--s1:#1d6aa8;--s2:#cf4a12;--s3:#2f8f6b;--base:#8a96a3;--ok:#1f7a46;--bad:#b42318;--line:#cfd7de;--muted:#5a6876;--ink:#15212b;--panel:#fff;--accent:#cf4a12}
+  const css = `:root{--s1:#2F5D7C;--s2:#9E7E38;--s3:#4C7A5A;--base:#9a9ca0;--ok:#276b43;--bad:#b3261e;--line:#dcd9d1;--muted:#53565A;--ink:#1f1f1f;--panel:#fff;--accent:#9E7E38}
     body{font:13px/1.45 "IBM Plex Sans",system-ui,sans-serif;color:#15212b;margin:24px auto;max-width:1000px;padding:0 16px}
     h1{font-size:26px;margin:0}header p{color:#5a6876;margin:2px 0 10px}h2{font-size:19px;margin:26px 0 8px;border-bottom:2px solid #15212b;padding-bottom:3px}h3{font-size:14px;margin:16px 0 6px}
     table{border-collapse:collapse;width:100%;margin:6px 0 10px}th,td{border-bottom:1px solid #d9dee3;padding:4px 6px;text-align:left}th{font-size:11px;text-transform:uppercase;color:#5a6876}td.n{text-align:right;font-family:"IBM Plex Mono",ui-monospace,monospace}
@@ -3681,6 +3721,14 @@ const savedTab = store.get("susp.tab"); if (savedTab && TABS.some(t => t[0] === 
 $("#panels").addEventListener("click", (e) => { const b = e.target.closest("[data-msub]"); if (!b) return; tab = b.dataset.msub; store.set("susp.tab", tab); renderTabs(); showPanel(); });
 wireExport();
 { const dm = $("#dispMenu"); document.addEventListener("click", (e) => { if (dm.open && !dm.contains(e.target)) dm.open = false; }); }
+// color theme: Auto follows the computer; Light / Dark are remembered in this browser
+{ const tm = $("#themeMenu"), cur = () => document.documentElement.getAttribute("data-theme") || "";
+  const sync = () => $$("#themeMenu [data-theme-set]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.themeSet === cur())));
+  document.addEventListener("click", (e) => { if (tm.open && !tm.contains(e.target)) tm.open = false; });
+  $$("#themeMenu [data-theme-set]").forEach(b => b.addEventListener("click", () => { const t = b.dataset.themeSet;
+    if (t) document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme");
+    store.set("susp.theme", t); sync(); tm.open = false; }));
+  sync(); }
 // boot: the saved car if there is one; else an old single-corner draft inside the example car; else the example car
 {
   const ex = exampleCarRaw(), savedCar = store.get("susp.car"), saved = store.get("susp.cfg");

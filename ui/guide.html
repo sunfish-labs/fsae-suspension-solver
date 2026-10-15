@@ -8,38 +8,42 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script>try { const t = localStorage.getItem("susp.theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) { /* storage blocked */ }</script>
 <style>
-/* Same visual system as the app: drafting-film neutrals, ink text, signal-orange accent, spec-sheet headings. */
+/* Same visual system as the app: Wake Forest palette (brand.wfu.edu): warm neutrals, ink text, Old Gold accents.
+   Links use Web Text Gold (#8C6D2C), which meets 4.5:1 on white. */
 :root {
-  --bg: #e9edf0; --panel: #ffffff; --panel-2: #f4f6f8; --ink: #15212b; --muted: #5a6876; --line: #cfd7de;
-  --accent: #cf4a12; --accent-ink: #ffffff; --ok: #1f7a46; --ok-bg: #dcf1e4; --bad: #b42318; --bad-bg: #fbe3df;
-  --warn: #8a5a00; --warn-bg: #fdf0cf;
+  --bg: #f1f0ec; --panel: #ffffff; --panel-2: #f7f6f2; --ink: #1f1f1f; --muted: #53565A; --line: #dcd9d1;
+  --accent: #9E7E38; --accent-ink: #111111; --link: #8C6D2C; --gold: #9E7E38; --ok: #276b43; --ok-bg: #e4f1e8; --bad: #b3261e; --bad-bg: #f9e4e2;
+  --warn: #7a5800; --warn-bg: #fbf1d4;
   --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --bg: #0e151b; --panel: #151f28; --panel-2: #1b2732; --ink: #e2e9ef; --muted: #8d9cab; --line: #2a3947;
-    --accent: #ff7a3d; --accent-ink: #1a0d05; --ok: #5fd08f; --ok-bg: #12301f; --bad: #ff8a7a; --bad-bg: #3a1714; --warn: #f2c14e; --warn-bg: #33280f; color-scheme: dark; }
+  :root:not([data-theme="light"]) { --bg: #141311; --panel: #1d1c19; --panel-2: #252420; --ink: #ece9e2; --muted: #a8a49b; --line: #34322d;
+    --accent: #CEB888; --accent-ink: #141311; --link: #CEB888; --gold: #CEB888; --ok: #7ed3a0; --ok-bg: #15291d; --bad: #ff8f80; --bad-bg: #3a1a16; --warn: #FDC314; --warn-bg: #30270c; color-scheme: dark; }
 }
-:root[data-theme="dark"] { --bg: #0e151b; --panel: #151f28; --panel-2: #1b2732; --ink: #e2e9ef; --muted: #8d9cab; --line: #2a3947;
-  --accent: #ff7a3d; --accent-ink: #1a0d05; --ok: #5fd08f; --ok-bg: #12301f; --bad: #ff8a7a; --bad-bg: #3a1714; --warn: #f2c14e; --warn-bg: #33280f; color-scheme: dark; }
+:root[data-theme="dark"] { --bg: #141311; --panel: #1d1c19; --panel-2: #252420; --ink: #ece9e2; --muted: #a8a49b; --line: #34322d;
+  --accent: #CEB888; --accent-ink: #141311; --link: #CEB888; --gold: #CEB888; --ok: #7ed3a0; --ok-bg: #15291d; --bad: #ff8f80; --bad-bg: #3a1a16; --warn: #FDC314; --warn-bg: #30270c; color-scheme: dark; }
 * { box-sizing: border-box; }
 html, body { background: var(--bg); color: var(--ink); }
 body { margin: 0; font: 16px/1.6 var(--f-body); padding-block: 0 48px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-a { color: var(--accent); }
+a { color: var(--link); }
+body { border-top: 4px solid var(--gold); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .wrap { max-width: 860px; margin: 0 auto; }
 header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-block: 16px 8px; }
 .brand { margin-right: auto; }
-.brand h1 { margin: 0; font: 700 32px/1 var(--f-display); color: var(--accent); text-transform: uppercase; letter-spacing: .02em; }
+.brand h1 { margin: 0; font: 700 32px/1 var(--f-display); color: var(--ink); text-transform: uppercase; letter-spacing: .02em; }
+.brand h1::after { content: ""; display: block; width: 64px; height: 3px; margin-top: 6px; background: var(--gold); border-radius: 2px; }
 .brand span { color: var(--muted); font-size: 14px; }
 .btn { display: inline-block; text-decoration: none; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 7px 14px; font-size: 14px; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
 nav.toc { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; padding: 10px 0 18px; border-bottom: 1px solid var(--line); }
 nav.toc a { color: var(--muted); text-decoration: none; }
-nav.toc a:hover { color: var(--accent); }
+nav.toc a:hover { color: var(--link); }
 h2 { font: 600 30px/1.1 var(--f-display); text-transform: uppercase; letter-spacing: .02em; margin: 44px 0 10px; text-wrap: balance; }
 h3 { font: 600 21px/1.2 var(--f-display); text-transform: uppercase; letter-spacing: .03em; margin: 26px 0 6px; }
 p, li { max-width: 68ch; }
@@ -90,7 +94,7 @@ Every number updates as you type.</p>
 <ol class="steps">
   <li><b>Open the app</b> and leave the design menu on <i>Example front</i>. It is an invented demo car that passes every target.</li>
   <li><b>Read the summary strip:</b> targets met, ride frequency, motion ratio and the lowest strength FOS. Anything failing is listed red in the <b>Targets</b> tab, and clicking a row explains the number.</li>
-  <li><b>Drag the Travel and Rack sliders</b> (or type a value, or press <b>▶ Play</b>). The 3D corner moves, the readout shows camber, toe and roll-center height at that position, and the orange marker moves along every chart.</li>
+  <li><b>Drag the Travel and Rack sliders</b> (or type a value, or press <b>▶ Play</b>). The 3D corner moves, the readout shows camber, toe and roll-center height at that position, and the gold marker moves along every chart.</li>
   <li><b>Click Pin as baseline</b> (under the sliders), <b>then change one coordinate.</b> Every target gains a <i>Baseline</i> and <i>Change</i> column, and the charts show the old curve dashed. That is how you learn what each hardpoint does.</li>
   <li><b>Save your work</b> with <b>Save ▾ → Save JSON</b>, which writes a <code>.json</code> file to your computer (in Chrome or Edge you choose where, and later saves go back to the same file). Keep it in your team's private folder and load it again with <b>Open ▾</b>. The app also remembers your last edits in that browser.</li>
 </ol>
@@ -123,7 +127,7 @@ browser and sends nothing anywhere. The only designs built into the site are the
   <li><b>Learn</b> (top right): a searchable glossary of every term the app uses, such as scrub radius, roll center, anti-dive and motion ratio. Each card gives the sign convention, what moves it and its value on the design on screen.</li>
   <li><b>Show me:</b> draws the idea on the 3D corner. Examples are the steering axis meeting the ground, the wishbones extended to the instant center, and the wheel sweeping through bump while camber or toe changes. <b>Names</b> on the viewer labels every hardpoint.</li>
   <li><b>Fix a failing target:</b> in the Targets tab, click the row, then <b>Fix: what moves this?</b> The app tries every single-point move and the paired moves (both pivots of an arm, or the whole tie rod). It lists the smallest moves that bring the number into range, with the millimeters needed. Each move is re-solved and checked against every other target, and only targets it would newly break are listed as side effects. On a target that already passes, the same button shows the biggest levers on it.</li>
-  <li><b>Click a joint</b> in the 3D view, or a hardpoint name in the inputs. A panel shows what moving that point 5 mm up, outboard or forward does to each metric. Blue cells go up, orange cells go down, darker means bigger, and a red outline marks a target that would start failing.</li>
+  <li><b>Click a joint</b> in the 3D view, or a hardpoint name in the inputs. A panel shows what moving that point 5 mm up, outboard or forward does to each metric. Blue cells go up, gold cells go down, darker means bigger, and a red outline marks a target that would start failing.</li>
   <li><b>Preview, Apply, Undo:</b> Preview shows the moved corner as an orange ghost with a summary of the change. Apply makes the move and pins the old design as the baseline, so every change column shows what you gained. Undo steps back.</li>
   <li>Ball joints, contact patch and rocker pivot are <b>locked</b> by default, because the upright, wheel and chassis set them. Untick the box to include them.</li>
 </ul>
