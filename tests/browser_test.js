@@ -120,6 +120,19 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   check("design report has the car summary and both corners", /Car target/.test(rep) && /Front:/.test(rep) && /Rear:/.test(rep));
   const wb = XLSX.readFile(await grab("#xXlsx"));
   check("Excel workbook has summary, targets, sweeps and loads", ["Summary", "Front targets", "Front heave", "Front springs & damping", "Rear loads"].every(s => wb.SheetNames.includes(s)), wb.SheetNames.join(","));
+  await p.click("#xmenu summary"); await p.click("#xCad"); await p.waitForTimeout(300);
+  check("3D for CAD dialog opens with the car scope", !(await p.$eval("#cadDlg", d => d.hidden)) && /whole car/.test(await text(p, "#cadScope")), await text(p, "#cadScope"));
+  const cadGrab = async (fmt) => { await p.selectOption("#cadFmt", fmt); const [d] = await Promise.all([p.waitForEvent("download"), p.click("#cadGo")]);
+    const f = path.join(os.tmpdir(), d.suggestedFilename()); await d.saveAs(f); return fs.readFileSync(f, "utf8"); };
+  await p.selectOption("#cadFrame", "solver"); await p.selectOption("#cadOrigin", "solver"); await p.selectOption("#cadUnits", "mm");
+  const csv = await cadGrab("csv"), carRaw = JSON.parse(fs.readFileSync(path.join(ROOT, "designs", "example_car.json"), "utf8"));
+  const bj = csv.split("\n").find(l => l.startsWith("FR_UCA_ball_joint,")).split(",").slice(2).map(Number);
+  check("CAD CSV: ball joint at the JSON hardpoint, all four corners named", bj.every((v, i) => Math.abs(v - carRaw.front.hardpoints.upper_outboard[i]) < 1e-6)
+    && ["FR_", "FL_", "RR_", "RL_"].every(t => csv.includes("\n" + t)), bj.join(","));
+  const igs = await cadGrab("igs");
+  check("CAD IGES file has all five sections", /S      1\n/.test(igs) && /G      1\n/.test(igs) && /D      1\n/.test(igs) && /P      1\n/.test(igs) && /T      1\n$/.test(igs));
+  check("CAD STEP file is ISO-10303-21", /^ISO-10303-21;/.test(await cadGrab("step")));
+  await p.click("#cadClose");
   await p.evaluate(() => { window.showSaveFilePicker = undefined; });   // use the plain download path in the test
   const car = JSON.parse(fs.readFileSync(await grab("#btnDownload"), "utf8"));
   check("car JSON carries both corners and every corner's targets", car.type === "car" && car.front.targets && Object.keys(car.front.targets).length > 10 && car.rear.targets && car.car_targets);

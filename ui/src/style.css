@@ -391,3 +391,12 @@ body { border-top: 4px solid var(--gold); }
 .card { box-shadow: 0 1px 0 rgba(0,0,0,.03); }
 .thmenu .xpop { width: 240px; right: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+/* 3D for CAD dialog */
+.cadcard h2 { font-size: 24px; }
+.cadcard .cadf { grid-template-columns: 1fr; }
+.cadcard select { width: 100%; }
+.cadposes { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.cadposes .small-check { margin: 0; }
+.cadgo { display: flex; justify-content: flex-end; }
+.cadhelp summary { cursor: pointer; font-weight: 600; }
+.cadhelp ul { margin: 6px 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }

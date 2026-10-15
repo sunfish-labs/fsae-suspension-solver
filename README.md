@@ -99,6 +99,22 @@ Bump steer has two parts. **Slope** (deg/in) comes from tie-rod height: fix it w
 Example:
 `optimize front.json --vary trackrod_inboard.y,trackrod_inboard.z --goal bump_steer=0:0.01 --goal bump_steer_curve=0:0.01 --min-clearance 26`
 
+## Exporting to CAD (SolidWorks, Fusion, Onshape)
+In the web app, **Save ▾ → 3D for CAD…** writes the corner (or, in the Car view, the whole car with all four corners)
+as reference geometry for the chassis designer:
+- **IGES (.igs)** for SolidWorks, Fusion, NX and CATIA; **STEP (.step)** for Onshape, Fusion and SolidWorks. Every
+  hardpoint is a named point (`FR_UCA_front_pivot`, `RL_toe_link_inboard`, ...) and every link is a line: wishbone legs,
+  tie rod / toe link, upright axis, spin axis, pushrod, rocker and damper. In SolidWorks, open the file and turn on
+  importing free point/curve entities in the import options; they arrive as a 3D sketch.
+- **Poses:** besides ride height, the links at full bump, full droop and full steer, each as its own layer (IGES level,
+  STEP curve set) and colour, so the frame can be checked against everything the links sweep through.
+- **CSV** (named point table) and **STL** (round tubes at your tube ODs, for clearance checks; STL has no units).
+- **Axes:** SolidWorks default (X forward, Y up, Z right), ISO vehicle axes (X forward, Y left, Z up), ADAMS-style
+  (X rearward, Y right, Z up) or the solver's own frame. Origin at the front axle centerline on the ground, or the
+  solver's frame. mm or inch. In a car the rear corner is placed one wheelbase behind the front contact patch.
+- Files are written in the browser; nothing is uploaded. `tests/test_cad.py` reads them back in OpenCascade and checks
+  every point.
+
 ## How loads are calculated (`loads`)
 One config covers both corners of its axle, because the car is symmetric. The solved wheel is the **outer** wheel
 in a left turn and the **inner** wheel in a right turn, and both are checked. The inner wheel's side force points
@@ -226,8 +242,10 @@ The page is built from small files and assembled into one self-contained `ui/ind
 | `ui/src/40_compare.js` | Compare tab |
 | `ui/src/50_car.js` | Front / Rear / Car and the whole-car balance |
 | `ui/src/60_export.js` | design report and Excel export |
+| `ui/src/65_cad.js` | the 3D for CAD dialog |
 | `ui/src/70_main.js` | toolbar menus and start-up |
 | `ui/susp.js`, `ui/glossary.js` | the solver (port of the Python) and the glossary text |
+| `ui/cad.js` | CAD export: IGES, STEP, CSV and STL writers (no DOM, also runs in Node for tests) |
 
 The JS modules run in file-name order inside one closure, so they share helpers such as `$`, `fmt`, `cfg` and `ev`.
 
@@ -235,7 +253,9 @@ After editing, run `python3 ui/build.py`, then the checks:
 
     python3 susp_solver.py selftest      # Python solver vs KineSolver and physics checks
     python3 ui/test_port.py              # browser solver matches the Python solver
+    python3 tests/test_analytic.py       # hand calculations with exact answers
+    python3 tests/test_cad.py            # CAD export read back in OpenCascade (pip install cadquery-ocp)
     (cd tests && npm ci) && node tests/browser_test.js   # the web app end to end in a headless browser
 
-GitHub runs all three on every push (Actions tab, workflow "tests"); a red X on a commit means something broke.
+GitHub runs all of these on every push (Actions tab, workflow "tests"); a red X on a commit means something broke.
 GitHub Pages republishes the site about a minute after each push to `main`.

@@ -106,7 +106,7 @@ buildForm();
 initThree();
 const savedTab = store.get("susp.tab"); if (savedTab && TABS.some(t => t[0] === savedTab) && savedTab !== "learn") tab = savedTab;
 $("#panels").addEventListener("click", (e) => { const b = e.target.closest("[data-msub]"); if (!b) return; tab = b.dataset.msub; store.set("susp.tab", tab); renderTabs(); showPanel(); });
-wireExport();
+wireExport(); wireCad();
 { const dm = $("#dispMenu"); document.addEventListener("click", (e) => { if (dm.open && !dm.contains(e.target)) dm.open = false; }); }
 // color theme: Auto follows the computer; Light / Dark are remembered in this browser
 { const tm = $("#themeMenu"), cur = () => document.documentElement.getAttribute("data-theme") || "";

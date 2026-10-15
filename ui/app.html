@@ -32,7 +32,8 @@
           <button type="button" role="menuitem" id="btnCopy"><b>Copy JSON</b><span>Copy the design to paste into a file or a message.</span></button>
           <hr>
           <button type="button" role="menuitem" id="xReport"><b>Design report</b><span>A page with targets, hardpoints, curves and loads. Open it and print to PDF.</span></button>
-          <button type="button" role="menuitem" id="xXlsx"><b>Excel workbook (.xlsx)</b><span>Targets, hardpoints, sweep data and loads, one sheet each.</span></button></div></details>
+          <button type="button" role="menuitem" id="xXlsx"><b>Excel workbook (.xlsx)</b><span>Targets, hardpoints, sweep data and loads, one sheet each.</span></button>
+          <button type="button" role="menuitem" id="xCad"><b>3D for CAD…</b><span>Hardpoints and links as an IGES, STEP, CSV or STL file for SolidWorks, Fusion or Onshape.</span></button></div></details>
       <span class="curname" id="curName"></span>
       <select id="preset" class="sel" hidden aria-hidden="true" tabindex="-1"></select>
       <input id="fileIn" type="file" accept=".json,application/json" hidden>
@@ -57,6 +58,42 @@
     <p class="wlinks"><a href="/*GUIDE_URL*/" target="_blank" rel="noopener">Guide &amp; case study</a> · <button class="lnk" type="button" id="wLearn">Learn the terms</button></p>
     <p class="note">Your work is kept in this browser between visits. Save JSON (or Copy JSON) to keep a file of it.</p>
     <label class="small-check"><input type="checkbox" id="wHide"> Don't show this again</label>
+  </div>
+</div>
+
+<div class="welcome" id="cadDlg" hidden>
+  <div class="wcard cadcard" role="dialog" aria-modal="true" aria-labelledby="cadTitle">
+    <button class="btn small wclose" type="button" id="cadClose" aria-label="Close">✕</button>
+    <h2 id="cadTitle">3D for CAD</h2>
+    <p class="note" id="cadScope"></p>
+    <div class="fields cadf">
+      <div class="field"><label for="cadFmt">File</label><select id="cadFmt">
+        <option value="igs">IGES (.igs): SolidWorks, Fusion, NX, CATIA</option>
+        <option value="step">STEP (.step): Onshape, Fusion, SolidWorks</option>
+        <option value="csv">CSV: named point table</option>
+        <option value="stl">STL: tube bodies at ride height</option></select></div>
+      <div class="field"><label for="cadFrame">Axes (match your CAD model)</label><select id="cadFrame"></select></div>
+      <div class="field"><label for="cadOrigin">Origin</label><select id="cadOrigin">
+        <option value="axle">Front axle centerline on the ground</option>
+        <option value="solver">The solver's own frame (same numbers as the app)</option></select></div>
+      <div class="field"><label for="cadUnits">Units</label><select id="cadUnits"><option value="mm">mm</option><option value="in">inch</option></select></div>
+    </div>
+    <div class="cadposes"><span class="note">Also export the links at</span>
+      <label class="small-check"><input type="checkbox" id="cadBump" checked> full bump</label>
+      <label class="small-check"><input type="checkbox" id="cadDroop" checked> full droop</label>
+      <label class="small-check"><input type="checkbox" id="cadSteer" checked> full steer (front)</label></div>
+    <p class="note" id="cadInfo"></p>
+    <div class="cadgo"><button class="btn primary" type="button" id="cadGo">Download</button></div>
+    <details class="cadhelp"><summary>How to import it</summary>
+      <ul>
+        <li><b>SolidWorks:</b> File → Open, pick the .igs or .step file, click <i>Options…</i> and turn on importing free point/curve entities as a 3D sketch. The points and lines arrive as a 3D sketch you can reference, dimension and mate to.</li>
+        <li><b>Fusion:</b> Upload or Insert → Insert into current design. The lines come in as sketch curves.</li>
+        <li><b>Onshape:</b> Import the .step file into a Part Studio; use the points and lines as references.</li>
+        <li><b>CSV:</b> one row per named point, then one row per link (both ends), in the units and axes above.</li>
+        <li><b>STL:</b> round tubes at your tube ODs, for clearance checks. STL has no units: choose the same units when you import it.</li>
+      </ul>
+      <p class="note">Corners are named FR, FL, RR, RL; the layers (IGES levels, STEP curve sets) are each corner at each pose. Blue = ride height, red = bump, green = droop, magenta / cyan = full rack either way. In a car file the rear corner is placed one wheelbase behind the front contact patch.</p>
+    </details>
   </div>
 </div>
 
@@ -194,6 +231,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 /*SUSP_JS*/
+/*CAD_JS*/
 </script>
 <script>
 /*GLOSSARY_JS*/
