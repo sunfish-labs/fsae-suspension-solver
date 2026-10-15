@@ -1677,9 +1677,9 @@ const CHALLENGES = [
     goals: ["roll_center", "rc_lat", "camber_gain"],
     bonus: { key: "antidive", text: "Anti-dive 5–20 %" },
     hints: [
-      "The roll center is where the line from each contact patch through that side's instant center crosses the middle of the car (Show me → Roll center). To raise it, the instant center must rise, so the wishbones must lean toward each other more steeply. Try lowering both lower inboard pivots by the same amount.",
-      "Roll-center movement in roll (rc_lat) comes from a short, steep front-view swing arm. Keep the arms converging gently: move the upper pivots up as well as the lower pivots down, and keep the upper arm shorter than the lower arm.",
-      "The influence panel is now unlocked: click any of your four pivots in the 3D view to see what 5 mm up or outboard does to every goal. For the bonus, anti-dive comes from the front and rear pivots being at different heights.",
+      "The roll center is where the line from each contact patch through that side's instant center crosses the middle of the car (Show me → Roll center). To raise it, the instant center has to rise. Start by raising both lower inboard pivots by the same amount and watch the roll-center meter climb.",
+      "If camber gain goes too high, the front-view swing arm has become too short: the arms converge too steeply. Lengthen it without losing roll-center height by raising the upper pivots by about as much as the lower ones, and moving both lower pivots inboard (smaller Y). Always move the two pivots of one arm together.",
+      "The influence panel is now unlocked: click any of your four pivots in the 3D view to see what 5 mm up or outboard does to every goal. For the bonus, anti-dive comes from tilting the lower arm's pivot axis in side view: lower the front lower pivot (larger X) a few millimeters and raise the rear one by the same amount.",
     ] },
   { id: "bs", n: 2, title: "Kill the bump steer", stage: "Stage 2 · tie rod", start: "Case study 2", tab: "heave", overlay: "bump_steer", par: 31,
     brief: "The pivots are done, but this wheel steers itself 0.09° per inch of bump and its toe wanders 0.18° over the travel. A car like that darts over every bump. Move only the tie-rod ends, in/out (Y) and up/down (Z), until bump steer is within ±0.03 deg/in and toe never changes by more than 0.05°, without wrecking the Ackermann.",
