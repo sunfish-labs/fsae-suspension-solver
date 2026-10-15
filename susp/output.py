@@ -536,24 +536,36 @@ def print_loads(cfg, ev, L):
           "under 'members'.")
 
 
+CAR_LABELS = {"roll_gradient": ("Roll gradient", "deg/g", 2), "lltd_vs_weight": ("Front LLTD minus front weight", "% points", 1),
+              "freq_ratio": ("Ride frequency ratio, rear / front", "", 2)}
+
+
 def print_car(cfg_f, cfg_r, out):
     print(f"\n=== Car balance: {cfg_f['name']} + {cfg_r['name']} ===")
     print(f"sprung mass {out['ms']:.0f} kg, sprung CG {out['hs']:.0f} mm, roll axis at the CG {out['z_ra']:.0f} mm, "
           f"roll moment arm {out['arm']:.0f} mm")
     rows = [["Ride frequency", f"{out['freq_f']:.2f}", f"{out['freq_r']:.2f}", "Hz"],
-            ["Roll stiffness from springs + tires", f"{out['Kf']:.0f}", f"{out['Kr']:.0f}", "Nm/deg"],
+            ["Roll center height", f"{out['rc_f']:.0f}", f"{out['rc_r']:.0f}", "mm"],
+            ["Roll stiffness: springs", f"{out['Ksf']:.0f}", f"{out['Ksr']:.0f}", "Nm/deg"],
+            ["  anti-roll bar (input)", f"{out['arb_in_f']:.0f}", f"{out['arb_in_r']:.0f}", "Nm/deg"],
+            ["  axle total, with tires", f"{out['Kf']:.0f}", f"{out['Kr']:.0f}", "Nm/deg"],
             ["Load transfer per wheel per g", f"{out['dFz_f']:.0f}", f"{out['dFz_r']:.0f}", "N/g"],
             ["  of which geometric (through links)", f"{out['geo_f']:.0f}", f"{out['geo_r']:.0f}", "N/g"]]
     table(["", "front", "rear", "unit"], rows)
     print(f"\nrear/front frequency ratio {out['freq_r'] / out['freq_f']:.2f} (many teams run the rear 5-20 % higher)")
-    print(f"roll gradient, springs only: {out['grad']:.2f} deg/g")
+    print(f"roll gradient: {out['grad']:.2f} deg/g")
     print(f"LLTD front: {out['lltd'] * 100:.1f} %  (front weight {out['wf'] * 100:.0f} %; front LLTD a few % above "
           "front weight is a common starting point for mild understeer)")
+    print("\nCar targets:")
+    table(["target", "value", "range", "status"], [[CAR_LABELS[c["key"]][0], f"{c['value']:.{CAR_LABELS[c['key']][2]}f} {CAR_LABELS[c['key']][1]}",
+          f"{c['lo']} to {c['hi']}", c["status"]] for c in out["checks"]])
     print(f"\nTo reach {out['target_grad']:g} deg/g with LLTD {out['target_lltd'] * 100:.0f} %:")
     print(f"  total roll stiffness needed {out['K_need']:.0f} Nm/deg; front share {out['lam_c'] * 100:.0f} %"
           + ("" if abs(out['lam'] - out['lam_c']) < 1e-9 else " (LLTD target out of reach with roll stiffness alone)"))
     for nm, v in (("front", out["arb_f"]), ("rear", out["arb_r"])):
-        if v > 0:
+        if v == float("inf"):
+            print(f"  {nm}: not reachable, the tires alone are softer than that")
+        elif v > 0:
             print(f"  {nm} anti-roll bar: about {v:.0f} Nm/deg at the wheels")
         else:
             print(f"  {nm} anti-roll bar: none needed (springs already give {-v:.0f} Nm/deg more than required)")
@@ -562,10 +574,8 @@ def print_car(cfg_f, cfg_r, out):
     if "lltd_fix" in out:
         ax_, k_ = out["lltd_fix"]
         other = "rear" if ax_ == "front" else "front"
-        print(f"  balance only: to reach the LLTD target keep the {other} as is and add a {ax_} bar of about "
-              f"{k_:.0f} Nm/deg (roll gradient would become "
-              f"{out['grad'] * (out['Kf'] + out['Kr']) / (out['Kf'] + out['Kr'] + k_):.2f} deg/g), "
-              f"or soften the {other} springs.")
+        print(f"  balance only: to reach the LLTD target keep the {other} as is and change the {ax_} bar by about "
+              f"{k_:+.0f} Nm/deg, or change the {other} springs.")
     print("\nAssumes a rigid chassis, steady state, roll centers at ride height. Set targets with --grad and --lltd.")
 
 

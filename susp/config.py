@@ -187,6 +187,45 @@ def load_config(path):
     return cfg
 
 
+def load_car(path):
+    """A car file: {"type": "car", "name", "vehicle", "front": {...}, "rear": {...}, "arb": {"front", "rear"},
+    "car_targets": {...}}. Each corner gets the shared vehicle block. Returns (front_cfg, rear_cfg, car_info)."""
+    try:
+        with open(path) as f:
+            raw = json.load(f)
+    except json.JSONDecodeError as e:
+        sys.exit(f"{path}: not valid JSON ({e})")
+    if not (isinstance(raw.get("front"), dict) and isinstance(raw.get("rear"), dict) and "hardpoints" in raw["front"] and "hardpoints" in raw["rear"]):
+        sys.exit(f"{path}: a car file needs a 'front' and a 'rear' corner")
+    out = []
+    for axle in ("front", "rear"):
+        c = dict(raw[axle]); c["axle"] = axle
+        if raw.get("vehicle"):
+            c["vehicle"] = deep_merge(c.get("vehicle") or {}, raw["vehicle"])
+        cfg = finish_config(deep_merge(DEFAULTS, c), f"{path} ({axle})")
+        tf = c.get("targets_file") or raw.get("targets_file")
+        if tf:
+            tp = tf if os.path.isabs(tf) else os.path.join(os.path.dirname(os.path.abspath(path)), tf)
+            if not os.path.exists(tp):
+                sys.exit(f"{path}: targets_file '{tf}' not found (looked for {tp})")
+            cfg["_team_targets"] = load_targets_file(tp, axle)
+        out.append(cfg)
+    arb = raw.get("arb") or {}
+    info = {"name": raw.get("name") or "car", "arb_f": float(arb.get("front") or 0), "arb_r": float(arb.get("rear") or 0),
+            "car_targets": raw.get("car_targets") or {}}
+    return out[0], out[1], info
+
+
+def is_car_file(path):
+    try:
+        with open(path) as f:
+            raw = json.load(f)
+        return (isinstance(raw, dict) and isinstance(raw.get("front"), dict) and isinstance(raw.get("rear"), dict)
+                and "hardpoints" in raw["front"] and "hardpoints" in raw["rear"])
+    except (OSError, json.JSONDecodeError):
+        return False
+
+
 def make_config(over):
     """Build a config from a dict of overrides (used by tests)."""
     return finish_config(deep_merge(DEFAULTS, over), "inline config")

@@ -24,8 +24,19 @@ for n, raw in cfgs.items():
     m = {k: v for k, v in e["metrics"].items() if isinstance(v, (int, float)) and math.isfinite(v)}
     L = run_loads(c, e["susp"], e["spring"]) if e["spring"] else None
     py[n] = {"m": m, "loads": L["results"] if L else None}
+# whole-car balance from car files (front + rear + shared vehicle + anti-roll bars)
+from susp.config import load_car  # noqa: E402
+from susp.ride import car_balance  # noqa: E402
+cars = {}
+for f in files:
+    raw = json.load(open(f))
+    if isinstance(raw, dict) and isinstance(raw.get("front"), dict) and isinstance(raw.get("rear"), dict) and "hardpoints" in raw["front"]:
+        fc, rc, info = load_car(f)
+        fe, re_ = evaluate(fc, steer=False, pack=False), evaluate(rc, steer=False, pack=False)
+        cb = car_balance(fc, fe, rc, re_, None, None, info["arb_f"], info["arb_r"], info["car_targets"])
+        cars[os.path.relpath(f, root)] = {"raw": raw, "py": {k: v for k, v in cb.items() if isinstance(v, (int, float)) and math.isfinite(v)}}
 tmp = tempfile.mkdtemp()
-json.dump({"cfgs": cfgs, "py": py}, open(os.path.join(tmp, "d.json"), "w"))
+json.dump({"cfgs": cfgs, "py": py, "cars": cars}, open(os.path.join(tmp, "d.json"), "w"))
 js = r"""
 require(process.argv[2]); const d = JSON.parse(require('fs').readFileSync(process.argv[3]));
 let worst = 0, bad = [];
@@ -36,7 +47,14 @@ for (const [n, raw] of Object.entries(d.cfgs)) {
   if (p.loads) for (const [c, row] of Object.entries(p.loads)) for (const [k, v] of Object.entries(row)) {
     const r = Math.abs(L.results[c][k] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} ${c} ${k}`); }
 }
-console.log(`compared ${Object.keys(d.cfgs).length} designs, worst relative difference ${worst.toExponential(1)}`);
+for (const [n, c] of Object.entries(d.cars || {})) {
+  const veh = c.raw.vehicle || {}, mk = (ax) => Object.assign({}, c.raw[ax], { axle: ax, vehicle: Object.assign({}, c.raw[ax].vehicle || {}, veh) });
+  const fc = mk("front"), rc = mk("rear"), fe = Susp.evaluate(fc, { steer: false, pack: false }), re = Susp.evaluate(rc, { steer: false, pack: false });
+  const cb = Susp.carBalance(fe.cfg, fe, re.cfg, re, { arbF: (c.raw.arb || {}).front || 0, arbR: (c.raw.arb || {}).rear || 0, targets: c.raw.car_targets });
+  for (const [k, v] of Object.entries(c.py)) { const j = cb[k]; if (j == null) { bad.push(n + ' car missing ' + k); continue; }
+    const r = Math.abs(j - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} car ${k}: py ${v} js ${j}`); }
+}
+console.log(`compared ${Object.keys(d.cfgs).length} designs and ${Object.keys(d.cars || {}).length} cars, worst relative difference ${worst.toExponential(1)}`);
 if (bad.length) { console.log(bad.slice(0, 20).join('\n')); process.exit(1); } else console.log('BROWSER SOLVER MATCHES PYTHON');
 """
 open(os.path.join(tmp, "t.js"), "w").write(js)

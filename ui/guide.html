@@ -79,7 +79,7 @@ footer { margin-top: 48px; color: var(--muted); font-size: 14px; border-top: 1px
 </header>
 <nav class="toc" aria-label="Contents">
   <a href="#start">Five-minute start</a><a href="#private">Keeping designs private</a><a href="#order">Order of work</a>
-  <a href="#learn">Learning tools</a><a href="#case">Case study</a><a href="#targets">Targets</a><a href="#mistakes">Common mistakes</a><a href="#limits">Limits</a>
+  <a href="#car">Front, rear, car</a><a href="#learn">Learning tools</a><a href="#case">Case study</a><a href="#targets">Targets</a><a href="#mistakes">Common mistakes</a><a href="#limits">Limits</a>
 </nav>
 
 <p class="lead">The solver takes the nine hardpoints of a double-wishbone corner, plus an optional pushrod, rocker and damper. It shows how
@@ -105,6 +105,16 @@ browser and sends nothing anywhere. The only designs built into the site are the
   <li>Your own target ranges can travel with your designs. Put them in each design's <code>targets</code>, or in one shared <code>team_targets.json</code> that designs point to with <code>"targets_file"</code>. In the app, open that targets file with <b>Open JSON</b> to apply it to the design on screen.</li>
   <li>Never commit design files to the public repository. Before each commit, <code>git status</code> should list no JSON outside <code>designs/</code>.</li>
 </ul>
+
+<h2 id="car">Front, rear and the whole car</h2>
+<p>The switch at the top right picks what you are working on. <b>Front</b> and <b>Rear</b> each edit one corner. <b>Car</b> (the default) puts both together:</p>
+<ul>
+  <li><b>Vehicle settings are shared.</b> Mass, weight split, CG height, wheelbase and brake balance are entered once and used by both corners.</li>
+  <li><b>Anti-roll bars</b> are entered as a rate at the wheels (Nm per degree of body roll; 0 = no bar). A bar adds roll stiffness without changing the ride frequency. The split of roll stiffness between front and rear sets how the lateral load transfer divides between the axles (LLTD), which is one of the main handling-balance knobs. More front LLTD than the front weight share pushes the car toward understeer.</li>
+  <li><b>Car targets:</b> roll gradient (deg of body roll per g), front LLTD minus front weight share, and the rear/front ride-frequency ratio. The page also says what bar rates would hit the middle of your targets.</li>
+  <li><b>Click a corner</b> in the 3D car to edit it. In the Car view, Save JSON writes one car file with both corners; single-corner files still open into the front or rear slot.</li>
+</ul>
+<p class="small">Do you need a bar? Not always: the example car's springs alone already give a stiff roll gradient, but its LLTD sits below the front weight share, so it runs a front bar purely for balance. Pushrod or pullrod is a packaging choice: a pushrod (rod in compression, rocker and damper up high) is easier to package and service; a pullrod (rod in tension, so it can be thinner with no buckling risk; rocker and damper low) lowers that mass and frees space up top, but is harder to reach. The solver handles both: put the rod on the upper wishbone for a pullrod.</p>
 
 <h2 id="learn">Learning the terms, and finding what to move</h2>
 <p>New to suspension? These tools explain each number on your own design, not on a textbook car.</p>

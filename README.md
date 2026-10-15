@@ -51,6 +51,12 @@ It needs no install or server; an internet connection loads the 3D library and f
   - **Preview / Apply / Undo:** moves show as a ghost first, and Apply pins the old design as the baseline.
   - Ball joints, contact patch and rocker pivot stay locked unless you unlock them.
   - The glossary text is in `ui/glossary.js` and is inlined by `ui/build.py`.
+- **Front | Rear | Car** switch (top right). Front and Rear edit one corner as before. The Car view (the default) shows
+  all four corners, the roll axis and CG in 3D, the shared vehicle settings, anti-roll bar rates, car targets (roll
+  gradient, front LLTD vs front weight, rear/front ride-frequency ratio), a front-vs-rear table and charts, and the
+  bar rates needed for your roll and balance targets. Click a corner in 3D to edit it. In the Car view, Save JSON writes
+  one **car file** (`"type": "car"`, a shared `vehicle`, `arb`, `car_targets`, `front`, `rear`). Single-corner files still
+  open and go into the slot named by their `axle`. See `designs/example_car.json`.
 - **Start here** card (shown on each visit until "Don't show this again" is ticked): explore the example, open a design, or try a **challenge**. Two guided exercises (raise the roll center; remove bump steer). Each has live goal meters with expandable curves, locked points, solver-computed hints and a star score. The challenge panel takes the place of the inputs column, and a focus layout shows only the goal curves, so it fits on one laptop screen.
 - **Compare tab:** up to four saved designs next to the live one, kept in this browser. It shows targets and key metrics with the change from a chosen reference, the hardpoints that differ, overlaid curves and 3D ghosts, with a CSV copy.
 - **Pin as baseline** freezes the current results. Your next edits then show as change columns and dashed
@@ -68,6 +74,8 @@ It needs no install or server; an internet connection loads the 3D library and f
     python3 susp_solver.py run front.json --plot front.png  # full text report + plots + geometry views
     python3 susp_solver.py loads front.json                 # member forces and safety factors
     python3 susp_solver.py car front.json rear.json         # roll gradient, LLTD, anti-roll bar
+    python3 susp_solver.py car designs/example_car.json     # same, from one car file (front + rear + bars)
+    python3 susp_solver.py car car.json --arb-front 250     # try a different front bar (Nm/deg at the wheels)
     python3 susp_solver.py report front.json -o front.html  # one shareable page with all of the above
 
 ## Team workflow (one coordinate at a time)

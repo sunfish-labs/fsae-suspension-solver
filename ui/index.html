@@ -335,13 +335,24 @@ table.cmpt td.cfail { background: color-mix(in srgb, var(--bad-bg) 80%, transpar
 table.cmpt tr.sumrow td { background: var(--panel-2); }
 table.cmpt th { white-space: normal; min-width: 90px; }
 .axis0 { color: #d13b2e; } .axis1 { color: #2f8f3e; } .axis2 { color: #2a63c9; }
+/* front / rear / car */
+.axseg button { padding: 5px 14px; font: 600 14px/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em; }
+body.carview #tabs, body.carview #panels, body.carview #btnBase, body.carview #btnUndo, body.carview #showSel, body.carview #tgLabels, body.carview #tgRC, body.carview #tgMirror, body.carview #vhint { display: none !important; }
+body.chal .axseg { opacity: .45; pointer-events: none; }
+.slot { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel-2); }
+.slot small { display: block; }
+.field.wide { grid-column: 1 / -1; } .field.wide .rng .num { width: 90px; }
+.banner.neutral-b { background: var(--panel); border: 1px solid var(--line); color: var(--ink); }
+#carBox { padding-top: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 
 <header class="top">
   <div class="toprow">
     <div class="brand"><h1>Suspension Solver</h1><span>FSAE double wishbone · rigid links</span></div>
-    <div class="toolbar"><button class="btn small" id="btnStart" type="button">Start here</button></div>
+    <div class="toolbar">
+      <div class="seg axseg" id="axleSeg" role="group" aria-label="Which part of the car"><button type="button" data-ax="front" aria-pressed="false">Front</button><button type="button" data-ax="rear" aria-pressed="false">Rear</button><button type="button" data-ax="car" aria-pressed="false">Car</button></div>
+      <button class="btn small" id="btnStart" type="button">Start here</button></div>
   </div>
   <div class="toprow">
     <div class="toolbar">
@@ -364,7 +375,7 @@ table.cmpt th { white-space: normal; min-width: 90px; }
     <h2 id="wTitle">FSAE Suspension Solver</h2>
     <p>Design and check a double-wishbone corner: move the hardpoints, watch the corner move in 3D, and see every target pass or fail as you type.</p>
     <div class="wgrid">
-      <button class="wbig" type="button" id="wExplore"><b>Explore the example car</b><span>An invented front corner that meets every target. Drag the sliders, click a joint, open the tabs.</span></button>
+      <button class="wbig" type="button" id="wExplore"><b>Explore the example car</b><span>An invented car, front and rear, that meets every target. Click a corner to edit it; drag the sliders.</span></button>
       <button class="wbig" type="button" id="wOpen"><b>Open your design</b><span>A JSON file from your team's private folder. It is read in your browser and never uploaded.</span></button>
       <button class="wbig" type="button" id="wChal"><b>Try a challenge</b><span>Two short exercises with live goals and hints: lift a roll center, kill bump steer.</span></button>
     </div>
@@ -390,7 +401,7 @@ table.cmpt th { white-space: normal; min-width: 90px; }
       <summary><h2>Wheel &amp; vehicle</h2><span class="hint">anti-geometry inputs</span></summary>
       <div class="body">
         <div class="fields" id="wheelFields"></div>
-        <div class="sub-h">Vehicle</div>
+        <div class="sub-h">Vehicle <span class="muted" style="text-transform:none;letter-spacing:0">(shared by front and rear)</span></div>
         <div class="fields" id="vehFields"></div>
       </div>
     </details>
@@ -441,6 +452,7 @@ table.cmpt th { white-space: normal; min-width: 90px; }
   </section>
 
   <section class="inputs crail" id="crail" hidden aria-label="Challenge"></section>
+  <section class="inputs" id="carIn" hidden aria-label="Car settings"></section>
 
   <!-- ================= OUTPUT ================= -->
   <section class="out" aria-label="Results">
@@ -480,6 +492,8 @@ table.cmpt th { white-space: normal; min-width: 90px; }
     <div class="status" id="status"></div>
     <div id="errBox"></div>
     <div id="focusBox" class="focusbox" hidden></div>
+    <div id="carBox" class="panel" hidden></div>
+    <input id="carFile" type="file" accept=".json,application/json" hidden>
 
     <div>
       <div class="tabs" role="tablist" id="tabs"></div>
@@ -1289,8 +1303,43 @@ table.cmpt th { white-space: normal; min-width: 90px; }
     return { results, desc, tire, fz_parts: fz, info, checks };
   }
 
+  // ---------------------------------------------------------------- whole car (mirrors ride.car_balance)
+  const CAR_TARGETS = { roll_gradient: [0.5, 1.5], lltd_vs_weight: [0.0, 10.0], freq_ratio: [1.0, 1.2] };
+  const CAR_LABELS = { roll_gradient: ["Roll gradient", "deg/g", 2], lltd_vs_weight: ["Front LLTD minus front weight", "% points", 1],
+    freq_ratio: ["Ride frequency ratio, rear / front", "", 2] };
+  function carBalance(fcfg, fev, rcfg, rev, o = {}) {
+    const G = 9.81, veh = fcfg.vehicle, m = veh.mass, wf = veh.weight_front, h = veh.cg_height / 1000, WB = veh.wheelbase / 1000;
+    const fr = fev.ride, rr = rev.ride, muf = 2 * fcfg.spring.unsprung_mass, mur = 2 * rcfg.spring.unsprung_mass;
+    const Rf = fev.susp.R / 1000, Rr = rev.susp.R / 1000, tf = fev.susp.track / 1000, tr = rev.susp.track / 1000;
+    const ms = m - muf - mur, msf = m * wf - muf, msr = m * (1 - wf) - mur, hs = (m * h - muf * Rf - mur * Rr) / ms;
+    const zrf = fev.metrics.roll_center / 1000, zrr = rev.metrics.roll_center / 1000, a_s = WB * msr / ms;
+    const z_ra = zrf + (zrr - zrf) * a_s / WB, d = hs - z_ra, dg = Math.PI / 180;
+    const series = (a, b) => a > 0 && b > 0 ? 1 / (1 / a + 1 / b) : 0, rollK = (k, t) => k * 1000 * t * t / 2 * dg;
+    const arbF = o.arbF || 0, arbR = o.arbR || 0;
+    const Ksf = rollK(fr.wheel_rate, tf), Ksr = rollK(rr.wheel_rate, tr), Ktf = rollK(fcfg.spring.tire_rate, tf), Ktr = rollK(rcfg.spring.tire_rate, tr);
+    const Kf = series(Ksf + arbF, Ktf), Kr = series(Ksr + arbR, Ktr), grad = ms * G * d / (Kf + Kr);
+    const transfer = (lam) => [(ms * G * d * lam + msf * G * zrf + muf * G * Rf) / tf, (ms * G * d * (1 - lam) + msr * G * zrr + mur * G * Rr) / tr];
+    const [dF, dR] = transfer(Kf / (Kf + Kr)), lltd = dF * tf / (dF * tf + dR * tr);
+    const out = { ms, hs: hs * 1000, z_ra: z_ra * 1000, arm: d * 1000, Kf, Kr, Ksf, Ksr, Ktf, Ktr, arb_in_f: arbF, arb_in_r: arbR, grad, lltd,
+      freq_f: fr.ride_freq, freq_r: rr.ride_freq, wf, dFz_f: dF, dFz_r: dR, rc_f: zrf * 1000, rc_r: zrr * 1000,
+      geo_f: (msf * G * zrf + muf * G * Rf) / tf, geo_r: (msr * G * zrr + mur * G * Rr) / tr };
+    const tg = o.targetGrad || 1.0, tl = o.targetLltd || wf + 0.05, K_need = ms * G * d / tg;
+    const a_ = ms * G * d, b_ = msf * G * zrf + muf * G * Rf, e_ = msr * G * zrr + mur * G * Rr;
+    const lam = Math.abs(a_) > 1e-9 ? (tl * (a_ + b_ + e_) - b_) / a_ : NaN, lam_c = Math.min(1, Math.max(0, lam));
+    const barFor = (K, Ks, Kt) => K >= Kt ? Infinity : 1 / (1 / K - 1 / Kt) - Ks;
+    Object.assign(out, { target_grad: tg, target_lltd: tl, K_need, lam, lam_c, arb_f: barFor(lam_c * K_need, Ksf, Ktf), arb_r: barFor((1 - lam_c) * K_need, Ksr, Ktr) });
+    const lam0 = Kf / (Kf + Kr);
+    if (lam_c > lam0 + 1e-9 && lam_c < 1) out.lltd_fix = ["front", barFor(lam_c / (1 - lam_c) * Kr, Ksf, Ktf) - arbF];
+    else if (lam_c < lam0 - 1e-9 && lam_c > 0) out.lltd_fix = ["rear", barFor((1 - lam_c) / lam_c * Kf, Ksr, Ktr) - arbR];
+    const t = Object.assign({}, CAR_TARGETS, o.targets || {});
+    const vals = { roll_gradient: grad, lltd_vs_weight: (lltd - wf) * 100, freq_ratio: rr.ride_freq / fr.ride_freq };
+    out.checks = ["roll_gradient", "lltd_vs_weight", "freq_ratio"].map(k => ({ key: k, value: vals[k], lo: t[k][0], hi: t[k][1],
+      status: (t[k][0] == null || vals[k] >= t[k][0]) && (t[k][1] == null || vals[k] <= t[k][1]) ? "PASS" : "FAIL" }));
+    return out;
+  }
+
   root.Susp = { SolveError, HP, HP_ORDER, SPRING_POINTS, DEFAULTS, SPRING_DEFAULTS, METRICS, deepMerge, finishConfig,
-    defaultTargets, targetsFromFile, GENERAL_TARGETS, validate, Suspension, Spring, evaluate, runLoads, rackForAngle, MEMBERS, checkTargets,
+    defaultTargets, targetsFromFile, GENERAL_TARGETS, carBalance, CAR_TARGETS, CAR_LABELS, validate, Suspension, Spring, evaluate, runLoads, rackForAngle, MEMBERS, checkTargets,
     vec: { add, sub, mul, dot, cross, norm, unit, perp, rodrigues, matvec, deg, rad } };
 })(typeof window !== "undefined" ? window : globalThis);
 
@@ -1449,7 +1498,7 @@ window.SUSP_TERMS = [
 
 </script>
 <script>
-const PRESETS = [{"label": "Example front (invented demo geometry)", "cfg": {"name": "Example front (invented demo geometry)", "axle": "front", "wheel": {"camber_deg": -1.5, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47, "rack_c_factor": null}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 246.4, 427.0], "rocker_damper": [-5.0, 201.5, 459.7], "damper_chassis": [-5.0, 30.5, 446.3], "spring_rate": 52.5, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.5}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 288.0, 327.7], "upper_inboard_rear": [210.0, 287.1, 336.2], "lower_inboard_front": [-230.0, 167.5, 143.5], "lower_inboard_rear": [230.0, 166.1, 140.2], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 193.0, 170.8], "trackrod_outboard": [-75.0, 567.1, 168.3], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -1.0], "camber_gain": [0.35, 0.7], "caster": [4, 7], "kpi": [3, 8], "scrub": [5, 25], "trail": [10, 30], "toe": [-0.2, 0.0], "roll_center": [25, 60], "rc_lat": [-20, 20], "antidive": [5, 20], "ackermann": [10, 40], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}, {"label": "Example rear (invented demo geometry)", "cfg": {"name": "Example rear (invented demo geometry)", "axle": "rear", "wheel": {"camber_deg": -1.0, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47, "rack_c_factor": null}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 246.4, 427.0], "rocker_damper": [-5.0, 201.5, 459.7], "damper_chassis": [-5.0, 30.5, 446.3], "spring_rate": 75.0, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.6}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 289.2, 323.4], "upper_inboard_rear": [210.0, 287.7, 355.0], "lower_inboard_front": [-230.0, 166.6, 149.2], "lower_inboard_rear": [230.0, 166.1, 163.5], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 192.0, 178.7], "trackrod_outboard": [-75.0, 567.9, 162.6], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -0.5], "camber_gain": [0.35, 0.7], "toe": [0.0, 0.3], "roll_center": [40, 90], "rc_lat": [-20, 20], "antisquat": [15, 45], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}, {"label": "Case study 1 - first draft", "cfg": {"name": "Case study 1 - first draft", "axle": "front", "hardpoints": {"upper_inboard_front": [-230.0, 260.0, 290.0], "upper_inboard_rear": [210.0, 260.0, 300.0], "lower_inboard_front": [-230.0, 200.0, 110.0], "lower_inboard_rear": [230.0, 200.0, 115.0], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 210.0, 165.0], "trackrod_outboard": [-75.0, 560.0, 160.0], "contact_patch": [0.0, 610.0, 0.0]}, "wheel": {"camber_deg": -1.5, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47}, "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 241.8, 431.6], "rocker_damper": [-5.0, 196.8, 461.4], "damper_chassis": [-5.0, 26.4, 441.4], "spring_rate": 45.0, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.5}, "targets": {"camber": [-2.5, -1.0], "camber_gain": [0.35, 0.7], "caster": [4, 7], "kpi": [3, 8], "scrub": [5, 25], "trail": [10, 30], "toe": [-0.2, 0.0], "roll_center": [25, 60], "rc_lat": [-20, 20], "antidive": [5, 20], "ackermann": [10, 40], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}, {"label": "Case study 2 - inboard pivots", "cfg": {"name": "Case study 2 - inboard pivots", "axle": "front", "wheel": {"camber_deg": -1.5, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47, "rack_c_factor": null}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 241.8, 431.6], "rocker_damper": [-5.0, 196.8, 461.4], "damper_chassis": [-5.0, 26.4, 441.4], "spring_rate": 45.0, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.5}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 288.0, 327.7], "upper_inboard_rear": [210.0, 287.1, 336.2], "lower_inboard_front": [-230.0, 167.5, 143.5], "lower_inboard_rear": [230.0, 166.1, 140.2], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 210.0, 165.0], "trackrod_outboard": [-75.0, 560.0, 160.0], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -1.0], "camber_gain": [0.35, 0.7], "caster": [4, 7], "kpi": [3, 8], "scrub": [5, 25], "trail": [10, 30], "toe": [-0.2, 0.0], "roll_center": [25, 60], "rc_lat": [-20, 20], "antidive": [5, 20], "ackermann": [10, 40], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}, {"label": "Case study 3 - tie rod", "cfg": {"name": "Case study 3 - tie rod", "axle": "front", "wheel": {"camber_deg": -1.5, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47, "rack_c_factor": null}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 241.8, 431.6], "rocker_damper": [-5.0, 196.8, 461.4], "damper_chassis": [-5.0, 26.4, 441.4], "spring_rate": 45.0, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.5}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 288.0, 327.7], "upper_inboard_rear": [210.0, 287.1, 336.2], "lower_inboard_front": [-230.0, 167.5, 143.5], "lower_inboard_rear": [230.0, 166.1, 140.2], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 193.0, 170.8], "trackrod_outboard": [-75.0, 567.1, 168.3], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -1.0], "camber_gain": [0.35, 0.7], "caster": [4, 7], "kpi": [3, 8], "scrub": [5, 25], "trail": [10, 30], "toe": [-0.2, 0.0], "roll_center": [25, 60], "rc_lat": [-20, 20], "antidive": [5, 20], "ackermann": [10, 40], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}, {"label": "Case study 4 - rocker and damper (final)", "cfg": {"name": "Case study 4 - rocker and damper (final)", "axle": "front", "wheel": {"camber_deg": -1.5, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47, "rack_c_factor": null}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 246.4, 427.0], "rocker_damper": [-5.0, 201.5, 459.7], "damper_chassis": [-5.0, 30.5, 446.3], "spring_rate": 52.5, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.5}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 288.0, 327.7], "upper_inboard_rear": [210.0, 287.1, 336.2], "lower_inboard_front": [-230.0, 167.5, 143.5], "lower_inboard_rear": [230.0, 166.1, 140.2], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 193.0, 170.8], "trackrod_outboard": [-75.0, 567.1, 168.3], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -1.0], "camber_gain": [0.35, 0.7], "caster": [4, 7], "kpi": [3, 8], "scrub": [5, 25], "trail": [10, 30], "toe": [-0.2, 0.0], "roll_center": [25, 60], "rc_lat": [-20, 20], "antidive": [5, 20], "ackermann": [10, 40], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}];
+const PRESETS = [{"label": "Example car (invented demo geometry)", "cfg": {"type": "car", "name": "Example car (invented demo geometry)", "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47, "rack_c_factor": null}, "arb": {"front": 200, "rear": 0}, "car_targets": {"roll_gradient": [0.5, 1.5], "lltd_vs_weight": [0.0, 10.0], "freq_ratio": [1.0, 1.2]}, "front": {"name": "Example front (invented demo geometry)", "axle": "front", "wheel": {"camber_deg": -1.5, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 246.4, 427.0], "rocker_damper": [-5.0, 201.5, 459.7], "damper_chassis": [-5.0, 30.5, 446.3], "spring_rate": 52.5, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.5}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 288.0, 327.7], "upper_inboard_rear": [210.0, 287.1, 336.2], "lower_inboard_front": [-230.0, 167.5, 143.5], "lower_inboard_rear": [230.0, 166.1, 140.2], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 193.0, 170.8], "trackrod_outboard": [-75.0, 567.1, 168.3], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -1.0], "camber_gain": [0.35, 0.7], "caster": [4, 7], "kpi": [3, 8], "scrub": [5, 25], "trail": [10, 30], "toe": [-0.2, 0.0], "roll_center": [25, 60], "rc_lat": [-20, 20], "antidive": [5, 20], "ackermann": [10, 40], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}, "rear": {"name": "Example rear (invented demo geometry)", "axle": "rear", "wheel": {"camber_deg": -1.0, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 246.4, 427.0], "rocker_damper": [-5.0, 201.5, 459.7], "damper_chassis": [-5.0, 30.5, 446.3], "spring_rate": 75.0, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.6}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 289.2, 323.4], "upper_inboard_rear": [210.0, 287.7, 355.0], "lower_inboard_front": [-230.0, 166.6, 149.2], "lower_inboard_rear": [230.0, 166.1, 163.5], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 192.0, 178.7], "trackrod_outboard": [-75.0, 567.9, 162.6], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -0.5], "camber_gain": [0.35, 0.7], "toe": [0.0, 0.3], "roll_center": [40, 90], "rc_lat": [-20, 20], "antisquat": [15, 45], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}}, {"label": "Example front (invented demo geometry)", "cfg": {"name": "Example front (invented demo geometry)", "axle": "front", "wheel": {"camber_deg": -1.5, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47, "rack_c_factor": null}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 246.4, 427.0], "rocker_damper": [-5.0, 201.5, 459.7], "damper_chassis": [-5.0, 30.5, 446.3], "spring_rate": 52.5, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.5}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 288.0, 327.7], "upper_inboard_rear": [210.0, 287.1, 336.2], "lower_inboard_front": [-230.0, 167.5, 143.5], "lower_inboard_rear": [230.0, 166.1, 140.2], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 193.0, 170.8], "trackrod_outboard": [-75.0, 567.1, 168.3], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -1.0], "camber_gain": [0.35, 0.7], "caster": [4, 7], "kpi": [3, 8], "scrub": [5, 25], "trail": [10, 30], "toe": [-0.2, 0.0], "roll_center": [25, 60], "rc_lat": [-20, 20], "antidive": [5, 20], "ackermann": [10, 40], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}, {"label": "Example rear (invented demo geometry)", "cfg": {"name": "Example rear (invented demo geometry)", "axle": "rear", "wheel": {"camber_deg": -1.0, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47, "rack_c_factor": null}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 246.4, 427.0], "rocker_damper": [-5.0, 201.5, 459.7], "damper_chassis": [-5.0, 30.5, 446.3], "spring_rate": 75.0, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.6}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 289.2, 323.4], "upper_inboard_rear": [210.0, 287.7, 355.0], "lower_inboard_front": [-230.0, 166.6, 149.2], "lower_inboard_rear": [230.0, 166.1, 163.5], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 192.0, 178.7], "trackrod_outboard": [-75.0, 567.9, 162.6], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -0.5], "camber_gain": [0.35, 0.7], "toe": [0.0, 0.3], "roll_center": [40, 90], "rc_lat": [-20, 20], "antisquat": [15, 45], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}, {"label": "Case study 1 - first draft", "cfg": {"name": "Case study 1 - first draft", "axle": "front", "hardpoints": {"upper_inboard_front": [-230.0, 260.0, 290.0], "upper_inboard_rear": [210.0, 260.0, 300.0], "lower_inboard_front": [-230.0, 200.0, 110.0], "lower_inboard_rear": [230.0, 200.0, 115.0], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 210.0, 165.0], "trackrod_outboard": [-75.0, 560.0, 160.0], "contact_patch": [0.0, 610.0, 0.0]}, "wheel": {"camber_deg": -1.5, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47}, "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 241.8, 431.6], "rocker_damper": [-5.0, 196.8, 461.4], "damper_chassis": [-5.0, 26.4, 441.4], "spring_rate": 45.0, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.5}, "targets": {"camber": [-2.5, -1.0], "camber_gain": [0.35, 0.7], "caster": [4, 7], "kpi": [3, 8], "scrub": [5, 25], "trail": [10, 30], "toe": [-0.2, 0.0], "roll_center": [25, 60], "rc_lat": [-20, 20], "antidive": [5, 20], "ackermann": [10, 40], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}, {"label": "Case study 2 - inboard pivots", "cfg": {"name": "Case study 2 - inboard pivots", "axle": "front", "wheel": {"camber_deg": -1.5, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47, "rack_c_factor": null}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 241.8, 431.6], "rocker_damper": [-5.0, 196.8, 461.4], "damper_chassis": [-5.0, 26.4, 441.4], "spring_rate": 45.0, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.5}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 288.0, 327.7], "upper_inboard_rear": [210.0, 287.1, 336.2], "lower_inboard_front": [-230.0, 167.5, 143.5], "lower_inboard_rear": [230.0, 166.1, 140.2], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 210.0, 165.0], "trackrod_outboard": [-75.0, 560.0, 160.0], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -1.0], "camber_gain": [0.35, 0.7], "caster": [4, 7], "kpi": [3, 8], "scrub": [5, 25], "trail": [10, 30], "toe": [-0.2, 0.0], "roll_center": [25, 60], "rc_lat": [-20, 20], "antidive": [5, 20], "ackermann": [10, 40], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}, {"label": "Case study 3 - tie rod", "cfg": {"name": "Case study 3 - tie rod", "axle": "front", "wheel": {"camber_deg": -1.5, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47, "rack_c_factor": null}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 241.8, 431.6], "rocker_damper": [-5.0, 196.8, 461.4], "damper_chassis": [-5.0, 26.4, 441.4], "spring_rate": 45.0, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.5}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 288.0, 327.7], "upper_inboard_rear": [210.0, 287.1, 336.2], "lower_inboard_front": [-230.0, 167.5, 143.5], "lower_inboard_rear": [230.0, 166.1, 140.2], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 193.0, 170.8], "trackrod_outboard": [-75.0, 567.1, 168.3], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -1.0], "camber_gain": [0.35, 0.7], "caster": [4, 7], "kpi": [3, 8], "scrub": [5, 25], "trail": [10, 30], "toe": [-0.2, 0.0], "roll_center": [25, 60], "rc_lat": [-20, 20], "antidive": [5, 20], "ackermann": [10, 40], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}, {"label": "Case study 4 - rocker and damper (final)", "cfg": {"name": "Case study 4 - rocker and damper (final)", "axle": "front", "wheel": {"camber_deg": -1.5, "toe_deg": 0.0, "tire_radius": 254.0, "tire_width": 190.5, "rim_diameter_in": 13.0}, "vehicle": {"wheelbase": 1550.0, "track": null, "cg_height": 280.0, "front_brake_share": 0.6, "brakes": "outboard", "drive": "inboard", "mass": 275.0, "weight_front": 0.47, "rack_c_factor": null}, "sweep": {"travel": 30.0, "steps": 41, "rack_travel": 35.0, "rack_steps": 14, "ackermann_at_outer_deg": 15.0, "roll_deg": 2.0, "roll_steps": 9}, "clearance": {"wishbone_tube_od": 25.4, "tie_rod_od": 16.0, "pushrod_od": 15.9, "damper_od": 55.0, "margin": 5.0}, "rack_direction": [0.0, 1.0, 0.0], "spring": {"rod_on": "lower", "rod_outboard": [-5.0, 545.0, 150.0], "rocker_pivot": [-5.0, 205.0, 380.0], "rocker_axis": [1.0, 0.0, 0.0], "rocker_rod": [-5.0, 246.4, 427.0], "rocker_damper": [-5.0, 201.5, 459.7], "damper_chassis": [-5.0, 30.5, 446.3], "spring_rate": 52.5, "damper_stroke": 57.0, "damper_eye_to_eye": 200.0, "unsprung_mass": 11.0, "tire_rate": 110.0, "target_freq_hz": 3.5}, "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0, "lltd_front": null}, "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)", "wishbone": [15.88, 0.89], "tie_rod": [15.88, 0.89], "pushrod": [15.88, 0.89], "E": 205000.0, "yield": 435.0, "sf_target": 2.0}, "hardpoints": {"upper_inboard_front": [-230.0, 288.0, 327.7], "upper_inboard_rear": [210.0, 287.1, 336.2], "lower_inboard_front": [-230.0, 167.5, 143.5], "lower_inboard_rear": [230.0, 166.1, 140.2], "upper_outboard": [-15.0, 562.0, 345.0], "lower_outboard": [5.0, 580.0, 135.0], "trackrod_inboard": [-80.0, 193.0, 170.8], "trackrod_outboard": [-75.0, 567.1, 168.3], "contact_patch": [0.0, 610.0, 0.0]}, "targets": {"camber": [-2.5, -1.0], "camber_gain": [0.35, 0.7], "caster": [4, 7], "kpi": [3, 8], "scrub": [5, 25], "trail": [10, 30], "toe": [-0.2, 0.0], "roll_center": [25, 60], "rc_lat": [-20, 20], "antidive": [5, 20], "ackermann": [10, 40], "bump_steer": [-0.03, 0.03], "bump_steer_max": [null, 0.05], "ride_freq": [3.0, 4.0]}}}];
 </script>
 <script>
 (function () {
@@ -1546,6 +1595,7 @@ function buildForm() {
   $("#clrFields").innerHTML = [field("Wishbone tube OD", "mm", "clearance.wishbone_tube_od"), field("Tie rod OD", "mm", "clearance.tie_rod_od"),
     field("Pushrod OD", "mm", "clearance.pushrod_od"), field("Damper body OD", "mm", "clearance.damper_od"), field("Extra margin", "mm", "clearance.margin")].join("");
   $$("[data-path]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", onInput));
+  $("#in_axle").closest(".field").hidden = true;      // the axle is set by the Front / Rear slot
   $$("[data-hp]").forEach(b => b.addEventListener("click", () => { if (!ev || err) return; openInfluence(b.dataset.hp);
     const vr = $("#vwrap").getBoundingClientRect(); if (vr.bottom < 80 || vr.top > window.innerHeight - 120) $("#vwrap").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" }); }));
 }
@@ -1594,7 +1644,7 @@ function onInput(e) {
 }
 
 $("#springOn").addEventListener("change", (e) => {
-  if (e.target.checked) cfg.spring = savedSpring || JSON.parse(JSON.stringify(PRESETS[0].cfg.spring));
+  if (e.target.checked) cfg.spring = savedSpring || JSON.parse(JSON.stringify(springTemplate()));
   else { savedSpring = cfg.spring; cfg.spring = null; }
   fillForm(); schedule();
 });
@@ -1602,7 +1652,7 @@ $("#rockerOn").addEventListener("change", (e) => {
   if (!cfg.spring) return;
   const keys = ["rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper"];
   if (e.target.value === "0") { savedRocker = Object.fromEntries(keys.map(k => [k, cfg.spring[k]])); keys.forEach(k => cfg.spring[k] = null); }
-  else { const src = savedRocker || PRESETS[0].cfg.spring; keys.forEach(k => cfg.spring[k] = JSON.parse(JSON.stringify(src[k]))); }
+  else { const src = savedRocker || springTemplate(); keys.forEach(k => cfg.spring[k] = JSON.parse(JSON.stringify(src[k]))); }
   fillForm(); schedule();
 });
 
@@ -1611,13 +1661,15 @@ let timer = null;
 function schedule() { clearTimeout(timer); timer = setTimeout(run, 160); }
 function run() {
   const t0 = performance.now();
+  syncCar();
   try {
     ev = S.evaluate(cfg);
     loads = ev.spring ? S.runLoads(ev.cfg, ev.susp, ev.spring) : null;
     err = null;
   } catch (e) { err = e; console.warn(e); }
   const ms = performance.now() - t0;
-  store.set("susp.cfg", JSON.stringify(cfg));
+  if (!chal) store.set("susp.cfg", JSON.stringify(cfg));
+  if (car && !chal) { store.set("susp.car", JSON.stringify(exportCar())); carRes = axleView === "car" ? evalCar() : null; }
   $("#jsonBox").value = JSON.stringify(exportCfg(), null, 2);
   const T = cfg.sweep?.travel ?? 30, Rk = cfg.sweep?.rack_travel ?? 35;
   const pz = $("#poseZ"), pr = $("#poseR");
@@ -1625,8 +1677,10 @@ function run() {
   pose.dz = Math.max(-T, Math.min(T, pose.dz)); pose.rack = cfg.axle === "rear" ? 0 : Math.max(-Rk, Math.min(Rk, pose.rack));
   pz.value = pose.dz; pr.value = pose.rack;
   renderAll(ms);
+  if (car && axleView === "car" && !chal) { renderCarIn(); renderCarBox(); }
   updateScene();
 }
+const exportCurrent = () => (car && axleView === "car" && !chal) ? exportCar() : exportCfg();
 function exportCfg() {
   const keys = ["name", "axle", "targets_file", "hardpoints", "wheel", "vehicle", "sweep", "clearance", "rack_direction", "targets", "spring", "loads", "members"];
   const o = {}; for (const k of keys) if (cfg[k] != null) o[k] = cfg[k];
@@ -2021,7 +2075,10 @@ function pick(e) {
   const ndc = new T.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
   const rc = new T.Raycaster(); rc.setFromCamera(ndc, three.cam);
   const hits = rc.intersectObjects(three.pickables, false);
-  if (hits.length) openInfluence(hits[0].object.userData.hp);
+  if (!hits.length) return;
+  const ud = hits[0].object.userData;
+  if (ud.axle && axleView === "car") { setView(ud.axle); setTimeout(() => openInfluence(ud.hp), 0); return; }
+  openInfluence(ud.hp);
 }
 const toT = (p) => new three.T.Vector3(p[0], p[2], -p[1]);
 function placeCam() {
@@ -2066,6 +2123,7 @@ let lockPack = store.get("susp.lockpack") !== "0";
 
 // --------------------------------------------------- scene building
 function updateScene() {
+  if (three && car && axleView === "car" && !chal) return updateCarScene();
   if (!three || !ev || err) return;
   const { T, dyn, scene } = three, col = themeColors();
   scene.background = new T.Color(col.bg || "#dfe5ea");
@@ -2149,7 +2207,7 @@ function drawKit(group, col, onTop = false) {
   };
 }
 
-function buildCorner(e, o, sst, { col, mirror = false, ghost = false, xray = false, ghostCol = null }) {
+function buildCorner(e, o, sst, { col, mirror = false, ghost = false, xray = false, ghostCol = null, solid = false }) {
   const T = three.T, s = e.susp, sp = e.spring, p = o._pts, h = s.h, g = new T.Group();
   const mat = (c, extra = {}) => ghost ? new T.MeshBasicMaterial({ color: new T.Color(ghostCol || col.accent || "#cf4a12"), transparent: true, opacity: 0.42, depthWrite: false })
     : new T.MeshStandardMaterial({ color: new T.Color(c), roughness: 0.55, metalness: 0.25, ...extra });
@@ -2204,7 +2262,7 @@ function buildCorner(e, o, sst, { col, mirror = false, ghost = false, xray = fal
       g.add(new T.Mesh(new T.TubeGeometry(new Helix(), 240, 3.6, 8, false), springM));
     }
   }
-  if (mirror) { g.scale.z = -1; g.traverse(n => { if (n.material) { n.material = n.material.clone(); n.material.transparent = true; n.material.opacity = 0.28; n.material.side = T.DoubleSide; } }); }
+  if (mirror) { g.scale.z = -1; g.traverse(n => { if (n.material) { n.material = n.material.clone(); n.material.side = T.DoubleSide; if (!solid) { n.material.transparent = true; n.material.opacity = 0.28; } } }); }
   return g;
 }
 
@@ -2735,7 +2793,7 @@ function chalPar(def) {
 function chalMoved() { return chal.def.unlock.reduce((s, p) => s + V.norm(V.sub(getPath(cfg, p), getPath(chal.start, p))), 0); }
 
 function openChallenges() {          // the chooser, shown in the rail
-  $("#cardsIn").hidden = true; $("#crail").hidden = false;
+  $("#cardsIn").hidden = true; $("#carIn").hidden = true; $("#crail").hidden = false;
   const best = chalStore();
   $("#crail").innerHTML = `<div class="card crail-card"><div class="crhead"><h2>Challenges</h2><button class="btn small" type="button" id="chClose">Close</button></div>
     <p class="note">Short exercises on real geometry. Only the points named in each challenge can move, the goals update live, and hints unlock one at a time. Your current design is put back when you leave.</p>
@@ -2745,12 +2803,14 @@ function openChallenges() {          // the chooser, shown in the rail
   $$("#crail [data-ch]").forEach(b => b.addEventListener("click", () => startChallenge(b.dataset.ch)));
   $("#crail").scrollIntoView({ block: "nearest" });
 }
-function closeRail() { if (chal) return exitChallenge(); $("#crail").hidden = true; $("#cardsIn").hidden = false; }
+function closeRail() { if (chal) return exitChallenge(); $("#crail").hidden = true; applyViewClasses(); }
 function startChallenge(id) {
   const def = CHALLENGES.find(d => d.id === id), start = presetCfg(def.start);
   if (!start) return;
   const prev = chal ? chal.prev : JSON.parse(JSON.stringify(cfg));
-  chal = { def, start: JSON.parse(JSON.stringify(start)), prev, hint: 0, done: false, par: chalPar(def) };
+  const prevView = chal ? chal.prevView : axleView;
+  chal = { def, start: JSON.parse(JSON.stringify(start)), prev, prevView, hint: 0, done: false, par: chalPar(def) };
+  axleView = "front"; applyViewClasses();
   document.body.classList.add("chal", "focus");
   closeInfluence(); showMe(null); undoStack.length = 0; fixRows.clear(); openRows.clear();
   view.target = null; loadCfg(start); $("#preset").value = "custom";
@@ -2759,9 +2819,12 @@ function startChallenge(id) {
 }
 function exitChallenge(keep = false) {
   if (!chal) return;
-  const prev = chal.prev; chal = null; document.body.classList.remove("chal", "focus"); $("#focusBox").hidden = true;
+  const prev = chal.prev, pv = chal.prevView; chal = null; document.body.classList.remove("chal", "focus"); $("#focusBox").hidden = true;
+  axleView = pv || "car"; store.set("susp.view", axleView);
   $("#crail").hidden = true; $("#cardsIn").hidden = false; closeInfluence(); showMe(null); base = null;
-  if (!keep) { view.target = null; loadCfg(prev); $("#preset").value = "custom"; } else renderAll(0);
+  if (!keep) { view.target = null; loadCfg(prev, "your edits", { toView: axleView }); $("#preset").value = "custom"; }
+  else { if (car) { car.front = cfg; } loadCfg(cfg, "challenge result", { toView: "front" }); }
+  applyViewClasses();
 }
 function buildRail() {
   const d = chal.def, lab = (p) => pointName(p);
@@ -3079,35 +3142,271 @@ function drawCompareGhosts(dyn, col) {
   }
 }
 
+// ------------------------------------------------------------------ whole car (front + rear)
+// The app always holds a car: a front corner, a rear corner, one shared vehicle block, anti-roll bars and car-level
+// targets. Front and Rear views edit one corner exactly as before; the Car view shows both corners together with the
+// roll balance. Single-corner files still open: they go into the slot named by their "axle".
+let car = null, axleView = store.get("susp.view") || "car";
+const isCarRaw = (r) => !!(r && r.front && r.rear && r.front.hardpoints && r.rear.hardpoints);
+const springTemplate = () => { const p = PRESETS.find(q => q.cfg.spring) || PRESETS.find(q => q.cfg.front && q.cfg.front.spring); return p.cfg.spring || p.cfg.front.spring; };
+function cornerFrom(raw) {
+  S.finishConfig(JSON.parse(JSON.stringify(raw)));
+  const c = JSON.parse(JSON.stringify(raw));
+  for (const k of ["wheel", "vehicle", "sweep", "clearance", "loads", "members"]) c[k] = S.deepMerge(S.DEFAULTS[k], c[k] || {});
+  if (!c.rack_direction) c.rack_direction = [0, 1, 0];
+  if (c.spring) c.spring = S.deepMerge(S.SPRING_DEFAULTS, c.spring);
+  return c;
+}
+function carFrom(raw) {
+  const veh = S.deepMerge(S.DEFAULTS.vehicle, Object.assign({}, raw.front.vehicle || {}, raw.vehicle || {}));
+  const c = { name: raw.name || "Car", vehicle: veh, arb: { front: +((raw.arb || {}).front || 0), rear: +((raw.arb || {}).rear || 0) },
+    car_targets: Object.assign({}, S.CAR_TARGETS, raw.car_targets || {}), src: { front: raw.name || "car file", rear: raw.name || "car file" } };
+  for (const ax of ["front", "rear"]) { c[ax] = cornerFrom(Object.assign({}, raw[ax], { axle: ax })); c[ax].vehicle = veh; }
+  return c;
+}
+function exampleCarRaw() { const p = PRESETS.find(q => isCarRaw(q.cfg)); return p ? p.cfg : null; }
+function exportCar() {
+  const strip = (c) => { const o = {}; for (const k of ["name", "targets_file", "hardpoints", "wheel", "sweep", "clearance", "rack_direction", "targets", "spring", "loads", "members"]) if (c[k] != null) o[k] = c[k]; return o; };
+  return { type: "car", name: car.name, vehicle: car.vehicle, arb: car.arb, car_targets: car.car_targets, front: strip(car.front), rear: strip(car.rear) };
+}
+function loadCar(raw, label) {
+  try { car = carFrom(raw); } catch (e) { $("#errBox").innerHTML = `<div class="banner bad">That car file does not load: ${esc(e.message)}</div>`; return false; }
+  if (label) car.src = { front: label, rear: label };
+  cfg = car[axleView === "rear" ? "rear" : "front"]; savedSpring = null; savedRocker = null;
+  view.target = null; fillForm(); run(); return true;
+}
+// called from run(): keeps the edited corner in its slot and the vehicle block shared by both corners
+function syncCar() {
+  if (!car || chal || !cfg) return;
+  if (cfg.vehicle !== car.vehicle) { Object.assign(car.vehicle, cfg.vehicle); cfg.vehicle = car.vehicle; }
+  car[cfg.axle] = cfg;
+  const other = car[cfg.axle === "front" ? "rear" : "front"]; if (other) other.vehicle = car.vehicle;
+}
+function setView(v, opts = {}) {
+  if (chal && v !== "front") return;
+  axleView = v; store.set("susp.view", v);
+  if (v !== "car") { cfg = car[v]; savedSpring = null; savedRocker = null; fillForm(); }
+  closeInfluence(); showMe(null); if (!opts.keepCam) view.target = null;
+  applyViewClasses(); run();
+}
+function applyViewClasses() {
+  document.body.classList.toggle("carview", axleView === "car");
+  $$("#axleSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ax === axleView)));
+  $("#carIn").hidden = axleView !== "car" || !!chal; $("#carBox").hidden = axleView !== "car";
+  if (axleView === "car") { $("#cardsIn").hidden = true; } else if (!chal && $("#crail").hidden) $("#cardsIn").hidden = false;
+}
+
+// ---------------------------------------------------------------- car evaluation
+const carCache = new Map();
+function carEvalCorner(c) {
+  const key = JSON.stringify(c); if (carCache.has(key)) return carCache.get(key);
+  let r; try { r = { ev: S.evaluate(c) }; } catch (e) { r = { err: e.message }; }
+  if (carCache.size > 12) carCache.clear(); carCache.set(key, r); return r;
+}
+let carRes = null;
+function evalCar() {
+  if (!car) return null;
+  const F = carEvalCorner(car.front), R = carEvalCorner(car.rear);
+  let bal = null, why = "";
+  if (F.ev && R.ev) {
+    if (F.ev.ride && R.ev.ride) {
+      const mid = (r) => r && r[0] != null && r[1] != null ? (r[0] + r[1]) / 2 : null, t = car.car_targets;
+      try { bal = S.carBalance(F.ev.cfg, F.ev, R.ev.cfg, R.ev, { arbF: +car.arb.front || 0, arbR: +car.arb.rear || 0, targets: t,
+        targetGrad: mid(t.roll_gradient) || 1, targetLltd: car.vehicle.weight_front + (mid(t.lltd_vs_weight) ?? 5) / 100 }); } catch (e) { why = e.message; }
+    } else why = `Turn on "Model the spring and damper" on ${!F.ev.ride ? "the front" : "the rear"} corner: the roll balance needs both axles' springs.`;
+  }
+  carRes = { F, R, bal, why }; return carRes;
+}
+
+// ---------------------------------------------------------------- car inputs column
+function carField(label, unit, path, opts = {}) {
+  const v = getPath(car, path), val = v == null ? "" : (opts.scale ? +(v * opts.scale).toFixed(6) : v);
+  if (opts.options) return `<div class="field"><label>${label}<select data-cpath="${path}" data-type="select">${opts.options.map(([k, t]) => `<option value="${k}"${k === v ? " selected" : ""}>${t}</option>`).join("")}</select></label></div>`;
+  return `<div class="field"><label>${label} <i>${unit}</i></label><input class="num" type="number" step="${opts.step ?? "any"}" data-cpath="${path}"${opts.scale ? ` data-scale="${opts.scale}"` : ""} value="${val}" aria-label="${esc(label)}"></div>`;
+}
+function renderCarIn() {
+  const box = $("#carIn"); if (!box || !car) return;
+  if (box.contains(document.activeElement) && document.activeElement.tagName === "INPUT") return;   // don't rebuild under the cursor
+  const r = carRes || evalCar(), tg = car.car_targets, slot = (ax) => {
+    const e = r[ax === "front" ? "F" : "R"], n = e.ev ? e.ev.checks.filter(c => c.status !== "n/a") : [], p = n.filter(c => c.status === "PASS").length;
+    return `<div class="slot"><div><b>${ax === "front" ? "Front" : "Rear"}</b> <span class="muted">${esc(car[ax].name || "")}</span>
+      <small class="muted">${esc(car.src[ax] || "")}</small></div>
+      <div class="tact">${e.ev ? `<span class="pill ${p === n.length ? "ok" : "bad"}">${p}/${n.length} targets</span>` : `<span class="pill bad">no solution</span>`}
+      <button class="btn small" type="button" data-edit="${ax}">Edit ${ax}</button><button class="btn small" type="button" data-open="${ax}">Open ${ax} file…</button></div></div>`; };
+  const rng = (k, lab, unit) => `<div class="field wide"><label>${lab} <i>${unit}</i></label><span class="rng"><input class="num" type="number" step="any" data-ctg="${k}" data-i="0" value="${tg[k][0] ?? ""}" aria-label="${esc(lab)} minimum"> to <input class="num" type="number" step="any" data-ctg="${k}" data-i="1" value="${tg[k][1] ?? ""}" aria-label="${esc(lab)} maximum"></span></div>`;
+  box.innerHTML = `
+    <div class="card"><div class="hd"><h2>Car</h2><span class="hint">front + rear</span></div><div class="body">
+      <div class="field"><label>Car name</label><input class="num" style="text-align:left;font-family:var(--f-body)" type="text" data-cpath="name" data-type="text" value="${esc(car.name || "")}"></div>
+      ${slot("front")}${slot("rear")}
+      <p class="note">Save JSON in this view saves both corners in one car file. Single-corner files still open: they go into the front or rear slot.</p></div></div>
+    <div class="card"><div class="hd"><h2>Vehicle</h2><span class="hint">shared by both axles</span></div><div class="body"><div class="fields">
+      ${carField("Car mass with driver", "kg", "vehicle.mass")}${carField("Weight on front", "%", "vehicle.weight_front", { scale: 100, step: 0.5 })}
+      ${carField("CG height", "mm", "vehicle.cg_height")}${carField("Wheelbase", "mm", "vehicle.wheelbase")}
+      ${carField("Brake balance (front)", "%", "vehicle.front_brake_share", { scale: 100, step: 1 })}
+      ${carField("Brakes", "", "vehicle.brakes", { options: [["outboard", "Outboard"], ["inboard", "Inboard"]] })}
+      ${carField("Drive", "", "vehicle.drive", { options: [["inboard", "Inboard diff"], ["outboard", "Hub motors"]] })}</div></div></div>
+    <div class="card"><div class="hd"><h2>Anti-roll bars</h2><span class="hint">0 = none</span></div><div class="body"><div class="fields">
+      ${carField("Front bar, at the wheels", "Nm/deg", "arb.front", { step: 10 })}${carField("Rear bar, at the wheels", "Nm/deg", "arb.rear", { step: 10 })}</div>
+      <p class="note">A bar adds roll stiffness without changing the ride frequency. How much you add at each end sets the balance: more at the front moves load transfer forward (more understeer).</p></div></div>
+    <div class="card"><div class="hd"><h2>Car targets</h2><span class="hint">whole-car checks</span></div><div class="body"><div class="fields">
+      ${rng("roll_gradient", "Roll gradient", "deg/g")}${rng("lltd_vs_weight", "Front LLTD minus front weight", "% pts")}${rng("freq_ratio", "Ride frequency ratio, rear/front", "")}</div></div></div>`;
+  $$("[data-cpath]", box).forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+    let v = el.dataset.type === "select" || el.dataset.type === "text" ? el.value : +el.value;
+    if (typeof v === "number") { if (el.value === "" || !Number.isFinite(v)) return; if (el.dataset.scale) v /= +el.dataset.scale; }
+    setPath(car, el.dataset.cpath, v); schedule();
+  }));
+  $$("[data-ctg]", box).forEach(el => el.addEventListener("change", () => { const k = el.dataset.ctg, a = (car.car_targets[k] || [null, null]).slice(); a[+el.dataset.i] = el.value === "" ? null : +el.value; car.car_targets[k] = a; schedule(); }));
+  $$("[data-edit]", box).forEach(b => b.addEventListener("click", () => setView(b.dataset.edit)));
+  $$("[data-open]", box).forEach(b => b.addEventListener("click", () => { carSlotPending = b.dataset.open; $("#carFile").click(); }));
+}
+let carSlotPending = null;
+
+// ---------------------------------------------------------------- car results
+function renderCarBox() {
+  const box = $("#carBox"); if (!box || !car) return;
+  const r = carRes || evalCar(), B = r.bal, F = r.F.ev, R = r.R.ev;
+  const met = (e) => { if (!e) return "–"; const n = e.checks.filter(c => c.status !== "n/a"); return `${n.filter(c => c.status === "PASS").length}/${n.length}`; };
+  const cm = B ? B.checks.filter(c => c.status === "PASS").length : 0;
+  $("#status").innerHTML = (B ? `<span class="pill ${cm === 3 ? "ok" : "bad"}"><span class="big">${cm}/3</span> car targets</span>` : "") +
+    `<span class="pill neutral">Front ${met(F)}</span><span class="pill neutral">Rear ${met(R)}</span>` +
+    (B ? `<span class="pill neutral">Roll ${fmt(B.grad, 2)} deg/g</span><span class="pill neutral">Front LLTD ${fmt(B.lltd * 100, 1)} %</span>` : "");
+  if (!F || !R) { box.innerHTML = `<div class="banner bad">${!F ? "The front" : "The rear"} corner does not solve: ${esc((!F ? r.F : r.R).err || "")}</div>`; return; }
+  const L = S.CAR_LABELS, row = (lab, f, rr, unit, dec = 1) => `<tr><td>${lab}</td><td class="n">${fmt(f, dec)}</td><td class="n">${fmt(rr, dec)}</td><td class="muted">${unit}</td></tr>`;
+  const mF = F.metrics, mR = R.metrics;
+  let html = "";
+  if (B) html += `<div class="tbl-wrap"><table class="data"><thead><tr><th>Car target</th><th class="n">Value</th><th>Allowed range</th><th>Status</th></tr></thead><tbody>
+    ${B.checks.map(c => { const [lab, unit, dec] = L[c.key]; return `<tr><td>${lab}</td><td class="n">${fmt(c.value, dec)} <span class="muted">${unit}</span></td><td>${c.lo ?? "–"} to ${c.hi ?? "–"}</td><td>${c.status === "PASS" ? `<span class="pill ok">Met</span>` : `<span class="pill bad">Not met</span>`}</td></tr>`; }).join("")}</tbody></table></div>`;
+  else html += `<div class="banner warn">${esc(r.why)}</div>`;
+  html += `<h3 class="sub-h">Front and rear</h3><div class="tbl-wrap"><table class="data"><thead><tr><th></th><th class="n">Front</th><th class="n">Rear</th><th></th></tr></thead><tbody>
+    <tr><td>Targets met</td><td class="n">${met(F)} <button class="btn small" type="button" data-edit="front">Edit</button></td><td class="n">${met(R)} <button class="btn small" type="button" data-edit="rear">Edit</button></td><td></td></tr>
+    ${row("Ride frequency", mF.ride_freq, mR.ride_freq, "Hz", 2)}${row("Wheel rate", mF.wheel_rate, mR.wheel_rate, "N/mm")}${row("Motion ratio", mF.motion_ratio, mR.motion_ratio, "", 3)}
+    ${row("Roll center height", mF.roll_center, mR.roll_center, "mm")}${row("Roll center sideways shift", mF.rc_lat, mR.rc_lat, "mm/deg")}
+    ${row("Camber gain", mF.camber_gain, mR.camber_gain, "deg/in", 3)}${row("Roll camber (outer, to ground)", mF.roll_camber, mR.roll_camber, "deg/deg", 3)}
+    ${row("Roll steer (outer)", mF.roll_steer, mR.roll_steer, "deg/deg", 3)}
+    <tr><td>Anti-dive / anti-squat</td><td class="n">${fmt(mF.antidive, 1)} <span class="muted">dive</span></td><td class="n">${fmt(mR.antisquat, 1)} <span class="muted">squat</span></td><td class="muted">%</td></tr>
+    ${B ? row("Roll stiffness: springs", B.Ksf, B.Ksr, "Nm/deg", 0) + row("Roll stiffness: anti-roll bar", B.arb_in_f, B.arb_in_r, "Nm/deg", 0) + row("Roll stiffness: axle, with tires", B.Kf, B.Kr, "Nm/deg", 0)
+      + row("Load transfer per wheel per g", B.dFz_f, B.dFz_r, "N/g", 0) + row("…of which through the links", B.geo_f, B.geo_r, "N/g", 0) : ""}
+    </tbody></table></div>`;
+  if (B) {
+    const und = B.lltd * 100 - B.wf * 100;
+    const bar = (v, have) => (v === Infinity ? "not reachable (the tires alone are softer than that)" : v > 0 ? `about <b>${fmt(v, 0)} Nm/deg</b> in total` : `no bar (the springs alone are ${fmt(-v, 0)} Nm/deg stiffer than this needs)`) + ` · you have ${fmt(have, 0)}`;
+    html += `<h3 class="sub-h">Roll balance</h3><div class="kv">
+      <div><span>Roll gradient</span><b>${fmt(B.grad, 2)} <small>deg/g</small></b></div>
+      <div><span>Front LLTD (front weight ${fmt(B.wf * 100, 0)} %)</span><b>${fmt(B.lltd * 100, 1)} <small>%</small></b></div>
+      <div><span>Sprung mass / CG height</span><b>${fmt(B.ms, 0)} <small>kg</small> / ${fmt(B.hs, 0)} <small>mm</small></b></div>
+      <div><span>Roll axis height at the CG</span><b>${fmt(B.z_ra, 0)} <small>mm</small></b></div>
+      <div><span>Roll moment arm</span><b>${fmt(B.arm, 0)} <small>mm</small></b></div>
+      <div><span>Ride frequency ratio, rear/front</span><b>${fmt(B.freq_r / B.freq_f, 2)}</b></div></div>
+      <p class="note">${und >= 0 ? `Front LLTD is ${fmt(und, 1)} points above the front weight share: the car leans toward understeer at the limit.` : `Front LLTD is ${fmt(-und, 1)} points below the front weight share: the car leans toward oversteer at the limit.`}
+      Most teams start a few points above the front weight share and tune from driver feedback.</p>
+      <div class="banner neutral-b"><b>Anti-roll bars for ${fmt(B.target_grad, 2)} deg/g and ${fmt(B.target_lltd * 100, 0)} % front LLTD</b> (the middle of your car targets):
+<br>Front: ${bar(B.arb_f, B.arb_in_f)}.<br>Rear: ${bar(B.arb_r, B.arb_in_r)}.
+      ${B.lltd_fix ? `<br>To fix only the balance, keep the ${B.lltd_fix[0] === "front" ? "rear" : "front"} as it is and change the ${B.lltd_fix[0]} bar by about <b>${B.lltd_fix[1] > 0 ? "+" : ""}${fmt(B.lltd_fix[1], 0)} Nm/deg</b> (to about ${fmt((B.lltd_fix[0] === "front" ? B.arb_in_f : B.arb_in_r) + B.lltd_fix[1], 0)}).` : ""}
+      <br><small class="muted">Rigid chassis, steady state, roll centers at ride height, bars quoted at the wheels.</small></div>`;
+  }
+  const S2 = (rows, x, y, ax) => ({ name: ax, x: rows.map(x), y: rows.map(y), color: ax === "front" ? "var(--s1)" : "var(--s2)", dash: ax === "front" ? null : "5 3" });
+  html += `<h3 class="sub-h">Front vs rear</h3><div class="charts">
+    ${chart({ title: "Roll center height, mm", xlabel: "wheel travel, mm", series: [S2(F.rows, r => r.dz, r => r.roll_center, "front"), S2(R.rows, r => r.dz, r => r.roll_center, "rear")] })}
+    ${chart({ title: "Outer wheel camber to ground, deg", xlabel: "body roll, deg", series: [S2(F.roll, r => r.roll, r => r.camber_outer, "front"), S2(R.roll, r => r.roll, r => r.camber_outer, "rear")] })}
+    ${chart({ title: "Roll center sideways, mm", xlabel: "body roll, deg", series: [S2(F.roll, r => r.roll, r => r.rc_lateral, "front"), S2(R.roll, r => r.roll, r => r.rc_lateral, "rear")] })}
+    ${F.spring && R.spring ? chart({ title: "Motion ratio", xlabel: "wheel travel, mm", series: [S2(F.rows, r => r.dz, r => r.motion_ratio, "front"), S2(R.rows, r => r.dz, r => r.motion_ratio, "rear")] }) : ""}
+  </div>`;
+  box.innerHTML = html;
+  $$("[data-edit]", box).forEach(b => b.addEventListener("click", () => setView(b.dataset.edit)));
+}
+
+// ---------------------------------------------------------------- car 3D scene
+function rad0e(e, dz) { if (!e.ride) return 0; let best = e.rows[0]; for (const q of e.rows) if (Math.abs(q.dz - dz) < Math.abs(best.dz - dz)) best = q; return (best.rocker_deg || 0) * Math.PI / 180; }
+function updateCarScene() {
+  const { T, dyn, scene } = three, col = themeColors(), r = carRes || evalCar();
+  scene.background = new T.Color(col.bg || "#dfe5ea");
+  while (dyn.children.length) { const o = dyn.children.pop(); o.traverse(n => { if (n.geometry) n.geometry.dispose(); if (n.material) { if (n.material.map) n.material.map.dispose(); n.material.dispose(); } }); }
+  three.pickables = []; three.labels = [];
+  if (!r || !r.F.ev || !r.R.ev) { three.need = true; return; }
+  const WB = car.vehicle.wheelbase, D = drawKit(dyn, col), DT = drawKit(dyn, col, true), pts = {};
+  for (const ax of ["front", "rear"]) {
+    const e = ax === "front" ? r.F.ev : r.R.ev, s = e.susp, rk = ax === "front" ? pose.rack : 0, dx = ax === "front" ? 0 : -WB;
+    let x, o, st; try { x = s.pose(pose.dz, rk); o = s.observe(x, pose.dz, rk); st = e.spring ? e.spring.state(x, rad0e(e, pose.dz)) : null; } catch (er) { continue; }
+    const n0 = three.pickables.length, g = buildCorner(e, o, st, { col }); g.position.x = dx; dyn.add(g);
+    for (let i = n0; i < three.pickables.length; i++) three.pickables[i].userData.axle = ax;
+    let oL = o, sL = st; if (rk) { try { const xl = s.pose(pose.dz, -rk); oL = s.observe(xl, pose.dz, -rk); sL = e.spring ? e.spring.state(xl, rad0e(e, pose.dz)) : null; } catch (er) { /* keep */ } }
+    const gm = buildCorner(e, oL, sL, { col, mirror: true, solid: true }); gm.position.x = dx; dyn.add(gm);
+    pts[ax] = { cp: [o._pts.cp[0] + dx, o._pts.cp[1], o._pts.cp[2]], rc: o.roll_center, R: s.R };
+  }
+  const xf = pts.front ? pts.front.cp[0] : 0, xr = pts.rear ? pts.rear.cp[0] : -WB, half = Math.max(pts.front ? pts.front.cp[1] : 600, pts.rear ? pts.rear.cp[1] : 600);
+  const grid = new T.GridHelper(Math.max(4000, WB + 2400), 32, new T.Color(col.muted || "#5a6876"), new T.Color(col.line || "#cfd7de"));
+  grid.position.set((xf + xr) / 2, 0, 0); grid.material.transparent = true; grid.material.opacity = 0.55; dyn.add(grid);
+  D.line([[xf + 500, 0, 0.5], [xr - 500, 0, 0.5]], col.muted, true);
+  if (pts.front && pts.rear && Number.isFinite(pts.front.rc) && Number.isFinite(pts.rear.rc)) {
+    const a = [xf, 0, pts.front.rc], b = [xr, 0, pts.rear.rc], u = V.unit(V.sub(a, b));
+    DT.line([V.add(a, V.mul(u, 350)), V.sub(b, V.mul(u, 350))], col.accent, false); DT.dot(a, col.accent, 12); DT.dot(b, col.accent, 12);
+    DT.label(V.add(b, V.mul(u, -380)), "roll axis", col.accent);
+  }
+  const wf = car.vehicle.weight_front, cgx = xf - (xf - xr) * (1 - wf), cg = [cgx, 0, car.vehicle.cg_height];
+  DT.dot(cg, col.ink, 14); DT.line([cg, [cgx, 0, 0]], col.muted, true); DT.label(V.add(cg, [0, 0, 70]), "CG", col.ink);
+  DT.label([xf, half + 260, 40], "FRONT", col.s1); DT.label([xr, half + 260, 40], "REAR", col.s2);
+  if (!view.target) { view.target = toT([(xf + xr) / 2, 0, 120]); view.r = fitR(Math.abs(xf - xr) + 700, 900); setMode("iso"); }
+  const B = r.bal;
+  $("#hud").innerHTML = `<span><b>travel</b> ${fmt(pose.dz, 1)} mm · <b>rack</b> ${fmt(pose.rack, 1)} mm</span><span><b>RC</b> front ${fmt(r.F.ev.metrics.roll_center, 0)} / rear ${fmt(r.R.ev.metrics.roll_center, 0)} mm</span>` +
+    (B ? `<span><b>roll</b> ${fmt(B.grad, 2)} deg/g</span><span><b>front LLTD</b> ${fmt(B.lltd * 100, 1)} %</span>` : "");
+  const hb = ($("#hud").offsetHeight || 30) + 18 + "px"; for (const id of ["#ovcap", "#pvbar", "#vhint"]) $(id).style.bottom = hb;
+  three.need = true;
+}
+
 // ------------------------------------------------------------------ toolbar
-function loadCfg(raw, name) {
+function loadCfg(raw, name, opts = {}) {
   try { S.finishConfig(raw); } catch (e) { $("#jsonMsg").textContent = e.message; return false; }
   cfg = JSON.parse(JSON.stringify(raw));
   for (const k of ["wheel", "vehicle", "sweep", "clearance", "loads", "members"]) cfg[k] = S.deepMerge(S.DEFAULTS[k], cfg[k] || {});
   if (!cfg.rack_direction) cfg.rack_direction = [0, 1, 0];
   if (cfg.spring) cfg.spring = S.deepMerge(S.SPRING_DEFAULTS, cfg.spring);
   savedSpring = null; savedRocker = null;
+  if (car && !chal) {
+    const ax = cfg.axle === "rear" ? "rear" : "front";
+    car.vehicle = cfg.vehicle; car[ax] = cfg; car[ax === "front" ? "rear" : "front"].vehicle = car.vehicle; car.src[ax] = name || cfg.name || "";
+    if (axleView !== "car" || opts.toView) { axleView = opts.toView || ax; store.set("susp.view", axleView); }
+    applyViewClasses();
+  }
   fillForm(); run(); return true;
 }
-$("#preset").innerHTML = PRESETS.map((p, i) => `<option value="${i}">${esc(p.label)}</option>`).join("") + `<option value="custom" hidden>Your edits</option>`;
-$("#preset").addEventListener("change", (e) => { if (e.target.value !== "custom") { if (chal) exitChallenge(true); view.target = null; loadCfg(PRESETS[+e.target.value].cfg); } });
+{ const grp = (lab, f) => { const o = PRESETS.map((p, i) => [p, i]).filter(([p]) => f(p.cfg)); return o.length ? `<optgroup label="${lab}">${o.map(([p, i]) => `<option value="${i}">${esc(p.label)}</option>`).join("")}</optgroup>` : ""; };
+  $("#preset").innerHTML = grp("Whole cars", isCarRaw) + grp("Front corners", c => c.hardpoints && c.axle !== "rear") + grp("Rear corners", c => c.hardpoints && c.axle === "rear") + `<option value="custom" hidden>Your edits</option>`; }
+$("#preset").addEventListener("change", (e) => {
+  if (e.target.value === "custom") return; if (chal) exitChallenge(true); view.target = null;
+  const p = PRESETS[+e.target.value];
+  if (isCarRaw(p.cfg)) { axleView = "car"; store.set("susp.view", "car"); applyViewClasses(); loadCar(p.cfg, p.label); }
+  else loadCfg(p.cfg, p.label, { toView: p.cfg.axle === "rear" ? "rear" : "front" });
+});
 $("#btnLoad").addEventListener("click", () => $("#fileIn").click());
 $("#fileIn").addEventListener("change", async (e) => {
   const f = e.target.files[0]; if (!f) return;
   try {
     const raw = JSON.parse(await f.text());
-    if (!raw.hardpoints && (raw.front || raw.rear || raw.targets || Object.values(raw).some(v => Array.isArray(v) && v.length === 2))) {
+    if (isCarRaw(raw)) { if (chal) exitChallenge(true); axleView = "car"; store.set("susp.view", "car"); applyViewClasses(); if (loadCar(raw, f.name)) $("#preset").value = "custom"; }
+    else if (!raw.hardpoints && (raw.front || raw.rear || raw.targets || Object.values(raw).some(v => Array.isArray(v) && v.length === 2))) {
       const t = S.targetsFromFile(raw, cfg.axle); delete t._note;
       cfg.targets = Object.assign({}, t, cfg.targets || {});
+      if (car && axleView === "car") { const o = car.rear === cfg ? car.front : car.rear, t2 = S.targetsFromFile(raw, o.axle); delete t2._note; o.targets = Object.assign({}, t2, o.targets || {}); }
       $("#preset").value = "custom"; run();
       $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner warn">Applied ${Object.keys(t).length} target ranges from ${esc(f.name)} to this design. They are now saved in its JSON under <span class="mono">targets</span>.</div>`);
-    } else { if (chal) exitChallenge(true); view.target = null; if (loadCfg(raw)) $("#preset").value = "custom"; }
+    } else { if (chal) exitChallenge(true); view.target = null; if (loadCfg(raw, f.name, { toView: raw.axle === "rear" ? "rear" : "front" })) $("#preset").value = "custom"; }
   }
   catch (ex) { $("#errBox").innerHTML = `<div class="banner bad">${esc(f.name)} is not a valid config: ${esc(ex.message)}</div>`; }
   e.target.value = "";
 });
+$("#carFile").addEventListener("change", async (e) => {
+  const f = e.target.files[0], ax = carSlotPending; e.target.value = ""; if (!f || !ax) return;
+  try { const raw = JSON.parse(await f.text());
+    if (isCarRaw(raw)) { loadCar(raw, f.name); return; }
+    if (!raw.hardpoints) throw new Error("no hardpoints in this file");
+    const note = raw.axle && raw.axle !== ax ? ` It was saved as a ${raw.axle} corner and is now used as the ${ax}.` : "";
+    loadCfg(Object.assign({}, raw, { axle: ax }), f.name, { toView: "car" }); $("#preset").value = "custom";
+    $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner warn">Opened ${esc(f.name)} as the ${ax} corner. Its vehicle settings (mass, CG, wheelbase…) now apply to the whole car.${note}</div>`);
+  } catch (ex) { $("#errBox").innerHTML = `<div class="banner bad">${esc(f.name)} is not a valid design: ${esc(ex.message)}</div>`; }
+});
+$$("#axleSeg button").forEach(b => b.addEventListener("click", () => { if (chal) return; setView(b.dataset.ax); }));
 $("#btnCopy").addEventListener("click", async (e) => {
-  const txt = JSON.stringify(exportCfg(), null, 2), b = e.currentTarget;
+  const txt = JSON.stringify(exportCurrent(), null, 2), b = e.currentTarget;
   try { await navigator.clipboard.writeText(txt); b.textContent = "Copied"; }
   catch (ex) { $("#cardJson").open = true; $("#jsonBox").focus(); $("#jsonBox").select(); b.textContent = "Select and copy below"; }
   setTimeout(() => b.textContent = "Copy JSON", 1800);
@@ -3119,7 +3418,7 @@ let fileHandle = null;
 if (!framed) {
   $("#btnDownload").hidden = false;
   $("#btnDownload").addEventListener("click", async () => {
-    const txt = JSON.stringify(exportCfg(), null, 2), name = (cfg.name || "design").replace(/[^\w.-]+/g, "_") + ".json", b = $("#btnDownload");
+    const txt = JSON.stringify(exportCurrent(), null, 2), name = ((axleView === "car" && car && !chal ? car.name : cfg.name) || "design").replace(/[^\w.-]+/g, "_") + ".json", b = $("#btnDownload");
     try {
       if (window.showSaveFilePicker) {
         if (!fileHandle) fileHandle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: "Design JSON", accept: { "application/json": [".json"] } }] });
@@ -3138,7 +3437,7 @@ $("#btnStart").addEventListener("click", openWelcome);
 $("#wClose").addEventListener("click", closeWelcome);
 $("#welcome").addEventListener("click", (e) => { if (e.target.id === "welcome") closeWelcome(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#welcome").hidden) closeWelcome(); });
-$("#wExplore").addEventListener("click", () => { closeWelcome(); if (!chal) { $("#preset").value = "0"; $("#preset").dispatchEvent(new Event("change")); } });
+$("#wExplore").addEventListener("click", () => { closeWelcome(); if (!chal) { $("#preset").value = String(PRESETS.findIndex(p => isCarRaw(p.cfg))); $("#preset").dispatchEvent(new Event("change")); } });
 $("#wOpen").addEventListener("click", () => { closeWelcome(); $("#fileIn").click(); });
 $("#wChal").addEventListener("click", () => { closeWelcome(); openChallenges(); });
 $("#wLearn").addEventListener("click", () => { closeWelcome(); tab = "learn"; renderTabs(); showPanel(); $("#tabs").scrollIntoView({ block: "start" }); });
@@ -3155,9 +3454,18 @@ document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dat
 buildForm();
 initThree();
 const savedTab = store.get("susp.tab"); if (savedTab && TABS.some(t => t[0] === savedTab)) tab = savedTab;
-let boot = PRESETS[0].cfg, saved = store.get("susp.cfg");
-if (saved) { try { const raw = JSON.parse(saved); S.finishConfig(raw); boot = raw; $("#preset").value = "custom"; } catch (e) { /* ignore a bad draft */ } }
-loadCfg(boot);
+// boot: the saved car if there is one; else an old single-corner draft inside the example car; else the example car
+{
+  const ex = exampleCarRaw(), savedCar = store.get("susp.car"), saved = store.get("susp.cfg");
+  let ok = false;
+  if (savedCar) { try { const raw = JSON.parse(savedCar); if (isCarRaw(raw)) { car = carFrom(raw); car.src = { front: "your edits", rear: "your edits" }; ok = true; } } catch (e) { /* bad draft */ } }
+  if (!ok) car = carFrom(ex);
+  if (!["car", "front", "rear"].includes(axleView)) axleView = "car";
+  cfg = car[axleView === "rear" ? "rear" : "front"];
+  if (!ok && saved) { try { const raw = JSON.parse(saved); S.finishConfig(JSON.parse(saved)); const c = cornerFrom(raw); car[c.axle === "rear" ? "rear" : "front"] = c; car.vehicle = c.vehicle; car.front.vehicle = car.rear.vehicle = c.vehicle; car.src[c.axle] = "your edits"; cfg = car[axleView === "rear" ? "rear" : "front"]; } catch (e) { /* ignore */ } }
+  $("#preset").value = ok || saved ? "custom" : String(PRESETS.findIndex(p => p.cfg === ex));
+  applyViewClasses(); fillForm(); run();
+}
 if (store.get("susp.hideWelcome") !== "1") openWelcome();
 })();
 </script>

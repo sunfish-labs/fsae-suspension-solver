@@ -87,13 +87,21 @@ def cmd_loads(a):
 
 def cmd_car(a):
     from susp.ride import car_balance
-    f, r = load(a.front), load(a.rear)
-    if f["axle"] != "front" or r["axle"] != "rear":
-        sys.exit("give the front config first, then the rear config")
+    info = {"arb_f": 0.0, "arb_r": 0.0, "car_targets": {}}
+    if a.rear is None:
+        if not C.is_car_file(a.front):
+            sys.exit("give a car file (with 'front' and 'rear'), or a front config and a rear config")
+        f, r, info = C.load_car(a.front)
+    else:
+        f, r = load(a.front), load(a.rear)
+        if f["axle"] != "front" or r["axle"] != "rear":
+            sys.exit("give the front config first, then the rear config")
     if not (f.get("spring") and r.get("spring")):
-        sys.exit("both configs need a 'spring' block")
+        sys.exit("both corners need a 'spring' block")
+    arb_f = a.arb_front if a.arb_front is not None else info["arb_f"]
+    arb_r = a.arb_rear if a.arb_rear is not None else info["arb_r"]
     fe, re_ = evaluate(f, steer=False, pack=False), evaluate(r, steer=False, pack=False)
-    O.print_car(f, r, car_balance(f, fe, r, re_, a.grad, a.lltd / 100 if a.lltd else None))
+    O.print_car(f, r, car_balance(f, fe, r, re_, a.grad, a.lltd / 100 if a.lltd else None, arb_f, arb_r, info["car_targets"]))
 
 
 def cmd_report(a):
@@ -190,8 +198,10 @@ def main():
     p.set_defaults(fn=cmd_run)
     p = sub.add_parser("loads", help="member forces and safety factors for standard load cases")
     p.add_argument("config"); p.set_defaults(fn=cmd_loads)
-    p = sub.add_parser("car", help="whole-car roll balance from a front and a rear config")
-    p.add_argument("front"); p.add_argument("rear")
+    p = sub.add_parser("car", help="whole-car roll balance from a car file, or a front and a rear config")
+    p.add_argument("front", help="car file, or the front config"); p.add_argument("rear", nargs="?", help="rear config")
+    p.add_argument("--arb-front", type=float, help="front anti-roll bar at the wheels, Nm/deg (overrides the car file)")
+    p.add_argument("--arb-rear", type=float, help="rear anti-roll bar at the wheels, Nm/deg")
     p.add_argument("--grad", type=float, help="target roll gradient, deg/g (default 1.0)")
     p.add_argument("--lltd", type=float, help="target front LLTD, %% (default front weight + 5)")
     p.set_defaults(fn=cmd_car)
