@@ -400,3 +400,6 @@ body { border-top: 4px solid var(--gold); }
 .cadgo { display: flex; justify-content: flex-end; }
 .cadhelp summary { cursor: pointer; font-weight: 600; }
 .cadhelp ul { margin: 6px 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
+/* phones: toolbar menus open full-width under the toolbar instead of under their button */
+@media (max-width: 520px) { .toolbar:not(.tb-right) { position: relative; } .toolbar:not(.tb-right) > .xmenu { position: static; }
+  .toolbar:not(.tb-right) .xpop.xleft { left: 0; right: 0; width: auto; max-width: none; } }

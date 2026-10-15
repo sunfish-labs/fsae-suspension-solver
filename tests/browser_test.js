@@ -114,13 +114,13 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
 
   console.log("\nExports");
   await p.click('#axleSeg [data-ax="car"]'); await p.waitForTimeout(600);
-  const grab = async (sel) => { await p.click("#xmenu summary"); await p.waitForTimeout(150); const [d] = await Promise.all([p.waitForEvent("download"), p.click(sel)]);
+  const grab = async (sel, m = "#exMenu") => { await p.click(m + " summary"); await p.waitForTimeout(150); const [d] = await Promise.all([p.waitForEvent("download"), p.click(sel)]);
     const f = path.join(os.tmpdir(), d.suggestedFilename()); await d.saveAs(f); return f; };
   const rep = fs.readFileSync(await grab("#xReport"), "utf8");
   check("design report has the car summary and both corners", /Car target/.test(rep) && /Front:/.test(rep) && /Rear:/.test(rep));
   const wb = XLSX.readFile(await grab("#xXlsx"));
   check("Excel workbook has summary, targets, sweeps and loads", ["Summary", "Front targets", "Front heave", "Front springs & damping", "Rear loads"].every(s => wb.SheetNames.includes(s)), wb.SheetNames.join(","));
-  await p.click("#xmenu summary"); await p.click("#xCad"); await p.waitForTimeout(300);
+  await p.click("#exMenu summary"); await p.click("#xCad"); await p.waitForTimeout(300);
   check("3D for CAD dialog opens with the car scope", !(await p.$eval("#cadDlg", d => d.hidden)) && /whole car/.test(await text(p, "#cadScope")), await text(p, "#cadScope"));
   const cadGrab = async (fmt) => { await p.selectOption("#cadFmt", fmt); const [d] = await Promise.all([p.waitForEvent("download"), p.click("#cadGo")]);
     const f = path.join(os.tmpdir(), d.suggestedFilename()); await d.saveAs(f); return fs.readFileSync(f, "utf8"); };
@@ -134,7 +134,7 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   check("CAD STEP file is ISO-10303-21", /^ISO-10303-21;/.test(await cadGrab("step")));
   await p.click("#cadClose");
   await p.evaluate(() => { window.showSaveFilePicker = undefined; });   // use the plain download path in the test
-  const car = JSON.parse(fs.readFileSync(await grab("#btnDownload"), "utf8"));
+  const car = JSON.parse(fs.readFileSync(await grab("#btnDownload", "#xmenu"), "utf8"));
   check("car JSON carries both corners and every corner's targets", car.type === "car" && car.front.targets && Object.keys(car.front.targets).length > 10 && car.rear.targets && car.car_targets);
 
   console.log("\nTheme");
@@ -150,6 +150,9 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
     await p.click(`#axleSeg [data-ax="${v}"]`); await p.waitForTimeout(500);
     check(`no sideways scrolling on a phone (${v} view)`, (await p.evaluate(() => document.documentElement.scrollWidth)) <= 400);
   }
+  await p.click("#exMenu summary"); await p.waitForTimeout(200);
+  check("Export menu fits on a phone", (await p.evaluate(() => document.documentElement.scrollWidth)) <= 400);
+  await p.click("#exMenu summary");
   check("no script errors on the phone pass", p.errors.length === 0, p.errors.slice(0, 5).join(" | "));
   await browser.close();
   console.log(`\n${passes} passed, ${failures} failed`);

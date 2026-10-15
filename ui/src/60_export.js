@@ -153,14 +153,17 @@ async function exportXlsx() {
 function wireExport() {
   const menu = $("#xmenu"); if (!menu) return;
   document.addEventListener("click", (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
-  $("#xReport").addEventListener("click", () => { menu.open = false; download(fileBase(exportScope().name) + "_report.html", new Blob([reportHtml()], { type: "text/html" })); });
-  $("#xXlsx").addEventListener("click", async () => { menu.open = false; const b = $("#xXlsx"); b.disabled = true;
+  const ex = $("#exMenu"), scopeTxt = () => (car && axleView === "car" && !chal) ? "the whole car (front + rear)" : `this ${cfg.axle === "rear" ? "rear" : "front"} corner`;
+  document.addEventListener("click", (e) => { if (ex.open && !ex.contains(e.target)) ex.open = false; });
+  ex.addEventListener("toggle", () => { if (ex.open) { menu.open = false; $("#openMenu").open = false; $("#exScope").textContent = "Exports " + scopeTxt(); } });
+  $("#xReport").addEventListener("click", () => { ex.open = false; download(fileBase(exportScope().name) + "_report.html", new Blob([reportHtml()], { type: "text/html" })); });
+  $("#xXlsx").addEventListener("click", async () => { ex.open = false; const b = $("#xXlsx"); b.disabled = true;
     try { await exportXlsx(); } catch (ex) { $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner bad">Excel export failed: ${esc(ex.message)}</div>`); } b.disabled = false; });
-  menu.addEventListener("toggle", () => { if (menu.open) { $("#openMenu").open = false; $("#xScope").textContent = (car && axleView === "car" && !chal) ? "Saves the whole car (front + rear)" : `Saves this ${cfg.axle === "rear" ? "rear" : "front"} corner`; } });
+  menu.addEventListener("toggle", () => { if (menu.open) { $("#openMenu").open = false; ex.open = false; $("#xScope").textContent = (car && axleView === "car" && !chal) ? "Saves the whole car (front + rear)" : `Saves this ${cfg.axle === "rear" ? "rear" : "front"} corner`; } });
   // Open menu: the examples, grouped, and "a file from your computer"
   const om = $("#openMenu");
   document.addEventListener("click", (e) => { if (om.open && !om.contains(e.target)) om.open = false; });
-  om.addEventListener("toggle", () => { if (om.open) menu.open = false; });
+  om.addEventListener("toggle", () => { if (om.open) { menu.open = false; ex.open = false; } });
   const grp = (lab, f) => { const o = PRESETS.map((p, i) => [p, i]).filter(([p]) => f(p.cfg)); return o.length ? `<p class="note">${lab}</p>${o.map(([p, i]) => `<button type="button" role="menuitem" data-pi="${i}"><b>${esc(p.label)}</b></button>`).join("")}` : ""; };
   $("#openPop").innerHTML = `<button type="button" role="menuitem" id="omFile"><b>A file from your computer…</b><span>A design, a car file or a team targets file. Read in your browser, never uploaded.</span></button><hr>` +
     grp("Example cars", isCarRaw) + grp("Front corners", c => c.hardpoints && c.axle !== "rear") + grp("Rear corners", c => c.hardpoints && c.axle === "rear");

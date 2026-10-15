@@ -415,6 +415,9 @@ body { border-top: 4px solid var(--gold); }
 .cadgo { display: flex; justify-content: flex-end; }
 .cadhelp summary { cursor: pointer; font-weight: 600; }
 .cadhelp ul { margin: 6px 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
+/* phones: toolbar menus open full-width under the toolbar instead of under their button */
+@media (max-width: 520px) { .toolbar:not(.tb-right) { position: relative; } .toolbar:not(.tb-right) > .xmenu { position: static; }
+  .toolbar:not(.tb-right) .xpop.xleft { left: 0; right: 0; width: auto; max-width: none; } }
 </style>
 
 <header class="top">
@@ -438,11 +441,12 @@ body { border-top: 4px solid var(--gold); }
         <div class="xpop xleft" role="menu"><p class="note" id="xScope"></p>
           <button type="button" role="menuitem" id="btnDownload" hidden><b>Save JSON</b><span>Save to a file on your computer. In Chrome and Edge, later saves go back to the same file.</span></button>
           <button type="button" role="menuitem" id="btnSaveAs" hidden><b>Save as…</b><span>Choose a new file name or folder.</span></button>
-          <button type="button" role="menuitem" id="btnCopy"><b>Copy JSON</b><span>Copy the design to paste into a file or a message.</span></button>
-          <hr>
+          <button type="button" role="menuitem" id="btnCopy"><b>Copy JSON</b><span>Copy the design to paste into a file or a message.</span></button></div></details>
+      <details class="xmenu" id="exMenu"><summary class="btn">Export ▾</summary>
+        <div class="xpop xleft" role="menu"><p class="note" id="exScope"></p>
+          <button type="button" role="menuitem" id="xCad"><b>3D for CAD…</b><span>Hardpoints and links as IGES or STEP for SolidWorks, Fusion or Onshape, a CSV point table, or STL tubes.</span></button>
           <button type="button" role="menuitem" id="xReport"><b>Design report</b><span>A page with targets, hardpoints, curves and loads. Open it and print to PDF.</span></button>
-          <button type="button" role="menuitem" id="xXlsx"><b>Excel workbook (.xlsx)</b><span>Targets, hardpoints, sweep data and loads, one sheet each.</span></button>
-          <button type="button" role="menuitem" id="xCad"><b>3D for CAD…</b><span>Hardpoints and links as an IGES, STEP, CSV or STL file for SolidWorks, Fusion or Onshape.</span></button></div></details>
+          <button type="button" role="menuitem" id="xXlsx"><b>Excel workbook (.xlsx)</b><span>Targets, hardpoints, sweep data and loads, one sheet each.</span></button></div></details>
       <span class="curname" id="curName"></span>
       <select id="preset" class="sel" hidden aria-hidden="true" tabindex="-1"></select>
       <input id="fileIn" type="file" accept=".json,application/json" hidden>
@@ -4096,14 +4100,17 @@ async function exportXlsx() {
 function wireExport() {
   const menu = $("#xmenu"); if (!menu) return;
   document.addEventListener("click", (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
-  $("#xReport").addEventListener("click", () => { menu.open = false; download(fileBase(exportScope().name) + "_report.html", new Blob([reportHtml()], { type: "text/html" })); });
-  $("#xXlsx").addEventListener("click", async () => { menu.open = false; const b = $("#xXlsx"); b.disabled = true;
+  const ex = $("#exMenu"), scopeTxt = () => (car && axleView === "car" && !chal) ? "the whole car (front + rear)" : `this ${cfg.axle === "rear" ? "rear" : "front"} corner`;
+  document.addEventListener("click", (e) => { if (ex.open && !ex.contains(e.target)) ex.open = false; });
+  ex.addEventListener("toggle", () => { if (ex.open) { menu.open = false; $("#openMenu").open = false; $("#exScope").textContent = "Exports " + scopeTxt(); } });
+  $("#xReport").addEventListener("click", () => { ex.open = false; download(fileBase(exportScope().name) + "_report.html", new Blob([reportHtml()], { type: "text/html" })); });
+  $("#xXlsx").addEventListener("click", async () => { ex.open = false; const b = $("#xXlsx"); b.disabled = true;
     try { await exportXlsx(); } catch (ex) { $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner bad">Excel export failed: ${esc(ex.message)}</div>`); } b.disabled = false; });
-  menu.addEventListener("toggle", () => { if (menu.open) { $("#openMenu").open = false; $("#xScope").textContent = (car && axleView === "car" && !chal) ? "Saves the whole car (front + rear)" : `Saves this ${cfg.axle === "rear" ? "rear" : "front"} corner`; } });
+  menu.addEventListener("toggle", () => { if (menu.open) { $("#openMenu").open = false; ex.open = false; $("#xScope").textContent = (car && axleView === "car" && !chal) ? "Saves the whole car (front + rear)" : `Saves this ${cfg.axle === "rear" ? "rear" : "front"} corner`; } });
   // Open menu: the examples, grouped, and "a file from your computer"
   const om = $("#openMenu");
   document.addEventListener("click", (e) => { if (om.open && !om.contains(e.target)) om.open = false; });
-  om.addEventListener("toggle", () => { if (om.open) menu.open = false; });
+  om.addEventListener("toggle", () => { if (om.open) { menu.open = false; ex.open = false; } });
   const grp = (lab, f) => { const o = PRESETS.map((p, i) => [p, i]).filter(([p]) => f(p.cfg)); return o.length ? `<p class="note">${lab}</p>${o.map(([p, i]) => `<button type="button" role="menuitem" data-pi="${i}"><b>${esc(p.label)}</b></button>`).join("")}` : ""; };
   $("#openPop").innerHTML = `<button type="button" role="menuitem" id="omFile"><b>A file from your computer…</b><span>A design, a car file or a team targets file. Read in your browser, never uploaded.</span></button><hr>` +
     grp("Example cars", isCarRaw) + grp("Front corners", c => c.hardpoints && c.axle !== "rear") + grp("Rear corners", c => c.hardpoints && c.axle === "rear");
@@ -4111,7 +4118,7 @@ function wireExport() {
   $$("#openPop [data-pi]").forEach(b => b.addEventListener("click", () => { om.open = false; $("#preset").value = b.dataset.pi; $("#preset").dispatchEvent(new Event("change")); }));
 }
 
-// ---------------------------------------------------------------- 3D for CAD (Save ▾ → 3D for CAD…)
+// ---------------------------------------------------------------- 3D for CAD (Export ▾ → 3D for CAD…)
 const CADX = window.SuspCAD;
 const CAD_EXT = { igs: ".igs", step: ".step", csv: "_points.csv", stl: "_tubes.stl" };
 function cadOpts() {
@@ -4145,7 +4152,7 @@ function openCad() {
 }
 function closeCad() { $("#cadDlg").hidden = true; }
 function wireCad() {
-  $("#xCad").addEventListener("click", () => { $("#xmenu").open = false; openCad(); });
+  $("#xCad").addEventListener("click", () => { $("#exMenu").open = false; openCad(); });
   $("#cadClose").addEventListener("click", closeCad);
   $("#cadDlg").addEventListener("click", (e) => { if (e.target.id === "cadDlg") closeCad(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#cadDlg").hidden) closeCad(); });

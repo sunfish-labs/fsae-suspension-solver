@@ -1,4 +1,4 @@
-// ---------------------------------------------------------------- 3D for CAD (Save ▾ → 3D for CAD…)
+// ---------------------------------------------------------------- 3D for CAD (Export ▾ → 3D for CAD…)
 const CADX = window.SuspCAD;
 const CAD_EXT = { igs: ".igs", step: ".step", csv: "_points.csv", stl: "_tubes.stl" };
 function cadOpts() {
@@ -32,7 +32,7 @@ function openCad() {
 }
 function closeCad() { $("#cadDlg").hidden = true; }
 function wireCad() {
-  $("#xCad").addEventListener("click", () => { $("#xmenu").open = false; openCad(); });
+  $("#xCad").addEventListener("click", () => { $("#exMenu").open = false; openCad(); });
   $("#cadClose").addEventListener("click", closeCad);
   $("#cadDlg").addEventListener("click", (e) => { if (e.target.id === "cadDlg") closeCad(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#cadDlg").hidden) closeCad(); });
