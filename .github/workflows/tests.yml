@@ -1,0 +1,32 @@
+# Runs on every push and pull request. A red X on a commit means something broke.
+name: tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install numpy scipy
+      - name: Python solver self-test (KineSolver comparison and physics checks)
+        run: python3 susp_solver.py selftest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build the web page
+        run: python3 ui/build.py
+      - name: Browser solver matches the Python solver
+        run: python3 ui/test_port.py
+      - name: Install browser test tools
+        working-directory: tests
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Web app end-to-end checks
+        run: node tests/browser_test.js

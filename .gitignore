@@ -9,3 +9,6 @@ ui/artifact.html
 __pycache__/
 *.pyc
 .DS_Store
+
+# test dependencies
+tests/node_modules/
