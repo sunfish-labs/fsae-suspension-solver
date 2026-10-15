@@ -80,6 +80,10 @@ function buildForm() {
   $("#spFields").innerHTML = [field("Spring rate", "N/mm", "spring.spring_rate", { step: 1 }), field("Target ride freq", "Hz", "spring.target_freq_hz", { step: 0.1, opt: 1 }),
     field("Damper eye-to-eye (extended)", "mm", "spring.damper_eye_to_eye", { opt: 1 }), field("Damper stroke", "mm", "spring.damper_stroke", { opt: 1 }),
     field("Unsprung mass / corner", "kg", "spring.unsprung_mass", { step: 0.5 }), field("Tire vertical rate", "N/mm", "spring.tire_rate", { step: 5 })].join("");
+  $("#dampFields").innerHTML = [field("Bump, low-speed", "N s/m", "spring.damper_bump_low", { step: 50, opt: 1 }), field("Rebound, low-speed", "N s/m", "spring.damper_rebound_low", { step: 50, opt: 1 }),
+    field("Bump, high-speed", "N s/m", "spring.damper_bump_high", { step: 50, opt: 1 }), field("Rebound, high-speed", "N s/m", "spring.damper_rebound_high", { step: 50, opt: 1 }),
+    field("Knee (low → high speed)", "mm/s", "spring.damper_knee", { step: 5 }), field("Target damping ratio, low-speed", "", "spring.target_zeta_low", { step: 0.05 }),
+    field("Target damping ratio, high-speed", "", "spring.target_zeta_high", { step: 0.05 })].join("");
   $("#loadFields").innerHTML = [field("Bump", "g", "loads.bump_g", { step: 0.1 }), field("Cornering", "g", "loads.corner_g", { step: 0.1 }),
     field("Braking", "g", "loads.brake_g", { step: 0.1 }), field("Brake + corner", "g", "loads.combined_g", { step: 0.1 }),
     field("Acceleration (rear)", "g", "loads.accel_g", { step: 0.1 })].join("");
@@ -455,6 +459,31 @@ function rockerSvg() {
   s += `</svg>`;
   return `<div class="chart"><h3>Rocker plane, looking along the pivot bolt</h3><p class="cap">Solid = ride height, dotted = full droop, dashed = full bump. Red = pushrod, green = damper, gold = rocker.</p>${s}</div>`;
 }
+// damper force against shaft speed: low-speed slope up to the knee, high-speed slope above (bilinear)
+function damperForce(cl, ch, knee, v) { const a = Math.min(v, knee); return (cl * a + ch * Math.max(0, v - knee)) / 1000; }
+function dampingBlock() {
+  const rd = ev.ride, sc = ev.cfg.spring, MR = rd.motion_ratio, knee = +sc.damper_knee || 50;
+  const z = (k) => rd[k] == null ? `<span class="muted">–</span>` : fmt(rd[k], 2);
+  const has = sc.damper_bump_low || sc.damper_rebound_low || sc.damper_bump_high || sc.damper_rebound_high;
+  const v = Array.from({ length: 31 }, (_, i) => i * 10), tl = rd.damper_c_low_target, th = rd.damper_c_high_target;
+  const series = [{ name: "target", x: v, y: v.map(q => damperForce(tl, th, knee, q)), color: "var(--base)", dash: "4 3", w: 1.5 }];
+  if (sc.damper_bump_low) series.push({ name: "bump", x: v, y: v.map(q => damperForce(+sc.damper_bump_low, +(sc.damper_bump_high || sc.damper_bump_low), knee, q)), color: "var(--s1)" });
+  if (sc.damper_rebound_low) series.push({ name: "rebound", x: v, y: v.map(q => damperForce(+sc.damper_rebound_low, +(sc.damper_rebound_high || sc.damper_rebound_low), knee, q)), color: "var(--s2)", dash: "6 3" });
+  return `<h3 class="sub-h">Damping</h3>
+  <div class="kv">
+    <div><span>Critical damping at the wheel (body)</span><b>${fmt(rd.c_crit, 0)} <small>N s/m</small></b></div>
+    <div><span>Critical damping at the wheel (wheel hop)</span><b>${fmt(rd.c_crit_hop, 0)} <small>N s/m</small></b></div>
+    <div><span>Damper rate for ζ ${fmt(+sc.target_zeta_low || 0.7, 2)} (low-speed)</span><b>${fmt(tl, 0)} <small>N s/m</small></b></div>
+    <div><span>Damper rate for ζ ${fmt(+sc.target_zeta_high || 0.35, 2)} (high-speed)</span><b>${fmt(th, 0)} <small>N s/m</small></b></div></div>
+  ${has ? `<div class="tbl-wrap"><table class="data"><thead><tr><th>Damping ratio</th><th class="n">Low-speed (body)</th><th class="n">High-speed</th></tr></thead><tbody>
+    <tr><td>Bump</td><td class="n">${z("zeta_bump_low")}</td><td class="n">${z("zeta_bump_high")}</td></tr>
+    <tr><td>Rebound</td><td class="n">${z("zeta_rebound_low")}</td><td class="n">${z("zeta_rebound_high")}</td></tr>
+    <tr><td>Wheel hop (bump, high-speed)</td><td class="n"></td><td class="n">${z("zeta_hop")}</td></tr></tbody></table></div>` :
+    `<p class="note">Enter the damper's bump and rebound slopes (inputs → Pushrod, rocker &amp; damper → Damping) to see its damping ratios. The rates above are what would hit the targets.</p>`}
+  <div class="charts">${chart({ title: "Damper force vs shaft speed, N", cap: `dashed = rates for the damping-ratio targets; knee at ${fmt(knee, 0)} mm/s`, xlabel: "shaft speed, mm/s", series })}</div>
+  <p class="note">ζ = damper rate × MR² ÷ critical damping. Common starting points: about 0.6–0.8 at low speed (body control), 0.3–0.4 at high speed (bumps), with rebound stiffer than bump.
+  Critical damping uses the ride rate (spring and tire in series) and the sprung mass of this corner; wheel hop uses the unsprung mass on spring + tire.</p>`;
+}
 function panelSpring() {
   if (!ev.spring) return `<p class="note">Turn on "Model the spring and damper" in the inputs to get motion ratio, ride frequency, damper stroke checks and member loads.</p>`;
   const rd = ev.ride, m = ev.metrics, sc = ev.cfg.spring, rows = ev.rows, x = rows.map(r => r.dz);
@@ -473,6 +502,7 @@ function panelSpring() {
     <div><span>Wheel-hop frequency</span><b>${fmt(rd.hop_freq, 1)} <small>Hz</small></b></div></div>
   <p class="note">Damper length ${fmt(hi, 1)} / ${fmt(mid, 1)} / ${fmt(lo, 1)} mm at full droop / ride height / full bump${e2e && stroke ? `; the damper is ${fmt(e2e, 0)} mm extended and ${fmt(e2e - stroke, 0)} mm closed` : ". Add the damper's eye-to-eye length and stroke to check top-out and bottom-out"}.
   ${rd._arm_rod ? `Rocker arms ${fmt(rd._arm_rod, 1)} mm (pushrod side) and ${fmt(rd._arm_damper, 1)} mm (damper side).` : ""}</p>
+  ${dampingBlock()}
   <div class="charts">
     ${rockerSvg()}
     ${chart({ title: "Motion ratio", cap: "damper travel per wheel travel", xlabel: "wheel travel, mm", marker: pose.dz,

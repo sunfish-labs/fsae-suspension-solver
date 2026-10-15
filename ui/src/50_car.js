@@ -140,6 +140,7 @@ function renderCarBox() {
   html += `<h3 class="sub-h">Front and rear</h3><div class="tbl-wrap"><table class="data"><thead><tr><th></th><th class="n">Front</th><th class="n">Rear</th><th></th></tr></thead><tbody>
     <tr><td>Targets met</td><td class="n">${met(F)} <button class="btn small" type="button" data-edit="front">Edit</button></td><td class="n">${met(R)} <button class="btn small" type="button" data-edit="rear">Edit</button></td><td></td></tr>
     ${row("Ride frequency", mF.ride_freq, mR.ride_freq, "Hz", 2)}${row("Wheel rate", mF.wheel_rate, mR.wheel_rate, "N/mm")}${row("Motion ratio", mF.motion_ratio, mR.motion_ratio, "", 3)}
+    ${row("Damping ratio, bump / low-speed", mF.zeta_bump_low, mR.zeta_bump_low, "", 2)}${row("Damping ratio, rebound / low-speed", mF.zeta_rebound_low, mR.zeta_rebound_low, "", 2)}
     ${row("Roll center height", mF.roll_center, mR.roll_center, "mm")}${row("Roll center sideways shift", mF.rc_lat, mR.rc_lat, "mm/deg")}
     ${row("Camber gain", mF.camber_gain, mR.camber_gain, "deg/in", 3)}${row("Roll camber (outer, to ground)", mF.roll_camber, mR.roll_camber, "deg/deg", 3)}
     ${row("Roll steer (outer)", mF.roll_steer, mR.roll_steer, "deg/deg", 3)}

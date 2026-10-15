@@ -176,6 +176,27 @@ def ride_metrics(cfg, susp, sp, rows):
             out["spring_for_target"] = float("nan")      # tire alone is softer than the target
     if MR < 1e-6:
         raise SolveError("Motion ratio is zero - the damper does not move with the wheel. Check the spring geometry.")
+    out.update(damping(sc, MR, k_w, k_r, k_t, m_s))
+    return out
+
+
+def damping(sc, MR, k_w, k_r, k_t, m_s):
+    """Critical damping and damping ratios. A damper coefficient c (N per m/s at the shaft) acts at the wheel as
+    c * MR^2. Body (sprung-mass) mode: c_crit = 2 sqrt(k_ride m_sprung). Wheel-hop mode: 2 sqrt((k_wheel + k_tire)
+    m_unsprung). Low-speed damping controls the body; high-speed damping handles bumps and the wheel."""
+    m_u = float(sc["unsprung_mass"])
+    c_crit = 2 * math.sqrt(k_r * 1000 * m_s)
+    c_hop = 2 * math.sqrt((k_w + k_t) * 1000 * m_u)
+    out = dict(c_crit=c_crit, c_crit_hop=c_hop)
+    zl, zh = float(sc.get("target_zeta_low") or 0.7), float(sc.get("target_zeta_high") or 0.35)
+    out["damper_c_low_target"] = zl * c_crit / MR ** 2
+    out["damper_c_high_target"] = zh * c_crit / MR ** 2
+    for key, name in (("damper_bump_low", "zeta_bump_low"), ("damper_rebound_low", "zeta_rebound_low"),
+                      ("damper_bump_high", "zeta_bump_high"), ("damper_rebound_high", "zeta_rebound_high")):
+        if sc.get(key):
+            out[name] = float(sc[key]) * MR ** 2 / c_crit
+    if sc.get("damper_bump_high"):
+        out["zeta_hop"] = float(sc["damper_bump_high"]) * MR ** 2 / c_hop
     return out
 
 

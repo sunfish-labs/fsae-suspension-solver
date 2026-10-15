@@ -101,6 +101,8 @@
     rod_on: "lower", rod_outboard: null, rocker_pivot: null, rocker_axis: null, rocker_rod: null,
     rocker_damper: null, damper_chassis: null, spring_rate: 35.0, damper_stroke: null, damper_eye_to_eye: null,
     unsprung_mass: 11.0, tire_rate: 110.0, target_freq_hz: null,
+    damper_bump_low: null, damper_bump_high: null, damper_rebound_low: null, damper_rebound_high: null, damper_knee: 50.0,
+    target_zeta_low: 0.7, target_zeta_high: 0.35,
   };
 
   const METRICS = {
@@ -121,6 +123,11 @@
     motion_ratio: ["Motion ratio (damper/wheel)", "", 3], mr_progression: ["Motion ratio change over travel", "%", 1],
     wheel_rate: ["Wheel rate", "N/mm", 1], ride_rate: ["Ride rate (with tire)", "N/mm", 1],
     ride_freq: ["Ride frequency", "Hz", 2], spring_for_target: ["Spring rate for target freq", "N/mm", 1],
+    c_crit: ["Critical damping at the wheel (body)", "N s/m", 0], c_crit_hop: ["Critical damping at the wheel (wheel hop)", "N s/m", 0],
+    zeta_bump_low: ["Damping ratio, bump low-speed", "", 2], zeta_rebound_low: ["Damping ratio, rebound low-speed", "", 2],
+    zeta_bump_high: ["Damping ratio, bump high-speed", "", 2], zeta_rebound_high: ["Damping ratio, rebound high-speed", "", 2],
+    zeta_hop: ["Wheel-hop damping ratio (bump high-speed)", "", 2],
+    damper_c_low_target: ["Damper rate for the low-speed target", "N s/m", 0], damper_c_high_target: ["Damper rate for the high-speed target", "N s/m", 0],
     damper_used: ["Damper stroke used", "mm", 1], damper_margin: ["Damper stroke left", "mm", 1],
     rocker_rot: ["Rocker rotation over travel", "deg", 1], static_spring_force: ["Spring force at ride height", "N", 0],
     damper_topout: ["Damper room to full extension", "mm", 1],
@@ -174,6 +181,7 @@
         if (cfg.spring.damper_eye_to_eye) { t.damper_topout = [2.0, null]; t.damper_bottomout = [2.0, null]; }
       }
       if (cfg.spring.rocker_pivot != null) t.trans_min = [45.0, null];
+      if (cfg.spring.damper_bump_low && cfg.spring.damper_rebound_low) { t.zeta_bump_low = [0.4, 0.9]; t.zeta_rebound_low = [0.5, 1.2]; }
     }
     Object.assign(t, cfg.targets || {});
     for (const k of Object.keys(t)) if (t[k] == null) delete t[k];
@@ -631,6 +639,17 @@
       const krt = ms * (2 * Math.PI * sc.target_freq_hz) ** 2 / 1000;
       out.spring_for_target = krt < kt ? (krt * kt / (kt - krt)) / (MR * MR) : NaN;
     }
+    Object.assign(out, damping(sc, MR, kw, kr, kt, ms));
+    return out;
+  }
+  // mirrors ride.damping: damper c (N per m/s at the shaft) acts at the wheel as c MR^2
+  function damping(sc, MR, kw, kr, kt, ms) {
+    const mu = +sc.unsprung_mass, cc = 2 * Math.sqrt(kr * 1000 * ms), ch = 2 * Math.sqrt((kw + kt) * 1000 * mu);
+    const zl = +(sc.target_zeta_low || 0.7), zh = +(sc.target_zeta_high || 0.35);
+    const out = { c_crit: cc, c_crit_hop: ch, damper_c_low_target: zl * cc / (MR * MR), damper_c_high_target: zh * cc / (MR * MR) };
+    for (const [k, n] of [["damper_bump_low", "zeta_bump_low"], ["damper_rebound_low", "zeta_rebound_low"], ["damper_bump_high", "zeta_bump_high"], ["damper_rebound_high", "zeta_rebound_high"]])
+      if (sc[k]) out[n] = +sc[k] * MR * MR / cc;
+    if (sc.damper_bump_high) out.zeta_hop = +sc.damper_bump_high * MR * MR / ch;
     return out;
   }
 

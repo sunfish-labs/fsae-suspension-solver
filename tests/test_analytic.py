@@ -110,6 +110,14 @@ check("motion ratio, damper tilted 18.4 deg", e["metrics"]["motion_ratio"], a / 
 kr = 1 / (1 / (50.0 * (a / b) ** 2 * (300 / math.hypot(100, 300)) ** 2) + 1 / 150.0)
 check("ride rate with the tire, N/mm", e["metrics"]["ride_rate"], kr, 1e-3, "wheel rate and tire rate in series")
 
+dmp = dict(damper, damper_bump_low=2000.0, damper_rebound_high=1500.0)
+e = evaluate(corner(PAR, dmp))
+ms, mu = e["ride"]["_m_sprung"], 10.0
+kr = 1 / (1 / (50.0 * (a / b) ** 2) + 1 / 150.0)
+check("critical damping, body, N s/m", e["ride"]["c_crit"], 2 * math.sqrt(kr * 1000 * ms), 1e-6, "2 sqrt(k_ride m_sprung)")
+check("damping ratio, bump low-speed", e["ride"]["zeta_bump_low"], 2000.0 * (a / b) ** 2 / (2 * math.sqrt(kr * 1000 * ms)), 1e-9, "c MR^2 / c_crit")
+check("critical damping, wheel hop, N s/m", e["ride"]["c_crit_hop"], 2 * math.sqrt((50.0 * (a / b) ** 2 + 150.0) * 1000 * mu), 1e-6, "2 sqrt((k_wheel + k_tire) m_unsprung)")
+
 print("\n6. Statics: member forces hold the upright in equilibrium (pushrod on the upright)")
 up = dict(TEMPLATE_FRONT["spring"], rod_on="upright", rod_outboard=[0, 520, 150])
 cfg = corner(spring=up)

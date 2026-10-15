@@ -38,7 +38,7 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   await closeWelcome(p);
   check("car view is the default", (await pressed(p)) === "car");
   check("example car meets its car targets", /3\/3 car targets/.test(await text(p, "#status")), await text(p, "#status"));
-  check("front and rear corners meet all targets", /Front 20\/20/.test(await text(p, "#status")) && /Rear 15\/15/.test(await text(p, "#status")));
+  check("front and rear corners meet all targets", /Front (\d+)\/\1/.test(await text(p, "#status")) && /Rear (\d+)\/\1/.test(await text(p, "#status")), await text(p, "#status"));
   await p.fill('[data-cpath="arb.front"]', "0"); await p.waitForTimeout(700);
   check("removing the front bar breaks the LLTD target", /2\/3 car targets/.test(await text(p, "#status")));
   await p.fill('[data-cpath="arb.front"]', "200"); await p.fill('[data-cpath="vehicle.mass"]', "300"); await p.waitForTimeout(700);
@@ -50,6 +50,9 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   await p.click('#axleSeg [data-ax="front"]'); await p.waitForTimeout(700);
   const tabs = await p.$$eval("#tabs button", bs => bs.map(b => b.textContent.trim()));
   check("six result tabs", tabs.join("|") === "Targets|Motion|Spring & damper|Loads|Packaging|Compare", tabs.join("|"));
+  await p.click("#tab_spring"); await p.waitForTimeout(300);
+  const sp = await text(p, "#pn_spring");
+  check("Spring & damper tab shows damping ratios and critical damping", /Damping ratio/.test(sp) && /Critical damping at the wheel/.test(sp) && /Damper force vs shaft speed/.test(sp));
   await p.click("#tab_motion"); await p.click('#pn_heave [data-msub="roll"]'); await p.waitForTimeout(300);
   check("Motion → Roll switch", await p.$eval("#pn_roll", e => !e.hidden));
   const labels = await p.$$eval("#hpTable .hpbtn[data-leg]", bs => bs.map(b => b.dataset.leg + ":" + b.textContent));
@@ -95,7 +98,7 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   const rep = fs.readFileSync(await grab("#xReport"), "utf8");
   check("design report has the car summary and both corners", /Car target/.test(rep) && /Front:/.test(rep) && /Rear:/.test(rep));
   const wb = XLSX.readFile(await grab("#xXlsx"));
-  check("Excel workbook has summary, targets, sweeps and loads", ["Summary", "Front targets", "Front heave", "Rear loads"].every(s => wb.SheetNames.includes(s)), wb.SheetNames.join(","));
+  check("Excel workbook has summary, targets, sweeps and loads", ["Summary", "Front targets", "Front heave", "Front springs & damping", "Rear loads"].every(s => wb.SheetNames.includes(s)), wb.SheetNames.join(","));
   await p.evaluate(() => { window.showSaveFilePicker = undefined; });   // use the plain download path in the test
   const car = JSON.parse(fs.readFileSync(await grab("#btnDownload"), "utf8"));
   check("car JSON carries both corners and every corner's targets", car.type === "car" && car.front.targets && Object.keys(car.front.targets).length > 10 && car.rear.targets && car.car_targets);

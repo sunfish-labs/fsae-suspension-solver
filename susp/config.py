@@ -61,7 +61,16 @@ SPRING_DEFAULTS = {
     "unsprung_mass": 11.0,      # kg per corner
     "tire_rate": 110.0,         # N/mm vertical tire stiffness - check your tire data
     "target_freq_hz": None,     # optional: report the spring rate that gives this ride frequency
+    # damping (optional): damper coefficients at the damper shaft, N per m/s, from the damper dyno chart
+    "damper_bump_low": None,    # bump (compression), low-speed slope (shaft speed below the knee)
+    "damper_bump_high": None,   # bump, high-speed slope (above the knee)
+    "damper_rebound_low": None,
+    "damper_rebound_high": None,
+    "damper_knee": 50.0,        # mm/s shaft speed where low-speed turns into high-speed
+    "target_zeta_low": 0.7,     # damping-ratio targets used for the suggested damper rates
+    "target_zeta_high": 0.35,
 }
+DAMPER_KEYS = ("damper_bump_low", "damper_bump_high", "damper_rebound_low", "damper_rebound_high")
 
 SPRING_POINTS = ("rod_outboard", "rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper", "damper_chassis")
 
@@ -87,6 +96,11 @@ METRICS = {  # key: (label, unit, decimals)
     "mr_progression": ("Motion ratio change over travel", "%", 1),
     "wheel_rate": ("Wheel rate", "N/mm", 1), "ride_rate": ("Ride rate (with tire)", "N/mm", 1),
     "ride_freq": ("Ride frequency", "Hz", 2), "spring_for_target": ("Spring rate for target freq", "N/mm", 1),
+    "c_crit": ("Critical damping at the wheel (body)", "N s/m", 0), "c_crit_hop": ("Critical damping at the wheel (wheel hop)", "N s/m", 0),
+    "zeta_bump_low": ("Damping ratio, bump low-speed", "", 2), "zeta_rebound_low": ("Damping ratio, rebound low-speed", "", 2),
+    "zeta_bump_high": ("Damping ratio, bump high-speed", "", 2), "zeta_rebound_high": ("Damping ratio, rebound high-speed", "", 2),
+    "zeta_hop": ("Wheel-hop damping ratio (bump high-speed)", "", 2),
+    "damper_c_low_target": ("Damper rate for the low-speed target", "N s/m", 0), "damper_c_high_target": ("Damper rate for the high-speed target", "N s/m", 0),
     "damper_used": ("Damper stroke used", "mm", 1), "damper_margin": ("Damper stroke left", "mm", 1),
     "rocker_rot": ("Rocker rotation over travel", "deg", 1),
     "static_spring_force": ("Spring force at ride height", "N", 0),
@@ -263,6 +277,10 @@ def default_targets(cfg):
                 t["damper_bottomout"] = [2.0, None]
         if cfg["spring"].get("rocker_pivot") is not None:
             t["trans_min"] = [45.0, None]
+        sp_ = cfg["spring"]
+        if sp_.get("damper_bump_low") and sp_.get("damper_rebound_low"):     # body control (low-speed)
+            t["zeta_bump_low"] = [0.4, 0.9]
+            t["zeta_rebound_low"] = [0.5, 1.2]
     t.update(cfg.get("_team_targets") or {})
     t.update({k: v for k, v in (cfg.get("targets") or {}).items()})
     return {k: v for k, v in t.items() if v is not None}

@@ -77,7 +77,14 @@
     "damper_eye_to_eye": 200.0,
     "unsprung_mass": 11.0,
     "tire_rate": 110.0,
-    "target_freq_hz": 3.5
+    "target_freq_hz": 3.5,
+    "damper_bump_low": 2000,
+    "damper_bump_high": 900,
+    "damper_rebound_low": 3000,
+    "damper_rebound_high": 1400,
+    "damper_knee": 50.0,
+    "target_zeta_low": 0.7,
+    "target_zeta_high": 0.35
   },
   "loads": {
     "bump_g": 3.0,

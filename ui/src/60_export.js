@@ -53,6 +53,13 @@ function reportHtml() {
       ${chart({ title: "Roll center height, mm", xlabel: "wheel travel, mm", series: sr(r => r.roll_center) })}${e.spring ? chart({ title: "Motion ratio", xlabel: "wheel travel, mm", series: sr(r => r.motion_ratio) }) : ""}
       ${e.steer ? chart({ title: "Ackermann, %", xlabel: "outer wheel angle, deg", series: [{ x: e.steer.filter(r => Number.isFinite(r.ackermann)).map(r => r.outer), y: e.steer.filter(r => Number.isFinite(r.ackermann)).map(r => r.ackermann), color: "#2F5D7C" }] }) : ""}
       ${chart({ title: "Camber to ground in roll, deg", xlabel: "body roll, deg", series: [{ name: "outer", x: e.roll.map(r => r.roll), y: e.roll.map(r => r.camber_outer), color: "#2F5D7C" }, { name: "inner", x: e.roll.map(r => r.roll), y: e.roll.map(r => r.camber_inner), color: "#9E7E38", dash: "5 3" }] })}</div>`;
+    if (e.ride) {
+      const r = e.ride, z = (q) => r[q] == null ? "–" : fmt(r[q], 2);
+      body += `<h3>Springs and damping</h3>` + tbl(["", "Value"], [["Motion ratio", fmt(r.motion_ratio, 3)], ["Wheel rate, N/mm", fmt(r.wheel_rate, 1)], ["Ride frequency, Hz", fmt(r.ride_freq, 2)],
+        ["Critical damping at the wheel (body / wheel hop), N s/m", `${fmt(r.c_crit, 0)} / ${fmt(r.c_crit_hop, 0)}`],
+        ["Damping ratio bump: low / high speed", `${z("zeta_bump_low")} / ${z("zeta_bump_high")}`], ["Damping ratio rebound: low / high speed", `${z("zeta_rebound_low")} / ${z("zeta_rebound_high")}`],
+        [`Damper rates for ζ ${fmt(+e.cfg.spring.target_zeta_low || 0.7, 2)} / ${fmt(+e.cfg.spring.target_zeta_high || 0.35, 2)}, N s/m`, `${fmt(r.damper_c_low_target, 0)} / ${fmt(r.damper_c_high_target, 0)}`]].map(([a, b2]) => `<tr><td>${a}</td><td class="n">${b2}</td></tr>`));
+    }
     if (k.L) {
       const mem = e.cfg.members;
       body += `<h3>Member strength (${esc(mem.material || "steel")}, yield ${fmt(mem.yield, 0)} MPa, required FOS ${fmt(mem.sf_target, 1)})</h3>` +
@@ -106,6 +113,13 @@ async function exportXlsx() {
     add(`${L} heave`, [hc, ...e.rows.map(r => hc.map(c => r4(r[c])))]);
     const rc = ["roll", "camber_outer", "camber_inner", "rc_height", "rc_lateral"];
     add(`${L} roll`, [rc, ...e.roll.map(r => rc.map(c => r4(r[c])))]);
+    if (e.ride) { const r = e.ride, sc = e.cfg.spring;
+      add(`${L} springs & damping`, [["Quantity", "Value", "Unit"], ["Motion ratio", r4(r.motion_ratio), ""], ["Wheel rate", r4(r.wheel_rate), "N/mm"], ["Ride rate (with tire)", r4(r.ride_rate), "N/mm"],
+        ["Ride frequency", r4(r.ride_freq), "Hz"], ["Wheel-hop frequency", r4(r.hop_freq), "Hz"], ["Critical damping at the wheel, body", r4(r.c_crit), "N s/m"], ["Critical damping at the wheel, wheel hop", r4(r.c_crit_hop), "N s/m"],
+        ["Damper bump low / high", `${sc.damper_bump_low ?? ""} / ${sc.damper_bump_high ?? ""}`, "N s/m"], ["Damper rebound low / high", `${sc.damper_rebound_low ?? ""} / ${sc.damper_rebound_high ?? ""}`, "N s/m"],
+        ["Damping ratio bump low-speed", r4(r.zeta_bump_low), ""], ["Damping ratio rebound low-speed", r4(r.zeta_rebound_low), ""], ["Damping ratio bump high-speed", r4(r.zeta_bump_high), ""],
+        ["Damping ratio rebound high-speed", r4(r.zeta_rebound_high), ""], ["Wheel-hop damping ratio", r4(r.zeta_hop), ""],
+        ["Damper rate for low-speed target", r4(r.damper_c_low_target), "N s/m"], ["Damper rate for high-speed target", r4(r.damper_c_high_target), "N s/m"]], [40, 14, 8]); }
     if (e.steer) add(`${L} steering`, [["rack", "inner", "outer", "ackermann", "camber_inner", "camber_outer"], ...e.steer.map(r => ["rack", "inner", "outer", "ackermann", "camber_inner", "camber_outer"].map(c => r4(r[c])))]);
     if (k.L) {
       const cases = Object.keys(k.L.results), keys = S.MEMBERS.concat(["damper", "rocker_pivot", "bending"]);

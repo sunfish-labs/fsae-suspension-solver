@@ -129,6 +129,13 @@ the other way, which can put a different leg into compression.
    Goals can be `=`, `>=` or `<=`. `--keep-clear` keeps every clearance pair (including the other side's damper) legal.
 5. Re-run `run`, `loads` and `car`. Pick the spring from "Spring rate for target freq".
 
+
+### Damping
+Add the damper's dyno slopes to the `spring` block (N per m/s at the shaft): `damper_bump_low`, `damper_bump_high`,
+`damper_rebound_low`, `damper_rebound_high`, and `damper_knee` (mm/s). The solver reports critical damping at the
+wheel (body and wheel hop), the damping ratio of each setting (ζ = c × MR² ÷ c_crit), and the damper rates that hit
+`target_zeta_low` (default 0.7, body control) and `target_zeta_high` (default 0.35, bumps). With low-speed bump and
+rebound given, the Targets list checks ζ bump 0.4–0.9 and rebound 0.5–1.2 (edit them like any target).
 ## Config (JSON)
 - `hardpoints` (mm): the 9 points, using KineSolver names. The solver only uses the coordinates; "front"/"rear" are just labels.
 - `wheel`: static camber/toe, tire radius/width, rim diameter.

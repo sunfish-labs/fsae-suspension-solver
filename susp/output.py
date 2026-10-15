@@ -169,6 +169,16 @@ def print_ride(cfg, ev):
         print(f"  damper stroke {sc['damper_stroke']:g} mm allows about {rd['_wheel_travel_per_stroke']:.0f} mm "
               "of total wheel travel at this motion ratio.")
     print(f"  wheel-hop frequency ~{rd['hop_freq']:.1f} Hz (unsprung mass on spring + tire).")
+    print(f"\nDamping (critical damping at the wheel: body {rd['c_crit']:.0f} N s/m, wheel hop {rd['c_crit_hop']:.0f} N s/m)")
+    zrows = [[lab, f"{rd[k]:.2f}"] for k, lab in (("zeta_bump_low", "bump, low-speed"), ("zeta_rebound_low", "rebound, low-speed"),
+             ("zeta_bump_high", "bump, high-speed"), ("zeta_rebound_high", "rebound, high-speed"), ("zeta_hop", "wheel hop (bump high-speed)")) if k in rd]
+    if zrows:
+        table(["damping ratio", "value"], zrows)
+    else:
+        print("  add damper_bump_low / _high and damper_rebound_low / _high (N per m/s at the shaft) to get damping ratios.")
+    zl, zh = sc.get("target_zeta_low") or 0.7, sc.get("target_zeta_high") or 0.35
+    print(f"  -> damper rates for damping ratio {zl:g} (low-speed, body control) and {zh:g} (high-speed, bumps): "
+          f"about {rd['damper_c_low_target']:.0f} and {rd['damper_c_high_target']:.0f} N s/m at the shaft.")
 
 
 def write_csv(prefix, ev):

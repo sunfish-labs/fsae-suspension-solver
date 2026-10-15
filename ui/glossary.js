@@ -127,6 +127,13 @@ window.SUSP_TERMS = [
   { id: "damper_stroke", cat: "Springs and damping", name: "Damper stroke and sag", metric: "damper_static_pos",
     def: "Stroke is how far the damper can compress. Sag is how far into that stroke it sits at ride height. With equal bump and droop travel, aim for roughly the middle so it neither tops out nor bottoms out.",
     moves: "Damper chassis mount position and rocker geometry." },
+  { id: "damping_ratio", cat: "Springs and damping", name: "Damping ratio", aka: "ζ, zeta", metric: "zeta_bump_low",
+    def: "How much of the 'just stops bouncing' damping a corner has: 1.0 is critical damping, where the body returns without overshooting. Below 1 it overshoots a little and settles; above 1 it creeps back. Low-speed damping (slow shaft speeds) controls body roll and pitch; high-speed damping handles bumps and kerbs.",
+    conv: "ζ = damper rate × motion ratio² ÷ critical damping. Common starting points: about 0.6–0.8 low-speed, 0.3–0.4 high-speed, rebound stiffer than bump.",
+    moves: "Damper clicks (adjusters), damper valving, and the motion ratio (damping at the wheel goes with MR²)." },
+  { id: "critical_damping", cat: "Springs and damping", name: "Critical damping", metric: "c_crit",
+    def: "The damping at the wheel that would just stop the corner from bouncing: 2 × √(ride rate × sprung mass). Real cars run a fraction of it (the damping ratio).",
+    moves: "Stiffer springs or more mass raise it." },
   { id: "unsprung", cat: "Springs and damping", name: "Unsprung mass and wheel hop",
     def: "Unsprung mass is everything that moves with the wheel: tire, wheel, upright, brakes and part of the links. It bounces on the tire at the wheel-hop frequency (often 15 to 20 Hz); lighter is better for grip over bumps." },
 
