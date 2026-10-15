@@ -546,12 +546,12 @@ def print_loads(cfg, ev, L):
         print(f"\nRod ends and bolts ({mem.get('bolt_dia')} mm grade {mem.get('bolt_grade')} bolt, {mem.get('bolt_shear_planes')} shear plane(s)"
               + (f": shear capacity {cap:.0f} N" if cap else ": set bolt_dia / bolt_grade to check") + ")")
         table(["member", "worst |force| N", "bolt FOS", "rod-end FOS"],
-              [[r["member"], f"{r['peak']:.0f} ({r['p_case']})", f_num(r["sf_bolt"], 1) if r["sf_bolt"] is not None else "-",
+              [[member_label(r["member"], s), f"{r['peak']:.0f} ({r['p_case']})", f_num(r["sf_bolt"], 1) if r["sf_bolt"] is not None else "-",
                 f_num(r["sf_rod_end"], 1) if r["sf_rod_end"] is not None else "enter rod_end_rating"] for r in pr])
     b = L.get("bending_check")
     if b:
         ok = b["sf"] >= mem["sf_target"]
-        print(f"\nPushrod mount bending: the {b['leg'].replace('_', ' ')} leg as a beam pinned at both ends ({b['length']:.0f} mm long), "
+        print(f"\nPushrod mount bending: the {member_label(b['leg'], s).lower()} as a beam pinned at both ends ({b['length']:.0f} mm long), "
               f"mount {b['a']:.0f} mm from the pivot and {b['offset']:.0f} mm off the leg's centerline.")
         print(f"  worst case {b['case']}: {b['P_perp']:.0f} N across the leg, {b['moment'] / 1000:.1f} N m, stress {b['stress']:.0f} MPa "
               f"(bending + axial) -> FOS {b['sf']:.2f} {'OK' if ok else 'BELOW FOS'}")
@@ -560,6 +560,19 @@ def print_loads(cfg, ev, L):
                   "  the ball joint, or use a stiffer leg. This beam check is conservative if a gusset carries the load.")
         if b["offset"] > 5:
             print(f"  The mount is {b['offset']:.0f} mm off the leg's centerline: the bracket also twists the leg (not modeled).")
+    c = L.get("compliance")
+    if c:
+        print(f"\nCompliance: toe and camber change from the links stretching (estimated stiffness: rod ends "
+              f"{mem.get('rod_end_k') or 0:.0f} N/mm each, chassis mounts {mem.get('mount_k') or 0:.0f} N/mm, plus the tube).")
+        print("  Link stiffness N/mm: " + ", ".join(f"{member_label(k, s).lower()} {v:.0f}" for k, v in c["stiffness"].items()))
+        table(["case", "camber change deg", "toe-in change deg", "contact patch moves Y mm", "largest link stretch mm"],
+              [[x["case"] + ("" if x["driving"] else " *"), f"{x['camber']:+.3f}", f"{x['toe']:+.3f}", f"{x['cp_y']:+.2f}",
+                f"{x['worst_stretch']:.2f}"] for x in c["cases"]])
+        for key, lim, ok, w in (("toe", c["toe_limit"], c["toe_ok"], c["worst_toe"]), ("camber", c["camber_limit"], c["camber_ok"], c["worst_camber"])):
+            if lim is not None:
+                print(f"  Worst {key} change in a driving case: {w[key]:+.3f} deg ({w['case']}), limit {lim:g} -> {'OK' if ok else 'TOO SOFT'}")
+        print("  * bump and impact cases: shown, not held to the limits. Toe-in + / camber - = top in. The stiffnesses are\n"
+              "    estimates: rod_end_k and mount_k under 'members' (stiffer tabs and rod ends help most).")
     print("\nNot checked here: tabs, welds, inserts, rod-end threads and fatigue. Change g levels under 'loads' (pothole_g and\n"
           "kerb_g are the impact cases), tubes, material, bolts and rod-end rating under 'members'.")
 

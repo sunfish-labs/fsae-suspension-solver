@@ -95,7 +95,8 @@
     loads: { bump_g: 3.0, corner_g: 1.6, brake_g: 1.6, combined_g: 1.2, accel_g: 1.0, lltd_front: null, pothole_g: 4.0, kerb_g: 2.0 },
     members: { material: "4130 chromoly steel, normalized (yield is lower next to welds)",
       wishbone: [15.875, 0.889], tie_rod: [15.875, 0.889], pushrod: [15.875, 0.889],
-      E: 205000.0, yield: 435.0, sf_target: 2.0, rod_end_rating: null, bolt_dia: 7.94, bolt_grade: "SAE 8", bolt_shear_planes: 2 },
+      E: 205000.0, yield: 435.0, sf_target: 2.0, rod_end_rating: null, bolt_dia: 7.94, bolt_grade: "SAE 8", bolt_shear_planes: 2,
+      rod_end_k: 40000.0, mount_k: 20000.0, toe_comp_limit: 0.15, camber_comp_limit: 0.25 },
   };
   const SPRING_DEFAULTS = {
     rod_on: "lower", rod_outboard: null, rocker_pivot: null, rocker_axis: null, rocker_rod: null,
@@ -750,9 +751,14 @@
   }
 
   function solveCase(susp, sp, forces) {
-    const [pts, inb, outb, st] = loadGeometry(susp, sp);
+    const pts = loadGeometry(susp, sp)[0];
     let F = [0, 0, 0], M = [0, 0, 0];
     for (const [f, p] of forces) { F = add(F, f); M = add(M, cross(pts[p], f)); }
+    return solveFM(susp, sp, F, M);
+  }
+
+  function solveFM(susp, sp, F, M) {
+    const [pts, inb, outb, st] = loadGeometry(susp, sp);
     const e = {}; for (const k of MEMBERS) e[k] = unit(sub(inb[k], outb[k]));
     const out = {}, rhs = F.concat(M).map(v => -v);
     const colOf = (dir, at) => dir.concat(cross(at, dir));
@@ -814,7 +820,36 @@
         compression: comp, c_case: cmin[1], Pcr, Py, peak: pk[0], p_case: pk[1],
         sf_buckle: comp > 1e-6 ? Pcr / comp : Infinity, sf_yield: pk[0] > 1e-6 ? Py / pk[0] : Infinity };
     });
-    return { results, desc, tire, fz_parts: fz, info, checks, parts: partChecks(cfg, checks), bending_check: bendingCheck(cfg, susp, sp, results) };
+    return { results, desc, tire, fz_parts: fz, info, checks, parts: partChecks(cfg, checks), bending_check: bendingCheck(cfg, susp, sp, results),
+      compliance: compliance(cfg, susp, sp, results) };
+  }
+  // mirrors loads.link_stiffness / loads.compliance (unit-load method)
+  const IMPACT_CASES = ["bump", "pothole", "kerb strike"];
+  function linkStiffness(cfg, k, length) {
+    const mem = cfg.members, size = /^(upper|lower)/.test(k) ? "wishbone" : k, [A] = tubeProps(...mem[size]);
+    const parts = [mem.E * A / length];
+    if (mem.rod_end_k) parts.push(+mem.rod_end_k, +mem.rod_end_k);
+    if (mem.mount_k) parts.push(+mem.mount_k);
+    return 1 / parts.reduce((s, x) => s + 1 / x, 0);
+  }
+  function compliance(cfg, susp, sp, results) {
+    const [, inb, outb] = loadGeometry(susp, sp), k = {};
+    for (const m of MEMBERS) k[m] = linkStiffness(cfg, m, norm(sub(inb[m], outb[m])));
+    const I3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]], Z = [0, 0, 0], cp = susp.h.cp, deg = 180 / Math.PI;
+    const unitRows = I3.map(f => solveFM(susp, sp, f, Z)).concat(I3.map(m => solveFM(susp, sp, Z, m)));
+    const cases = Object.entries(results).map(([name, r]) => {
+      const st = {}; for (const m of MEMBERS) st[m] = r[m] / k[m];
+      const q = unitRows.map(u => MEMBERS.reduce((s, m) => s + st[m] * u[m], 0)), d = q.slice(0, 3), th = q.slice(3);
+      const dcp = add(d, cross(th, cp));
+      return { case: name, camber: -th[0] * deg, toe: -th[2] * deg, cp_y: dcp[1], cp_z: dcp[2],
+        worst_stretch: Math.max(...MEMBERS.map(m => Math.abs(st[m]))), d, theta: th, driving: !IMPACT_CASES.includes(name) };
+    });
+    const mem = cfg.members, tl = mem.toe_comp_limit ?? null, cl = mem.camber_comp_limit ?? null;
+    let drv = cases.filter(c => c.driving); if (!drv.length) drv = cases;
+    const worst = (key) => drv.reduce((m, c) => Math.abs(c[key]) > Math.abs(m[key]) ? c : m);
+    const wt = worst("toe"), wc = worst("camber");
+    return { stiffness: k, cases, toe_limit: tl, camber_limit: cl, worst_toe: wt, worst_camber: wc,
+      toe_ok: tl == null || Math.abs(wt.toe) <= tl, camber_ok: cl == null || Math.abs(wc.camber) <= cl };
   }
   // mirrors loads.part_checks / loads.bending_check
   const BOLT_UTS = { "8.8": 800, "10.9": 1040, "12.9": 1220, "SAE 5": 827, "SAE 8": 1034 };

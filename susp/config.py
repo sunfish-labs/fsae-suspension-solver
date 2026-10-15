@@ -50,7 +50,12 @@ DEFAULTS = {
                 "rod_end_rating": None,      # N, the rod end's catalog radial static (ultimate) rating; None = not checked
                 "bolt_dia": 7.94,            # mm, bolt through each rod end / spherical bearing (7.94 = 5/16 in)
                 "bolt_grade": "SAE 8",       # 8.8, 10.9, 12.9, SAE 5 or SAE 8
-                "bolt_shear_planes": 2},     # 2 = double shear (clevis), 1 = single shear
+                "bolt_shear_planes": 2,      # 2 = double shear (clevis), 1 = single shear
+                # compliance (estimates - measure your own parts if you can):
+                "rod_end_k": 40000.0,        # N/mm, axial stiffness of one rod end or spherical bearing (each link has two)
+                "mount_k": 20000.0,          # N/mm, chassis tab or bracket at the inboard end of each link
+                "toe_comp_limit": 0.15,      # deg, largest acceptable toe change from compliance (cornering, braking, accel)
+                "camber_comp_limit": 0.25},  # deg, largest acceptable camber change from compliance (same cases)
 }
 
 SPRING_DEFAULTS = {

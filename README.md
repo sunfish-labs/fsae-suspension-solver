@@ -125,6 +125,14 @@ the other way, which can put a different leg into compression.
 7. **Rod ends and bolts:** each member's worst force is checked against `members.rod_end_rating` (N, from your rod end's
    catalog; leave blank to skip) and a bolt in shear: capacity = planes × π/4 × d² × 0.6 × UTS (`bolt_dia` mm,
    `bolt_grade` 8.8 / 10.9 / 12.9 / SAE 5 / SAE 8, `bolt_shear_planes` 1 or 2).
+8. **Compliance:** each link is an axial spring made of two rod ends (`rod_end_k`, N/mm each), the tube (E·A/L) and
+   the chassis tab or bracket (`mount_k`) in series; the wishbones, upright, rocker and rack are rigid and the damper
+   is held. The link stretches (force ÷ stiffness) move the upright, found with the unit-load method so the work
+   done by the tire forces equals the energy in the links. The output is the camber and toe change per case on top
+   of the kinematic curves, plus how far the contact patch moves sideways. The worst cornering, braking or
+   acceleration case is compared with `toe_comp_limit` (default 0.15 deg) and `camber_comp_limit` (0.25 deg);
+   bump and impact cases are shown but not limited. The default stiffnesses are estimates: measure your own tabs and
+   rod ends if you can.
 
 ## Iterating on the pushrod, rocker and damper
 1. Put your actual damper in the `spring` block: `damper_eye_to_eye` and `damper_stroke`.
@@ -160,7 +168,8 @@ rebound given, the Targets list checks ζ bump 0.4–0.9 and rebound 0.5–1.2 (
   Pushrod or pullrod doesn't matter: the geometry decides.
 - `loads`: g levels for `bump_g`, `corner_g`, `brake_g`, `combined_g`, `accel_g`, `pothole_g`, `kerb_g`, and optional `lltd_front`.
 - `members`: `material` (label), tube `[OD, wall]` (mm) for `wishbone`, `tie_rod` and `pushrod`; `E`, `yield` (MPa); `sf_target`;
-  `rod_end_rating` (N), `bolt_dia` (mm), `bolt_grade`, `bolt_shear_planes`.
+  `rod_end_rating` (N), `bolt_dia` (mm), `bolt_grade`, `bolt_shear_planes`; compliance `rod_end_k`, `mount_k` (N/mm),
+  `toe_comp_limit`, `camber_comp_limit` (deg).
 - `sweep`: heave travel, rack travel, roll angle and step counts. `clearance`: tube ODs and margin.
 - `targets`: override any target range, e.g. `"roll_center": [30, 60]`, or `null` to drop one.
 - `targets_file`: optional path (relative to the design file) to a shared team targets file:
@@ -188,7 +197,8 @@ Member forces: + = tension.
   - Car load transfer adds up to m·g·h.
 
 ## Limitations
-- Rigid links. No compliance, bushings, tire model, or chassis torsion.
+- The kinematic curves use rigid links. Compliance is a separate linear check at ride height (axial link stretch
+  only: no bushings, bending of the arms, upright or wheel flex, tire model, or chassis torsion).
 - Roll uses equal and opposite wheel travel, so it gives the kinematic roll center. The force-based roll center
   moves once the tires are loaded unevenly.
 - Loads are quasi-static, use the ride-height geometry and the outer wheel only, and assume equal friction use at

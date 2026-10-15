@@ -96,6 +96,8 @@ function buildForm() {
   $("#partFields").innerHTML = [field("Rod-end rating (catalog)", "N", "members.rod_end_rating", { step: 500, opt: 1 }), field("Bolt diameter", "mm", "members.bolt_dia", { step: 0.1 }),
     field("Bolt grade", "", "members.bolt_grade", { options: [["SAE 8", "SAE grade 8"], ["SAE 5", "SAE grade 5"], ["8.8", "Metric 8.8"], ["10.9", "Metric 10.9"], ["12.9", "Metric 12.9"]] }),
     field("Bolt shear", "", "members.bolt_shear_planes", { options: [["2", "Double shear (clevis)"], ["1", "Single shear"]] })].join("");
+  $("#compFields").innerHTML = [field("Rod-end stiffness (each)", "N/mm", "members.rod_end_k", { step: 1000, opt: 1 }), field("Chassis tab / bracket stiffness", "N/mm", "members.mount_k", { step: 1000, opt: 1 }),
+    field("Toe change limit", "deg", "members.toe_comp_limit", { step: 0.01, opt: 1 }), field("Camber change limit", "deg", "members.camber_comp_limit", { step: 0.01, opt: 1 })].join("");
   $("#clrFields").innerHTML = [field("Wishbone tube OD", "mm", "clearance.wishbone_tube_od"), field("Tie rod OD", "mm", "clearance.tie_rod_od"),
     field("Pushrod OD", "mm", "clearance.pushrod_od"), field("Damper body OD", "mm", "clearance.damper_od"), field("Extra margin", "mm", "clearance.margin")].join("");
   $$("[data-path]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", onInput));
@@ -293,6 +295,8 @@ function renderAll(ms) {
     (m.motion_ratio != null ? `<span class="pill neutral">MR ${fmt(m.motion_ratio, 3)}</span>` : "") +
     (minFos != null ? `<span class="pill ${minFos >= ev.cfg.members.sf_target ? "ok" : "bad"}">Min FOS ${fmt(minFos, 2)}</span>` : "") +
     (loads && loads.bending_check ? `<span class="pill ${loads.bending_check.sf >= ev.cfg.members.sf_target ? "ok" : "warn"}" title="The pushrod mount bending the wishbone leg (Loads tab)">Mount bending FOS ${fmt(loads.bending_check.sf, 2)}</span>` : "") +
+    (loads && loads.compliance ? (() => { const c = loads.compliance, ok = c.toe_ok && c.camber_ok;
+      return `<span class="pill ${ok ? "ok" : "warn"}" title="Toe change from links and mounts flexing, worst cornering / braking case (Loads tab)">Compliance toe ${fmt(c.worst_toe.toe, 2)}°</span>`; })() : "") +
     (base ? `<span class="pill neutral">Baseline: ${esc(baseName)} <button class="btn small" id="btnClearBase" type="button" style="margin-left:4px">Clear</button></span>`
       : `<button class="btn small pinbtn" id="btnBase" type="button" title="Freeze these results; your next edits then show as changes and dashed curves">Pin as baseline</button>`);
   const pb = $("#btnBase"); if (pb) pb.addEventListener("click", () => { if (!ev || err) return; base = ev; baseName = cfg.name || "pinned design"; renderAll(0); });
@@ -569,6 +573,19 @@ function partsHtml(L, label, mem) {
     <div class="tbl-wrap"><table class="data"><thead><tr><th>Member</th><th class="n">Worst |force|, N</th><th class="n">Bolt FOS</th><th class="n">Rod-end FOS</th></tr></thead><tbody>
     ${P.map(r => `<tr><td>${esc(label(r.member))}</td><td class="n">${fmt(r.peak, 0)} <span class="muted">(${esc(r.p_case)})</span></td>${cell(r.sf_bolt)}${r.sf_rod_end == null ? `<td class="n muted">enter rating</td>` : cell(r.sf_rod_end)}</tr>`).join("")}</tbody></table></div>
     <p class="note">Bolt shear capacity = shear planes × bolt area × 0.6 × tensile strength. Enter your rod end's catalog radial rating (inputs → Loads &amp; materials → Rod ends and bolts) to check it.</p>`;
+  }
+  const C = L.compliance;
+  if (C) {
+    const lim = (v, l) => l == null ? "" : Math.abs(v) <= l ? "" : "bad-t";
+    h += `<h3 class="sub-h">Compliance · how far the wheel moves when the links and mounts flex</h3>
+    <div class="kv"><div><span>Worst toe change, cornering / braking</span><b class="${C.toe_ok ? "ok-t" : "bad-t"}">${fmt(C.worst_toe.toe, 3)}° <small>${esc(C.worst_toe.case)}${C.toe_limit != null ? ` · limit ${fmt(C.toe_limit, 2)}` : ""}</small></b></div>
+      <div><span>Worst camber change, cornering / braking</span><b class="${C.camber_ok ? "ok-t" : "bad-t"}">${fmt(C.worst_camber.camber, 3)}° <small>${esc(C.worst_camber.case)}${C.camber_limit != null ? ` · limit ${fmt(C.camber_limit, 2)}` : ""}</small></b></div>
+      <div><span>Link stiffness (two rod ends + tube + mount)</span><b>${fmt(Math.min(...Object.values(C.stiffness)), 0)}–${fmt(Math.max(...Object.values(C.stiffness)), 0)} <small>N/mm</small></b></div></div>
+    <div class="tbl-wrap"><table class="data"><thead><tr><th>Case</th><th class="n">Camber change, °</th><th class="n">Toe-in change, °</th><th class="n">Contact patch moves sideways, mm</th><th class="n">Largest link stretch, mm</th></tr></thead><tbody>
+    ${C.cases.map(x => `<tr${x.driving ? "" : ` class="muted"`}><td>${esc(x.case)}${x.driving ? "" : " *"}</td><td class="n ${x.driving ? lim(x.camber, C.camber_limit) : ""}">${x.camber > 0 ? "+" : ""}${fmt(x.camber, 3)}</td>
+      <td class="n ${x.driving ? lim(x.toe, C.toe_limit) : ""}">${x.toe > 0 ? "+" : ""}${fmt(x.toe, 3)}</td><td class="n">${x.cp_y > 0 ? "+" : ""}${fmt(x.cp_y, 2)}</td><td class="n">${fmt(x.worst_stretch, 2)}</td></tr>`).join("")}</tbody></table></div>
+    <p class="note">These changes come on top of the kinematic curves. Each link is a spring: two rod ends, the tube (E·A/L) and the chassis tab in series, with the rack and damper held. Toe-in +, camber − = top in.
+    * Bump and impact cases are shown but not held to the limits. The rod-end and tab stiffnesses are estimates (inputs → Loads &amp; materials → Compliance); a stiffer tab or rod end helps most.</p>`;
   }
   return h;
 }

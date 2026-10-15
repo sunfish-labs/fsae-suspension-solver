@@ -154,4 +154,7 @@ window.SUSP_TERMS = [
     def: "Capacity divided by the worst load. A FOS of 2 means the part could take twice the worst case before buckling or yielding. The Loads tab reports it for buckling and for yield." },
   { id: "rod_end", cat: "Loads and balance", name: "Rod end", aka: "heim joint, spherical bearing",
     def: "The spherical joints at the ends of the links. Check each one's rated load against the 'worst |force|' column in the Loads tab." },
+  { id: "compliance", cat: "Loads and balance", name: "Compliance", aka: "compliance steer, deflection steer",
+    def: "Nothing is perfectly stiff: rod ends, tubes and chassis tabs all give a little under load, so the wheel steers and leans a bit more than the kinematic curves say. A few tenths of a millimetre at the tie rod is enough to change toe by 0.1°, which the driver feels as a vague or nervous car.",
+    moves: "Stiffer chassis tabs and rod ends help most; then shorter or thicker links. Spreading the tie rod's load (longer steering arm) also cuts the toe change. The Loads tab shows it per case." },
 ];

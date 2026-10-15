@@ -148,6 +148,29 @@ A, I = tube_props(*mem["wishbone"])
 check("pushrod-mount bending moment, N mm", bc["moment"], bc["P_perp"] * bc["a"] * (bc["length"] - bc["a"]) / bc["length"], 1e-6, "simply supported beam: P a b / L")
 check("pushrod-mount leg FOS", bc["sf"], mem["yield"] / bc["stress"], 1e-9, "yield / (M c / I + axial / A)")
 
+print("\n6c. Compliance: links as axial springs")
+from susp.loads import link_stiffness  # noqa: E402
+Lk = float(np.linalg.norm(inb["tie_rod"] - outb["tie_rod"]))
+At, _ = tube_props(*cfg["members"]["tie_rod"])
+check("tie-rod stiffness, N/mm", link_stiffness(cfg, "tie_rod", Lk),
+      1 / (1 / (cfg["members"]["E"] * At / Lk) + 2 / cfg["members"]["rod_end_k"] + 1 / cfg["members"]["mount_k"]), 1e-9,
+      "tube E A / L, two rod ends and the mount in series")
+for lbl, cf, ee, LL in (("pushrod on the upright", cfg, e, L6), ("pushrod on the wishbone", cfgb, eb, Lb)):
+    C = LL["compliance"]
+    p6 = _geometry(ee["susp"], ee["spring"])[0]
+    worst = 0.0
+    for (name, forces, *_), x in zip(load_cases(cf, ee["susp"])[0], C["cases"]):
+        d, th = np.array(x["d"]), np.array(x["theta"])
+        work = sum(f @ (d + np.cross(th, p6[pp])) for f, pp in forces)
+        energy = sum(LL["results"][name][k] ** 2 / C["stiffness"][k] for k in MEMBERS)
+        worst = max(worst, abs(work - energy) / max(1.0, energy))
+    check(f"work in = spring energy, every case ({lbl})", worst, 0.0, 1e-9, "F . d + M . theta = sum(T^2 / k)")
+x = L6["compliance"]["cases"][1]
+d, th = np.array(x["d"]), np.array(x["theta"])
+r1 = L6["results"][x["case"]]
+worst = max(abs((inb[k] - outb[k]) / np.linalg.norm(inb[k] - outb[k]) @ (d + np.cross(th, outb[k])) + r1[k] / L6["compliance"]["stiffness"][k]) for k in MEMBERS)
+check("upright motion stretches every link by T / k (pushrod on the upright), mm", worst, 0.0, 1e-9, "e . (d + theta x r) = -T / k")
+
 print("\n7. Whole car: lateral load transfer adds up to m g h")
 from susp.config import load_car  # noqa: E402
 fc, rc, info = load_car(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "designs", "example_car.json"))

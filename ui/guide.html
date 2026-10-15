@@ -241,6 +241,9 @@ parts than normal driving. Below the table, <i>Pushrod mount bending</i> checks 
 17 mm off that leg's centerline, so the leg bends like a beam. In the pothole case the bare tube would reach about 780 MPa, FOS 0.56.
 The fix is a gusset or bracket that carries the pushrod into the ball-joint node, not a bigger tube. <i>Rod ends and bolts</i> then
 compares each member's worst force with your rod end's catalog rating and the bolt's shear capacity.</p>
+<p><b>Compliance.</b> Last on the Loads tab: every link stretches a little under load (rod ends, tube and chassis tab in series, about
+6.5–7 kN/mm each here). In 1.6 g braking the front wheel toes out 0.13°, inside the 0.15° limit; a softer chassis tab would push it over.
+The rod-end and tab stiffnesses are estimates, so measure yours if the result is close to the limit.</p>
 <p><b>Balance.</b> With the matching example rear (3.6 Hz, 75 N/mm springs), the whole-car check
 (<code>python3 susp_solver.py car designs/example_front.json designs/example_rear.json</code>) gives 0.72 deg/g of roll from the springs
 alone. But only 44 % of the lateral load transfer is at the front, against 47 % of the weight on the front. That leans the car toward
@@ -320,7 +323,7 @@ lay out the rocker.</p></div>
 
 <h2 id="limits">What the solver does not do</h2>
 <ul>
-  <li>Links are rigid: there is no compliance, bushing flex, tire model or chassis twist.</li>
+  <li>The kinematic curves use rigid links. The Loads tab adds a separate compliance check (rod ends, tubes and tabs stretching); arm bending, bushings, upright and wheel flex, the tire and chassis twist are not modeled.</li>
   <li>Roll is modeled as equal and opposite wheel travel, which gives the kinematic roll center.</li>
   <li>Loads are quasi-static at ride height. Tabs, welds, inserts and fatigue are not checked.</li>
   <li>The default ranges are starting points, not rules. Check wheelbase, travel and turning limits against the current FSAE rulebook.</li>
