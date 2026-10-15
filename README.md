@@ -183,5 +183,29 @@ Member forces: + = tension.
 See `ACTION_PLAN.md` for how the tool was planned and what each feature is for.
 
 ## Updating the web app
-Edit `ui/app.html` or `ui/susp.js`, then run `python3 ui/build.py` and `python3 ui/test_port.py`, and commit.
+The page is built from small files and assembled into one self-contained `ui/index.html`:
+
+| File | What it holds |
+|---|---|
+| `ui/app.html` | the page skeleton (header, panels, placeholders) |
+| `ui/src/style.css` | all styles, colors and light/dark themes |
+| `ui/src/00_core.js` | shared helpers, inputs, solve loop, charts, result tabs |
+| `ui/src/10_viewer.js` | 3D view, "Show me" drawings, labels |
+| `ui/src/20_learn.js` | Learn tab, "What moves this?", preview / apply / undo, influence panel |
+| `ui/src/30_challenges.js` | challenges and their hints |
+| `ui/src/40_compare.js` | Compare tab |
+| `ui/src/50_car.js` | Front / Rear / Car and the whole-car balance |
+| `ui/src/60_export.js` | design report and Excel export |
+| `ui/src/70_main.js` | toolbar menus and start-up |
+| `ui/susp.js`, `ui/glossary.js` | the solver (port of the Python) and the glossary text |
+
+The JS modules run in file-name order inside one closure, so they share helpers such as `$`, `fmt`, `cfg` and `ev`.
+
+After editing, run `python3 ui/build.py`, then the checks:
+
+    python3 susp_solver.py selftest      # Python solver vs KineSolver and physics checks
+    python3 ui/test_port.py              # browser solver matches the Python solver
+    (cd tests && npm ci) && node tests/browser_test.js   # the web app end to end in a headless browser
+
+GitHub runs all three on every push (Actions tab, workflow "tests"); a red X on a commit means something broke.
 GitHub Pages republishes the site about a minute after each push to `main`.

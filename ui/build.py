@@ -15,6 +15,13 @@ for path in sorted(glob.glob(os.path.join(root, "designs", "*.json"))) + sorted(
 if not presets:
     sys.exit("no designs/*.json found")
 html = open(os.path.join(here, "app.html")).read()
+# The page is assembled from src/: style.css and the numbered JS modules, which run in order inside one closure
+# (they share helpers such as $, fmt, cfg and ev). Edit the files in src/, then run this script.
+src = os.path.join(here, "src")
+css = open(os.path.join(src, "style.css")).read()
+mods = sorted(f for f in os.listdir(src) if f.endswith(".js"))
+app_js = "(function () {\n" + "".join(open(os.path.join(src, f)).read() for f in mods) + "})();"
+html = html.replace("/*CSS*/", css.rstrip("\n"), 1).replace("/*APP_JS*/", app_js, 1)
 js = open(os.path.join(here, "susp.js")).read()
 glossary = open(os.path.join(here, "glossary.js")).read()
 html = html.replace("/*SUSP_JS*/", js).replace("/*GLOSSARY_JS*/", glossary).replace("/*PRESETS*/", json.dumps(presets))
