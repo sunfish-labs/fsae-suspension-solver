@@ -329,7 +329,7 @@ table.cmpt th { white-space: normal; min-width: 90px; }
 .axis0 { color: #d13b2e; } .axis1 { color: #2f8f3e; } .axis2 { color: #2a63c9; }
 /* front / rear / car */
 .axseg button { padding: 5px 14px; font: 600 14px/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em; }
-body.carview #tabs, body.carview #panels, body.carview #btnBase, body.carview #btnUndo, body.carview #showSel, body.carview #tgLabels, body.carview #tgRC, body.carview #tgMirror, body.carview #vhint { display: none !important; }
+body.carview #tabs, body.carview #panels, body.carview #btnBase, body.carview #btnUndo, body.carview #showSel, body.carview #dispMenu, body.carview #vhint { display: none !important; }
 body.chal .axseg { opacity: .45; pointer-events: none; }
 .slot { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel-2); }
 .slot small { display: block; }
@@ -342,6 +342,44 @@ body.chal .axseg { opacity: .45; pointer-events: none; }
 .field.wide { grid-column: 1 / -1; } .field.wide .rng .num { width: 90px; }
 .banner.neutral-b { background: var(--panel); border: 1px solid var(--line); color: var(--ink); }
 #carBox { padding-top: 0; }
+/* ---- layout pass: header menus, viewer controls, sliders, floating drawer, uniform controls */
+.btn { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 12px; }
+.btn.small { min-height: 26px; padding: 0 9px; }
+select.sel { min-height: 32px; }
+.seg button { min-height: 28px; }
+.curname { font-size: 13px; color: var(--muted); max-width: 38ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.curname b { color: var(--ink); font-weight: 600; }
+.xpop.xleft { left: 0; right: auto; }
+.xpop { max-width: calc(100vw - 32px); }
+.showsel { max-width: 220px; min-width: 0; flex: 0 1 auto; }
+@media (max-width: 520px) { .vtools { flex-wrap: wrap; } .vright { flex: 1 1 100%; justify-content: flex-end; } .showsel { max-width: 60vw; } .xpop.xleft { left: -8px; } }
+.xpop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+#openPop { max-height: 70vh; overflow: auto; width: 320px; }
+#openPop .note { margin: 6px 8px 0; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.toast { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 70; background: var(--ink); color: var(--panel); padding: 8px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.pinbtn { margin-left: 2px; }
+.status .pill { max-width: 100%; white-space: normal; }
+.msub { margin-bottom: 2px; align-self: flex-start; }
+.vright { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+.dispmenu .xpop { width: 230px; }
+.xpop button.tg { position: relative; padding-left: 30px; }
+.xpop button.tg::before { content: ""; position: absolute; left: 9px; top: 10px; width: 13px; height: 13px; border: 1.5px solid var(--muted); border-radius: 3px; }
+.xpop button.tg[aria-pressed="true"]::before { background: var(--ink); border-color: var(--ink); box-shadow: inset 0 0 0 2px var(--panel); }
+.hud { flex-wrap: nowrap !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px !important; padding: 4px 10px !important; display: block !important; }
+.hud span { margin-right: 14px; }
+.pose { display: flex !important; flex-wrap: wrap; gap: 8px 22px; padding: 10px 2px 0; }
+.pgrp { display: flex; align-items: center; gap: 8px; flex: 1 1 340px; min-width: 0; }
+.pgrp label { font: 600 12px/1 var(--f-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); width: 52px; }
+.pgrp input[type=range] { flex: 1 1 auto; min-width: 80px; accent-color: var(--accent); }
+.pnum { width: 64px !important; flex: 0 0 64px; }
+.punit { font-size: 12px; color: var(--muted); }
+.btn.icon { min-width: 26px; padding: 0 6px; font-size: 14px; }
+.vwrap.open { display: block !important; }
+.vwrap { position: relative; }
+.vwrap .drawer { position: absolute; z-index: 6; top: 50px; right: 10px; width: 340px; max-height: calc(100% - 50px - 64px); box-shadow: 0 12px 34px rgba(0,0,0,.22); }
+.vwrap.open .ovcap, .vwrap.open .pvbar { right: 360px; }
+@media (max-width: 760px) { .vwrap .drawer { position: static; width: auto; max-height: none; box-shadow: none; margin-top: 10px; } .vwrap.open .ovcap, .vwrap.open .pvbar { right: 10px; } }
+.pt td.lab { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 
@@ -350,28 +388,31 @@ body.chal .axseg { opacity: .45; pointer-events: none; }
     <div class="brand"><h1>Suspension Solver</h1><span>FSAE double wishbone · rigid links</span></div>
     <div class="toolbar">
       <div class="seg axseg" id="axleSeg" role="group" aria-label="Which part of the car"><button type="button" data-ax="front" aria-pressed="false">Front</button><button type="button" data-ax="rear" aria-pressed="false">Rear</button><button type="button" data-ax="car" aria-pressed="false">Car</button></div>
+      <button class="btn small" id="btnLearn" type="button">Learn</button>
       <button class="btn small" id="btnStart" type="button">Start here</button></div>
   </div>
   <div class="toprow">
     <div class="toolbar">
-      <label class="muted" for="preset" style="font-size:12.5px">Design</label>
-      <select id="preset" class="sel"></select>
+      <details class="xmenu" id="openMenu"><summary class="btn">Open ▾</summary>
+        <div class="xpop xleft" role="menu" id="openPop"></div></details>
+      <details class="xmenu" id="xmenu"><summary class="btn">Save ▾</summary>
+        <div class="xpop xleft" role="menu"><p class="note" id="xScope"></p>
+          <button type="button" role="menuitem" id="btnDownload" hidden><b>Save JSON</b><span>Save to a file on your computer. In Chrome and Edge, later saves go back to the same file.</span></button>
+          <button type="button" role="menuitem" id="btnSaveAs" hidden><b>Save as…</b><span>Choose a new file name or folder.</span></button>
+          <button type="button" role="menuitem" id="btnCopy"><b>Copy JSON</b><span>Copy the design to paste into a file or a message.</span></button>
+          <hr>
+          <button type="button" role="menuitem" id="xReport"><b>Design report</b><span>A page with targets, hardpoints, curves and loads. Open it and print to PDF.</span></button>
+          <button type="button" role="menuitem" id="xXlsx"><b>Excel workbook (.xlsx)</b><span>Targets, hardpoints, sweep data and loads, one sheet each.</span></button></div></details>
+      <span class="curname" id="curName"></span>
+      <select id="preset" class="sel" hidden aria-hidden="true" tabindex="-1"></select>
+      <input id="fileIn" type="file" accept=".json,application/json" hidden>
     </div>
     <div class="toolbar tb-right">
       <button class="btn" id="btnUndo" type="button" hidden title="Undo the last applied move">Undo</button>
-      <button class="btn" id="btnLoad" type="button">Open JSON…</button>
-      <input id="fileIn" type="file" accept=".json,application/json" hidden>
-      <button class="btn" id="btnDownload" type="button" hidden title="Save this design as a JSON file on your computer">Save JSON</button>
-      <button class="btn" id="btnCopy" type="button">Copy JSON</button>
-      <details class="xmenu" id="xmenu"><summary class="btn">Export ▾</summary>
-        <div class="xpop" role="menu"><p class="note" id="xScope"></p>
-          <button type="button" role="menuitem" id="xReport"><b>Design report</b><span>HTML page with targets, hardpoints, curves and loads. Open it and print to PDF.</span></button>
-          <button type="button" role="menuitem" id="xXlsx"><b>Excel workbook (.xlsx)</b><span>Targets, hardpoints, sweep data and loads, one sheet each.</span></button>
-          <button type="button" role="menuitem" id="xJson"><b>JSON file</b><span>The design itself, to open again here or in the Python tool.</span></button></div></details>
-      <button class="btn" id="btnBase" type="button" title="Freeze the current results to compare your next changes against">Pin as baseline</button>
     </div>
   </div>
 </header>
+<div class="toast" id="toast" role="status" hidden></div>
 <div class="welcome" id="welcome" hidden>
   <div class="wcard" role="dialog" aria-modal="true" aria-labelledby="wTitle">
     <button class="btn small wclose" type="button" id="wClose" aria-label="Close">✕</button>
@@ -409,7 +450,7 @@ body.chal .axseg { opacity: .45; pointer-events: none; }
       </div>
     </details>
 
-    <details class="card" open>
+    <details class="card">
       <summary><h2>Simulation</h2><span class="hint">sweep ranges</span></summary>
       <div class="body"><div class="fields" id="simFields"></div></div>
     </details>
@@ -470,25 +511,32 @@ body.chal .axseg { opacity: .45; pointer-events: none; }
             <button type="button" data-view="side" aria-pressed="false">Side</button>
             <button type="button" data-view="top" aria-pressed="false">Top</button>
           </div>
-          <div class="seg" role="group" aria-label="Overlays">
-            <button type="button" id="tgRC" aria-pressed="true">Roll center</button>
-            <button type="button" id="tgMirror" aria-pressed="false">Other side</button>
-            <button type="button" id="tgLabels" aria-pressed="false">Names</button>
+          <div class="vright">
+            <details class="xmenu dispmenu" id="dispMenu"><summary class="btn small">Display ▾</summary>
+              <div class="xpop" role="menu">
+                <button type="button" class="tg" id="tgRC" aria-pressed="true"><b>Roll center</b><span>Draw the roll-center lines</span></button>
+                <button type="button" class="tg" id="tgMirror" aria-pressed="false"><b>Other side</b><span>Show the left corner too</span></button>
+                <button type="button" class="tg" id="tgLabels" aria-pressed="false"><b>Names</b><span>Label every joint</span></button></div></details>
+            <select id="showSel" class="sel showsel" aria-label="Draw a term on the 3D corner"><option value="">Show me…</option></select>
           </div>
-          <select id="showSel" class="sel showsel" aria-label="Draw a term on the 3D corner"><option value="">Show me…</option></select>
         </div>
         <div class="vlabels" id="vlabels" hidden><svg id="vlabSvg" aria-hidden="true"></svg></div>
         <div class="ovcap" id="ovcap" hidden></div>
         <div class="pvbar" id="pvbar" hidden></div>
-        <div class="vhint" id="vhint">Tip: click any joint to see what moving it does</div>
+        <div class="vhint" id="vhint" hidden>Tip: click any joint to see what moving it does</div>
         <div class="hud" id="hud"></div>
         <div class="v-msg" id="vmsg" hidden></div>
       </div>
       <aside class="drawer" id="drawer" hidden aria-label="What moving this point does"></aside>
       </div>
       <div class="pose">
-        <label for="poseZ">Travel</label><input type="range" id="poseZ" min="-30" max="30" step="0.5" value="0"><output id="poseZo">0 mm</output>
-        <label for="poseR" class="rk">Rack</label><input type="range" id="poseR" class="rk" min="-35" max="35" step="0.5" value="0"><output id="poseRo" class="rk">0 mm</output>
+        <div class="pgrp"><label for="poseZ">Travel</label><input type="range" id="poseZ" min="-30" max="30" step="0.5" value="0">
+          <input class="num pnum" id="poseZo" type="number" step="0.5" value="0" aria-label="Wheel travel, mm"><span class="punit">mm</span>
+          <button class="btn small icon" type="button" id="poseZ0" title="Back to ride height" aria-label="Back to ride height">⟲</button>
+          <button class="btn small" type="button" id="posePlay" title="Move the wheel through full bump and droop">▶ Play</button></div>
+        <div class="pgrp rk"><label for="poseR">Rack</label><input type="range" id="poseR" min="-35" max="35" step="0.5" value="0">
+          <input class="num pnum" id="poseRo" type="number" step="0.5" value="0" aria-label="Rack travel, mm"><span class="punit">mm</span>
+          <button class="btn small icon" type="button" id="poseR0" title="Back to straight ahead" aria-label="Back to straight ahead">⟲</button></div>
       </div>
     </div>
 
@@ -581,7 +629,7 @@ function field(label, unit, path, opts = {}) {
   return `<div class="field"><label for="${id}">${label} <i>${unit}</i></label>${numInput(path, { ...opts, aria: label })}</div>`;
 }
 function ptRows(tbody, list, prefix, labels) {
-  tbody.innerHTML = list.map(k => `<tr data-row="${k}"><td class="lab">${k === "rocker_axis" ? labels[k][0] : `<button class="lnk hpbtn" type="button" data-hp="${prefix}.${k}" title="What does moving this point do?">${labels[k][0]}</button>`}${labels[k][1] ? `<small>${labels[k][1]}</small>` : ""}</td>` +
+  tbody.innerHTML = list.map(k => `<tr data-row="${k}"><td class="lab"${labels[k][1] ? ` title="${esc(labels[k][1])}"` : ""}>${k === "rocker_axis" ? labels[k][0] : `<button class="lnk hpbtn" type="button" data-hp="${prefix}.${k}" title="${labels[k][1] ? esc(labels[k][1]) + " · " : ""}click: what does moving this point do?">${labels[k][0]}</button>`}</td>` +
     [0, 1, 2].map(i => `<td class="c">${numInput(`${prefix}.${k}.${i}`, { aria: `${labels[k][0]} ${"XYZ"[i]}`, step: k === "rocker_axis" ? "0.1" : "0.1" })}</td>`).join("") + "</tr>").join("");
 }
 function buildForm() {
@@ -637,7 +685,7 @@ function syncRockerRows() {
 }
 function syncAxle() {
   const rear = cfg.axle === "rear";
-  $("#poseR").disabled = rear;
+  $("#poseR").disabled = rear; $("#poseRo").disabled = rear; $("#poseR0").disabled = rear;
   $("#in_vehicle_drive").closest(".field").hidden = !rear;
   $("#in_sweep_rack_travel").closest(".field").hidden = rear;
   $("#in_sweep_ackermann_at_outer_deg").closest(".field").hidden = rear;
@@ -692,10 +740,11 @@ function run() {
   pz.min = -T; pz.max = T; pr.min = -Rk; pr.max = Rk;
   pose.dz = Math.max(-T, Math.min(T, pose.dz)); pose.rack = cfg.axle === "rear" ? 0 : Math.max(-Rk, Math.min(Rk, pose.rack));
   pz.value = pose.dz; pr.value = pose.rack;
-  renderAll(ms);
+  renderAll(ms); showCurName();
   if (car && axleView === "car" && !chal) { renderCarIn(); renderCarBox(); }
   updateScene();
 }
+function showCurName() { const el = $("#curName"); if (!el || !cfg) return; el.innerHTML = chal ? `Challenge: <b>${esc(chal.def.title)}</b>` : car && axleView === "car" ? `<b>${esc(car.name || "Car")}</b>` : `${cfg.axle === "rear" ? "Rear" : "Front"}: <b>${esc(cfg.name || "untitled")}</b>`; }
 const exportCurrent = () => (car && axleView === "car" && !chal) ? exportCar() : exportCfg();
 function exportCfg() {
   const keys = ["name", "axle", "targets_file", "hardpoints", "wheel", "vehicle", "sweep", "clearance", "rack_direction", "targets", "spring", "loads", "members"];
@@ -752,12 +801,21 @@ function interp(xs, ys, x) {
 }
 
 // ------------------------------------------------------------------ results
+const MOTION = ["heave", "roll", "steer"];
+let lastMotion = "heave";
+const TAB_BAR = [["checks", "Targets"], ["motion", "Motion"], ["spring", "Spring & damper"], ["loads", "Loads"], ["pack", "Packaging"], ["compare", "Compare"]];
 const TABS = [["checks", "Targets"], ["heave", "Heave"], ["roll", "Roll"], ["steer", "Steering"], ["spring", "Spring & damper"],
   ["loads", "Loads"], ["pack", "Packaging"], ["compare", "Compare"], ["learn", "Learn"]];
 function renderTabs() {
-  const fails = ev && !err ? ev.checks.filter(c => c.status === "FAIL").length : 0;
-  $("#tabs").innerHTML = TABS.map(([k, t]) => `<button role="tab" type="button" id="tab_${k}" aria-selected="${tab === k}" aria-controls="pn_${k}" data-tab="${k}">${t}${k === "checks" && fails ? `<span class="dot" aria-label="${fails} failing"></span>` : ""}</button>`).join("");
-  $$("#tabs button").forEach(b => b.addEventListener("click", () => { tab = b.dataset.tab; store.set("susp.tab", tab); renderTabs(); showPanel(); }));
+  const fails = ev && !err ? ev.checks.filter(c => c.status === "FAIL").length : 0, cur = MOTION.includes(tab) ? "motion" : tab;
+  if (MOTION.includes(tab)) lastMotion = tab;
+  const bar = TAB_BAR.concat(tab === "learn" ? [["learn", "Learn"]] : []);
+  $("#tabs").innerHTML = bar.map(([k, t]) => `<button role="tab" type="button" id="tab_${k}" aria-selected="${cur === k}" aria-controls="pn_${k === "motion" ? lastMotion : k}" data-tab="${k}">${t}${k === "checks" && fails ? `<span class="dot" aria-label="${fails} failing"></span>` : ""}</button>`).join("");
+  $$("#tabs button").forEach(b => b.addEventListener("click", () => { tab = b.dataset.tab === "motion" ? lastMotion : b.dataset.tab; store.set("susp.tab", tab); renderTabs(); showPanel(); }));
+}
+function motionSeg(k) {
+  const items = [["heave", "Heave"], ["roll", "Roll"]].concat(cfg && cfg.axle === "rear" ? [] : [["steer", "Steering"]]);
+  return `<div class="seg msub" role="group" aria-label="Motion">${items.map(([v, t]) => `<button type="button" data-msub="${v}" aria-pressed="${v === k}">${t}</button>`).join("")}</div>`;
 }
 function showPanel() { $$("#panels > .panel").forEach(p => p.hidden = p.dataset.tab !== tab); }
 
@@ -780,14 +838,15 @@ function renderAll(ms) {
     (m.ride_freq != null ? `<span class="pill neutral">Ride ${fmt(m.ride_freq, 2)} Hz</span>` : "") +
     (m.motion_ratio != null ? `<span class="pill neutral">MR ${fmt(m.motion_ratio, 3)}</span>` : "") +
     (minFos != null ? `<span class="pill ${minFos >= ev.cfg.members.sf_target ? "ok" : "bad"}">Min FOS ${fmt(minFos, 2)}</span>` : "") +
-    (base ? `<span class="pill neutral">Baseline: ${esc(baseName)} <button class="btn small" id="btnClearBase" type="button" style="margin-left:4px">Clear</button></span>` : "") +
-    `<span class="muted" style="font-size:12px;margin-left:auto">Solved in ${ms.toFixed(0)} ms</span>`;
+    (base ? `<span class="pill neutral">Baseline: ${esc(baseName)} <button class="btn small" id="btnClearBase" type="button" style="margin-left:4px">Clear</button></span>`
+      : `<button class="btn small pinbtn" id="btnBase" type="button" title="Freeze these results; your next edits then show as changes and dashed curves">Pin as baseline</button>`);
+  const pb = $("#btnBase"); if (pb) pb.addEventListener("click", () => { if (!ev || err) return; base = ev; baseName = cfg.name || "pinned design"; renderAll(0); });
   const cb = $("#btnClearBase"); if (cb) cb.addEventListener("click", () => { base = null; renderAll(0); });
   P.innerHTML = TABS.map(([k]) => `<div class="panel" role="tabpanel" id="pn_${k}" aria-labelledby="tab_${k}" data-tab="${k}"></div>`).join("");
   $("#pn_checks").innerHTML = panelChecks();
-  $("#pn_heave").innerHTML = panelHeave();
-  $("#pn_roll").innerHTML = panelRoll();
-  $("#pn_steer").innerHTML = panelSteer();
+  $("#pn_heave").innerHTML = motionSeg("heave") + panelHeave();
+  $("#pn_roll").innerHTML = motionSeg("roll") + panelRoll();
+  $("#pn_steer").innerHTML = motionSeg("steer") + panelSteer();
   $("#pn_spring").innerHTML = panelSpring();
   $("#pn_loads").innerHTML = panelLoads();
   $("#pn_pack").innerHTML = panelPack();
@@ -1085,6 +1144,7 @@ function layoutLabels() {
   }
   $("#vlabSvg").innerHTML = svg;
 }
+function tipSeen() { store.set("susp.tipSeen", "1"); $("#vhint").hidden = true; }
 function pick(e) {
   if (!three || !three.pickables.length) return;
   const T = three.T, rect = three.cv.getBoundingClientRect();
@@ -1092,6 +1152,7 @@ function pick(e) {
   const rc = new T.Raycaster(); rc.setFromCamera(ndc, three.cam);
   const hits = rc.intersectObjects(three.pickables, false);
   if (!hits.length) return;
+  tipSeen();
   const ud = hits[0].object.userData;
   if (ud.axle && axleView === "car") { setView(ud.axle); setTimeout(() => openInfluence(ud.hp), 0); return; }
   openInfluence(ud.hp);
@@ -1321,7 +1382,7 @@ function showMe(id) {
   if (id && !view.overlay && three && view.target) savedCam = { theta: view.theta, phi: view.phi, r: view.r, target: view.target.clone(), mode: view.mode, rack: pose.rack };
   view.overlay = id;
   $("#tgLabels").setAttribute("aria-pressed", String(id === "labels"));
-  $("#showSel").value = id && id !== "labels" ? id : ""; $("#vhint").hidden = !!id;
+  $("#showSel").value = id && id !== "labels" ? id : ""; $("#vhint").hidden = !!id || store.get("susp.tipSeen") === "1";
   if (!id) {
     $("#ovcap").hidden = true;
     if (savedCam) { Object.assign(view, { theta: savedCam.theta, phi: savedCam.phi, r: savedCam.r, target: savedCam.target }); setMode(savedCam.mode); setRack(savedCam.rack); if (three) three.need = true; savedCam = null; }
@@ -1358,14 +1419,14 @@ function showMe(id) {
   updateScene();
   const vw = $("#viewer"); if (vw.getBoundingClientRect().top < 0 || vw.getBoundingClientRect().top > window.innerHeight * 0.6) vw.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
 }
-function setRack(v) { if (cfg.axle !== "front") v = 0; pose.rack = v; $("#poseR").value = v; $("#poseRo").textContent = `${fmt(v, 1)} mm`; }
-function setTravel(v) { pose.dz = v; $("#poseZ").value = v; $("#poseZo").textContent = `${fmt(v, 1)} mm`; }
+function setRack(v) { if (cfg.axle !== "front") v = 0; pose.rack = v; $("#poseR").value = v; $("#poseRo").value = (+v).toFixed(1); }
+function setTravel(v) { pose.dz = v; $("#poseZ").value = v; $("#poseZo").value = (+v).toFixed(1); }
 function stopAnim() { if (view.anim) { view.anim = null; } }
 function stepAnim(now) {
   const a = view.anim; if (!a.t0) a.t0 = now;
   const t = (now - a.t0) / 4200;
   if (t >= 1) { view.anim = null; pose.dz = 0; } else pose.dz = +(a.T * Math.sin(2 * Math.PI * t)).toFixed(1);
-  $("#poseZ").value = pose.dz; $("#poseZo").textContent = `${fmt(pose.dz, 1)} mm`;
+  $("#poseZ").value = pose.dz; $("#poseZo").value = (+pose.dz).toFixed(1);
   updateScene();
 }
 function drawOverlay(id, { D, o, p, h, s, x, sst, col }) {
@@ -1497,14 +1558,19 @@ let poseTimer = null;
 function onPose() {
   stopAnim();
   pose.dz = +$("#poseZ").value; pose.rack = +$("#poseR").value;
-  $("#poseZo").textContent = `${fmt(pose.dz, 1)} mm`; $("#poseRo").textContent = `${fmt(pose.rack, 1)} mm`;
+  $("#poseZo").value = (+pose.dz).toFixed(1); $("#poseRo").value = (+pose.rack).toFixed(1);
   cancelAnimationFrame(poseTimer);
   poseTimer = requestAnimationFrame(() => {
     updateScene();
-    if (!err && ev) { const map = { heave: panelHeave, spring: panelSpring, steer: panelSteer }; if (map[tab]) $("#pn_" + tab).innerHTML = map[tab](); }
+    if (!err && ev) { const map = { heave: panelHeave, spring: panelSpring, steer: panelSteer }; if (map[tab]) $("#pn_" + tab).innerHTML = (MOTION.includes(tab) ? motionSeg(tab) : "") + map[tab](); }
   });
 }
 $("#poseZ").addEventListener("input", onPose); $("#poseR").addEventListener("input", onPose);
+$("#poseZo").addEventListener("change", (e) => { const v = +e.target.value; if (Number.isFinite(v)) { $("#poseZ").value = v; onPose(); } });
+$("#poseRo").addEventListener("change", (e) => { const v = +e.target.value; if (Number.isFinite(v)) { $("#poseR").value = v; onPose(); } });
+$("#poseZ0").addEventListener("click", () => { $("#poseZ").value = 0; onPose(); });
+$("#poseR0").addEventListener("click", () => { $("#poseR").value = 0; onPose(); });
+$("#posePlay").addEventListener("click", () => { stopAnim(); if (!reduceMotion) view.anim = { t0: null, T: cfg.sweep.travel }; else { $("#poseZ").value = cfg.sweep.travel; onPose(); } });
 const mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", () => updateScene());
 new MutationObserver(() => updateScene()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
@@ -1680,12 +1746,12 @@ function startPreview(nc, label) {
   const newly = [...fails1].filter(k => !fails0.has(k)), fixed = [...fails0].filter(k => !fails1.has(k));
   $("#pvbar").innerHTML = `<span><b>Preview:</b> ${esc(label)} · ${passN}/${tot} targets met${fixed.length ? ` · fixes ${fixed.map(k => esc(k === "link_clearance" ? "clearance" : metricLabel(k)[0])).join(", ")}` : ""}${newly.length ? ` · <span class="bad-t">breaks ${newly.map(k => esc(k === "link_clearance" ? "clearance" : metricLabel(k)[0])).join(", ")}</span>` : ""}</span>
     <span class="pvbtns"><button class="btn small primary" type="button" id="pvApply">Apply</button><button class="btn small" type="button" id="pvDiscard">Discard</button></span>`;
-  $("#pvbar").hidden = false;
+  $("#pvbar").hidden = false; $("#ovcap").hidden = true;
   $("#pvApply").onclick = () => applyCfg(preview.cfg, preview.label);
   $("#pvDiscard").onclick = () => endPreview();
   updateScene();
 }
-function endPreview() { preview = null; $("#pvbar").hidden = true; updateScene(); }
+function endPreview() { preview = null; $("#pvbar").hidden = true; $("#ovcap").hidden = !view.overlay; updateScene(); }
 function applyCfg(nc, label) {
   undoStack.push(JSON.parse(JSON.stringify(cfg)));
   if (!err && ev && !chal) { base = ev; baseName = "before: " + label; }
@@ -1713,6 +1779,7 @@ function influenceMetrics() {
 }
 function openInfluence(path) {
   if (!ev || err || !path) return;
+  if (typeof tipSeen === "function") tipSeen();
   if (!influenceAllowed(path)) {
     const hb = $("#chHints"); if (hb) { hb.insertAdjacentHTML("afterbegin", `<p class="chint lockmsg">The influence panel unlocks with the last hint. Try reasoning it out first!</p>`); hb.scrollIntoView({ block: "nearest" }); }
     return;
@@ -1788,7 +1855,7 @@ const CHALLENGES = [
     concept: [
       "Click Show me below: the wheel moves through bump in the top view, and the orange line shows which way it points (drawn 25× larger). If the line swings, the car has bump steer.",
       "It happens because the tie rod's outer end swings on an arc around its inner end, while the upright moves on arcs set by the wishbones. If those arcs differ, the tie rod pushes or pulls the steering arm and the wheel steers itself.",
-      "Rule of thumb: the inner end's height (Z) sets the slope of the toe curve (a straight sloped line in Heave → Toe change), and the tie rod's length (Y) sets its curvature (a U or arch shape). Moving the outer end in or out also changes the steering-arm geometry, so watch Ackermann.",
+      "Rule of thumb: the inner end's height (Z) sets the slope of the toe curve (a straight sloped line in the toe chart, Motion → Heave), and the tie rod's length (Y) sets its curvature (a U or arch shape). Moving the outer end in or out also changes the steering-arm geometry, so watch Ackermann.",
     ],
     show: "bump_steer", step: 2,
     levers: [
@@ -2182,7 +2249,11 @@ function carFrom(raw) {
 }
 function exampleCarRaw() { const p = PRESETS.find(q => isCarRaw(q.cfg)); return p ? p.cfg : null; }
 function exportCar() {
-  const strip = (c) => { const o = {}; for (const k of ["name", "targets_file", "hardpoints", "wheel", "sweep", "clearance", "rack_direction", "targets", "spring", "loads", "members"]) if (c[k] != null) o[k] = c[k]; return o; };
+  // every corner's full target ranges are written out (built-in defaults, team file and edits merged), so a car file
+  // carries its targets with it and opens the same anywhere
+  const strip = (c) => { const o = {}; for (const k of ["name", "targets_file", "hardpoints", "wheel", "sweep", "clearance", "rack_direction", "targets", "spring", "loads", "members"]) if (c[k] != null) o[k] = c[k];
+    try { const e = carEvalCorner(c).ev; if (e) o.targets = Object.fromEntries(Object.entries(S.defaultTargets(e.cfg)).filter(([k]) => !k.startsWith("_"))); } catch (x) { /* keep what is there */ }
+    return o; };
   return { type: "car", name: car.name, vehicle: car.vehicle, arb: car.arb, car_targets: car.car_targets, front: strip(car.front), rear: strip(car.rear) };
 }
 function loadCar(raw, label) {
@@ -2495,8 +2566,16 @@ function wireExport() {
   $("#xReport").addEventListener("click", () => { menu.open = false; download(fileBase(exportScope().name) + "_report.html", new Blob([reportHtml()], { type: "text/html" })); });
   $("#xXlsx").addEventListener("click", async () => { menu.open = false; const b = $("#xXlsx"); b.disabled = true;
     try { await exportXlsx(); } catch (ex) { $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner bad">Excel export failed: ${esc(ex.message)}</div>`); } b.disabled = false; });
-  $("#xJson").addEventListener("click", () => { menu.open = false; download(fileBase(exportScope().name) + ".json", new Blob([JSON.stringify(exportCurrent(), null, 2)], { type: "application/json" })); });
-  menu.addEventListener("toggle", () => { if (menu.open) $("#xScope").textContent = (car && axleView === "car" && !chal) ? "Whole car (front + rear)" : `This ${cfg.axle === "rear" ? "rear" : "front"} corner`; });
+  menu.addEventListener("toggle", () => { if (menu.open) { $("#openMenu").open = false; $("#xScope").textContent = (car && axleView === "car" && !chal) ? "Saves the whole car (front + rear)" : `Saves this ${cfg.axle === "rear" ? "rear" : "front"} corner`; } });
+  // Open menu: the examples, grouped, and "a file from your computer"
+  const om = $("#openMenu");
+  document.addEventListener("click", (e) => { if (om.open && !om.contains(e.target)) om.open = false; });
+  om.addEventListener("toggle", () => { if (om.open) menu.open = false; });
+  const grp = (lab, f) => { const o = PRESETS.map((p, i) => [p, i]).filter(([p]) => f(p.cfg)); return o.length ? `<p class="note">${lab}</p>${o.map(([p, i]) => `<button type="button" role="menuitem" data-pi="${i}"><b>${esc(p.label)}</b></button>`).join("")}` : ""; };
+  $("#openPop").innerHTML = `<button type="button" role="menuitem" id="omFile"><b>A file from your computer…</b><span>A design, a car file or a team targets file. Read in your browser, never uploaded.</span></button><hr>` +
+    grp("Example cars", isCarRaw) + grp("Front corners", c => c.hardpoints && c.axle !== "rear") + grp("Rear corners", c => c.hardpoints && c.axle === "rear");
+  $("#omFile").addEventListener("click", () => { om.open = false; $("#fileIn").click(); });
+  $$("#openPop [data-pi]").forEach(b => b.addEventListener("click", () => { om.open = false; $("#preset").value = b.dataset.pi; $("#preset").dispatchEvent(new Event("change")); }));
 }
 
 // ------------------------------------------------------------------ toolbar
@@ -2523,7 +2602,7 @@ $("#preset").addEventListener("change", (e) => {
   if (isCarRaw(p.cfg)) { axleView = "car"; store.set("susp.view", "car"); applyViewClasses(); loadCar(p.cfg, p.label); }
   else loadCfg(p.cfg, p.label, { toView: p.cfg.axle === "rear" ? "rear" : "front" });
 });
-$("#btnLoad").addEventListener("click", () => $("#fileIn").click());
+function flash(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(flash.t); flash.t = setTimeout(() => t.hidden = true, 2200); }
 $("#fileIn").addEventListener("change", async (e) => {
   const f = e.target.files[0]; if (!f) return;
   try {
@@ -2553,54 +2632,60 @@ $("#carFile").addEventListener("change", async (e) => {
 $$("#axleSeg button").forEach(b => b.addEventListener("click", () => { if (chal) return; setView(b.dataset.ax); }));
 $("#btnCopy").addEventListener("click", async (e) => {
   const txt = JSON.stringify(exportCurrent(), null, 2), b = e.currentTarget;
-  try { await navigator.clipboard.writeText(txt); b.textContent = "Copied"; }
-  catch (ex) { $("#cardJson").open = true; $("#jsonBox").focus(); $("#jsonBox").select(); b.textContent = "Select and copy below"; }
-  setTimeout(() => b.textContent = "Copy JSON", 1800);
+  $("#xmenu").open = false;
+  try { await navigator.clipboard.writeText(txt); flash("Copied the JSON"); }
+  catch (ex) { if (axleView === "car") setView("front"); $("#cardJson").open = true; $("#jsonBox").focus(); $("#jsonBox").select(); flash("Copy blocked by the browser: select the JSON box and copy"); }
 });
 // Save JSON: a real file on the user's computer. Chrome/Edge can save straight back to the file that was opened;
 // other browsers download a copy. Hidden only inside sandboxed embeds, where downloads are blocked.
 let framed = false; try { framed = window.self !== window.top; } catch (e) { framed = true; }
 let fileHandle = null;
 if (!framed) {
-  $("#btnDownload").hidden = false;
+  $("#btnDownload").hidden = false; if (window.showSaveFilePicker) $("#btnSaveAs").hidden = false;
+  $("#btnSaveAs").addEventListener("click", () => { fileHandle = null; $("#btnDownload").click(); });
   $("#btnDownload").addEventListener("click", async () => {
     const txt = JSON.stringify(exportCurrent(), null, 2), name = ((axleView === "car" && car && !chal ? car.name : cfg.name) || "design").replace(/[^\w.-]+/g, "_") + ".json", b = $("#btnDownload");
     try {
       if (window.showSaveFilePicker) {
         if (!fileHandle) fileHandle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: "Design JSON", accept: { "application/json": [".json"] } }] });
         const w = await fileHandle.createWritable(); await w.write(txt); await w.close();
-        b.textContent = "Saved to " + fileHandle.name; setTimeout(() => b.textContent = "Save JSON", 2000); return;
+        $("#xmenu").open = false; flash("Saved to " + fileHandle.name); return;
       }
     } catch (ex) { if (ex && ex.name === "AbortError") return; fileHandle = null; }
     const blob = new Blob([txt], { type: "application/json" }), a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    $("#xmenu").open = false;
   });
 }
 // first-visit card, shown on every visit until "Don't show this again" is ticked
 function openWelcome() { $("#welcome").hidden = false; $("#wHide").checked = store.get("susp.hideWelcome") === "1"; setTimeout(() => $("#wExplore").focus(), 0); }
 function closeWelcome() { store.set("susp.hideWelcome", $("#wHide").checked ? "1" : "0"); $("#welcome").hidden = true; }
 $("#btnStart").addEventListener("click", openWelcome);
+function openLearn() { if (chal) return; if (axleView === "car") setView("front"); tab = "learn"; renderTabs(); showPanel(); $("#tabs").scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" }); }
+$("#btnLearn").addEventListener("click", openLearn);
 $("#wClose").addEventListener("click", closeWelcome);
 $("#welcome").addEventListener("click", (e) => { if (e.target.id === "welcome") closeWelcome(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#welcome").hidden) closeWelcome(); });
 $("#wExplore").addEventListener("click", () => { closeWelcome(); if (!chal) { $("#preset").value = String(PRESETS.findIndex(p => isCarRaw(p.cfg))); $("#preset").dispatchEvent(new Event("change")); } });
 $("#wOpen").addEventListener("click", () => { closeWelcome(); $("#fileIn").click(); });
 $("#wChal").addEventListener("click", () => { closeWelcome(); openChallenges(); });
-$("#wLearn").addEventListener("click", () => { closeWelcome(); tab = "learn"; renderTabs(); showPanel(); $("#tabs").scrollIntoView({ block: "start" }); });
+$("#wLearn").addEventListener("click", () => { closeWelcome(); openLearn(); });
 $("#btnApplyJson").addEventListener("click", () => {
   try { const raw = JSON.parse($("#jsonBox").value); if (loadCfg(raw)) { $("#jsonMsg").textContent = "Applied."; $("#preset").value = "custom"; } }
   catch (ex) { $("#jsonMsg").textContent = "Not valid JSON: " + ex.message; }
 });
 $("#btnUndo").addEventListener("click", () => undo());
 
-$("#btnBase").addEventListener("click", () => { if (!ev || err) return; base = ev; baseName = cfg.name || "pinned design"; renderAll(0); });
+
 document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dataset.path) $("#preset").value = "custom"; });
 
 // ------------------------------------------------------------------ boot
 buildForm();
 initThree();
-const savedTab = store.get("susp.tab"); if (savedTab && TABS.some(t => t[0] === savedTab)) tab = savedTab;
+const savedTab = store.get("susp.tab"); if (savedTab && TABS.some(t => t[0] === savedTab) && savedTab !== "learn") tab = savedTab;
+$("#panels").addEventListener("click", (e) => { const b = e.target.closest("[data-msub]"); if (!b) return; tab = b.dataset.msub; store.set("susp.tab", tab); renderTabs(); showPanel(); });
 wireExport();
+{ const dm = $("#dispMenu"); document.addEventListener("click", (e) => { if (dm.open && !dm.contains(e.target)) dm.open = false; }); }
 // boot: the saved car if there is one; else an old single-corner draft inside the example car; else the example car
 {
   const ex = exampleCarRaw(), savedCar = store.get("susp.car"), saved = store.get("susp.cfg");
@@ -2613,6 +2698,7 @@ wireExport();
   $("#preset").value = ok || saved ? "custom" : String(PRESETS.findIndex(p => p.cfg === ex));
   applyViewClasses(); fillForm(); run();
 }
+$("#vhint").hidden = store.get("susp.tipSeen") === "1";
 if (store.get("susp.hideWelcome") !== "1") openWelcome();
 })();
 </script>

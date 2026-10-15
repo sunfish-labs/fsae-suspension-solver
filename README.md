@@ -11,8 +11,8 @@ They are not any real team's design.
 Design files do not go in this repository.
 - Keep your JSON files in a `private/` folder next to the code. Git ignores that folder, so it is never uploaded.
   You can also keep them anywhere else, such as a team drive.
-- In the web app, click **Open JSON…** to load one of your files. It is read in your browser and nothing is
-  uploaded. Use **Save JSON** (Chrome and Edge can save straight back to the same file) or **Copy JSON** to save changes
+- In the web app, use **Open ▾ → A file from your computer…** to load one of your files. It is read in your browser and nothing is
+  uploaded. Use **Save ▾ → Save JSON** (Chrome and Edge can save straight back to the same file) or **Copy JSON** to save changes
   back to your private files.
 - Share designs inside the team through your own private channel (team drive, private chat), never by committing
   them here.
@@ -37,12 +37,12 @@ A KineSolver-style interface for the same solver. Use the hosted link above, dou
 It needs no install or server; an internet connection loads the 3D library and fonts.
 - **Inputs** match KineSolver's panels: hardpoints, wheel settings, vehicle and anti-geometry, and simulation
   ranges. Further panels cover the pushrod, rocker and damper, the load cases, tube sizes and material.
-- **3D corner view:** drag to orbit, right-drag or shift-drag to pan, scroll to zoom. The Travel and Rack sliders
+- **3D corner view:** drag to orbit, right-drag or shift-drag to pan, scroll to zoom. The Travel and Rack sliders (type a value, ⟲ to reset, ▶ Play to sweep bump and droop)
   move the suspension, and the readout shows camber, toe, caster, roll center and damper length at that position.
-  Toggles show the roll-center construction and the other side of the car.
-- **Results update live** in eight tabs: Targets (ranges are editable, click a row for an explanation), Heave, Roll,
-  Steering, Spring & damper (rocker plane view, motion ratio, damper length against its limits), Loads (wheel loads,
-  member forces, FOS), Packaging and Learn (glossary).
+  **Display ▾** shows the roll-center construction, the other side of the car and joint names; **Show me** draws a term.
+- **Results update live** in six tabs: Targets (ranges are editable, click a row for an explanation), Motion (Heave, Roll,
+  Steering), Spring & damper (rocker plane view, motion ratio, damper length against its limits), Loads (wheel loads,
+  member forces, FOS), Packaging and Compare. **Learn** (glossary) is next to Start here.
 - **Learning tools for new members:**
   - **Show me** draws a term on the 3D corner, such as the steering axis, the instant center or the roll-center construction, or animates bump.
   - **Names** labels every hardpoint.
@@ -57,12 +57,12 @@ It needs no install or server; an internet connection loads the 3D library and f
   bar rates needed for your roll and balance targets. Click a corner in 3D to edit it. In the Car view, Save JSON writes
   one **car file** (`"type": "car"`, a shared `vehicle`, `arb`, `car_targets`, `front`, `rear`). Single-corner files still
   open and go into the slot named by their `axle`. See `designs/example_car.json`.
-- **Export ▾** (top right): a printable **design report** (HTML; open it and print to PDF) and an **Excel workbook**
+- **Save ▾** also exports a printable **design report** (HTML; open it and print to PDF) and an **Excel workbook**
   (targets, hardpoints, heave/roll/steering sweeps, member loads; for the whole car it adds a summary sheet with the
   car targets and roll balance), plus the JSON. In the Car view they cover both corners, otherwise the corner on screen.
 - **Start here** card (shown on each visit until "Don't show this again" is ticked): explore the example, open a design, or try a **challenge**. Two guided exercises (raise the roll center; remove bump steer). Each has live goal meters with expandable curves, locked points, solver-computed hints and a star score. The challenge panel takes the place of the inputs column, and a focus layout shows only the goal curves, so it fits on one laptop screen.
 - **Compare tab:** up to four saved designs next to the live one, kept in this browser. It shows targets and key metrics with the change from a chosen reference, the hardpoints that differ, overlaid curves and 3D ghosts, with a CSV copy.
-- **Pin as baseline** freezes the current results. Your next edits then show as change columns and dashed
+- **Pin as baseline** (in the status strip under the sliders) freezes the current results. Your next edits then show as change columns and dashed
   baseline curves, which suits the one-coordinate-at-a-time workflow.
 - **Same JSON format as the CLI:** open any config file, or copy or download the current one and run it through
   `run`, `loads` or `report`.
@@ -145,7 +145,7 @@ the other way, which can put a different leg into compression.
 - `targets`: override any target range, e.g. `"roll_center": [30, 60]`, or `null` to drop one.
 - `targets_file`: optional path (relative to the design file) to a shared team targets file:
   `{"front": {...}, "rear": {...}}` or one flat `{metric: [lo, hi]}` table. Applied after the general defaults and
-  before the design's own `targets`. In the web app, open that file with **Open JSON** to apply it.
+  before the design's own `targets`. In the web app, open that file with **Open ▾** to apply it.
 
 The built-in defaults are deliberately broad sanity ranges (see the guide's target table). Set your own team's
 goals with `targets` or `targets_file`. `designs/case_study/` shows how the case-study car does it.

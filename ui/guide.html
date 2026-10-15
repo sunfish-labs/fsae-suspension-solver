@@ -90,19 +90,19 @@ Every number updates as you type.</p>
 <ol class="steps">
   <li><b>Open the app</b> and leave the design menu on <i>Example front</i>. It is an invented demo car that passes every target.</li>
   <li><b>Read the summary strip:</b> targets met, ride frequency, motion ratio and the lowest strength FOS. Anything failing is listed red in the <b>Targets</b> tab, and clicking a row explains the number.</li>
-  <li><b>Drag the Travel and Rack sliders.</b> The 3D corner moves, the readout shows camber, toe and roll-center height at that position, and the orange marker moves along every chart.</li>
-  <li><b>Click Pin as baseline, then change one coordinate.</b> Every target gains a <i>Baseline</i> and <i>Change</i> column, and the charts show the old curve dashed. That is how you learn what each hardpoint does.</li>
-  <li><b>Save your work</b> with <b>Save JSON</b>, which writes a <code>.json</code> file to your computer (in Chrome or Edge you choose where, and later saves go back to the same file). Keep it in your team's private folder and load it again with <b>Open JSON</b>. The app also remembers your last edits in that browser.</li>
+  <li><b>Drag the Travel and Rack sliders</b> (or type a value, or press <b>▶ Play</b>). The 3D corner moves, the readout shows camber, toe and roll-center height at that position, and the orange marker moves along every chart.</li>
+  <li><b>Click Pin as baseline</b> (under the sliders), <b>then change one coordinate.</b> Every target gains a <i>Baseline</i> and <i>Change</i> column, and the charts show the old curve dashed. That is how you learn what each hardpoint does.</li>
+  <li><b>Save your work</b> with <b>Save ▾ → Save JSON</b>, which writes a <code>.json</code> file to your computer (in Chrome or Edge you choose where, and later saves go back to the same file). Keep it in your team's private folder and load it again with <b>Open ▾</b>. The app also remembers your last edits in that browser.</li>
 </ol>
-<p class="small">Viewing controls: drag to orbit, right-drag or shift-drag to pan, scroll or pinch to zoom. The Front, Side and Top buttons give standard views, and "Other side" shows the mirrored corner.</p>
+<p class="small">Viewing controls: drag to orbit, right-drag or shift-drag to pan, scroll or pinch to zoom. The Front, Side and Top buttons give standard views, and <b>Display ▾</b> turns on the roll-center lines, the other side of the car and joint names.</p>
 
 <h2 id="private">Keeping designs private</h2>
-<div class="callout priv"><b>Your hardpoints never leave your computer.</b> This site is public, but <b>Open JSON</b> reads a file inside your
+<div class="callout priv"><b>Your hardpoints never leave your computer.</b> This site is public, but <b>Open ▾</b> reads a file inside your
 browser and sends nothing anywhere. The only designs built into the site are the invented examples.</div>
 <ul>
   <li>Keep team designs in a folder only your team can see, such as a shared drive or the <code>private/</code> folder of your copy of the code (Git ignores it).</li>
   <li>The app remembers your last unsaved edits on that computer only. Choosing a design from the menu replaces them.</li>
-  <li>Your own target ranges can travel with your designs. Put them in each design's <code>targets</code>, or in one shared <code>team_targets.json</code> that designs point to with <code>"targets_file"</code>. In the app, open that targets file with <b>Open JSON</b> to apply it to the design on screen.</li>
+  <li>Your own target ranges can travel with your designs. Put them in each design's <code>targets</code>, or in one shared <code>team_targets.json</code> that designs point to with <code>"targets_file"</code>. In the app, open that targets file with <b>Open ▾</b> to apply it to the design on screen.</li>
   <li>Never commit design files to the public repository. Before each commit, <code>git status</code> should list no JSON outside <code>designs/</code>.</li>
 </ul>
 
@@ -112,7 +112,7 @@ browser and sends nothing anywhere. The only designs built into the site are the
   <li><b>Vehicle settings are shared.</b> Mass, weight split, CG height, wheelbase and brake balance are entered once and used by both corners.</li>
   <li><b>Anti-roll bars</b> are entered as a rate at the wheels (Nm per degree of body roll; 0 = no bar). A bar adds roll stiffness without changing the ride frequency. The split of roll stiffness between front and rear sets how the lateral load transfer divides between the axles (LLTD), which is one of the main handling-balance knobs. More front LLTD than the front weight share pushes the car toward understeer.</li>
   <li><b>Car targets:</b> roll gradient (deg of body roll per g), front LLTD minus front weight share, and the rear/front ride-frequency ratio. The page also says what bar rates would hit the middle of your targets.</li>
-  <li><b>Export ▾</b> gives a printable design report and an Excel workbook of the whole car (or of one corner in the Front and Rear views), for design reviews and sharing outside the app.</li>
+  <li><b>Save ▾</b> also gives a printable design report and an Excel workbook of the whole car (or of one corner in the Front and Rear views), for design reviews and sharing outside the app.</li>
   <li><b>Click a corner</b> in the 3D car to edit it. In the Car view, Save JSON writes one car file with both corners; single-corner files still open into the front or rear slot.</li>
 </ul>
 <p class="small">Do you need a bar? Not always: the example car's springs alone already give a stiff roll gradient, but its LLTD sits below the front weight share, so it runs a front bar purely for balance. Pushrod or pullrod is a packaging choice: a pushrod (rod in compression, rocker and damper up high) is easier to package and service; a pullrod (rod in tension, so it can be thinner with no buckling risk; rocker and damper low) lowers that mass and frees space up top, but is harder to reach. The solver handles both: put the rod on the upper wishbone for a pullrod.</p>
@@ -120,7 +120,7 @@ browser and sends nothing anywhere. The only designs built into the site are the
 <h2 id="learn">Learning the terms, and finding what to move</h2>
 <p>New to suspension? These tools explain each number on your own design, not on a textbook car.</p>
 <ul>
-  <li><b>Learn tab:</b> a searchable glossary of every term the app uses, such as scrub radius, roll center, anti-dive and motion ratio. Each card gives the sign convention, what moves it and its value on the design on screen.</li>
+  <li><b>Learn</b> (top right): a searchable glossary of every term the app uses, such as scrub radius, roll center, anti-dive and motion ratio. Each card gives the sign convention, what moves it and its value on the design on screen.</li>
   <li><b>Show me:</b> draws the idea on the 3D corner. Examples are the steering axis meeting the ground, the wishbones extended to the instant center, and the wheel sweeping through bump while camber or toe changes. <b>Names</b> on the viewer labels every hardpoint.</li>
   <li><b>Fix a failing target:</b> in the Targets tab, click the row, then <b>Fix: what moves this?</b> The app tries every single-point move and the paired moves (both pivots of an arm, or the whole tie rod). It lists the smallest moves that bring the number into range, with the millimeters needed. Each move is re-solved and checked against every other target, and only targets it would newly break are listed as side effects. On a target that already passes, the same button shows the biggest levers on it.</li>
   <li><b>Click a joint</b> in the 3D view, or a hardpoint name in the inputs. A panel shows what moving that point 5 mm up, outboard or forward does to each metric. Blue cells go up, orange cells go down, darker means bigger, and a red outline marks a target that would start failing.</li>
@@ -205,7 +205,7 @@ before touching the tie rod, because moving the arms changes bump steer (here 1.
 <p>Bump steer went from 0.094 deg/in to 0.000, with under 0.001° of toe change over ±30 mm. Ackermann fell from 33 % to 18 %, and the
 outer wheel's turning radius at full rack is 3.49 m.</p>
 <div class="callout tip"><b>Lesson:</b> a straight toe-vs-travel line means the tie rod is at the wrong <i>height</i>. A U-shaped line means
-it is the wrong <i>length</i> or angle. The Heave tab's toe chart shows which one you have.</div>
+it is the wrong <i>length</i> or angle. The toe chart (Motion → Heave) shows which one you have.</div>
 </div>
 
 <div class="step">
@@ -273,7 +273,7 @@ own team's goals as in the case study above.</p>
 <tr><td>Ride frequency</td><td class="n">2.5 – 4.5 Hz</td><td class="n">2.5 – 4.5 Hz</td><td>Spring rate × motion ratio²</td></tr>
 <tr><td>Damper stroke, transmission angle, clearances</td><td class="n" colspan="2">physical limits</td><td>Rocker geometry, damper choice, tube sizes</td></tr>
 </tbody></table></div>
-<p class="small">Change any range in the Targets tab (it is saved in the design's JSON), or load your team's targets file with Open JSON.</p>
+<p class="small">Change any range in the Targets tab (it is saved in the design's JSON), or load your team's targets file with Open ▾.</p>
 
 <h2 id="mistakes">Common first-year mistakes</h2>
 <div class="grid2">
