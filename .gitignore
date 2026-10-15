@@ -1,0 +1,11 @@
+# Team design files and anything derived from them never go in this public repo
+private/
+old/
+*.csv
+reports/
+ui/artifact.html
+# keep the public examples
+!designs/*.json
+__pycache__/
+*.pyc
+.DS_Store

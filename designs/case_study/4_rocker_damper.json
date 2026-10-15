@@ -1,0 +1,213 @@
+{
+  "name": "Case study 4 - rocker and damper (final)",
+  "axle": "front",
+  "wheel": {
+    "camber_deg": -1.5,
+    "toe_deg": 0.0,
+    "tire_radius": 254.0,
+    "tire_width": 190.5,
+    "rim_diameter_in": 13.0
+  },
+  "vehicle": {
+    "wheelbase": 1550.0,
+    "track": null,
+    "cg_height": 280.0,
+    "front_brake_share": 0.6,
+    "brakes": "outboard",
+    "drive": "inboard",
+    "mass": 275.0,
+    "weight_front": 0.47,
+    "rack_c_factor": null
+  },
+  "sweep": {
+    "travel": 30.0,
+    "steps": 41,
+    "rack_travel": 35.0,
+    "rack_steps": 14,
+    "ackermann_at_outer_deg": 15.0,
+    "roll_deg": 2.0,
+    "roll_steps": 9
+  },
+  "clearance": {
+    "wishbone_tube_od": 25.4,
+    "tie_rod_od": 16.0,
+    "pushrod_od": 15.9,
+    "damper_od": 55.0,
+    "margin": 5.0
+  },
+  "rack_direction": [
+    0.0,
+    1.0,
+    0.0
+  ],
+  "spring": {
+    "rod_on": "lower",
+    "rod_outboard": [
+      -5.0,
+      545.0,
+      150.0
+    ],
+    "rocker_pivot": [
+      -5.0,
+      205.0,
+      380.0
+    ],
+    "rocker_axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "rocker_rod": [
+      -5.0,
+      246.4,
+      427.0
+    ],
+    "rocker_damper": [
+      -5.0,
+      201.5,
+      459.7
+    ],
+    "damper_chassis": [
+      -5.0,
+      30.5,
+      446.3
+    ],
+    "spring_rate": 52.5,
+    "damper_stroke": 57.0,
+    "damper_eye_to_eye": 200.0,
+    "unsprung_mass": 11.0,
+    "tire_rate": 110.0,
+    "target_freq_hz": 3.5
+  },
+  "loads": {
+    "bump_g": 3.0,
+    "corner_g": 1.6,
+    "brake_g": 1.6,
+    "combined_g": 1.2,
+    "accel_g": 1.0,
+    "lltd_front": null
+  },
+  "members": {
+    "material": "4130 chromoly steel, normalized (yield is lower next to welds)",
+    "wishbone": [
+      15.88,
+      0.89
+    ],
+    "tie_rod": [
+      15.88,
+      0.89
+    ],
+    "pushrod": [
+      15.88,
+      0.89
+    ],
+    "E": 205000.0,
+    "yield": 435.0,
+    "sf_target": 2.0
+  },
+  "hardpoints": {
+    "upper_inboard_front": [
+      -230.0,
+      288.0,
+      327.7
+    ],
+    "upper_inboard_rear": [
+      210.0,
+      287.1,
+      336.2
+    ],
+    "lower_inboard_front": [
+      -230.0,
+      167.5,
+      143.5
+    ],
+    "lower_inboard_rear": [
+      230.0,
+      166.1,
+      140.2
+    ],
+    "upper_outboard": [
+      -15.0,
+      562.0,
+      345.0
+    ],
+    "lower_outboard": [
+      5.0,
+      580.0,
+      135.0
+    ],
+    "trackrod_inboard": [
+      -80.0,
+      193.0,
+      170.8
+    ],
+    "trackrod_outboard": [
+      -75.0,
+      567.1,
+      168.3
+    ],
+    "contact_patch": [
+      0.0,
+      610.0,
+      0.0
+    ]
+  },
+  "targets": {
+    "camber": [
+      -2.5,
+      -1.0
+    ],
+    "camber_gain": [
+      0.35,
+      0.7
+    ],
+    "caster": [
+      4,
+      7
+    ],
+    "kpi": [
+      3,
+      8
+    ],
+    "scrub": [
+      5,
+      25
+    ],
+    "trail": [
+      10,
+      30
+    ],
+    "toe": [
+      -0.2,
+      0.0
+    ],
+    "roll_center": [
+      25,
+      60
+    ],
+    "rc_lat": [
+      -20,
+      20
+    ],
+    "antidive": [
+      5,
+      20
+    ],
+    "ackermann": [
+      10,
+      40
+    ],
+    "bump_steer": [
+      -0.03,
+      0.03
+    ],
+    "bump_steer_max": [
+      null,
+      0.05
+    ],
+    "ride_freq": [
+      3.0,
+      4.0
+    ]
+  }
+}

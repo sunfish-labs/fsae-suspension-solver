@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Suspension Solver Guide</title>
+<meta name="description" content="How to use the FSAE Suspension Solver and get a good double-wishbone design, with a worked case study.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Same visual system as the app: drafting-film neutrals, ink text, signal-orange accent, spec-sheet headings. */
+:root {
+  --bg: #e9edf0; --panel: #ffffff; --panel-2: #f4f6f8; --ink: #15212b; --muted: #5a6876; --line: #cfd7de;
+  --accent: #cf4a12; --accent-ink: #ffffff; --ok: #1f7a46; --ok-bg: #dcf1e4; --bad: #b42318; --bad-bg: #fbe3df;
+  --warn: #8a5a00; --warn-bg: #fdf0cf;
+  --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0e151b; --panel: #151f28; --panel-2: #1b2732; --ink: #e2e9ef; --muted: #8d9cab; --line: #2a3947;
+    --accent: #ff7a3d; --accent-ink: #1a0d05; --ok: #5fd08f; --ok-bg: #12301f; --bad: #ff8a7a; --bad-bg: #3a1714; --warn: #f2c14e; --warn-bg: #33280f; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0e151b; --panel: #151f28; --panel-2: #1b2732; --ink: #e2e9ef; --muted: #8d9cab; --line: #2a3947;
+  --accent: #ff7a3d; --accent-ink: #1a0d05; --ok: #5fd08f; --ok-bg: #12301f; --bad: #ff8a7a; --bad-bg: #3a1714; --warn: #f2c14e; --warn-bg: #33280f; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink); }
+body { margin: 0; font: 16px/1.6 var(--f-body); padding-block: 0 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 860px; margin: 0 auto; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-block: 16px 8px; }
+.brand { margin-right: auto; }
+.brand h1 { margin: 0; font: 700 32px/1 var(--f-display); color: var(--accent); text-transform: uppercase; letter-spacing: .02em; }
+.brand span { color: var(--muted); font-size: 14px; }
+.btn { display: inline-block; text-decoration: none; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 7px 14px; font-size: 14px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; padding: 10px 0 18px; border-bottom: 1px solid var(--line); }
+nav.toc a { color: var(--muted); text-decoration: none; }
+nav.toc a:hover { color: var(--accent); }
+h2 { font: 600 30px/1.1 var(--f-display); text-transform: uppercase; letter-spacing: .02em; margin: 44px 0 10px; text-wrap: balance; }
+h3 { font: 600 21px/1.2 var(--f-display); text-transform: uppercase; letter-spacing: .03em; margin: 26px 0 6px; }
+p, li { max-width: 68ch; }
+.lead { font-size: 18px; color: var(--muted); max-width: 62ch; }
+code, .mono { font-family: var(--f-mono); font-size: .9em; background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
+ol.steps { counter-reset: s; list-style: none; padding: 0; display: grid; gap: 10px; }
+ol.steps > li { counter-increment: s; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 12px 52px; position: relative; max-width: none; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 14px; top: 11px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+  font: 600 15px/26px var(--f-display); text-align: center; }
+.callout { border-radius: 10px; padding: 12px 16px; margin: 14px 0; max-width: 72ch; }
+.callout.priv { background: var(--warn-bg); color: var(--ink); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); }
+.callout.tip { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); }
+.callout b { color: inherit; }
+.tbl-wrap { overflow-x: auto; margin: 10px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+th { text-align: left; font: 600 11.5px/1.2 var(--f-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--panel-2); }
+td { padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.bad { color: var(--bad); font-weight: 600; } td.ok { color: var(--ok); font-weight: 600; }
+.step { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 18px 14px; margin: 18px 0; }
+.step h3 { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.step h3 .tag { font: 500 13px var(--f-body); text-transform: none; letter-spacing: 0; color: var(--muted); }
+.pill { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); } .pill.bad { background: var(--bad-bg); color: var(--bad); }
+.small { font-size: 14px; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.grid2 > div { min-width: 0; }
+footer { margin-top: 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="brand"><h1>Suspension Solver Guide</h1><span>Using the app, and a worked FSAE front-end design</span></div>
+  <a class="btn primary" href="index.html">Open the app</a>
+  <a class="btn" href="https://github.com/sunfish-labs/fsae-suspension-solver">Code on GitHub</a>
+</header>
+<nav class="toc" aria-label="Contents">
+  <a href="#start">Five-minute start</a><a href="#private">Keeping designs private</a><a href="#order">Order of work</a>
+  <a href="#case">Case study</a><a href="#targets">Targets</a><a href="#mistakes">Common mistakes</a><a href="#limits">Limits</a>
+</nav>
+
+<p class="lead">The solver takes the nine hardpoints of a double-wishbone corner, plus an optional pushrod, rocker and damper. It shows how
+the wheel moves through bump, roll and steering, what the spring and damper see, and how hard each tube is loaded.
+Every number updates as you type.</p>
+
+<h2 id="start">Five-minute start</h2>
+<ol class="steps">
+  <li><b>Open the app</b> and leave the design menu on <i>Example front</i>. It is an invented demo car that passes every target.</li>
+  <li><b>Read the summary strip:</b> targets met, ride frequency, motion ratio and the lowest strength FOS. Anything failing is listed red in the <b>Targets</b> tab, and clicking a row explains the number.</li>
+  <li><b>Drag the Travel and Rack sliders.</b> The 3D corner moves, the readout shows camber, toe and roll-centre height at that position, and the orange marker moves along every chart.</li>
+  <li><b>Click Pin as baseline, then change one coordinate.</b> Every target gains a <i>Baseline</i> and <i>Change</i> column, and the charts show the old curve dashed. That is how you learn what each hardpoint does.</li>
+  <li><b>Save your work</b> with <b>Copy JSON</b>, and paste it into a <code>.json</code> file in your team's private folder. Load it again later with <b>Open JSON</b>.</li>
+</ol>
+<p class="small">Viewing controls: drag to orbit, right-drag or shift-drag to pan, scroll or pinch to zoom. The Front, Side and Top buttons give standard views, and "Other side" shows the mirrored corner.</p>
+
+<h2 id="private">Keeping designs private</h2>
+<div class="callout priv"><b>Your hardpoints never leave your computer.</b> This site is public, but <b>Open JSON</b> reads a file inside your
+browser and sends nothing anywhere. The only designs built into the site are the invented examples.</div>
+<ul>
+  <li>Keep team designs in a folder only your team can see, such as a shared drive or the <code>private/</code> folder of your copy of the code (Git ignores it).</li>
+  <li>The app remembers your last unsaved edits on that computer only. Choosing a design from the menu replaces them.</li>
+  <li>Your own target ranges can travel with your designs. Put them in each design's <code>targets</code>, or in one shared <code>team_targets.json</code> that designs point to with <code>"targets_file"</code>. In the app, open that targets file with <b>Open JSON</b> to apply it to the design on screen.</li>
+  <li>Never commit design files to the public repository. Before each commit, <code>git status</code> should list no JSON outside <code>designs/</code>.</li>
+</ul>
+
+<h2 id="order">The order that works</h2>
+<p>Each stage changes things the earlier stages fixed, so work in this order and recheck everything after each one.</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Stage</th><th>Points you move</th><th>What it sets</th></tr></thead>
+<tbody>
+<tr><td>0. Package the wheel</td><td>Ball joints, contact patch, tie-rod outer</td><td>Caster, KPI, scrub, trail, steering arm. Fixed early by the upright and wheel; the solver only checks them.</td></tr>
+<tr><td>1. Inboard pivots</td><td>Upper and lower inboard Y and Z</td><td>Roll-centre height and movement, camber gain, anti-dive or anti-squat</td></tr>
+<tr><td>2. Tie rod</td><td>Trackrod inboard Y, Z and outboard Y, Z</td><td>Bump steer (height = slope, length = curve), Ackermann</td></tr>
+<tr><td>3. Pushrod, rocker, damper</td><td>Rocker points, damper mount</td><td>Motion ratio, ride frequency, damper stroke use, packaging</td></tr>
+<tr><td>4. Loads and whole car</td><td>Tube sizes, springs, anti-roll bar</td><td>FOS of every member, rod-end loads, roll gradient and balance</td></tr>
+</tbody></table></div>
+
+<h2 id="case">Case study: one front corner from first draft to all targets met</h2>
+<p>This is the real design history of the app's example car. Each step is in the app's design menu (<i>Case study 1</i> to <i>Case study 4</i>),
+so you can load it and follow along. We used the optimizer to save time, but each pass moved only one group of points for one purpose.
+That is the same discipline as changing one coordinate by hand.</p>
+<p>The team's goals for this car are stored in each design's <code>targets</code>:</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Goal</th><th class="n">Range</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Roll-centre height</td><td class="n">25 – 60 mm</td><td>Enough geometric load transfer to limit roll, not so much that the car jacks.</td></tr>
+<tr><td>Roll-centre sideways movement</td><td class="n">±20 mm/deg</td><td>A roll centre that wanders sideways makes the balance change mid-corner.</td></tr>
+<tr><td>Camber gain</td><td class="n">0.35 – 0.7 deg/in</td><td>Recovers some camber in roll without big camber swings over bumps.</td></tr>
+<tr><td>Anti-dive</td><td class="n">5 – 20 %</td><td>A little anti-dive steadies braking; too much stiffens and numbs the front.</td></tr>
+<tr><td>Ackermann</td><td class="n">10 – 40 %</td><td>Moderate Ackermann for tight FSAE corners.</td></tr>
+<tr><td>Bump steer</td><td class="n">±0.03 deg/in, max 0.05°</td><td>The wheel should not steer itself over bumps.</td></tr>
+<tr><td>Ride frequency</td><td class="n">3.0 – 4.0 Hz</td><td>A common FSAE window for a car without big aero loads.</td></tr>
+</tbody></table></div>
+
+<div class="step">
+<h3>Step 1 · First draft <span class="tag">12 of 20 checks pass</span></h3>
+<p>The ball joints, wheel and contact patch came from packaging the upright inside a 13-inch wheel, which made the steering-axis
+numbers good from the start: caster 5.4°, KPI 4.9°, scrub 18.4 mm, trail 17.9 mm. The inboard pivots were placed by eye at
+round numbers. The problems were plain:</p>
+<div class="tbl-wrap"><table><thead><tr><th>Check</th><th class="n">Value</th><th class="n">Goal</th></tr></thead><tbody>
+<tr><td>Roll-centre height</td><td class="n bad">5 mm</td><td class="n">25 – 60</td></tr>
+<tr><td>Roll-centre movement</td><td class="n bad">−387 mm/deg</td><td class="n">±20</td></tr>
+<tr><td>Camber gain</td><td class="n bad">0.87 deg/in</td><td class="n">0.35 – 0.7</td></tr>
+<tr><td>Anti-dive</td><td class="n bad">−1.1 %</td><td class="n">5 – 20</td></tr>
+<tr><td>Bump steer</td><td class="n bad">1.59 deg/in (1.9° max)</td><td class="n">±0.03</td></tr>
+<tr><td>Damper room at full bump</td><td class="n bad">1.4 mm</td><td class="n">≥ 2</td></tr>
+<tr><td>Gap between the two dampers</td><td class="n bad">52.8 mm</td><td class="n">≥ 60</td></tr>
+</tbody></table></div>
+<p class="small">A roll centre near the ground that also moves 387 mm per degree is the classic sign of nearly parallel arms of
+similar length, so the inboard pivots come first.</p>
+</div>
+
+<div class="step">
+<h3>Step 2 · Inboard pivots <span class="tag">17 of 20 pass</span></h3>
+<p>Goals for this pass: roll-centre height, camber gain, anti-dive, and roll-centre movement. We moved only the eight inboard pivot Y and Z coordinates:</p>
+<div class="tbl-wrap"><table><thead><tr><th>Point</th><th class="n">Change</th><th>Effect</th></tr></thead><tbody>
+<tr><td>All four inboard pivots, Z</td><td class="n">+25 to +38 mm</td><td>Raised the arm planes, lifting the roll centre to 35 mm</td></tr>
+<tr><td>Front vs rear pivot heights (side view)</td><td class="n">different Z rise</td><td>Tilted the side-view swing arm: anti-dive −1.1 → 8.0 %</td></tr>
+<tr><td>Upper inboard pivots, Y</td><td class="n">+28 mm (outboard)</td><td>Shorter upper arm</td></tr>
+<tr><td>Lower inboard pivots, Y</td><td class="n">−33 mm (inboard)</td><td>Longer lower arm</td></tr>
+</tbody></table></div>
+<p>The short-upper, long-lower arm pair is what stopped the roll centre wandering: −387 → −0.2 mm/deg. The front-view swing arm grew from
+2.0 m to 3.3 m, so camber gain fell to 0.45 deg/in, and the outer tyre now leans with the body 0.81° per degree of roll.</p>
+<div class="callout tip"><b>Lesson:</b> pivot heights move the roll centre up and down. Arm lengths decide how far it wanders. Fix both
+before touching the tie rod, because moving the arms changes bump steer (here 1.59 → 0.09 deg/in without touching the tie rod).</div>
+</div>
+
+<div class="step">
+<h3>Step 3 · Tie rod <span class="tag">19 of 20 pass</span></h3>
+<p>Goals for this pass: zero bump-steer slope, zero bump-steer curve, Ackermann near 18 %. We moved only the tie-rod ends:</p>
+<div class="tbl-wrap"><table><thead><tr><th>Point</th><th class="n">Change</th></tr></thead><tbody>
+<tr><td>Trackrod inboard Z / outboard Z</td><td class="n">+5.8 / +8.3 mm</td></tr>
+<tr><td>Trackrod inboard Y / outboard Y</td><td class="n">−17.0 / +7.1 mm</td></tr>
+</tbody></table></div>
+<p>Bump steer went from 0.094 deg/in to 0.000, with under 0.001° of toe change over ±30 mm. Ackermann fell from 33 % to 18 %, and the
+outer wheel's turning radius at full rack is 3.49 m.</p>
+<div class="callout tip"><b>Lesson:</b> a straight toe-vs-travel line means the tie rod is at the wrong <i>height</i>. A U-shaped line means
+it is the wrong <i>length</i> or angle. The Heave tab's toe chart shows which one you have.</div>
+</div>
+
+<div class="step">
+<h3>Step 4 · Pushrod, rocker and damper <span class="tag">20 of 20 pass</span></h3>
+<p>The damper is a common 200 × 57 mm size (eye-to-eye × stroke). The rocker pivot and pushrod mount stayed where the chassis and arm
+put them. Only the two rocker arms and the damper's chassis mount moved, each by under 5 mm. The goals and results:</p>
+<div class="tbl-wrap"><table><thead><tr><th>Quantity</th><th class="n">Before</th><th class="n">After</th><th class="n">Aim</th></tr></thead><tbody>
+<tr><td>Motion ratio (damper / wheel)</td><td class="n">0.822</td><td class="n">0.804</td><td class="n">≈ 0.80</td></tr>
+<tr><td>Motion ratio change over travel</td><td class="n">+8.3 %</td><td class="n">+5.2 %</td><td class="n">slightly rising</td></tr>
+<tr><td>Damper position at ride height</td><td class="n">50 %</td><td class="n">50 %</td><td class="n">≈ 50 % of stroke</td></tr>
+<tr><td>Room at full droop / full bump</td><td class="n">4.5 / 3.5 mm</td><td class="n">4.8 / 4.2 mm</td><td class="n">≥ 2 mm</td></tr>
+<tr><td>Worst rocker transmission angle</td><td class="n">68°</td><td class="n">72°</td><td class="n">≥ 65°</td></tr>
+<tr><td>Gap to the other side's damper</td><td class="n bad">52.8 mm</td><td class="n ok">61.0 mm</td><td class="n">≥ 60</td></tr>
+</tbody></table></div>
+<p>The Spring &amp; damper tab then gives the spring: <b>52.5 N/mm</b> (about 300 lbf/in) for a 3.5 Hz ride frequency at this motion ratio.</p>
+<div class="callout tip"><b>Lesson:</b> damper stroke limits wheel travel. With 57 mm of stroke and a 0.80 motion ratio, ±30 mm of wheel
+travel uses 48 mm, so the damper must sit near mid-stroke at ride height or it will top out or bottom out.</div>
+</div>
+
+<div class="step">
+<h3>Step 5 · Loads and the whole car</h3>
+<p><b>Strength.</b> The Loads tab checks bump, cornering (outer and inner wheel), braking and combined braking and cornering. With
+5/8 × 0.035 in 4130 tubes, the weakest member is the lower wishbone leg to the pivot at X = −230 in braking plus cornering: 2855 N compression
+against a 10 600 N buckling load, so FOS 3.7 against the required 2.0. The pushrod carries 3.0 kN in a 3 g bump; pick rod ends rated well
+above the "worst |force|" column.</p>
+<p><b>Balance.</b> With the matching example rear (3.6 Hz, 75 N/mm springs), the whole-car check
+(<code>python3 susp_solver.py car designs/example_front.json designs/example_rear.json</code>) gives 0.72 deg/g of roll from the springs
+alone. But only 44 % of the lateral load transfer is at the front, against 47 % of the weight on the front. That leans the car toward
+oversteer. The tool's fix: a front anti-roll bar of about 190 Nm/deg, or softer rear springs.</p>
+<div class="callout tip"><b>Lesson:</b> each corner can pass every target and the car can still be unbalanced. Check the front and rear
+together before buying springs.</div>
+</div>
+
+<h3>The whole history on one page</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Metric</th><th class="n">1 · Draft</th><th class="n">2 · Pivots</th><th class="n">3 · Tie rod</th><th class="n">4 · Rocker</th></tr></thead>
+<tbody>
+<tr><td>Checks passed</td><td class="n">12 / 20</td><td class="n">17 / 20</td><td class="n">19 / 20</td><td class="n ok">20 / 20</td></tr>
+<tr><td>Roll-centre height, mm</td><td class="n bad">5</td><td class="n">35</td><td class="n">35</td><td class="n">35</td></tr>
+<tr><td>Roll-centre movement, mm/deg</td><td class="n bad">−387</td><td class="n">−0.2</td><td class="n">−0.2</td><td class="n">−0.2</td></tr>
+<tr><td>Camber gain, deg/in</td><td class="n bad">0.87</td><td class="n">0.45</td><td class="n">0.44</td><td class="n">0.44</td></tr>
+<tr><td>Anti-dive, %</td><td class="n bad">−1.1</td><td class="n">8.0</td><td class="n">8.0</td><td class="n">8.0</td></tr>
+<tr><td>Bump steer, deg/in</td><td class="n bad">1.594</td><td class="n bad">0.094</td><td class="n">0.000</td><td class="n">0.000</td></tr>
+<tr><td>Ackermann, %</td><td class="n">33</td><td class="n">33</td><td class="n">18</td><td class="n">18</td></tr>
+<tr><td>Motion ratio</td><td class="n">0.882</td><td class="n">0.822</td><td class="n">0.822</td><td class="n">0.804</td></tr>
+<tr><td>Damper gap, mm (need 60)</td><td class="n bad">52.8</td><td class="n bad">52.8</td><td class="n bad">52.8</td><td class="n">61.0</td></tr>
+<tr><td>Lowest strength FOS</td><td class="n">4.4</td><td class="n">3.7</td><td class="n">3.7</td><td class="n">3.7</td></tr>
+</tbody></table></div>
+
+<h2 id="targets">What the default targets mean</h2>
+<p>The built-in ranges are deliberately broad. They catch clear mistakes, but passing them does not make a design good. Set your
+own team's goals as in the case study above.</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Metric</th><th class="n">Front default</th><th class="n">Rear default</th><th>What moves it</th></tr></thead>
+<tbody>
+<tr><td>Static camber</td><td class="n">−3.0 to −0.5°</td><td class="n">−3.0 to −0.5°</td><td>Shims at the upright; easy to change later</td></tr>
+<tr><td>Camber gain</td><td class="n">0.2 – 1.0 deg/in</td><td class="n">0.2 – 1.0 deg/in</td><td>Front-view swing arm: shorter = more gain</td></tr>
+<tr><td>Caster / KPI</td><td class="n">3 – 8° / 0 – 9°</td><td class="n">–</td><td>Ball-joint positions in side / front view</td></tr>
+<tr><td>Scrub / trail</td><td class="n">0 – 30 / 5 – 30 mm</td><td class="n">–</td><td>Steering axis vs contact patch</td></tr>
+<tr><td>Static toe</td><td class="n">−0.5 to +0.25°</td><td class="n">0 to +0.5°</td><td>Tie-rod length; set at alignment</td></tr>
+<tr><td>Roll-centre height</td><td class="n">0 – 75 mm</td><td class="n">0 – 100 mm</td><td>Inboard pivot heights</td></tr>
+<tr><td>Anti-dive / anti-squat</td><td class="n">0 – 40 %</td><td class="n">0 – 60 %</td><td>Side-view tilt of the pivot axes</td></tr>
+<tr><td>Ackermann</td><td class="n">0 – 100 %</td><td class="n">–</td><td>Steering-arm angle and rack position</td></tr>
+<tr><td>Bump steer</td><td class="n">±0.05 deg/in, max 0.10°</td><td class="n">same</td><td>Tie-rod height (slope) and length (curve)</td></tr>
+<tr><td>Ride frequency</td><td class="n">2.5 – 4.5 Hz</td><td class="n">2.5 – 4.5 Hz</td><td>Spring rate × motion ratio²</td></tr>
+<tr><td>Damper stroke, transmission angle, clearances</td><td class="n" colspan="2">physical limits</td><td>Rocker geometry, damper choice, tube sizes</td></tr>
+</tbody></table></div>
+<p class="small">Change any range in the Targets tab (it is saved in the design's JSON), or load your team's targets file with Open JSON.</p>
+
+<h2 id="mistakes">Common first-year mistakes</h2>
+<div class="grid2">
+<div><h3>Axes from CAD</h3><p>The solver wants X forward, Y outboard on the right wheel, Z up, ground at Z = 0. If the input checks complain about
+ball joints or the contact patch, your CAD axes are mapped wrongly. The command-line <code>import --map</code> option fixes that.</p></div>
+<div><h3>"Front" and "rear" pivots</h3><p>Following KineSolver, the pivot labelled "front" is the one with the <i>smaller</i> X. With X
+forward, that is physically the rear pivot. The app labels each one "smaller-X pivot" to avoid confusion.</p></div>
+<div><h3>Fixing bump steer too early</h3><p>Every change to the wishbones changes bump steer. Tune the pivots first, then the tie rod, then check again.</p></div>
+<div><h3>Checking clearance only at ride height</h3><p>Links usually collide at full droop with full lock. The Packaging tab checks every
+combination of full droop, ride height and full bump with full left lock, centre and full right lock.</p></div>
+<div><h3>Picking the damper last</h3><p>Damper stroke and length decide how much wheel travel you can have. Choose the damper before you
+lay out the rocker.</p></div>
+<div><h3>Trusting one corner</h3><p>Use the whole-car check before choosing springs and anti-roll bars.</p></div>
+</div>
+
+<h2 id="limits">What the solver does not do</h2>
+<ul>
+  <li>Links are rigid: there is no compliance, bushing flex, tyre model or chassis twist.</li>
+  <li>Roll is modelled as equal and opposite wheel travel, which gives the kinematic roll centre.</li>
+  <li>Loads are quasi-static at ride height. Tabs, welds, inserts and fatigue are not checked.</li>
+  <li>The default ranges are starting points, not rules. Check wheelbase, travel and turning limits against the current FSAE rulebook.</li>
+  <li>Always confirm the final design in CAD.</li>
+</ul>
+
+<footer>FSAE Suspension Solver · <a href="index.html">Open the app</a> · <a href="https://github.com/sunfish-labs/fsae-suspension-solver">Source and command-line tool</a>.
+The example and case-study hardpoints are invented and do not describe any real team's car.</footer>
+</div>
+</body>
+</html>

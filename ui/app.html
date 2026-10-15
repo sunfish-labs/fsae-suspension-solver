@@ -1,0 +1,994 @@
+<title>FSAE Suspension Solver</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: engineering workbench. Inputs column on the left, a live 3D corner and results on the right.
+   Drafting-film neutrals, ink text, one signal-orange accent; condensed display face for labels like a spec sheet. */
+:root {
+  --bg: #e9edf0;
+  --panel: #ffffff;
+  --panel-2: #f4f6f8;
+  --ink: #15212b;
+  --muted: #5a6876;
+  --line: #cfd7de;
+  --accent: #cf4a12;
+  --accent-ink: #ffffff;
+  --s1: #1d6aa8;
+  --s2: #cf4a12;
+  --s3: #2f8f6b;
+  --base: #8a96a3;
+  --ok: #1f7a46;
+  --ok-bg: #dcf1e4;
+  --bad: #b42318;
+  --bad-bg: #fbe3df;
+  --warn: #8a5a00;
+  --warn-bg: #fdf0cf;
+  --viewer: #dfe5ea;
+  --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151b; --panel: #151f28; --panel-2: #1b2732; --ink: #e2e9ef; --muted: #8d9cab; --line: #2a3947;
+    --accent: #ff7a3d; --accent-ink: #1a0d05; --s1: #5aa8e8; --s2: #ff7a3d; --s3: #4cc496; --base: #6f7d8b;
+    --ok: #5fd08f; --ok-bg: #12301f; --bad: #ff8a7a; --bad-bg: #3a1714; --warn: #f2c14e; --warn-bg: #33280f;
+    --viewer: #101a22; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e151b; --panel: #151f28; --panel-2: #1b2732; --ink: #e2e9ef; --muted: #8d9cab; --line: #2a3947;
+  --accent: #ff7a3d; --accent-ink: #1a0d05; --s1: #5aa8e8; --s2: #ff7a3d; --s3: #4cc496; --base: #6f7d8b;
+  --ok: #5fd08f; --ok-bg: #12301f; --bad: #ff8a7a; --bad-bg: #3a1714; --warn: #f2c14e; --warn-bg: #33280f;
+  --viewer: #101a22; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--bg); color: var(--ink); }
+body { font: 14px/1.45 var(--f-body); padding-block: 0 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; letter-spacing: .01em; margin: 0; text-wrap: balance; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* top bar */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-block: 14px 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
+.brand h1 { font-size: 30px; line-height: 1; color: var(--accent); text-transform: uppercase; letter-spacing: .02em; }
+.brand span { color: var(--muted); font-size: 13px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { text-decoration: none; display: inline-block; border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn.small { padding: 3px 8px; font-size: 12.5px; }
+select.sel { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 6px 8px; max-width: 100%; }
+
+/* workbench grid */
+.bench { display: grid; grid-template-columns: minmax(330px, 440px) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 960px) { .bench { grid-template-columns: minmax(0, 1fr); } .out { order: -1; } }
+input.num[type=number] { -moz-appearance: textfield; appearance: textfield; }
+input.num::-webkit-outer-spin-button, input.num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+@media (max-width: 520px) { .num { font-size: 12px; padding: 4px 3px; } .pt td.lab { width: 30%; font-size: 12px; } .brand h1 { font-size: 26px; } .brand span { display: none; } }
+.inputs { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.out { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.card > summary, .card > .hd { list-style: none; cursor: pointer; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.card > summary::-webkit-details-marker { display: none; }
+.card > summary h2, .card > .hd h2 { font-size: 19px; text-transform: uppercase; letter-spacing: .03em; }
+.card > summary .hint { color: var(--muted); font-size: 12px; }
+.card > summary::after { content: "▾"; color: var(--muted); font-size: 12px; }
+.card:not([open]) > summary::after { content: "▸"; }
+.card .body { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+/* hardpoint tables */
+.pt { width: 100%; border-collapse: collapse; }
+.pt th { font: 600 11px/1 var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); text-align: left; padding: 0 4px 6px; }
+.pt th.x { color: #d13b2e; } .pt th.y { color: #2f8f3e; } .pt th.z { color: #2a63c9; }
+:root[data-theme="dark"] .pt th.x { color: #ff8577; } :root[data-theme="dark"] .pt th.y { color: #6fd27d; } :root[data-theme="dark"] .pt th.z { color: #7fa8ff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pt th.x { color: #ff8577; } :root:not([data-theme="light"]) .pt th.y { color: #6fd27d; } :root:not([data-theme="light"]) .pt th.z { color: #7fa8ff; } }
+.pt td { padding: 2px 3px; vertical-align: middle; }
+.pt td.lab { font-size: 12.5px; line-height: 1.2; padding-right: 6px; width: 34%; }
+.pt td.lab small { display: block; color: var(--muted); font-size: 11px; }
+.num { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 5px; background: var(--panel-2); padding: 4px 6px;
+  font: 13px/1.2 var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.num:hover { border-color: var(--muted); }
+.num:focus { background: var(--panel); }
+.pt td.c { width: 22%; }
+
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; }
+.field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.field label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
+.field label i { font-style: normal; font-family: var(--f-mono); font-size: 11px; }
+.field select { border: 1px solid var(--line); border-radius: 5px; background: var(--panel-2); padding: 4px 6px; font-size: 13px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.note { color: var(--muted); font-size: 12px; }
+.sub-h { font: 600 12px/1 var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-top: 4px; }
+
+/* viewer */
+.viewer { position: relative; background: var(--viewer); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.viewer canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.vbox { height: clamp(300px, 46vh, 520px); }
+.vtools { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: space-between; pointer-events: none; }
+.vtools > * { pointer-events: auto; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel); }
+.seg button { border: 0; background: transparent; padding: 4px 9px; font-size: 12.5px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.hud { position: absolute; left: 10px; bottom: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 4px 14px; font: 12px/1.3 var(--f-mono);
+  background: color-mix(in srgb, var(--panel) 86%, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; pointer-events: none; }
+.hud b { font-weight: 500; color: var(--muted); }
+.v-msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); padding: 20px; text-align: center; }
+.pose { display: grid; grid-template-columns: auto minmax(0, 1fr) 76px; gap: 6px 10px; align-items: center; padding: 10px 2px 0; }
+.pose label { font: 600 12px/1 var(--f-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.pose input[type=range] { width: 100%; accent-color: var(--accent); }
+.pose output { font: 13px var(--f-mono); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* status strip */
+.status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.neutral { background: var(--panel-2); color: var(--muted); }
+.big { font: 600 24px/1 var(--f-display); }
+.banner { border-radius: 8px; padding: 10px 12px; font-size: 13.5px; }
+.banner.bad { background: var(--bad-bg); color: var(--bad); }
+.banner.warn { background: var(--warn-bg); color: var(--warn); }
+.banner ul { margin: 6px 0 0; padding-left: 18px; }
+
+/* tabs */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: thin; }
+.tabs button { border: 0; background: transparent; padding: 8px 12px; cursor: pointer; font: 600 15px/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs button .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--bad); margin-left: 5px; vertical-align: middle; }
+.panel { padding-top: 12px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.tbl-wrap { overflow-x: auto; }
+table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.data th { text-align: left; font: 600 11px/1.2 var(--f-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.data td { padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.data td:first-child { white-space: nowrap; }
+table.data td.n, table.data th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.data tr.help td { color: var(--muted); font-size: 12.5px; background: var(--panel-2); }
+table.data tr.clickable { cursor: pointer; }
+table.data tr.clickable:hover td { background: var(--panel-2); }
+table.data .rng { display: inline-flex; gap: 4px; align-items: center; }
+table.data .rng .num { width: 64px; padding: 2px 4px; font-size: 12px; }
+.delta-up { color: var(--s1); } .delta-dn { color: var(--s2); }
+
+.charts { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.chart { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 8px 4px; min-width: 0; }
+.chart h3 { font: 600 13px/1.2 var(--f-body); margin: 0 0 2px 4px; }
+.chart .cap { font-size: 11.5px; color: var(--muted); margin: 0 0 2px 4px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.kv div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.kv span { display: block; font-size: 11.5px; color: var(--muted); }
+.kv b { font: 500 18px/1.2 var(--f-mono); font-variant-numeric: tabular-nums; }
+.kv b small { font-size: 12px; color: var(--muted); font-weight: 400; }
+.ok-t { color: var(--ok); font-weight: 600; } .bad-t { color: var(--bad); font-weight: 600; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--f-mono); }
+textarea.json { width: 100%; min-height: 160px; font: 12px/1.4 var(--f-mono); border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); padding: 8px; }
+.foot { color: var(--muted); font-size: 12px; margin-top: 16px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<header class="top">
+  <div class="brand"><h1>Suspension Solver</h1><span>FSAE double wishbone · one corner, rigid links</span></div>
+  <div class="toolbar">
+    <label class="muted" for="preset" style="font-size:12.5px">Design</label>
+    <select id="preset" class="sel"></select>
+    <button class="btn" id="btnLoad" type="button">Open JSON…</button>
+    <input id="fileIn" type="file" accept=".json,application/json" hidden>
+    <button class="btn" id="btnCopy" type="button">Copy JSON</button>
+    <button class="btn" id="btnDownload" type="button" hidden>Download JSON</button>
+    <button class="btn" id="btnBase" type="button" title="Freeze the current results to compare your next changes against">Pin as baseline</button>
+    <a class="btn" id="lnkGuide" href="/*GUIDE_URL*/" target="_blank" rel="noopener">Guide &amp; case study</a>
+  </div>
+</header>
+
+<div class="bench">
+  <!-- ================= INPUTS ================= -->
+  <section class="inputs" aria-label="Inputs">
+    <details class="card" open id="cardHp">
+      <summary><h2>Double wishbone</h2><span class="hint">mm · X fwd, Y out, Z up</span></summary>
+      <div class="body">
+        <div class="field"><label for="in_name">Design name</label><input id="in_name" class="num" style="text-align:left;font-family:var(--f-body)" data-path="name" data-type="text"></div>
+        <table class="pt" id="hpTable"><thead><tr><th>Hardpoint</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody></tbody></table>
+        <p class="note">"Front"/"rear" follow KineSolver's labels: the pivot with the smaller X. With X forward that is physically the rear pivot.</p>
+      </div>
+    </details>
+
+    <details class="card" open>
+      <summary><h2>Wheel &amp; vehicle</h2><span class="hint">anti-geometry inputs</span></summary>
+      <div class="body">
+        <div class="fields" id="wheelFields"></div>
+        <div class="sub-h">Vehicle</div>
+        <div class="fields" id="vehFields"></div>
+      </div>
+    </details>
+
+    <details class="card" open>
+      <summary><h2>Simulation</h2><span class="hint">sweep ranges</span></summary>
+      <div class="body"><div class="fields" id="simFields"></div></div>
+    </details>
+
+    <details class="card" id="cardSpring">
+      <summary><h2>Pushrod, rocker &amp; damper</h2><span class="hint" id="springHint"></span></summary>
+      <div class="body">
+        <label class="check"><input type="checkbox" id="springOn"> Model the spring and damper</label>
+        <div id="springBody">
+          <div class="fields" style="margin-bottom:6px">
+            <div class="field"><label for="sp_rod_on">Pushrod mounted on</label>
+              <select id="sp_rod_on" data-path="spring.rod_on" data-type="select"><option value="lower">Lower wishbone</option><option value="upper">Upper wishbone</option><option value="upright">Upright</option></select></div>
+            <div class="field"><label for="rockerOn">Rocker</label>
+              <select id="rockerOn"><option value="1">Rocker (bellcrank)</option><option value="0">Direct-acting damper</option></select></div>
+          </div>
+          <table class="pt" id="spTable"><thead><tr><th>Point</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody></tbody></table>
+          <div class="sub-h" style="margin-top:8px">Spring, damper &amp; tyre</div>
+          <div class="fields" id="spFields"></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary><h2>Loads &amp; materials</h2><span class="hint">g levels, tubes, FOS</span></summary>
+      <div class="body">
+        <div class="fields" id="loadFields"></div>
+        <div class="sub-h">Tubes (OD × wall, mm)</div>
+        <div class="fields" id="tubeFields"></div>
+        <div class="sub-h">Material</div>
+        <div class="fields" id="matFields"></div>
+        <div class="sub-h">Packaging clearances</div>
+        <div class="fields" id="clrFields"></div>
+      </div>
+    </details>
+
+    <details class="card" id="cardJson">
+      <summary><h2>Config JSON</h2><span class="hint">same format as susp_solver.py</span></summary>
+      <div class="body">
+        <textarea class="json" id="jsonBox" spellcheck="false" aria-label="Configuration JSON"></textarea>
+        <div class="toolbar"><button class="btn small" id="btnApplyJson" type="button">Apply JSON</button><span class="note" id="jsonMsg"></span></div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ================= OUTPUT ================= -->
+  <section class="out" aria-label="Results">
+    <div>
+      <div class="viewer vbox" id="viewer">
+        <canvas id="cv" aria-label="3D view of the suspension corner"></canvas>
+        <div class="vtools">
+          <div class="seg" role="group" aria-label="View">
+            <button type="button" data-view="iso" aria-pressed="true">3D</button>
+            <button type="button" data-view="front" aria-pressed="false">Front</button>
+            <button type="button" data-view="side" aria-pressed="false">Side</button>
+            <button type="button" data-view="top" aria-pressed="false">Top</button>
+          </div>
+          <div class="seg" role="group" aria-label="Overlays">
+            <button type="button" id="tgRC" aria-pressed="true">Roll centre</button>
+            <button type="button" id="tgMirror" aria-pressed="false">Other side</button>
+          </div>
+        </div>
+        <div class="hud" id="hud"></div>
+        <div class="v-msg" id="vmsg" hidden></div>
+      </div>
+      <div class="pose">
+        <label for="poseZ">Travel</label><input type="range" id="poseZ" min="-30" max="30" step="0.5" value="0"><output id="poseZo">0 mm</output>
+        <label for="poseR">Rack</label><input type="range" id="poseR" min="-35" max="35" step="0.5" value="0"><output id="poseRo">0 mm</output>
+      </div>
+    </div>
+
+    <div class="status" id="status"></div>
+    <div id="errBox"></div>
+
+    <div>
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div id="panels"></div>
+    </div>
+  </section>
+</div>
+<p class="foot">Results match the Python <span class="mono">susp_solver.py</span> to machine precision. The solver is quasi-static with rigid links and no tyre model, so confirm the final design in CAD.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/*SUSP_JS*/
+</script>
+<script>
+const PRESETS = /*PRESETS*/;
+</script>
+<script>
+(function () {
+"use strict";
+const S = window.Susp, V = S.vec;
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const fmt = (v, d = 1) => (v == null || Number.isNaN(v)) ? "–" : (!Number.isFinite(v) ? "∞" : (+v).toFixed(d).replace(/^-(0\.?0*)$/, "$1").replace("-", "−"));
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+const HELP = {
+  camber: "Wheel lean at ride height. Negative = top leans in. Set by shims, so it is easy to adjust later.",
+  camber_gain: "Camber change per inch of bump. Shorter front-view swing arm = more gain.",
+  caster: "Kingpin tilt seen from the side. More caster = more self-centring and steering camber, heavier steering.",
+  kpi: "Kingpin inclination seen from the front. Drives scrub radius and steering jacking.",
+  scrub: "Steering axis ground point to contact patch, sideways. Large = kickback and heavy steering.",
+  trail: "Steering axis ground point to contact patch, fore-aft. Gives self-centring torque.",
+  toe: "Static toe, + = toe-in. Set by tie-rod length.",
+  roll_center: "Roll centre height at ride height. Higher = more load transfer through links, less body roll.",
+  antidive: "Share of braking weight transfer taken by the links at the front. Negative = pro-dive.",
+  antisquat: "Share of acceleration weight transfer taken by the links at the rear.",
+  ackermann: "0 % = parallel steer, 100 % = full Ackermann, negative = anti-Ackermann.",
+  bump_steer: "Toe change per inch of bump. Fix the slope with tie-rod height.",
+  bump_steer_max: "Largest toe change anywhere in the travel. Catches U-shaped toe curves (fix those with tie-rod length).",
+  ride_freq: "Natural frequency of the sprung corner on spring and tyre. FSAE cars often run 2.5–4.5 Hz.",
+  damper_margin: "Damper stroke left over after the full wheel travel.",
+  damper_topout: "Room before the damper fully extends at full droop.",
+  damper_bottomout: "Room before the damper fully compresses at full bump.",
+  trans_min: "Angle between pushrod or damper and the rocker arm it drives, worst over travel. 90° is best; under 45° the rocker nears a toggle.",
+  link_clearance: "Tightest centre-line gap between moving links over travel and steer, against tube radii plus margin.",
+  rim_margin: "Gap from the farthest outboard joint to the rim radius (radial check only).",
+};
+
+// ------------------------------------------------------------------ state
+let cfg = null, ev = null, loads = null, err = null, base = null, baseName = "";
+let pose = { dz: 0, rack: 0 }, savedSpring = null, savedRocker = null, tab = "checks";
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage blocked */ } } };
+
+function getPath(o, path) { return path.split(".").reduce((a, k) => a == null ? a : a[k], o); }
+function setPath(o, path, v) {
+  const ks = path.split("."); let a = o;
+  for (let i = 0; i < ks.length - 1; i++) { if (a[ks[i]] == null) a[ks[i]] = /^\d+$/.test(ks[i + 1]) ? [] : {}; a = a[ks[i]]; }
+  a[ks[ks.length - 1]] = v;
+}
+
+// ------------------------------------------------------------------ input builders
+const HP_LABELS = {
+  upper_inboard_front: ["Upper inboard front", "smaller-X pivot"], upper_inboard_rear: ["Upper inboard rear", "larger-X pivot"],
+  lower_inboard_front: ["Lower inboard front", "smaller-X pivot"], lower_inboard_rear: ["Lower inboard rear", "larger-X pivot"],
+  upper_outboard: ["Upper outboard", "upper ball joint"], lower_outboard: ["Lower outboard", "lower ball joint"],
+  trackrod_inboard: ["Trackrod inboard", "rack end"], trackrod_outboard: ["Trackrod outboard", "steering arm"],
+  contact_patch: ["Tire contact patch", "ground, Z = 0"] };
+const SP_LABELS = { rod_outboard: ["Pushrod outboard", "on the arm / upright"], rocker_pivot: ["Rocker pivot", "chassis"],
+  rocker_axis: ["Rocker axis", "pivot bolt direction"], rocker_rod: ["Rocker – pushrod point", ""],
+  rocker_damper: ["Rocker – damper point", ""], damper_chassis: ["Damper chassis mount", ""] };
+
+function numInput(path, opts = {}) {
+  const id = "in_" + path.replace(/\./g, "_");
+  return `<input class="num" id="${id}" type="number" step="${opts.step ?? "any"}" inputmode="decimal" data-path="${path}" data-type="${opts.type ?? "num"}"${opts.scale ? ` data-scale="${opts.scale}"` : ""}${opts.opt ? " data-opt=\"1\"" : ""} aria-label="${esc(opts.aria ?? path)}">`;
+}
+function field(label, unit, path, opts = {}) {
+  const id = "in_" + path.replace(/\./g, "_");
+  if (opts.options) return `<div class="field"><label for="${id}">${label}</label><select id="${id}" data-path="${path}" data-type="select">${opts.options.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select></div>`;
+  return `<div class="field"><label for="${id}">${label} <i>${unit}</i></label>${numInput(path, { ...opts, aria: label })}</div>`;
+}
+function ptRows(tbody, list, prefix, labels) {
+  tbody.innerHTML = list.map(k => `<tr data-row="${k}"><td class="lab">${labels[k][0]}${labels[k][1] ? `<small>${labels[k][1]}</small>` : ""}</td>` +
+    [0, 1, 2].map(i => `<td class="c">${numInput(`${prefix}.${k}.${i}`, { aria: `${labels[k][0]} ${"XYZ"[i]}`, step: k === "rocker_axis" ? "0.1" : "0.1" })}</td>`).join("") + "</tr>").join("");
+}
+function buildForm() {
+  ptRows($("#hpTable tbody"), S.HP_ORDER, "hardpoints", HP_LABELS);
+  ptRows($("#spTable tbody"), S.SPRING_POINTS, "spring", SP_LABELS);
+  $("#wheelFields").innerHTML = [field("Camber", "deg", "wheel.camber_deg", { step: 0.1 }), field("Toe (+ in)", "deg", "wheel.toe_deg", { step: 0.01 }),
+    field("Rim diameter", "in", "wheel.rim_diameter_in"), field("Tire width", "mm", "wheel.tire_width"), field("Tire radius", "mm", "wheel.tire_radius")].join("");
+  $("#vehFields").innerHTML = [field("Axle", "", "axle", { options: [["front", "Front axle"], ["rear", "Rear axle"]] }),
+    field("Brake balance (front)", "%", "vehicle.front_brake_share", { scale: 100, step: 1 }), field("Wheelbase", "mm", "vehicle.wheelbase"),
+    field("CG height", "mm", "vehicle.cg_height"), field("Car mass with driver", "kg", "vehicle.mass"),
+    field("Weight on front", "%", "vehicle.weight_front", { scale: 100, step: 0.5 }),
+    field("Brakes", "", "vehicle.brakes", { options: [["outboard", "Outboard (at upright)"], ["inboard", "Inboard (on chassis)"]] }),
+    field("Drive", "", "vehicle.drive", { options: [["inboard", "Inboard diff / halfshafts"], ["outboard", "Outboard (hub motor)"]] })].join("");
+  $("#simFields").innerHTML = [field("Vertical travel ±", "mm", "sweep.travel", { step: 1 }), field("Rack travel ±", "mm", "sweep.rack_travel", { step: 1 }),
+    field("Body roll ±", "deg", "sweep.roll_deg", { step: 0.25 }), field("Ackermann at outer wheel", "deg", "sweep.ackermann_at_outer_deg", { step: 1 })].join("");
+  $("#spFields").innerHTML = [field("Spring rate", "N/mm", "spring.spring_rate", { step: 1 }), field("Target ride freq", "Hz", "spring.target_freq_hz", { step: 0.1, opt: 1 }),
+    field("Damper eye-to-eye (extended)", "mm", "spring.damper_eye_to_eye", { opt: 1 }), field("Damper stroke", "mm", "spring.damper_stroke", { opt: 1 }),
+    field("Unsprung mass / corner", "kg", "spring.unsprung_mass", { step: 0.5 }), field("Tyre vertical rate", "N/mm", "spring.tire_rate", { step: 5 })].join("");
+  $("#loadFields").innerHTML = [field("Bump", "g", "loads.bump_g", { step: 0.1 }), field("Cornering", "g", "loads.corner_g", { step: 0.1 }),
+    field("Braking", "g", "loads.brake_g", { step: 0.1 }), field("Brake + corner", "g", "loads.combined_g", { step: 0.1 }),
+    field("Acceleration (rear)", "g", "loads.accel_g", { step: 0.1 })].join("");
+  $("#tubeFields").innerHTML = [field("Wishbone OD", "mm", "members.wishbone.0"), field("Wishbone wall", "mm", "members.wishbone.1"),
+    field("Tie rod OD", "mm", "members.tie_rod.0"), field("Tie rod wall", "mm", "members.tie_rod.1"),
+    field("Pushrod OD", "mm", "members.pushrod.0"), field("Pushrod wall", "mm", "members.pushrod.1")].join("");
+  $("#matFields").innerHTML = [field("Young's modulus E", "MPa", "members.E", { step: 1000 }), field("Yield strength", "MPa", "members.yield", { step: 5 }),
+    field("Required FOS", "", "members.sf_target", { step: 0.1 })].join("");
+  $("#clrFields").innerHTML = [field("Wishbone tube OD", "mm", "clearance.wishbone_tube_od"), field("Tie rod OD", "mm", "clearance.tie_rod_od"),
+    field("Pushrod OD", "mm", "clearance.pushrod_od"), field("Damper body OD", "mm", "clearance.damper_od"), field("Extra margin", "mm", "clearance.margin")].join("");
+  $$("[data-path]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", onInput));
+}
+
+function fillForm() {
+  $$("[data-path]").forEach(el => {
+    const path = el.dataset.path;
+    if (path.startsWith("spring.") && !cfg.spring) { const v = getPath({ spring: savedSpring || S.DEFAULTS.spring || {} }, path); el.value = v == null ? "" : v; return; }
+    let v = getPath(cfg, path);
+    if (v == null) v = getPath(S.DEFAULTS, path);
+    if (el.dataset.scale && v != null) v = +(v * +el.dataset.scale).toFixed(6);
+    el.value = v == null ? "" : v;
+  });
+  $("#springOn").checked = !!cfg.spring;
+  $("#springBody").hidden = !cfg.spring;
+  $("#rockerOn").value = cfg.spring && cfg.spring.rocker_pivot == null ? "0" : "1";
+  syncRockerRows();
+  syncAxle();
+}
+function syncRockerRows() {
+  const direct = cfg.spring && cfg.spring.rocker_pivot == null;
+  ["rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper"].forEach(k => { const r = $(`#spTable tr[data-row="${k}"]`); if (r) r.hidden = !!direct; });
+}
+function syncAxle() {
+  const rear = cfg.axle === "rear";
+  $("#poseR").disabled = rear;
+  $("#in_vehicle_drive").closest(".field").hidden = !rear;
+  $("#in_sweep_rack_travel").closest(".field").hidden = rear;
+  $("#in_sweep_ackermann_at_outer_deg").closest(".field").hidden = rear;
+  $("#in_loads_accel_g").closest(".field").hidden = !rear;
+  $("#springHint").textContent = cfg.spring ? (cfg.spring.rocker_pivot == null ? "direct-acting" : "rocker") : "off";
+}
+
+function onInput(e) {
+  const el = e.target, path = el.dataset.path;
+  let v;
+  if (el.dataset.type === "select" || el.dataset.type === "text") v = el.value;
+  else {
+    if (el.value === "") { if (el.dataset.opt) v = null; else return; }
+    else { v = +el.value; if (!Number.isFinite(v)) return; if (el.dataset.scale) v /= +el.dataset.scale; }
+  }
+  if (path.startsWith("spring.") && !cfg.spring) return;
+  setPath(cfg, path, v);
+  if (path === "axle") syncAxle();
+  schedule();
+}
+
+$("#springOn").addEventListener("change", (e) => {
+  if (e.target.checked) cfg.spring = savedSpring || JSON.parse(JSON.stringify(PRESETS[0].cfg.spring));
+  else { savedSpring = cfg.spring; cfg.spring = null; }
+  fillForm(); schedule();
+});
+$("#rockerOn").addEventListener("change", (e) => {
+  if (!cfg.spring) return;
+  const keys = ["rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper"];
+  if (e.target.value === "0") { savedRocker = Object.fromEntries(keys.map(k => [k, cfg.spring[k]])); keys.forEach(k => cfg.spring[k] = null); }
+  else { const src = savedRocker || PRESETS[0].cfg.spring; keys.forEach(k => cfg.spring[k] = JSON.parse(JSON.stringify(src[k]))); }
+  fillForm(); schedule();
+});
+
+// ------------------------------------------------------------------ run
+let timer = null;
+function schedule() { clearTimeout(timer); timer = setTimeout(run, 160); }
+function run() {
+  const t0 = performance.now();
+  try {
+    ev = S.evaluate(cfg);
+    loads = ev.spring ? S.runLoads(ev.cfg, ev.susp, ev.spring) : null;
+    err = null;
+  } catch (e) { err = e; console.warn(e); }
+  const ms = performance.now() - t0;
+  store.set("susp.cfg", JSON.stringify(cfg));
+  $("#jsonBox").value = JSON.stringify(exportCfg(), null, 2);
+  const T = cfg.sweep?.travel ?? 30, Rk = cfg.sweep?.rack_travel ?? 35;
+  const pz = $("#poseZ"), pr = $("#poseR");
+  pz.min = -T; pz.max = T; pr.min = -Rk; pr.max = Rk;
+  pose.dz = Math.max(-T, Math.min(T, pose.dz)); pose.rack = cfg.axle === "rear" ? 0 : Math.max(-Rk, Math.min(Rk, pose.rack));
+  pz.value = pose.dz; pr.value = pose.rack;
+  renderAll(ms);
+  updateScene();
+}
+function exportCfg() {
+  const keys = ["name", "axle", "targets_file", "hardpoints", "wheel", "vehicle", "sweep", "clearance", "rack_direction", "targets", "spring", "loads", "members"];
+  const o = {}; for (const k of keys) if (cfg[k] != null) o[k] = cfg[k];
+  return o;
+}
+
+// ------------------------------------------------------------------ charts
+function niceTicks(lo, hi, n = 5) {
+  if (!(hi > lo)) { const c = Number.isFinite(lo) ? lo : 0, d = Math.abs(c) * 0.05 || 1; lo = c - d; hi = c + d; }
+  const span = hi - lo, step0 = span / n, mag = 10 ** Math.floor(Math.log10(step0)), r = step0 / mag;
+  const step = (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag;
+  const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step, t = [];
+  for (let v = a; v <= b + step * 1e-6; v += step) t.push(+v.toFixed(10));
+  return { lo: a, hi: b, ticks: t, step };
+}
+function tickLabel(v, step) { const d = step >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(step))); return fmt(v, d); }
+function chart({ title, cap = "", series, xlabel = "", marker = null, band = null, h = 170 }) {
+  const W = 320, H = h, l = 46, r = 10, t = 10, b = 30;
+  const pts = series.flatMap(s => s.x.map((x, i) => [x, s.y[i]])).filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+  if (!pts.length) return `<div class="chart"><h3>${esc(title)}</h3><p class="cap">No data.</p></div>`;
+  let ylo = Math.min(...pts.map(p => p[1])), yhi = Math.max(...pts.map(p => p[1]));
+  if (band) { if (band[0] != null) ylo = Math.min(ylo, band[0]); if (band[1] != null) yhi = Math.max(yhi, band[1]); }
+  const pad = (yhi - ylo) * 0.08; const yt = niceTicks(ylo - pad, yhi + pad, 4);
+  const xlo = Math.min(...pts.map(p => p[0])), xhi = Math.max(...pts.map(p => p[0])), xt = niceTicks(xlo, xhi, 5);
+  const X = (x) => l + (x - xt.lo) / (xt.hi - xt.lo) * (W - l - r), Y = (y) => H - b - (y - yt.lo) / (yt.hi - yt.lo) * (H - t - b);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}">`;
+  if (band) {
+    const y1 = Y(band[1] ?? yt.hi), y0 = Y(band[0] ?? yt.lo);
+    s += `<rect x="${l}" y="${Math.min(y0, y1)}" width="${W - l - r}" height="${Math.abs(y0 - y1)}" fill="var(--ok)" opacity=".10"/>`;
+  }
+  for (const v of yt.ticks) s += `<line x1="${l}" x2="${W - r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${l - 5}" y="${Y(v) + 3.5}" font-size="10" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${tickLabel(v, yt.step)}</text>`;
+  for (const v of xt.ticks) s += `<text x="${X(v)}" y="${H - b + 13}" font-size="10" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${tickLabel(v, xt.step)}</text>`;
+  if (xt.lo < 0 && xt.hi > 0) s += `<line x1="${X(0)}" x2="${X(0)}" y1="${t}" y2="${H - b}" stroke="var(--muted)" stroke-width=".7" opacity=".6"/>`;
+  s += `<text x="${(l + W - r) / 2}" y="${H - 3}" font-size="10" text-anchor="middle" fill="var(--muted)">${esc(xlabel)}</text>`;
+  series.forEach((sr) => {
+    const d = sr.x.map((x, i) => Number.isFinite(sr.y[i]) ? `${X(x).toFixed(1)},${Y(sr.y[i]).toFixed(1)}` : null).filter(Boolean);
+    if (d.length) s += `<polyline points="${d.join(" ")}" fill="none" stroke="${sr.color}" stroke-width="${sr.w ?? 2}" ${sr.dash ? `stroke-dasharray="${sr.dash}"` : ""} stroke-linejoin="round"/>`;
+  });
+  if (marker != null && marker >= xt.lo && marker <= xt.hi) {
+    s += `<line x1="${X(marker)}" x2="${X(marker)}" y1="${t}" y2="${H - b}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>`;
+    const sr = series[series.length - 1]; const yi = interp(sr.x, sr.y, marker);
+    if (Number.isFinite(yi)) s += `<circle cx="${X(marker)}" cy="${Y(yi)}" r="3.5" fill="var(--accent)"/>`;
+  }
+  const named = series.filter(sr => sr.name);
+  if (named.length > 1) named.forEach((sr, i) => {
+    s += `<line x1="${l + 6 + i * 92}" x2="${l + 20 + i * 92}" y1="${t + 6}" y2="${t + 6}" stroke="${sr.color}" stroke-width="2" ${sr.dash ? `stroke-dasharray="${sr.dash}"` : ""}/><text x="${l + 24 + i * 92}" y="${t + 9.5}" font-size="10" fill="var(--ink)">${esc(sr.name)}</text>`;
+  });
+  return `<div class="chart"><h3>${esc(title)}</h3>${cap ? `<p class="cap">${cap}</p>` : ""}${s}</svg></div>`;
+}
+function interp(xs, ys, x) {
+  for (let i = 1; i < xs.length; i++) if ((xs[i - 1] - x) * (xs[i] - x) <= 0) { const f = (x - xs[i - 1]) / ((xs[i] - xs[i - 1]) || 1); return ys[i - 1] + f * (ys[i] - ys[i - 1]); }
+  return NaN;
+}
+
+// ------------------------------------------------------------------ results
+const TABS = [["checks", "Targets"], ["heave", "Heave"], ["roll", "Roll"], ["steer", "Steering"], ["spring", "Spring & damper"],
+  ["loads", "Loads"], ["pack", "Packaging"]];
+function renderTabs() {
+  const fails = ev && !err ? ev.checks.filter(c => c.status === "FAIL").length : 0;
+  $("#tabs").innerHTML = TABS.map(([k, t]) => `<button role="tab" type="button" id="tab_${k}" aria-selected="${tab === k}" aria-controls="pn_${k}" data-tab="${k}">${t}${k === "checks" && fails ? `<span class="dot" aria-label="${fails} failing"></span>` : ""}</button>`).join("");
+  $$("#tabs button").forEach(b => b.addEventListener("click", () => { tab = b.dataset.tab; store.set("susp.tab", tab); renderTabs(); showPanel(); }));
+}
+function showPanel() { $$("#panels > .panel").forEach(p => p.hidden = p.dataset.tab !== tab); }
+
+function renderAll(ms) {
+  renderTabs();
+  const P = $("#panels");
+  if (err) {
+    $("#status").innerHTML = `<span class="pill bad">No solution</span>`;
+    $("#errBox").innerHTML = `<div class="banner bad"><b>The solver could not finish.</b> ${esc(err.message)}</div>`;
+    return;
+  }
+  const issues = S.validate(ev.cfg);
+  if (cfg.targets_file && !(cfg.targets && Object.keys(cfg.targets).length)) issues.push(["warn", `This design uses the team targets file "${cfg.targets_file}". The browser can't read files by path: click Open JSON and choose that file to apply your team's target ranges.`]);
+  $("#errBox").innerHTML = issues.length ? `<div class="banner ${issues.some(i => i[0] === "error") ? "bad" : "warn"}"><b>Input checks</b><ul>${issues.map(i => `<li>${i[0] === "error" ? "<b>Error:</b> " : ""}${esc(i[1])}</li>`).join("")}</ul></div>` : "";
+  const n = ev.checks.filter(c => c.status !== "n/a"), np = n.filter(c => c.status === "PASS").length;
+  const m = ev.metrics;
+  const minFos = loads ? Math.min(...loads.checks.map(c => Math.min(c.sf_buckle, c.sf_yield))) : null;
+  $("#status").innerHTML = `<span class="pill ${np === n.length ? "ok" : "bad"}"><span class="big">${np}/${n.length}</span> targets met</span>` +
+    (m.ride_freq != null ? `<span class="pill neutral">Ride ${fmt(m.ride_freq, 2)} Hz</span>` : "") +
+    (m.motion_ratio != null ? `<span class="pill neutral">MR ${fmt(m.motion_ratio, 3)}</span>` : "") +
+    (minFos != null ? `<span class="pill ${minFos >= ev.cfg.members.sf_target ? "ok" : "bad"}">Min FOS ${fmt(minFos, 2)}</span>` : "") +
+    (base ? `<span class="pill neutral">Baseline: ${esc(baseName)} <button class="btn small" id="btnClearBase" type="button" style="margin-left:4px">Clear</button></span>` : "") +
+    `<span class="muted" style="font-size:12px;margin-left:auto">Solved in ${ms.toFixed(0)} ms</span>`;
+  const cb = $("#btnClearBase"); if (cb) cb.addEventListener("click", () => { base = null; renderAll(0); });
+  P.innerHTML = TABS.map(([k]) => `<div class="panel" role="tabpanel" id="pn_${k}" aria-labelledby="tab_${k}" data-tab="${k}"></div>`).join("");
+  $("#pn_checks").innerHTML = panelChecks();
+  $("#pn_heave").innerHTML = panelHeave();
+  $("#pn_roll").innerHTML = panelRoll();
+  $("#pn_steer").innerHTML = panelSteer();
+  $("#pn_spring").innerHTML = panelSpring();
+  $("#pn_loads").innerHTML = panelLoads();
+  $("#pn_pack").innerHTML = panelPack();
+  wireChecks();
+  showPanel();
+}
+
+function metricLabel(k) { return (S.METRICS[k] || [k, "", 2]); }
+function panelChecks() {
+  const bm = base ? base.metrics : null;
+  let rows = "";
+  for (const c of ev.checks) {
+    const [lab, unit, dec] = c.label ? [c.label, c.unit, c.dec] : metricLabel(c.key);
+    const editable = !c.label;
+    const st = c.status === "PASS" ? `<span class="pill ok">Met</span>` : c.status === "FAIL" ? `<span class="pill bad">Not met</span>` : `<span class="pill neutral">n/a</span>`;
+    const rng = editable ? `<span class="rng"><input class="num" type="number" step="any" data-tkey="${c.key}" data-i="0" value="${c.lo == null ? "" : +(+c.lo).toFixed(3)}" aria-label="${esc(lab)} minimum" placeholder="–"> to <input class="num" type="number" step="any" data-tkey="${c.key}" data-i="1" value="${c.hi == null ? "" : +(+c.hi).toFixed(3)}" aria-label="${esc(lab)} maximum" placeholder="–"></span>`
+      : `≥ ${fmt(c.lo, 1)}`;
+    let bcol = "";
+    if (bm) {
+      const bv = c.key === "link_clearance" ? base.metrics.clearance_min : bm[c.key];
+      const d = (c.value != null && bv != null) ? c.value - bv : null;
+      bcol = `<td class="n">${fmt(bv, dec)}</td><td class="n ${d > 0 ? "delta-up" : d < 0 ? "delta-dn" : ""}">${d == null || Math.abs(d) < 10 ** -(dec + 1) ? "–" : (d > 0 ? "+" : "") + fmt(d, dec)}</td>`;
+    }
+    rows += `<tr class="clickable" data-help="${c.key}"><td>${esc(lab)}</td><td class="n">${fmt(c.value, dec)} <span class="muted">${unit}</span></td><td>${rng}</td>${bcol}<td>${st}</td></tr>`;
+    if (HELP[c.key]) rows += `<tr class="help" data-helprow="${c.key}" hidden><td colspan="${bm ? 6 : 4}">${esc(HELP[c.key])}</td></tr>`;
+  }
+  return `<div class="tbl-wrap"><table class="data"><thead><tr><th>Target</th><th class="n">Value</th><th>Allowed range</th>${bm ? `<th class="n">Baseline</th><th class="n">Change</th>` : ""}<th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="note">Edit a range to change the target for this design (saved in the JSON under <span class="mono">targets</span>). Click a row for what the number means.</p>`;
+}
+function wireChecks() {
+  $$("#pn_checks tr.clickable").forEach(tr => tr.addEventListener("click", (e) => {
+    if (e.target.tagName === "INPUT") return;
+    const h = $(`#pn_checks tr[data-helprow="${tr.dataset.help}"]`); if (h) h.hidden = !h.hidden;
+  }));
+  $$("#pn_checks input[data-tkey]").forEach(inp => inp.addEventListener("change", () => {
+    const k = inp.dataset.tkey, cur = S.defaultTargets(ev.cfg)[k] || [null, null];
+    const v = inp.value === "" ? null : +inp.value; const nv = cur.slice(); nv[+inp.dataset.i] = v;
+    cfg.targets = cfg.targets || {}; cfg.targets[k] = nv; schedule();
+  }));
+}
+
+const C = { s1: "var(--s1)", s2: "var(--s2)", s3: "var(--s3)", base: "var(--base)" };
+function withBase(key, getter, sweepRows, baseRows, color = C.s1, name = null) {
+  const out = [];
+  if (baseRows) out.push({ name: name ? "baseline" : null, x: baseRows.map(r => r.dz), y: baseRows.map(getter), color: C.base, dash: "4 3", w: 1.5 });
+  out.push({ name: name ? "current" : null, x: sweepRows.map(r => r.dz), y: sweepRows.map(getter), color });
+  return out;
+}
+function panelHeave() {
+  const rows = ev.rows, br = base ? base.rows : null, m = ev.metrics, T = ev.cfg.sweep.travel;
+  const r0 = (rs) => rs.reduce((a, r) => Math.abs(r.dz) < Math.abs(a.dz) ? r : a);
+  const toe0 = r0(rows).toe, cpy0 = r0(rows).cp_y, btoe0 = br ? r0(br).toe : 0, bcpy0 = br ? r0(br).cp_y : 0;
+  const nm = !!br;
+  const mk = (title, cap, get, bget) => chart({ title, cap, xlabel: "wheel travel, mm (+ bump)", marker: pose.dz,
+    series: [...(br ? [{ name: nm ? "baseline" : null, x: br.map(r => r.dz), y: br.map(bget || get), color: C.base, dash: "4 3", w: 1.5 }] : []),
+      { name: nm ? "current" : null, x: rows.map(r => r.dz), y: rows.map(get), color: C.s1 }] });
+  const anti = ev.cfg.axle === "front" ? mk("Anti-dive, %", `${fmt(m.antidive, 1)} % at ride height`, r => r.antidive)
+    : chart({ title: "Anti-squat / anti-lift, %", cap: `${fmt(m.antisquat, 1)} / ${fmt(m.antilift, 1)} % at ride height`, xlabel: "wheel travel, mm", marker: pose.dz,
+      series: [{ name: "anti-squat", x: rows.map(r => r.dz), y: rows.map(r => r.antisquat), color: C.s1 }, { name: "anti-lift", x: rows.map(r => r.dz), y: rows.map(r => r.antilift), color: C.s2, dash: "5 3" }] });
+  return `<div class="kv">
+    <div><span>Camber gain</span><b>${fmt(m.camber_gain, 3)} <small>deg/in</small></b></div>
+    <div><span>Bump steer slope</span><b>${fmt(m.bump_steer, 3)} <small>deg/in</small></b></div>
+    <div><span>Max toe change</span><b>${fmt(m.bump_steer_max, 3)} <small>deg</small></b></div>
+    <div><span>Front-view swing arm</span><b>${fmt(m.fvsa, 0)} <small>mm</small></b></div>
+    <div><span>Roll centre range</span><b>${fmt(m.rc_min, 0)}…${fmt(m.rc_max, 0)} <small>mm</small></b></div>
+    <div><span>Track change</span><b>${fmt(m.track_change, 2)} <small>mm</small></b></div></div>
+  <div class="charts">
+    ${mk("Camber, deg", `gain ${fmt(m.camber_gain, 3)} deg/in`, r => r.camber)}
+    ${mk("Toe change, deg (+ in)", `max ${fmt(m.bump_steer_max, 3)} deg over ±${T} mm`, r => r.toe - toe0, r => r.toe - btoe0)}
+    ${mk("Roll centre height, mm", "above ground", r => r.roll_center)}
+    ${mk("Caster, deg", "", r => r.caster)}
+    ${mk("KPI, deg", "", r => r.kpi)}
+    ${mk("Scrub radius, mm", "", r => r.scrub)}
+    ${mk("Mechanical trail, mm", "from the current contact patch", r => r.trail)}
+    ${anti}
+    ${mk("Contact patch sideways shift, mm", `total ${fmt(m.track_change, 2)} mm`, r => r.cp_y - cpy0, r => r.cp_y - bcpy0)}
+  </div>`;
+}
+function panelRoll() {
+  const R = ev.roll, m = ev.metrics, bR = base ? base.roll : null;
+  const x = R.map(r => r.roll);
+  const bser = (get) => bR ? [{ name: "baseline", x: bR.map(r => r.roll), y: bR.map(get), color: C.base, dash: "4 3", w: 1.5 }] : [];
+  return `<div class="kv">
+    <div><span>Roll camber (outer, to ground)</span><b>${fmt(m.roll_camber, 3)} <small>deg/deg</small></b></div>
+    <div><span>Outer camber at ${fmt(m.roll_max_deg, 1)}° roll</span><b>${fmt(m.roll_camber_max, 2)} <small>deg</small></b></div>
+    <div><span>Roll centre sideways shift</span><b>${fmt(m.rc_lat, 1)} <small>mm/deg</small></b></div>
+    <div><span>Roll centre height at max roll</span><b>${fmt(m.rc_height_roll, 1)} <small>mm</small></b></div>
+    <div><span>Roll steer (outer)</span><b>${fmt(m.roll_steer, 3)} <small>deg/deg</small></b></div></div>
+  <div class="charts">
+    ${chart({ title: "Camber to ground, deg", cap: "1.0 deg/deg roll camber = wheel leans with the body", xlabel: "body roll, deg (+ right wheel outer)",
+      series: [...bser(r => r.camber_outer), { name: "outer", x, y: R.map(r => r.camber_outer), color: C.s1 }, { name: "inner", x, y: R.map(r => r.camber_inner), color: C.s2, dash: "5 3" }] })}
+    ${chart({ title: "Roll centre height, mm", cap: "kinematic, above the ground line", xlabel: "body roll, deg",
+      series: [...bser(r => r.rc_height), { name: bR ? "current" : null, x, y: R.map(r => r.rc_height), color: C.s1 }] })}
+    ${chart({ title: "Roll centre sideways position, mm", cap: "+ = toward the outer wheel", xlabel: "body roll, deg",
+      series: [...bser(r => r.rc_lateral), { name: bR ? "current" : null, x, y: R.map(r => r.rc_lateral), color: C.s1 }] })}
+  </div>
+  <p class="note">Roll is modelled as equal and opposite wheel travel with the left wheel mirrored. The force-based roll centre moves once the tyres are loaded unevenly.</p>`;
+}
+function panelSteer() {
+  if (!ev.steer) return `<p class="note">Steering applies to the front axle. On the rear axle the toe link is fixed, so there is no steering sweep.</p>`;
+  const st = ev.steer, m = ev.metrics, x = st.map(r => r.rack);
+  const r25i = S.rackForAngle(st, "inner", 25), r25o = S.rackForAngle(st, "outer", 25);
+  const ack = st.filter(r => Number.isFinite(r.ackermann));
+  const cf = ev.cfg.vehicle.rack_c_factor;
+  return `<div class="kv">
+    <div><span>Ackermann at ${fmt(ev.cfg.sweep.ackermann_at_outer_deg, 0)}° outer</span><b>${fmt(m.ackermann, 0)} <small>%</small></b></div>
+    <div><span>Turning radius, outer wheel</span><b>${fmt(m.turn_radius, 2)} <small>m</small></b></div>
+    <div><span>Inner / outer at full rack</span><b>${fmt(st[st.length - 1].inner, 1)} / ${fmt(st[st.length - 1].outer, 1)} <small>deg</small></b></div>
+    <div><span>Rack for 25° inner</span><b>${r25i == null ? "> range" : fmt(r25i, 1)} <small>${r25i == null ? "" : "mm"}</small></b></div>
+    <div><span>Rack for 25° outer</span><b>${r25o == null ? "> range" : fmt(r25o, 1)} <small>${r25o == null ? "" : "mm"}</small></b></div>
+    <div><span>Steering arm</span><b>${fmt(m.steer_arm, 1)} <small>mm</small></b></div>
+    ${cf ? `<div><span>Steering wheel, centre to lock</span><b>${fmt(ev.cfg.sweep.rack_travel / cf * 360, 0)} <small>deg</small></b></div>` : ""}</div>
+  <div class="charts">
+    ${chart({ title: "Wheel steer angle, deg", xlabel: "rack travel, mm", marker: Math.abs(pose.rack),
+      series: [{ name: "inner", x, y: st.map(r => r.inner), color: C.s1 }, { name: "outer", x, y: st.map(r => r.outer), color: C.s2, dash: "5 3" }] })}
+    ${chart({ title: "Ackermann, %", cap: "target band shaded", xlabel: "outer wheel angle, deg", band: S.defaultTargets(ev.cfg).ackermann,
+      series: [{ x: ack.map(r => r.outer), y: ack.map(r => r.ackermann), color: C.s1 }] })}
+    ${chart({ title: "Camber while steering, deg", xlabel: "rack travel, mm",
+      series: [{ name: "inner", x, y: st.map(r => r.camber_inner), color: C.s1 }, { name: "outer", x, y: st.map(r => r.camber_outer), color: C.s2, dash: "5 3" }] })}
+  </div>
+  <p class="note">Turning radius is the outer front wheel's path at full rack, with no tyre slip. Compare its diameter with the tightest hairpin in the current FSAE rules.</p>`;
+}
+function rockerSvg() {
+  const sp = ev.spring, rows = ev.rows;
+  if (!sp) return "";
+  let k = sp.direct ? [1, 0, 0] : sp.k.slice(), c = sp.direct ? sp.dch : sp.c;
+  let v = V.sub([0, 0, 1], V.mul(k, k[2])); if (V.norm(v) < 1e-6) v = V.sub([0, 1, 0], V.mul(k, k[1])); v = V.unit(v);
+  let u = V.cross(v, k); if (u[1] < 0) { u = V.mul(u, -1); k = V.mul(k, -1); }
+  const P = (q) => [V.dot(V.sub(q, c), u), V.dot(V.sub(q, c), v)];
+  const picks = [[0, "full droop", "2 3"], [Math.floor(rows.length / 2), "ride height", ""], [rows.length - 1, "full bump", "6 3"]];
+  const sts = picks.map(([i]) => rows[i]._spring);
+  const allp = sts.flatMap(st => [P(st.rod_in), P(st.damper_out)]).concat([P(sp.dch), [0, 0]]);
+  const xs = allp.map(p => p[0]), ys = allp.map(p => p[1]);
+  const pad = 45, x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad, y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
+  const W = x1 - x0, H = y1 - y0, X = (p) => (p[0] - x0).toFixed(1), Y = (p) => (y1 - p[1]).toFixed(1);
+  let s = `<svg viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" role="img" aria-label="Rocker at droop, ride height and bump" style="max-height:340px;min-height:220px">`;
+  picks.forEach(([, lab, dash], j) => {
+    const st = sts[j], ro = P(st.rod_out), ri = P(st.rod_in), dout = P(st.damper_out), dc = P(sp.dch);
+    s += `<line x1="${X(ri)}" y1="${Y(ri)}" x2="${X(ro)}" y2="${Y(ro)}" stroke="var(--bad)" stroke-width="2.5" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
+    s += `<line x1="${X(dout)}" y1="${Y(dout)}" x2="${X(dc)}" y2="${Y(dc)}" stroke="var(--s3)" stroke-width="${j === 1 ? 7 : 4}" opacity="${j === 1 ? .7 : .45}" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
+    if (!sp.direct) s += `<polygon points="${X([0, 0])},${Y([0, 0])} ${X(ri)},${Y(ri)} ${X(dout)},${Y(dout)}" fill="var(--accent)" fill-opacity="${j === 1 ? .35 : .1}" stroke="var(--accent)" stroke-width="2" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
+  });
+  if (!sp.direct) s += `<circle cx="${X([0, 0])}" cy="${Y([0, 0])}" r="4.5" fill="var(--ink)"/>`;
+  s += `</svg>`;
+  return `<div class="chart"><h3>Rocker plane, looking along the pivot bolt</h3><p class="cap">Solid = ride height, dotted = full droop, dashed = full bump. Red = pushrod, green = damper, orange = rocker.</p>${s}</div>`;
+}
+function panelSpring() {
+  if (!ev.spring) return `<p class="note">Turn on "Model the spring and damper" in the inputs to get motion ratio, ride frequency, damper stroke checks and member loads.</p>`;
+  const rd = ev.ride, m = ev.metrics, sc = ev.cfg.spring, rows = ev.rows, x = rows.map(r => r.dz);
+  const [lo, mid, hi] = rd._damper_len_range;
+  const e2e = sc.damper_eye_to_eye, stroke = sc.damper_stroke;
+  const kv = (lab, k, unit, dec) => m[k] == null ? "" : `<div><span>${lab}</span><b>${fmt(m[k], dec)} <small>${unit}</small></b></div>`;
+  const bRows = base && base.ride ? base.rows : null;
+  return `<div class="kv">
+    ${kv("Motion ratio (damper/wheel)", "motion_ratio", "", 3)}${kv("MR change over travel", "mr_progression", "%", 1)}
+    ${kv("Wheel rate", "wheel_rate", "N/mm", 1)}${kv("Ride rate with tyre", "ride_rate", "N/mm", 1)}
+    ${kv("Ride frequency", "ride_freq", "Hz", 2)}${kv(`Spring for ${fmt(sc.target_freq_hz, 1)} Hz`, "spring_for_target", "N/mm", 1)}
+    ${kv("Spring force at ride height", "static_spring_force", "N", 0)}${kv("Damper stroke used", "damper_used", "mm", 1)}
+    ${kv("Damper at ride height", "damper_static_pos", "% of stroke", 0)}${kv("Room to full extension", "damper_topout", "mm", 1)}
+    ${kv("Room to full compression", "damper_bottomout", "mm", 1)}${kv("Rocker rotation", "rocker_rot", "deg", 1)}
+    ${kv("Worst transmission angle", "trans_min", "deg", 0)}${kv("Pushrod angle", "rod_angle", "deg", 0)}
+    <div><span>Wheel-hop frequency</span><b>${fmt(rd.hop_freq, 1)} <small>Hz</small></b></div></div>
+  <p class="note">Damper length ${fmt(hi, 1)} / ${fmt(mid, 1)} / ${fmt(lo, 1)} mm at full droop / ride height / full bump${e2e && stroke ? `; the damper is ${fmt(e2e, 0)} mm extended and ${fmt(e2e - stroke, 0)} mm closed` : ". Add the damper's eye-to-eye length and stroke to check top-out and bottom-out"}.
+  ${rd._arm_rod ? `Rocker arms ${fmt(rd._arm_rod, 1)} mm (pushrod side) and ${fmt(rd._arm_damper, 1)} mm (damper side).` : ""}</p>
+  <div class="charts">
+    ${rockerSvg()}
+    ${chart({ title: "Motion ratio", cap: "damper travel per wheel travel", xlabel: "wheel travel, mm", marker: pose.dz,
+      series: [...(bRows ? [{ name: "baseline", x: bRows.map(r => r.dz), y: bRows.map(r => r.motion_ratio), color: C.base, dash: "4 3", w: 1.5 }] : []), { name: bRows ? "current" : null, x, y: rows.map(r => r.motion_ratio), color: C.s1 }] })}
+    ${chart({ title: "Damper length, mm", cap: e2e && stroke ? "shaded = usable stroke" : "", xlabel: "wheel travel, mm", marker: pose.dz,
+      band: e2e && stroke ? [e2e - stroke, e2e] : null, series: [{ x, y: rows.map(r => r.damper_len), color: C.s3 }] })}
+    ${rows[0].trans_rod != null ? chart({ title: "Rocker transmission angles, deg", cap: "90 = best leverage, keep above 45", xlabel: "wheel travel, mm", marker: pose.dz, band: [45, 90],
+      series: [{ name: "pushrod", x, y: rows.map(r => r.trans_rod), color: C.s2 }, { name: "damper", x, y: rows.map(r => r.trans_damper), color: C.s3, dash: "5 3" }] }) : ""}
+  </div>`;
+}
+function panelLoads() {
+  if (!loads) return `<p class="note">Loads need the pushrod and damper (they carry the vertical load). Turn on "Model the spring and damper".</p>`;
+  const L = loads, I = L.info, mem = ev.cfg.members, names = Object.keys(L.results);
+  const label = (k) => { const h = ev.susp.h; return { upper_front: `Upper leg (pivot X ${h.uif[0].toFixed(0)})`, upper_rear: `Upper leg (pivot X ${h.uir[0].toFixed(0)})`,
+    lower_front: `Lower leg (pivot X ${h.lif[0].toFixed(0)})`, lower_rear: `Lower leg (pivot X ${h.lir[0].toFixed(0)})`, tie_rod: ev.cfg.axle === "rear" ? "Toe link" : "Tie rod", pushrod: "Pushrod" }[k]; };
+  const ty = names.map(n => `<tr><td>${esc(n)}</td><td class="n">${fmt(L.tyre[n][0], 0)}</td><td class="n">${fmt(L.tyre[n][1], 0)}</td><td class="n">${fmt(L.tyre[n][2], 0)}</td><td class="mono" style="font-size:12px">${esc(L.fz_parts[n])}</td></tr>`).join("");
+  const mrow = (lab, get) => `<tr><td>${lab}</td>${names.map(n => { const v = get(L.results[n]); return `<td class="n">${v > 0 ? "+" : ""}${fmt(v, 0)}</td>`; }).join("")}</tr>`;
+  const mr = S.MEMBERS.map(k => mrow(label(k), r => r[k])).join("") + mrow("Damper / spring", r => r.damper) +
+    (ev.spring.direct ? "" : `<tr><td>Rocker pivot (resultant)</td>${names.map(n => `<td class="n">${fmt(L.results[n].rocker_pivot, 0)}</td>`).join("")}</tr>`) +
+    (ev.spring.on !== "upright" ? `<tr><td class="muted">Pushrod-arm bending load</td>${names.map(n => `<td class="n muted">${fmt(L.results[n].bending, 0)}</td>`).join("")}</tr>` : "");
+  const ck = L.checks.map(r => { const fos = Math.min(r.sf_buckle, r.sf_yield), ok = fos >= mem.sf_target;
+    return `<tr><td>${label(r.member)}</td><td class="n">${fmt(r.od, 2)} × ${fmt(r.wall, 3)}</td><td class="n">${fmt(r.length, 0)}</td>
+      <td class="n">${fmt(r.compression, 0)}${r.compression ? ` <span class="muted">(${esc(r.c_case)})</span>` : ""}</td><td class="n">${fmt(r.Pcr, 0)}</td><td class="n">${fmt(r.sf_buckle, 1)}</td>
+      <td class="n">${fmt(r.peak, 0)} <span class="muted">(${esc(r.p_case)})</span></td><td class="n">${fmt(r.Py, 0)}</td><td class="n">${fmt(r.sf_yield, 1)}</td>
+      <td>${ok ? `<span class="pill ok">OK</span>` : `<span class="pill bad">Below FOS</span>`}</td></tr>`; }).join("");
+  return `<p class="note">One config covers both corners of this axle. The solved wheel is the outer wheel in a left turn and the inner wheel in a right turn, so both are checked.
+  Static wheel load ${fmt(I.Fz0, 0)} N; longitudinal transfer ${fmt(I.long_per_g, 0)} N/g; lateral transfer ${fmt(I.lat_per_g, 0)} N/g per wheel. Side and brake forces = g level × that wheel's load.</p>
+  <h3 class="sub-h">Tyre forces on the wheel, N</h3>
+  <div class="tbl-wrap"><table class="data"><thead><tr><th>Case</th><th class="n">Fx</th><th class="n">Fy</th><th class="n">Fz</th><th>Fz built from</th></tr></thead><tbody>${ty}</tbody></table></div>
+  <h3 class="sub-h">Member axial forces, N (+ tension, − compression)</h3>
+  <div class="tbl-wrap"><table class="data"><thead><tr><th>Member</th>${names.map(n => `<th class="n">${esc(n)}</th>`).join("")}</tr></thead><tbody>${mr}</tbody></table></div>
+  <h3 class="sub-h">Strength check · ${esc(mem.material || "steel")} · E ${fmt(mem.E, 0)} MPa · yield ${fmt(mem.yield, 0)} MPa · required FOS ${fmt(mem.sf_target, 1)}</h3>
+  <div class="tbl-wrap"><table class="data"><thead><tr><th>Member</th><th class="n">Tube, mm</th><th class="n">Length</th><th class="n">Worst compression, N</th><th class="n">Buckling load, N</th><th class="n">FOS buckling</th><th class="n">Worst |force|, N</th><th class="n">Yield force, N</th><th class="n">FOS yield</th><th></th></tr></thead><tbody>${ck}</tbody></table></div>
+  <p class="note">Buckling load = π²EI/L² with pinned ends. Yield force = yield stress × tube area. The worst |force| is also the load each rod end must be rated for. Tabs, welds, inserts and fatigue are not checked here.</p>`;
+}
+function panelPack() {
+  const p = ev.pack, rear = ev.cfg.axle === "rear";
+  const rows = Object.entries(p.pairs).sort((a, b) => (a[1][0] - a[1][3]) - (b[1][0] - b[1][3])).map(([n, [d, hz, rk, need]]) =>
+    `<tr><td>${esc(n)}</td><td class="n">${fmt(d, 1)}</td><td class="n">${fmt(need, 1)}</td><td class="n">${fmt(hz, 0)}</td>${rear ? "" : `<td class="n">${fmt(rk, 0)}</td>`}<td>${d >= need ? `<span class="pill ok">Clear</span>` : `<span class="pill bad">Too close</span>`}</td></tr>`).join("");
+  return `<div class="tbl-wrap"><table class="data"><thead><tr><th>Link pair</th><th class="n">Min gap, mm</th><th class="n">Needs</th><th class="n">At travel</th>${rear ? "" : `<th class="n">At rack</th>`}<th></th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="note">Centre-line distances, checked at full droop, ride height and full bump${rear ? "" : " with full left and right rack"}. "Needs" = half of each tube's OD plus ${fmt(ev.cfg.clearance.margin, 0)} mm margin.
+  Rim: the farthest joint is ${fmt(p.rim_max, 1)} mm from the wheel axis against a ${fmt(p.rim_radius, 1)} mm rim radius, leaving ${fmt(p.rim_margin, 1)} mm (radial check only).</p>`;
+}
+
+// ------------------------------------------------------------------ 3D viewer
+const view = { theta: 0.95, phi: 1.12, r: 1550, target: null, mode: "iso", rc: true, mirror: false };
+let three = null;
+function initThree() {
+  if (!window.THREE) { $("#vmsg").hidden = false; $("#vmsg").textContent = "The 3D view needs the three.js library, which did not load. All results below still work."; return; }
+  const T = window.THREE, cv = $("#cv");
+  const renderer = new T.WebGLRenderer({ canvas: cv, antialias: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const scene = new T.Scene(), cam = new T.PerspectiveCamera(35, 1, 5, 20000);
+  scene.add(new T.HemisphereLight(0xffffff, 0x8899aa, 0.85));
+  const dl = new T.DirectionalLight(0xffffff, 0.75); dl.position.set(800, 1600, 900); scene.add(dl);
+  const dl2 = new T.DirectionalLight(0xffffff, 0.3); dl2.position.set(-900, 500, -700); scene.add(dl2);
+  const dyn = new T.Group(); scene.add(dyn);
+  three = { T, renderer, scene, cam, dyn, cv, need: true, grid: null };
+  const ro = new ResizeObserver(() => { const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); three.need = true; });
+  ro.observe(cv);
+  // simple orbit / pan / zoom
+  const ptrs = new Map(); let last = null, pinch = null;
+  cv.addEventListener("pointerdown", (e) => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); last = [e.clientX, e.clientY, e.button, e.shiftKey]; });
+  cv.addEventListener("pointermove", (e) => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) view.r = Math.max(300, Math.min(9000, view.r * pinch / d)); pinch = d; three.need = true; return; }
+    const dx = e.clientX - last[0], dy = e.clientY - last[1];
+    if (last[2] === 2 || last[2] === 1 || last[3]) { // pan
+      const s = view.r / cv.clientHeight * 0.9, c = cam;
+      const right = new T.Vector3().setFromMatrixColumn(c.matrixWorld, 0), up = new T.Vector3().setFromMatrixColumn(c.matrixWorld, 1);
+      view.target.addScaledVector(right, -dx * s).addScaledVector(up, dy * s);
+    } else { view.theta -= dx * 0.008; view.phi = Math.max(0.08, Math.min(Math.PI - 0.08, view.phi - dy * 0.008)); setMode(null); }
+    last = [e.clientX, e.clientY, last[2], last[3]]; three.need = true;
+  });
+  const up = (e) => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; };
+  cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+  cv.addEventListener("contextmenu", (e) => e.preventDefault());
+  cv.addEventListener("wheel", (e) => { e.preventDefault(); view.r = Math.max(300, Math.min(9000, view.r * Math.exp(e.deltaY * 0.0012))); three.need = true; }, { passive: false });
+  (function loop() { requestAnimationFrame(loop); if (three.need && view.target) { placeCam(); renderer.render(scene, cam); three.need = false; } })();
+}
+const toT = (p) => new three.T.Vector3(p[0], p[2], -p[1]);
+function placeCam() {
+  const { cam } = three, t = view.target;
+  cam.position.set(t.x + view.r * Math.sin(view.phi) * Math.sin(view.theta), t.y + view.r * Math.cos(view.phi), t.z + view.r * Math.sin(view.phi) * Math.cos(view.theta));
+  cam.up.set(0, 1, 0); cam.lookAt(t);
+}
+function setMode(mode) {
+  view.mode = mode;
+  $$(".seg [data-view]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === mode)));
+  if (!mode || !three) return;
+  // theta measured from +Z(three) = -Y(vehicle) toward +X(three) = +X(vehicle)
+  const presets = { iso: [0.95, 1.12], front: [Math.PI / 2, Math.PI / 2], side: [Math.PI, Math.PI / 2], top: [Math.PI / 2, 0.02] };
+  [view.theta, view.phi] = presets[mode]; three.need = true;
+}
+$$(".seg [data-view]").forEach(b => b.addEventListener("click", () => setMode(b.dataset.view)));
+$("#tgRC").addEventListener("click", (e) => { view.rc = !view.rc; e.currentTarget.setAttribute("aria-pressed", String(view.rc)); updateScene(); });
+$("#tgMirror").addEventListener("click", (e) => { view.mirror = !view.mirror; e.currentTarget.setAttribute("aria-pressed", String(view.mirror)); updateScene(); });
+
+function themeColors() {
+  const cs = getComputedStyle(document.documentElement), g = (n) => cs.getPropertyValue(n).trim();
+  return { bg: g("--viewer"), accent: g("--accent"), ink: g("--ink"), line: g("--line"), s1: g("--s1"), s3: g("--s3"), bad: g("--bad"), muted: g("--muted") };
+}
+function updateScene() {
+  if (!three || !ev || err) { if (err && three) { /* keep last good scene */ } return; }
+  const { T, dyn, scene } = three, col = themeColors();
+  scene.background = new T.Color(col.bg || "#dfe5ea");
+  while (dyn.children.length) { const o = dyn.children.pop(); o.traverse(n => { if (n.geometry) n.geometry.dispose(); if (n.material) n.material.dispose(); }); }
+  const s = ev.susp, sp = ev.spring;
+  let x, o, sst;
+  try { x = s.pose(pose.dz, pose.rack); o = s.observe(x, pose.dz, pose.rack); sst = sp ? sp.state(x, rad0(pose.dz)) : null; }
+  catch (e) { $("#hud").innerHTML = `<span>Cannot reach ${pose.dz} mm / rack ${pose.rack} mm: ${esc(e.message)}</span>`; three.need = true; return; }
+  const p = o._pts, h = s.h;
+  const mat = (c, extra = {}) => new T.MeshStandardMaterial({ color: new T.Color(c), roughness: 0.55, metalness: 0.25, ...extra });
+  const steel = mat("#8d99a6"), steelD = mat("#5d6975"), arm1 = mat(col.s1 || "#1d6aa8"), tie = mat("#6c7a89"), push = mat(col.bad || "#b42318"),
+    rocker = mat(col.accent || "#cf4a12", { side: T.DoubleSide }), springM = mat("#26338f", { metalness: 0.4 }), damperM = mat("#e0b21c", { metalness: 0.3 }),
+    tyre = mat("#202326", { roughness: 0.92, metalness: 0 }), rimM = mat("#b9c2cb", { metalness: 0.7, roughness: 0.35, transparent: true, opacity: 0.45, side: T.DoubleSide });
+  const groupFor = (mirror) => {
+    const g = new T.Group();
+    const tube = (a, b, r, m) => { const A = toT(a), B = toT(b), d = new T.Vector3().subVectors(B, A), L = d.length(); if (L < 1e-6) return;
+      const me = new T.Mesh(new T.CylinderGeometry(r, r, L, 14), m); me.position.copy(A).addScaledVector(d, 0.5); me.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); g.add(me); };
+    const ball = (q, r, m) => { const me = new T.Mesh(new T.SphereGeometry(r, 18, 12), m); me.position.copy(toT(q)); g.add(me); };
+    const box = (q, sz, m) => { const me = new T.Mesh(new T.BoxGeometry(sz, sz, sz), m); me.position.copy(toT(q)); g.add(me); };
+    // wishbones
+    tube(h.uif, p.ub, 8, arm1); tube(h.uir, p.ub, 8, arm1); tube(h.lif, p.lb, 8, arm1); tube(h.lir, p.lb, 8, arm1);
+    tube(p.tri, p.tro, 6.5, tie);
+    for (const q of [h.uif, h.uir, h.lif, h.lir]) box(q, 22, steelD);
+    box(p.tri, 18, steelD);
+    for (const q of [p.ub, p.lb, p.tro]) ball(q, 11, steel);
+    // upright
+    tube(p.ub, p.lb, 13, steelD); tube(p.lb, p.tro, 9, steelD); tube(p.ub, p.c, 9, steelD); tube(p.lb, p.c, 9, steelD);
+    // wheel: hollow tyre (lathe) + translucent rim barrel
+    const R = s.R, w = s.cfg.wheel.tire_width, rr = s.cfg.wheel.rim_diameter_in * 25.4 / 2, prof = [];
+    const rnd = Math.min(28, (R - rr) / 2);
+    for (let i = 0; i <= 8; i++) { const a = -Math.PI / 2 + i / 8 * Math.PI / 2; prof.push(new T.Vector2(R - rnd + rnd * Math.cos(a), -w / 2 + rnd + rnd * Math.sin(a))); }
+    for (let i = 0; i <= 8; i++) { const a = i / 8 * Math.PI / 2; prof.push(new T.Vector2(R - rnd + rnd * Math.cos(a), w / 2 - rnd + rnd * Math.sin(a))); }
+    prof.push(new T.Vector2(rr, w / 2 - 4)); prof.unshift(new T.Vector2(rr, -w / 2 + 4));
+    const ty = new T.Mesh(new T.LatheGeometry(prof, 72), tyre);
+    const rim = new T.Mesh(new T.CylinderGeometry(rr, rr, w * 0.92, 48, 1, true), rimM);
+    const axle = toT(p.a).normalize(), q = new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 1, 0), axle);
+    for (const me of [ty, rim]) { me.position.copy(toT(p.c)); me.quaternion.copy(q); g.add(me); }
+    const hub = new T.Mesh(new T.CylinderGeometry(40, 40, 30, 24), steel); hub.position.copy(toT(p.c)); hub.quaternion.copy(q); g.add(hub);
+    // spring & damper
+    if (sp && sst) {
+      tube(sst.rod_out, sst.rod_in, 7, push); ball(sst.rod_out, 9, steel);
+      if (!sp.direct) {
+        const k = sp.k, n = toT(V.add(sp.c, k)).sub(toT(sp.c)).normalize();
+        const tri = [sp.c, sst.rod_in, sst.damper_out].map(toT), geo = new T.BufferGeometry();
+        const off = n.clone().multiplyScalar(4), pts = [];
+        for (const sgn of [1, -1]) tri.forEach(t => pts.push(t.clone().addScaledVector(off, sgn)));
+        geo.setAttribute("position", new T.Float32BufferAttribute(pts.flatMap(v => [v.x, v.y, v.z]), 3));
+        geo.setIndex([0, 1, 2, 3, 5, 4, 0, 3, 4, 0, 4, 1, 1, 4, 5, 1, 5, 2, 2, 5, 3, 2, 3, 0]); geo.computeVertexNormals();
+        g.add(new T.Mesh(geo, rocker));
+        const pin = new T.Mesh(new T.CylinderGeometry(9, 9, 34, 16), steelD); pin.position.copy(toT(sp.c)); pin.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), n); g.add(pin);
+        ball(sst.rod_in, 8, steel); ball(sst.damper_out, 8, steel);
+      }
+      // coilover: body near the chassis end, shaft to the rocker, coil spring over both
+      const A = sst.damper_out, B = sp.dch, Lc = V.norm(V.sub(B, A)), u = V.unit(V.sub(B, A));
+      const bodyStart = V.add(A, V.mul(u, Lc * 0.42));
+      tube(A, bodyStart, 6, steel); tube(bodyStart, B, 19, damperM); box(B, 20, steelD);
+      const a3 = toT(A), b3 = toT(V.add(A, V.mul(u, Lc * 0.86))), ax = new T.Vector3().subVectors(b3, a3), Lh = ax.length(); ax.normalize();
+      const ref = Math.abs(ax.y) < 0.9 ? new T.Vector3(0, 1, 0) : new T.Vector3(1, 0, 0), e1 = new T.Vector3().crossVectors(ax, ref).normalize(), e2 = new T.Vector3().crossVectors(ax, e1);
+      class Helix extends T.Curve { getPoint(t) { const ang = t * Math.PI * 2 * 7.5, rr2 = 27; return a3.clone().addScaledVector(ax, Lh * (0.06 + 0.9 * t)).addScaledVector(e1, rr2 * Math.cos(ang)).addScaledVector(e2, rr2 * Math.sin(ang)); } }
+      g.add(new T.Mesh(new T.TubeGeometry(new Helix(), 240, 3.6, 8, false), springM));
+    }
+    if (mirror) { g.scale.z = -1; g.traverse(n => { if (n.material) { n.material = n.material.clone(); n.material.transparent = true; n.material.opacity = 0.28; n.material.side = T.DoubleSide; } }); }
+    return g;
+  };
+  dyn.add(groupFor(false));
+  if (view.mirror) dyn.add(groupFor(true));
+  // ground grid, centreline, roll centre
+  const gsize = Math.max(2400, s.track + 1200);
+  const grid = new T.GridHelper(gsize, 24, new T.Color(col.muted || "#5a6876"), new T.Color(col.line || "#cfd7de"));
+  grid.position.set(h.cp[0], 0, 0); grid.material.transparent = true; grid.material.opacity = 0.6; dyn.add(grid);
+  const lineMat = (c, dashed) => dashed ? new T.LineDashedMaterial({ color: new T.Color(c), dashSize: 30, gapSize: 18 }) : new T.LineBasicMaterial({ color: new T.Color(c) });
+  const line = (pts, c, dashed) => { const g2 = new T.BufferGeometry().setFromPoints(pts.map(toT)); const l = new T.Line(g2, lineMat(c, dashed)); if (dashed) l.computeLineDistances(); dyn.add(l); };
+  line([[h.cp[0] - 700, 0, 0.5], [h.cp[0] + 700, 0, 0.5]], col.muted || "#5a6876", true);
+  const cpm = new T.Mesh(new T.RingGeometry(14, 24, 32), new T.MeshBasicMaterial({ color: new T.Color(col.accent || "#cf4a12"), side: T.DoubleSide }));
+  cpm.rotation.x = -Math.PI / 2; cpm.position.copy(toT([p.cp[0], p.cp[1], p.cp[2] + 0.8])); dyn.add(cpm);
+  if (view.rc && Number.isFinite(o.roll_center)) {
+    const rcz = o.roll_center + p.cp[2], rcPt = [p.cp[0], 0, rcz];
+    line([p.cp, rcPt, [p.cp[0], -p.cp[1], p.cp[2]]], col.accent || "#cf4a12", true);
+    const rcm = new T.Mesh(new T.SphereGeometry(13, 16, 10), new T.MeshBasicMaterial({ color: new T.Color(col.accent || "#cf4a12") })); rcm.position.copy(toT(rcPt)); dyn.add(rcm);
+  }
+  if (!view.target) { view.target = toT([h.cp[0], h.cp[1] * 0.62, 230]); setMode("iso"); }
+  // HUD
+  const sp2 = sst ? ` · <b>damper</b> ${fmt(sst.damper_len, 1)} mm` : "";
+  $("#hud").innerHTML = `<span><b>travel</b> ${fmt(pose.dz, 1)} mm${cfg.axle === "front" ? ` · <b>rack</b> ${fmt(pose.rack, 1)} mm` : ""}</span><span><b>camber</b> ${fmt(o.camber, 2)}°</span><span><b>toe</b> ${fmt(o.toe, 3)}°</span><span><b>caster</b> ${fmt(o.caster, 2)}°</span><span><b>RC</b> ${fmt(o.roll_center, 1)} mm${sp2}</span>`;
+  three.need = true;
+}
+function rad0(dz) { // rocker angle guess from the sweep, keeps the rocker on its branch
+  if (!ev.ride) return 0; const r = ev.rows; let best = r[0]; for (const q of r) if (Math.abs(q.dz - dz) < Math.abs(best.dz - dz)) best = q; return (best.rocker_deg || 0) * Math.PI / 180;
+}
+let poseTimer = null;
+function onPose() {
+  pose.dz = +$("#poseZ").value; pose.rack = +$("#poseR").value;
+  $("#poseZo").textContent = `${fmt(pose.dz, 1)} mm`; $("#poseRo").textContent = `${fmt(pose.rack, 1)} mm`;
+  cancelAnimationFrame(poseTimer);
+  poseTimer = requestAnimationFrame(() => {
+    updateScene();
+    if (!err && ev) { const map = { heave: panelHeave, spring: panelSpring, steer: panelSteer }; if (map[tab]) $("#pn_" + tab).innerHTML = map[tab](); }
+  });
+}
+$("#poseZ").addEventListener("input", onPose); $("#poseR").addEventListener("input", onPose);
+const mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", () => updateScene());
+new MutationObserver(() => updateScene()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+// ------------------------------------------------------------------ toolbar
+function loadCfg(raw, name) {
+  try { S.finishConfig(raw); } catch (e) { $("#jsonMsg").textContent = e.message; return false; }
+  cfg = JSON.parse(JSON.stringify(raw));
+  for (const k of ["wheel", "vehicle", "sweep", "clearance", "loads", "members"]) cfg[k] = S.deepMerge(S.DEFAULTS[k], cfg[k] || {});
+  if (!cfg.rack_direction) cfg.rack_direction = [0, 1, 0];
+  if (cfg.spring) cfg.spring = S.deepMerge(S.SPRING_DEFAULTS, cfg.spring);
+  savedSpring = null; savedRocker = null;
+  fillForm(); run(); return true;
+}
+$("#preset").innerHTML = PRESETS.map((p, i) => `<option value="${i}">${esc(p.label)}</option>`).join("") + `<option value="custom" hidden>Your edits</option>`;
+$("#preset").addEventListener("change", (e) => { if (e.target.value !== "custom") { view.target = null; loadCfg(PRESETS[+e.target.value].cfg); } });
+$("#btnLoad").addEventListener("click", () => $("#fileIn").click());
+$("#fileIn").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const raw = JSON.parse(await f.text());
+    if (!raw.hardpoints && (raw.front || raw.rear || raw.targets || Object.values(raw).some(v => Array.isArray(v) && v.length === 2))) {
+      const t = S.targetsFromFile(raw, cfg.axle); delete t._note;
+      cfg.targets = Object.assign({}, t, cfg.targets || {});
+      $("#preset").value = "custom"; run();
+      $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner warn">Applied ${Object.keys(t).length} target ranges from ${esc(f.name)} to this design. They are now saved in its JSON under <span class="mono">targets</span>.</div>`);
+    } else { view.target = null; if (loadCfg(raw)) $("#preset").value = "custom"; }
+  }
+  catch (ex) { $("#errBox").innerHTML = `<div class="banner bad">${esc(f.name)} is not a valid config: ${esc(ex.message)}</div>`; }
+  e.target.value = "";
+});
+$("#btnCopy").addEventListener("click", async (e) => {
+  const txt = JSON.stringify(exportCfg(), null, 2), b = e.currentTarget;
+  try { await navigator.clipboard.writeText(txt); b.textContent = "Copied"; }
+  catch (ex) { $("#cardJson").open = true; $("#jsonBox").focus(); $("#jsonBox").select(); b.textContent = "Select and copy below"; }
+  setTimeout(() => b.textContent = "Copy JSON", 1800);
+});
+if (location.protocol === "file:") {
+  $("#btnDownload").hidden = false;
+  $("#btnDownload").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(exportCfg(), null, 2)], { type: "application/json" }), a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = (cfg.name || "design").replace(/[^\w.-]+/g, "_") + ".json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+}
+$("#btnApplyJson").addEventListener("click", () => {
+  try { const raw = JSON.parse($("#jsonBox").value); if (loadCfg(raw)) { $("#jsonMsg").textContent = "Applied."; $("#preset").value = "custom"; } }
+  catch (ex) { $("#jsonMsg").textContent = "Not valid JSON: " + ex.message; }
+});
+$("#btnBase").addEventListener("click", () => { if (!ev || err) return; base = ev; baseName = cfg.name || "pinned design"; renderAll(0); });
+document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dataset.path) $("#preset").value = "custom"; });
+
+// ------------------------------------------------------------------ boot
+buildForm();
+initThree();
+const savedTab = store.get("susp.tab"); if (savedTab && TABS.some(t => t[0] === savedTab)) tab = savedTab;
+let boot = PRESETS[0].cfg, saved = store.get("susp.cfg");
+if (saved) { try { const raw = JSON.parse(saved); S.finishConfig(raw); boot = raw; $("#preset").value = "custom"; } catch (e) { /* ignore a bad draft */ } }
+loadCfg(boot);
+})();
+</script>
