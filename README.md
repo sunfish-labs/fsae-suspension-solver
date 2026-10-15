@@ -57,6 +57,9 @@ It needs no install or server; an internet connection loads the 3D library and f
   bar rates needed for your roll and balance targets. Click a corner in 3D to edit it. In the Car view, Save JSON writes
   one **car file** (`"type": "car"`, a shared `vehicle`, `arb`, `car_targets`, `front`, `rear`). Single-corner files still
   open and go into the slot named by their `axle`. See `designs/example_car.json`.
+- **Export ▾** (top right): a printable **design report** (HTML; open it and print to PDF) and an **Excel workbook**
+  (targets, hardpoints, heave/roll/steering sweeps, member loads; for the whole car it adds a summary sheet with the
+  car targets and roll balance), plus the JSON. In the Car view they cover both corners, otherwise the corner on screen.
 - **Start here** card (shown on each visit until "Don't show this again" is ticked): explore the example, open a design, or try a **challenge**. Two guided exercises (raise the roll center; remove bump steer). Each has live goal meters with expandable curves, locked points, solver-computed hints and a star score. The challenge panel takes the place of the inputs column, and a focus layout shows only the goal curves, so it fits on one laptop screen.
 - **Compare tab:** up to four saved designs next to the live one, kept in this browser. It shows targets and key metrics with the change from a chosen reference, the hardpoints that differ, overlaid curves and 3D ghosts, with a CSV copy.
 - **Pin as baseline** freezes the current results. Your next edits then show as change columns and dashed
