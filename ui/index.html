@@ -121,6 +121,8 @@ input.num::-webkit-outer-spin-button, input.num::-webkit-inner-spin-button { -we
 .vbox { height: clamp(300px, 46vh, 520px); }
 .vtools { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: space-between; pointer-events: none; }
 .vtools > * { pointer-events: auto; }
+.showsel { width: auto; flex: 0 0 auto; padding: 3px 6px; font-size: 12.5px; border-color: var(--accent); }
+.vhint { position: absolute; right: 10px; bottom: 48px; font-size: 11.5px; color: var(--muted); pointer-events: none; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel); }
 .seg button { border: 0; background: transparent; padding: 4px 9px; font-size: 12.5px; cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
@@ -353,10 +355,12 @@ table.fixt td:first-child { white-space: normal; }
             <button type="button" id="tgMirror" aria-pressed="false">Other side</button>
             <button type="button" id="tgLabels" aria-pressed="false">Names</button>
           </div>
+          <select id="showSel" class="sel showsel" aria-label="Draw a term on the 3D corner"><option value="">Show me…</option></select>
         </div>
         <div class="vlabels" id="vlabels" hidden><svg id="vlabSvg" aria-hidden="true"></svg></div>
         <div class="ovcap" id="ovcap" hidden></div>
         <div class="pvbar" id="pvbar" hidden></div>
+        <div class="vhint" id="vhint">Tip: click any joint to see what moving it does</div>
         <div class="hud" id="hud"></div>
         <div class="v-msg" id="vmsg" hidden></div>
       </div>
@@ -1931,6 +1935,7 @@ $$(".seg [data-view]").forEach(b => b.addEventListener("click", () => setMode(b.
 $("#tgRC").addEventListener("click", (e) => { view.rc = !view.rc; e.currentTarget.setAttribute("aria-pressed", String(view.rc)); updateScene(); });
 $("#tgMirror").addEventListener("click", (e) => { view.mirror = !view.mirror; e.currentTarget.setAttribute("aria-pressed", String(view.mirror)); updateScene(); });
 $("#tgLabels").addEventListener("click", (e) => { const on = view.overlay !== "labels"; showMe(on ? "labels" : null); });
+$("#showSel").addEventListener("change", (e) => { const v = e.target.value; showMe(v || null); });
 
 function themeColors() {
   const cs = getComputedStyle(document.documentElement), g = (n) => cs.getPropertyValue(n).trim();
@@ -1996,6 +2001,7 @@ function updateScene() {
   if (!view.target) { view.target = toT([h.cp[0], h.cp[1] * 0.62, 230]); setMode("iso"); }
   const sp2 = sst ? ` · <b>damper</b> ${fmt(sst.damper_len, 1)} mm` : "";
   $("#hud").innerHTML = `<span><b>travel</b> ${fmt(pose.dz, 1)} mm${cfg.axle === "front" ? ` · <b>rack</b> ${fmt(pose.rack, 1)} mm` : ""}</span><span><b>camber</b> ${fmt(o.camber, 2)}°</span><span><b>toe</b> ${fmt(o.toe, 3)}°</span><span><b>caster</b> ${fmt(o.caster, 2)}°</span><span><b>RC</b> ${fmt(o.roll_center, 1)} mm${sp2}</span>`;
+  const hb = ($("#hud").offsetHeight || 30) + 18 + "px"; for (const id of ["#ovcap", "#pvbar", "#vhint"]) $(id).style.bottom = hb;
   three.need = true;
 }
 
@@ -2120,6 +2126,7 @@ const OVERLAYS = {
   bump_steer: { mode: "top", name: "Bump steer", anim: true }, track_change: { mode: "front", name: "Track change", anim: true },
   motion_ratio: { mode: "iso", name: "Motion ratio", anim: true },
 };
+$("#showSel").innerHTML = `<option value="">Show me…</option>` + Object.entries(OVERLAYS).filter(([k]) => k !== "labels").map(([k, o]) => `<option value="${k}">${esc(o.name)}</option>`).join("");
 function axisGround(p) { // steering axis through the ball joints, and where it meets the ground
   const k = V.unit(V.sub(p.ub, p.lb)), t = (p.cp[2] - p.lb[2]) / k[2];
   return { k, g: V.add(p.lb, V.mul(k, t)) };
@@ -2132,6 +2139,7 @@ function showMe(id) {
   if (id && !view.overlay && three && view.target) savedCam = { theta: view.theta, phi: view.phi, r: view.r, target: view.target.clone(), mode: view.mode, rack: pose.rack };
   view.overlay = id;
   $("#tgLabels").setAttribute("aria-pressed", String(id === "labels"));
+  $("#showSel").value = id && id !== "labels" ? id : ""; $("#vhint").hidden = !!id;
   if (!id) {
     $("#ovcap").hidden = true;
     if (savedCam) { Object.assign(view, { theta: savedCam.theta, phi: savedCam.phi, r: savedCam.r, target: savedCam.target }); setMode(savedCam.mode); setRack(savedCam.rack); if (three) three.need = true; savedCam = null; }
