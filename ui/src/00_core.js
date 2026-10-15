@@ -91,7 +91,9 @@ function buildForm() {
   $("#loadFields").innerHTML = [field("Bump", "g", "loads.bump_g", { step: 0.1 }), field("Cornering", "g", "loads.corner_g", { step: 0.1 }),
     field("Braking", "g", "loads.brake_g", { step: 0.1 }), field("Brake + corner", "g", "loads.combined_g", { step: 0.1 }),
     field("Acceleration (rear)", "g", "loads.accel_g", { step: 0.1 }), field("Pothole impact (vertical)", "g", "loads.pothole_g", { step: 0.5, opt: 1 }),
-    field("Kerb strike (sideways)", "g", "loads.kerb_g", { step: 0.5, opt: 1 })].join("");
+    field("Kerb strike (sideways)", "g", "loads.kerb_g", { step: 0.5, opt: 1 }),
+    field("Braking force split", "", "loads.brake_split", { options: [["bias", "By brake bias (front share)"], ["grip", "Same grip use at every tire"]] }),
+    field("Front LLTD override", "", "loads.lltd_front", { step: 0.01, opt: 1 })].join("");
   $("#tubeFields").innerHTML = [field("Wishbone OD", "mm", "members.wishbone.0"), field("Wishbone wall", "mm", "members.wishbone.1"),
     field("Tie rod OD", "mm", "members.tie_rod.0"), field("Tie rod wall", "mm", "members.tie_rod.1"),
     field("Pushrod OD", "mm", "members.pushrod.0"), field("Pushrod wall", "mm", "members.pushrod.1")].join("");
@@ -188,7 +190,7 @@ function run() {
   syncCar();
   try {
     ev = S.evaluate(cfg);
-    loads = ev.spring ? S.runLoads(ev.cfg, ev.susp, ev.spring) : null;
+    loads = ev.spring ? S.runLoads(ev.cfg, ev.susp, ev.spring, carLltdFor(ev)) : null;
     err = null;
   } catch (e) { err = e; console.warn(e); }
   const ms = performance.now() - t0;
@@ -538,7 +540,10 @@ function panelLoads() {
       <td class="n">${fmt(r.peak, 0)} <span class="muted">(${esc(r.p_case)})</span></td><td class="n">${fmt(r.Py, 0)}</td><td class="n">${fmt(r.sf_yield, 1)}</td>
       <td>${ok ? `<span class="pill ok">OK</span>` : `<span class="pill bad">Below FOS</span>`}</td></tr>`; }).join("");
   return `<p class="note">One config covers both corners of this axle. The solved wheel is the outer wheel in a left turn and the inner wheel in a right turn, so both are checked.
-  Static wheel load ${fmt(I.Fz0, 0)} N; longitudinal transfer ${fmt(I.long_per_g, 0)} N/g; lateral transfer ${fmt(I.lat_per_g, 0)} N/g per wheel. Side and brake forces = g level × that wheel's load.</p>
+  Static wheel load ${fmt(I.Fz0, 0)} N; longitudinal transfer ${fmt(I.long_per_g, 0)} N/g; lateral transfer ${fmt(I.lat_per_g, 0)} N/g per wheel
+  (front LLTD ${fmt(I.lltd * 100, 1)} %, ${ev.cfg.loads.lltd_front ? "your override" : I.lltd_from_car ? "from the car's roll balance" : "the front weight share: open a car file to use its roll balance"}).
+  Side force = g level × that wheel's load; brake force ${I.brake_split === "bias" ? `= g × car weight × brake share (${fmt(I.brake_share * 100, 0)} % on this axle) / 2` : "= g level × that wheel's load"}.
+  ${Object.keys(L.deflect || {}).length ? `Bump and pothole are also solved where the wheel actually is under that load, (load − static) ÷ wheel rate (${fmt(I.wheel_rate, 1)} N/mm), capped at full bump: ${Object.entries(L.deflect).map(([n, z]) => `${esc(n)} at +${fmt(z, 1)} mm`).join(", ")}.` : ""}</p>
   <h3 class="sub-h">Tire forces on the wheel, N</h3>
   <div class="tbl-wrap"><table class="data"><thead><tr><th>Case</th><th class="n">Fx</th><th class="n">Fy</th><th class="n">Fz</th><th>Fz built from</th></tr></thead><tbody>${ty}</tbody></table></div>
   <h3 class="sub-h">Member axial forces, N (+ tension, − compression)</h3>

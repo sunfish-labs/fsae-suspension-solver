@@ -153,6 +153,73 @@ A, Imom = tube_props(*mem["wishbone"])
 check("pushrod-mount bending moment, N mm", bc["moment"], bc["P_perp"] * bc["a"] * (bc["length"] - bc["a"]) / bc["length"], 1e-6, "simply supported beam: P a b / L")
 check("pushrod-mount leg FOS", bc["sf"], mem["yield"] / bc["stress"], 1e-9, "yield / (M c / I + axial / A)")
 
+print("\n6b2. The wishbone carrying the pushrod, solved as one rigid body")
+from susp.loads import arm_reactions, run_loads as _rl, load_cases as _lc  # noqa: E402
+rng = np.random.default_rng(3)
+worst_f = worst_m = worst_ax = 0.0
+for _ in range(20):
+    p1, p2 = rng.uniform(-300, 300, 3), rng.uniform(-300, 300, 3)
+    node, mount = rng.uniform(200, 600, 3), rng.uniform(200, 600, 3)
+    u = (p2 - p1) / np.linalg.norm(p2 - p1)
+    Fn, dirm = rng.uniform(-3000, 3000, 3), rng.uniform(-1, 1, 3)
+    # scale the mount force so the arm has no moment about its pivot axis (that is what fixes the pushrod force)
+    Fm = dirm * -(u @ np.cross(node - p1, Fn)) / (u @ np.cross(mount - p1, dirm))
+    Fsum, Mext = Fn + Fm, np.cross(node - p1, Fn) + np.cross(mount - p1, Fm)
+    e1, e2 = (p1 - node) / np.linalg.norm(p1 - node), (p2 - node) / np.linalg.norm(p2 - node)
+    R1, R2 = arm_reactions(p1, p2, e1, e2, Fsum, Mext)
+    worst_f = max(worst_f, np.linalg.norm(R1 + R2 + Fsum))
+    worst_m = max(worst_m, np.linalg.norm(np.cross(p2 - p1, R2) + Mext))
+    worst_ax = max(worst_ax, abs(u @ Mext))
+check("rigid arm: net force on the arm, N", worst_f, 0.0, 1e-6, "pivot reactions + ball joint + pushrod = 0")
+check("rigid arm: net moment on the arm, N mm", worst_m, 0.0, 1e-4, "about the front pivot")
+check("rigid arm: moment about the pivot axis, N mm", worst_ax, 0.0, 1e-6, "the pushrod force is the one that balances the arm")
+# pushrod mounted at the ball-joint node: the legs are pure two-force members (the pin-jointed truss answer)
+node_sp = dict(TEMPLATE_FRONT["spring"], rod_outboard=list(TEMPLATE_FRONT["hardpoints"]["lower_outboard"]))
+cfgn = corner(spring=node_sp)
+en = evaluate(cfgn)
+Ln = run_loads(cfgn, en["susp"], en["spring"])
+check("pushrod at the node: no load across the legs, N", max(r["bending"] for r in Ln["results"].values()), 0.0, 1e-6,
+      "all load along the legs, which is the unique pin-jointed truss answer")
+# the bending check counts the pushrod's push along the leg once: max(|N at the pivot|, |N beyond the mount|)
+bc2 = Lb["bending_check"]
+A2, I2 = tube_props(*cfgb["members"]["wishbone"])
+check("mount bending stress uses the larger leg force either side of the mount, MPa", bc2["stress"],
+      bc2["moment"] * cfgb["members"]["wishbone"][0] / 2 / I2 + max(abs(bc2["n_pivot"]), abs(bc2["n_node"])) / A2, 1e-9,
+      "M c / I + max |N| / A")
+on_leg = dict(TEMPLATE_FRONT["spring"])
+lf, lb_ = np.array(TEMPLATE_FRONT["hardpoints"]["lower_inboard_rear"]), np.array(TEMPLATE_FRONT["hardpoints"]["lower_outboard"])
+on_leg["rod_outboard"] = list(lf + 0.85 * (lb_ - lf))
+cfgl = corner(spring=on_leg)
+el = evaluate(cfgl)
+bl = run_loads(cfgl, el["susp"], el["spring"])["bending_check"]
+check("pushrod mount on the leg's centerline: zero offset, mm", bl["offset"], 0.0, 1e-6, "mount placed on the line pivot -> ball joint")
+check("... and M = P a (L - a) / L with a = 85 % of the leg, N mm", bl["moment"], bl["P_perp"] * 0.85 * bl["length"] * 0.15, 1e-6, "simply supported beam")
+
+print("\n6b3. Load cases: brake bias, the car's LLTD, deflected geometry")
+cfg3 = corner(spring=dict(TEMPLATE_FRONT["spring"]))
+e3 = evaluate(cfg3)
+cases3 = {c[0]: c for c in _lc(cfg3, e3["susp"])[0]}
+veh3 = cfg3["vehicle"]
+W3 = veh3["mass"] * 9.81
+fx = [f[0] for f, p in cases3["braking"][1] if abs(f[0]) > 0][0]
+check("braking force on a front tire by brake bias, N", fx, -cfg3["loads"]["brake_g"] * W3 * veh3["front_brake_share"] / 2, 1e-9, "g x W x front share / 2")
+grip = dict(cfg3, loads=dict(cfg3["loads"], brake_split="grip"))
+cg = {c[0]: c for c in _lc(grip, e3["susp"])[0]}
+fz, fxg = [f for f, p in cg["braking"][1] if f[2] > 0][0][2], [f[0] for f, p in cg["braking"][1] if abs(f[0]) > 0][0]
+check("brake_split grip: Fx = g x that tire's Fz, N", fxg, -cfg3["loads"]["brake_g"] * fz, 1e-9, "equal friction use")
+info_car = _lc(cfg3, e3["susp"], lltd=0.55)[1]
+check("the car's LLTD sets the lateral transfer, N/g", info_car["lat_per_g"], W3 * veh3["cg_height"] / e3["susp"].track * 0.55, 1e-9, "W h / t x LLTD")
+over = dict(cfg3, loads=dict(cfg3["loads"], lltd_front=0.5))
+check("loads.lltd_front overrides it", _lc(over, e3["susp"], lltd=0.55)[1]["lltd"], 0.5, 1e-12, "manual override")
+L3 = _rl(cfg3, e3["susp"], e3["spring"])
+dz_exp = min(cfg3["sweep"]["travel"], (cfg3["loads"]["bump_g"] - 1) * L3["Fz0"] / L3["info"]["wheel_rate"])
+check("bump solved at (load - static) / wheel rate, capped at full bump, mm", L3["deflect"].get("bump (deflected)", 0.0), dz_exp, 1e-9, "spring deflection")
+soft = dict(cfg3, loads=dict(cfg3["loads"], bump_g=1.5))
+Ls = _rl(soft, e3["susp"], e3["spring"])
+check("a smaller bump is solved below full bump, mm", Ls["deflect"]["bump (deflected)"], 0.5 * Ls["Fz0"] / Ls["info"]["wheel_rate"], 1e-9, "0.5 x static load / wheel rate")
+check("wheel rate for that = spring rate x MR^2, N/mm", L3["info"]["wheel_rate"], cfg3["spring"]["spring_rate"] * e3["metrics"]["motion_ratio"] ** 2, 0.01,
+      "MR from +/-1 mm vs the sweep slope: within 0.01 N/mm")
+
 print("\n6c. Compliance: links as axial springs")
 from susp.loads import link_stiffness  # noqa: E402
 Lk = float(np.linalg.norm(inb["tie_rod"] - outb["tie_rod"]))

@@ -66,6 +66,14 @@ function carEvalCorner(c) {
   if (carCache.size > 12) carCache.clear(); carCache.set(key, r); return r;
 }
 let carRes = null;
+// the car's front LLTD with this corner as edited (the other corner from the cache), for the corner's load cases
+function carLltdFor(e) {
+  if (!car || chal || !e || !e.ride) return null;
+  const front = e.cfg.axle !== "rear", o = carEvalCorner(front ? car.rear : car.front).ev;
+  if (!o || !o.ride) return null;
+  try { const F = front ? e : o, R = front ? o : e; return S.carBalance(F.cfg, F, R.cfg, R, { arbF: +car.arb.front || 0, arbR: +car.arb.rear || 0 }).lltd; }
+  catch (x) { return null; }
+}
 function evalCar() {
   if (!car) return null;
   const F = carEvalCorner(car.front), R = carEvalCorner(car.rear);

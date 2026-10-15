@@ -20,23 +20,30 @@ MEMBER_LABEL = {"upper_front": "Upper leg (pivot {uif})", "upper_rear": "Upper l
                 "tie_rod": "Tie rod", "pushrod": "Pushrod/pullrod"}
 
 
-def load_cases(cfg, susp):
+def load_cases(cfg, susp, lltd=None):
     """Tire forces on this corner (the right-hand wheel) for each case.
 
     The car is symmetric, so one config covers both corners of its axle: in a left turn this wheel is the
     OUTER wheel, in a right turn it is the INNER wheel. Both are checked because the inner wheel's lateral force
     points the other way and can put a different member into compression.
+    lltd: the car's front lateral load transfer share from the whole-car balance; loads.lltd_front overrides it, and
+    without either the front weight share is used.
+    Braking: loads.brake_split "bias" (default) shares the total braking force by vehicle.front_brake_share, the same
+    split the anti-dive figure uses; "grip" gives every tire the same friction use (Fx = g x that tire's Fz).
     Returns (cases, info): cases = [(name, [(F, point_name)], description, Fz_breakdown)]."""
     veh, L = cfg["vehicle"], cfg["loads"]
+    lltd_car = lltd
     W = veh["mass"] * G
     wf, h, WB = veh["weight_front"], veh["cg_height"], veh["wheelbase"]
     front = cfg["axle"] == "front"
     share = wf if front else 1 - wf
-    lltd = L.get("lltd_front") or wf
+    lltd = L.get("lltd_front") or lltd or wf
     lat_share = lltd if front else 1 - lltd
+    bias = (L.get("brake_split") or "bias") == "bias"
+    b_share = veh["front_brake_share"] if front else 1 - veh["front_brake_share"]
     t = susp.track
     info = dict(W=W, share=share, Fz0=W * share / 2, long_per_g=W * h / WB / 2, lat_per_g=W * h / t * lat_share,
-                lat_share=lat_share, h=h, WB=WB, t=t)
+                lat_share=lat_share, lltd=lltd, lltd_from_car=bool(lltd_car and not L.get("lltd_front")), h=h, WB=WB, t=t, brake_split="bias" if bias else "grip", brake_share=b_share)
 
     def wheel(ax=0.0, ay=0.0, side=1):
         """Vertical load and how it was built: static + longitudinal transfer + lateral transfer."""
@@ -63,16 +70,21 @@ def load_cases(cfg, susp):
         # both tires push the car toward the turn center: -Y for the outer (right) wheel, +Y for the inner
         cases.append((f"corner {nm}", [(np.array([0, 0, Fz]), cp), (np.array([0, -side * ay * Fz, 0]), cp)],
                       f"{ay:g} g lateral, {nm} wheel", parts))
+    def brake_fx(g, Fz):
+        """Braking force on this tire (negative = rearward) at g of deceleration."""
+        return -g * W * b_share / 2 if bias else -g * Fz
+    bdesc = (lambda g: f"Fx = {g:g} g x car weight x {b_share:.0%} brake share / 2") if bias else (lambda g: f"Fx = {g:g} x Fz")
     ax = -L["brake_g"]
     Fz, parts = wheel(ax=ax)
-    cases.append(("braking", [(np.array([0, 0, Fz]), cp), (np.array([ax * Fz, 0, 0]), brake_pt)],
-                  f"{L['brake_g']:g} g braking (Fx = {L['brake_g']:g} x Fz)", parts))
+    cases.append(("braking", [(np.array([0, 0, Fz]), cp), (np.array([brake_fx(L["brake_g"], Fz), 0, 0]), brake_pt)],
+                  f"{L['brake_g']:g} g braking ({bdesc(L['brake_g'])})", parts))
     g2 = L["combined_g"]
     for side, nm in ((1, "outer"), (-1, "inner")):
         Fz, parts = wheel(ax=-g2, ay=g2, side=side)
+        fx = brake_fx(g2, Fz)              # with the bias split, both wheels of an axle brake alike
         cases.append((f"brake+corner {nm}", [(np.array([0, 0, Fz]), cp), (np.array([0, -side * g2 * Fz, 0]), cp),
-                                             (np.array([-g2 * Fz, 0, 0]), brake_pt)],
-                      f"{g2:g} g braking + {g2:g} g lateral, {nm} wheel", parts))
+                                             (np.array([fx, 0, 0]), brake_pt)],
+                      f"{g2:g} g braking + {g2:g} g lateral, {nm} wheel ({bdesc(g2)})", parts))
     pg, kg = L.get("pothole_g"), L.get("kerb_g")
     if pg:
         cases.append(("pothole", [(np.array([0, 0, pg * Fz0]), cp)], f"{pg:g} x static wheel load, impact", f"{pg:g} x {Fz0:.0f} static"))
@@ -87,29 +99,59 @@ def load_cases(cfg, susp):
     return cases, info
 
 
-def _geometry(susp, sp):
+def _geometry(susp, sp, dz=0.0):
+    """Link end points at ride height (dz = 0) or at a wheel travel dz (mm, rack centered): (pts, inb, outb, st)."""
     h = susp.h
-    st = sp.static()
-    pts = {"ubj": h["ubj"], "lbj": h["lbj"], "tro": h["tro"], "cp": h["cp"], "c": susp.c0,
-           "rod_out": st["rod_out"], "rod_in": st["rod_in"]}
+    if not dz:
+        st = sp.static()
+        ub, lb, tro, cp, c = h["ubj"], h["lbj"], h["tro"], h["cp"], susp.c0
+    else:
+        x = susp.states([dz])[float(dz)]
+        q = susp.observe(x, dz)["_pts"]
+        ub, lb, tro, cp, c = q["ub"], q["lb"], q["tro"], q["cp"], q["c"]
+        th, n = 0.0, max(1, int(math.ceil(abs(dz) / 5.0)))       # walk the rocker out so it stays on its branch
+        for i in range(1, n + 1):
+            d = dz * i / n
+            st = sp.state(susp.states([d])[float(d)], th)
+            th = math.radians(st["rocker_deg"])
+    pts = {"ubj": ub, "lbj": lb, "tro": tro, "cp": cp, "c": c, "rod_out": st["rod_out"], "rod_in": st["rod_in"]}
     inb = {"upper_front": h["uif"], "upper_rear": h["uir"], "lower_front": h["lif"], "lower_rear": h["lir"],
            "tie_rod": h["tri"], "pushrod": st["rod_in"]}
-    outb = {"upper_front": h["ubj"], "upper_rear": h["ubj"], "lower_front": h["lbj"], "lower_rear": h["lbj"],
-            "tie_rod": h["tro"], "pushrod": st["rod_out"]}
+    outb = {"upper_front": ub, "upper_rear": ub, "lower_front": lb, "lower_rear": lb, "tie_rod": tro, "pushrod": st["rod_out"]}
     return pts, inb, outb, st
 
 
-def solve_case(susp, sp, forces):
+def solve_case(susp, sp, forces, geom=None):
     """Member forces (N, + = tension) for tire forces [(F, point)] applied to the upright."""
-    pts = _geometry(susp, sp)[0]
+    geom = geom or _geometry(susp, sp)
+    pts = geom[0]
     F = sum(f for f, _ in forces)
     M = sum(np.cross(pts[p], f) for f, p in forces)
-    return solve_FM(susp, sp, F, M)
+    return solve_FM(susp, sp, F, M, geom)
 
 
-def solve_FM(susp, sp, F, M):
+def arm_reactions(p1, p2, e1, e2, Fsum, Mext):
+    """Pivot reactions R1, R2 on a rigid wishbone carrying external force Fsum and moment Mext (about p1).
+    Equilibrium fixes everything except how the load along the pivot axis is shared, so take the split that keeps
+    the reactions closest to the leg directions e1, e2 (the legs are close to two-force members). With every load at
+    the outer node this is exactly the pin-jointed truss answer."""
+    d = p2 - p1
+    u = unit(d)
+    r2 = np.cross(d, Mext) / float(d @ d)                # the part of R2 the moments fix: d x R2 = -Mext
+    x0 = np.r_[-Fsum - r2, r2]                           # forces then fix R1
+    nvec = np.r_[-u, u]                                  # moving axial load from one pivot to the other
+    P = np.zeros((6, 6))
+    P[:3, :3] = np.eye(3) - np.outer(e1, e1)
+    P[3:, 3:] = np.eye(3) - np.outer(e2, e2)
+    Pn = P @ nvec
+    lam = -float((P @ x0) @ Pn) / float(Pn @ Pn) if Pn @ Pn > 1e-18 else 0.0
+    x = x0 + lam * nvec
+    return x[:3], x[3:]
+
+
+def solve_FM(susp, sp, F, M, geom=None):
     """Member forces for a net force F (N) and moment M (N mm, about the origin) on the upright."""
-    pts, inb, outb, st = _geometry(susp, sp)
+    pts, inb, outb, st = geom or _geometry(susp, sp)
     e = {k: unit(inb[k] - outb[k]) for k in MEMBERS}      # tension pulls the outboard end inboard
     out = {}
     if sp.on == "upright":
@@ -140,13 +182,15 @@ def solve_FM(susp, sp, F, M):
             raise SolveError("The pushrod has no lever arm about the wishbone pivot axis.")
         Tp = -m_bj / m_p
         out["pushrod"] = Tp
-        node = -Fb + Tp * e["pushrod"]                   # total load on the arm's outer node
-        # leg tension T pulls the node toward its pivot: node + sum(T_i e_i) = 0
-        legs = np.array([e[f"{arm}_front"], e[f"{arm}_rear"]]).T
-        Tl, *_ = np.linalg.lstsq(legs, -node, rcond=None)
-        resid = node + legs @ Tl
-        out[f"{arm}_front"], out[f"{arm}_rear"] = float(Tl[0]), float(Tl[1])
-        out["bending"] = float(np.linalg.norm(resid))
+        # the arm as one rigid body: -Fb at the ball joint, the pushrod at its mount, a reaction at each pivot
+        f_rod = Tp * e["pushrod"]
+        p1, p2 = inb[f"{arm}_front"], inb[f"{arm}_rear"]
+        e1, e2 = e[f"{arm}_front"], e[f"{arm}_rear"]
+        Mext = np.cross(bj - p1, -Fb) + np.cross(pts["rod_out"] - p1, f_rod)
+        R1, R2 = arm_reactions(p1, p2, e1, e2, -Fb + f_rod, Mext)
+        out[f"{arm}_front"], out[f"{arm}_rear"] = float(R1 @ e1), float(R2 @ e2)   # leg tension at the pivot
+        # load the legs carry across themselves (zero when the pushrod mounts at the ball-joint node)
+        out["bending"] = float(math.hypot(np.linalg.norm(R1 - (R1 @ e1) * e1), np.linalg.norm(R2 - (R2 @ e2) * e2)))
     # rocker: rod pulls the rocker toward rod_out with T, damper tension Td along rocker_damper -> chassis
     Tp = out["pushrod"]
     if sp.direct:
@@ -218,12 +262,15 @@ def part_checks(cfg, rows):
     return out
 
 
-def bending_check(cfg, susp, sp, results):
+def bending_check(cfg, susp, sp, results, deflect=None):
     """The wishbone leg that carries the pushrod mount, as a beam pinned at the inboard pivot and the ball joint.
-    The pushrod force's component across the leg at distance a from the pivot gives M = P a (L - a) / L; the stress
-    M c / I adds to the axial stress (leg force plus the pushrod's component along the leg) / A."""
+    The pushrod force's component across the leg at distance a from the pivot gives M = P a (L - a) / L. The axial
+    force steps at the mount by the pushrod's component along the leg, so the larger of the two segment forces
+    (N at the pivot, N minus that component beyond the mount) is used: stress = M c / I + max |N| / A.
+    deflect: {case name: wheel travel} for cases solved at a deflected position."""
     if sp.on not in ("lower", "upper"):
         return None
+    deflect = deflect or {}
     pts, inb, outb, st = _geometry(susp, sp)
     arm = sp.on
     best = None
@@ -235,18 +282,23 @@ def bending_check(cfg, susp, sp, results):
         off = float(np.linalg.norm(pts["rod_out"] - (p0 + a * u)))
         if best is None or off < best[3]:
             best = (leg, u, Lg, off, a)
-    leg, u, Lg, off, a = best
+    leg, _u, Lg, off, a = best
     od, wall = cfg["members"]["wishbone"]
     A, Imom = tube_props(od, wall)
-    e_p = unit(pts["rod_in"] - pts["rod_out"])
     worst = None
     for name, r in results.items():
-        F = r["pushrod"] * e_p
-        P_perp = float(np.linalg.norm(F - (F @ u) * u))
-        M = P_perp * a * (Lg - a) / Lg
-        sig = M * (od / 2) / Imom + (abs(r[leg]) + abs(F @ u)) / A
+        gp, gi, go, _ = _geometry(susp, sp, deflect[name]) if deflect.get(name) else (pts, inb, outb, st)
+        p0, p1 = gi[leg], go[leg]
+        uu, Lc = unit(p1 - p0), float(np.linalg.norm(p1 - p0))
+        ac = float(np.clip((gp["rod_out"] - p0) @ uu, 0.0, Lc))
+        F = r["pushrod"] * unit(gp["rod_in"] - gp["rod_out"])         # the pushrod's pull on the arm at the mount
+        P_perp = float(np.linalg.norm(F - (F @ uu) * uu))
+        M = P_perp * ac * (Lc - ac) / Lc
+        n_pivot = r[leg]                                               # tension between the pivot and the mount
+        n_node = n_pivot - F @ uu                                      # tension between the mount and the ball joint
+        sig = M * (od / 2) / Imom + max(abs(n_pivot), abs(n_node)) / A
         if worst is None or sig > worst["stress"]:
-            worst = dict(case=name, P_perp=P_perp, moment=M, stress=sig)
+            worst = dict(case=name, P_perp=P_perp, moment=M, stress=sig, n_pivot=float(n_pivot), n_node=float(n_node))
     sy = cfg["members"]["yield"]
     return dict(leg=leg, length=Lg, a=a, offset=off, od=od, wall=wall, sf=sy / worst["stress"] if worst["stress"] > 1e-9 else float("inf"), **worst)
 
@@ -264,7 +316,7 @@ def link_stiffness(cfg, k, length):
     return 1.0 / sum(1.0 / x for x in parts)
 
 
-IMPACT_CASES = ("bump", "pothole", "kerb strike")
+IMPACT_CASES = ("bump", "pothole", "kerb strike", "bump (deflected)", "pothole (deflected)")
 
 
 def compliance(cfg, susp, sp, results):
@@ -298,16 +350,45 @@ def compliance(cfg, susp, sp, results):
                 toe_ok=(tl is None or abs(w_toe["toe"]) <= tl), camber_ok=(cl is None or abs(w_cam["camber"]) <= cl))
 
 
-def run_loads(cfg, susp, sp):
-    cases, info = load_cases(cfg, susp)
-    res, desc, tire, fz = {}, {}, {}, {}
+def wheel_rate_at_ride(cfg, susp, sp):
+    """Spring rate x motion ratio^2 at ride height, the motion ratio from +/-1 mm of wheel travel."""
+    xs = susp.states([-1.0, 1.0])
+    L1, L2 = (sp.state(xs[d])["damper_len"] for d in (-1.0, 1.0))
+    mr = abs(L1 - L2) / 2.0
+    return cfg["spring"]["spring_rate"] * mr * mr
+
+
+def run_loads(cfg, susp, sp, lltd=None):
+    """Every load case. The bump and pothole cases are also solved where the wheel actually is under that load:
+    raised by (load - static load) / wheel rate, capped at full bump ("bump (deflected)", "pothole (deflected)").
+    lltd: the car's front LLTD from the whole-car balance (see load_cases)."""
+    cases, info = load_cases(cfg, susp, lltd)
+    res, desc, tire, fz, deflect = {}, {}, {}, {}, {}
+    geom0 = _geometry(susp, sp)
+    k_w = wheel_rate_at_ride(cfg, susp, sp)
+    travel = float(cfg["sweep"]["travel"])
+    extra = []
     for name, forces, d, parts in cases:
-        res[name] = solve_case(susp, sp, forces)
+        if name in ("bump", "pothole") and k_w > 1e-9:
+            Fz = float(sum(f for f, _ in forces)[2])
+            dz = min(travel, max(0.0, (Fz - info["Fz0"]) / k_w))
+            if dz > 0.05:
+                extra.append((f"{name} (deflected)", forces, f"{d}, solved at +{dz:.1f} mm of wheel travel"
+                              + (" (full bump)" if dz >= travel else ""), parts, dz))
+    for name, forces, d, parts, dz in [c + (0.0,) for c in cases] + extra:
+        try:
+            geom = _geometry(susp, sp, dz) if dz else geom0
+        except SolveError:
+            continue                                   # the wheel can't reach that travel: keep the ride-height case only
+        res[name] = solve_case(susp, sp, forces, geom)
         desc[name], fz[name] = d, parts
         tire[name] = sum(f for f, _ in forces)
+        if dz:
+            deflect[name] = dz
+    info["wheel_rate"] = k_w
     checks = member_checks(cfg, susp, sp, res)
-    return dict(results=res, desc=desc, tire=tire, fz_parts=fz, Fz0=info["Fz0"], info=info,
-                checks=checks, parts=part_checks(cfg, checks), bending_check=bending_check(cfg, susp, sp, res),
+    return dict(results=res, desc=desc, tire=tire, fz_parts=fz, Fz0=info["Fz0"], info=info, deflect=deflect,
+                checks=checks, parts=part_checks(cfg, checks), bending_check=bending_check(cfg, susp, sp, res, deflect),
                 compliance=compliance(cfg, susp, sp, res))
 
 

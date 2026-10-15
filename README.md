@@ -118,30 +118,40 @@ as reference geometry for the chassis designer:
 ## How loads are calculated (`loads`)
 One config covers both corners of its axle, because the car is symmetric. The solved wheel is the **outer** wheel
 in a left turn and the **inner** wheel in a right turn, and both are checked. The inner wheel's side force points
-the other way, which can put a different leg into compression.
+the other way, which can put a different leg into compression. `loads car.json` runs both corners of a car file.
 1. Wheel vertical load = static (car weight x axle share / 2)
    + longitudinal transfer (W x CG height / wheelbase / 2 per g)
-   + lateral transfer (W x CG height / track x axle share per g).
-   The printout shows this sum for every case.
-2. Tire side and brake forces = g level x that wheel's vertical load (equal friction use at every tire). They act at
-   the contact patch, or at the wheel center for inboard brakes and drive.
+   + lateral transfer (W x CG height / track x this axle's share of the lateral load transfer, per g).
+   That share is the front LLTD from the car's roll balance when you run a car file (or work in the Car view),
+   `loads.lltd_front` if you set it, otherwise the front weight share. The printout shows this sum for every case.
+2. Tire side force = g level x that wheel's vertical load. Braking force: with `loads.brake_split` = `"bias"` (default)
+   it is g x car weight x this axle's brake share (`vehicle.front_brake_share`) / 2, the same split the anti-dive
+   figure uses; `"grip"` gives every tire the same friction use (g x that wheel's load). Forces act at the contact patch,
+   or at the wheel center for inboard brakes and drive.
 3. The upright is put in static equilibrium against the link forces. Every link is a pin-ended two-force member,
-   and the wishbone carrying the pushrod is solved as a three-force body.
-4. Strength: **buckling FOS** = Euler load (pi^2 E I / L^2, pinned ends) / worst compression.
+   except the wishbone carrying the pushrod: it is solved as **one rigid body** with a reaction at each pivot, the
+   ball-joint force and the pushrod. The pushrod force is what balances the arm about its pivot axis; the leg forces
+   then follow the actual load path. Any load the legs carry across themselves (when the pushrod isn't mounted at the
+   ball-joint node) is shown as the arm's "bending load".
+4. **Deflected geometry:** the bump and pothole cases are also solved where the wheel actually is under that load,
+   raised by (load - static load) / wheel rate and capped at full bump, as "bump (deflected)" and "pothole
+   (deflected)". Both they and the ride-height cases count in the strength checks.
+5. Strength: **buckling FOS** = Euler load (pi^2 E I / L^2, pinned ends) / worst compression.
    **Yield FOS** = (yield stress x tube area) / worst axial force. Both are compared with `members.sf_target` (default 2).
    Default tubes are 5/8 in x 0.035 in (15.875 x 0.889 mm) 4130 steel, E 205 GPa, yield 435 MPa. Set your real
    tubes under `members`.
-5. **Impacts:** a pothole case (`pothole_g`, default 4 g vertical on the wheel) and a kerb strike (`kerb_g`, default 2 g
+6. **Impacts:** a pothole case (`pothole_g`, default 4 g vertical on the wheel) and a kerb strike (`kerb_g`, default 2 g
    sideways into the wheel plus static load) sit beside the driving cases. They are rough design-load factors, not a
    crash simulation; set them to your team's numbers.
-6. **Pushrod mount bending:** the pushrod rarely lands exactly on a wishbone leg's centerline. The leg is treated as a
+7. **Pushrod mount bending:** the pushrod rarely lands exactly on a wishbone leg's centerline. The leg is treated as a
    simply supported beam between its pivot and the ball joint, with the pushrod's push across it at the mount:
-   M = P⊥ × a × (L − a) / L and σ = M·c/I + axial/A. A low FOS here means the mount needs a gusset or bracket into the
+   M = P⊥ × a × (L − a) / L and σ = M·c/I + max |N| / A, where N is the leg force either side of the mount (it steps by
+   the pushrod's push along the leg there). A low FOS here means the mount needs a gusset or bracket into the
    node, not a bigger tube.
-7. **Rod ends and bolts:** each member's worst force is checked against `members.rod_end_rating` (N, from your rod end's
+8. **Rod ends and bolts:** each member's worst force is checked against `members.rod_end_rating` (N, from your rod end's
    catalog; leave blank to skip) and a bolt in shear: capacity = planes × π/4 × d² × 0.6 × UTS (`bolt_dia` mm,
    `bolt_grade` 8.8 / 10.9 / 12.9 / SAE 5 / SAE 8, `bolt_shear_planes` 1 or 2).
-8. **Compliance:** each link is an axial spring made of two rod ends (`rod_end_k`, N/mm each), the tube (E·A/L) and
+9. **Compliance:** each link is an axial spring made of two rod ends (`rod_end_k`, N/mm each), the tube (E·A/L) and
    the chassis tab or bracket (`mount_k`) in series; the wishbones, upright, rocker and rack are rigid and the damper
    is held. The link stretches (force ÷ stiffness) move the upright, found with the unit-load method so the work
    done by the tire forces equals the energy in the links. The output is the camber and toe change per case on top
@@ -182,7 +192,8 @@ rebound given, the Targets list checks ζ bump 0.4–0.9 and rebound 0.5–1.2 (
   `rocker_rod`, `rocker_damper`, `damper_chassis`, `spring_rate` (N/mm), `damper_stroke`, `unsprung_mass` (kg/corner),
   `damper_eye_to_eye` (mm, extended), `tire_rate` (N/mm), `target_freq_hz`. Leave out the four `rocker_*` keys for a damper mounted directly on the arm.
   Pushrod or pullrod doesn't matter: the geometry decides.
-- `loads`: g levels for `bump_g`, `corner_g`, `brake_g`, `combined_g`, `accel_g`, `pothole_g`, `kerb_g`, and optional `lltd_front`.
+- `loads`: g levels for `bump_g`, `corner_g`, `brake_g`, `combined_g`, `accel_g`, `pothole_g`, `kerb_g`; `brake_split`
+  (`"bias"` or `"grip"`); optional `lltd_front` (overrides the car's roll balance).
 - `members`: `material` (label), tube `[OD, wall]` (mm) for `wishbone`, `tie_rod` and `pushrod`; `E`, `yield` (MPa); `sf_target`;
   `rod_end_rating` (N), `bolt_dia` (mm), `bolt_grade`, `bolt_shear_planes`; compliance `rod_end_k`, `mount_k` (N/mm),
   `toe_comp_limit`, `camber_comp_limit` (deg).
@@ -220,8 +231,8 @@ Member forces: + = tension.
   only: no bushings, bending of the arms, upright or wheel flex, tire model, or chassis torsion).
 - Roll uses equal and opposite wheel travel, so it gives the kinematic roll center. The force-based roll center
   moves once the tires are loaded unevenly.
-- Loads are quasi-static, use the ride-height geometry and the outer wheel only, and assume equal friction use at
-  every tire. Impacts are fixed g factors. There is no fatigue, and no checks on tabs, welds or inserts.
+- Loads are quasi-static. The bump and pothole cases are also solved at the spring's deflected position; the other
+  cases use the ride-height geometry (no body roll or pitch). Impacts are fixed g factors. There is no fatigue, and no checks on tabs, welds or inserts.
 - The pushrod-mount bending check is a simple beam: it ignores the gusset or bracket you add and any weld
   heat-affected zone.
 - Clearance is center-line distance plus tube radii. The rim check is radial only.

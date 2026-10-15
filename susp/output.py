@@ -503,15 +503,21 @@ def print_loads(cfg, ev, L):
     print(f"\n=== Loads: {cfg['name']} ({cfg['axle']} axle) ===")
     print("One config = both corners of this axle (the car is symmetric). The solved corner is the outer wheel in a\n"
           "left turn and the inner wheel in a right turn, so both are checked.")
-    print("\nHow the wheel loads are built (quasi-static, rigid car, same friction use at every tire):")
+    print("\nHow the wheel loads are built (quasi-static, rigid car):")
     print(f"  car weight W = {veh['mass']:g} kg x 9.81 = {info['W']:.0f} N; this axle carries "
           f"{info['share'] * 100:.0f} % -> static wheel load {info['Fz0']:.0f} N")
     print(f"  longitudinal transfer per wheel per g = W x CG height / wheelbase / 2 = {info['W']:.0f} x "
           f"{info['h']:g} / {info['WB']:g} / 2 = {info['long_per_g']:.0f} N")
-    print(f"  lateral transfer per wheel per g = W x CG height / track x axle share ({info['lat_share'] * 100:.0f} %) = "
-          f"{info['lat_per_g']:.0f} N")
-    print("  tire side/brake force = g level x that wheel's vertical load; forces act at the contact patch"
-          + (" (brake force at the wheel center: inboard brakes)" if veh["brakes"] == "inboard" else ""))
+    src = "loads.lltd_front" if cfg["loads"].get("lltd_front") else ("the car's roll balance" if info.get("lltd_from_car") else "front weight share")
+    print(f"  lateral transfer per wheel per g = W x CG height / track x this axle's share of it ({info['lat_share'] * 100:.0f} %, "
+          f"front LLTD {info['lltd'] * 100:.0f} % from {src}) = {info['lat_per_g']:.0f} N")
+    print("  tire side force = g level x that wheel's vertical load; "
+          + (f"brake force = g x W x brake share ({info['brake_share'] * 100:.0f} % on this axle) / 2"
+             if info["brake_split"] == "bias" else "brake force = g level x that wheel's vertical load (loads.brake_split = grip)")
+          + ("; brake force at the wheel center (inboard brakes)" if veh["brakes"] == "inboard" else ""))
+    if L.get("deflect"):
+        print(f"  bump and pothole are also solved where the wheel actually is under that load: raised by (load - static) / "
+              f"wheel rate ({info['wheel_rate']:.1f} N/mm), capped at full bump")
     names = list(L["results"])
     print("\nTire force on the wheel (N)")
     table(["case", "Fx", "Fy", "Fz", "Fz built from", "description"],

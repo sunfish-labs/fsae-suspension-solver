@@ -72,15 +72,27 @@ def cmd_run(a):
         T.log_run(a.log, cfg, ev, a.note)
 
 
-def _loads(cfg, ev):
+def _loads(cfg, ev, lltd=None):
     from susp.loads import run_loads
     if ev.get("spring") is None:
         sys.exit("Loads need a 'spring' block (the pushrod/pullrod carries the vertical load). "
                  "See 'template front' for an example.")
-    return run_loads(cfg, ev["susp"], ev["spring"])
+    return run_loads(cfg, ev["susp"], ev["spring"], lltd)
 
 
 def cmd_loads(a):
+    if C.is_car_file(a.config):
+        # a car file: both corners, with the lateral load transfer split from the car's own roll balance
+        from susp.ride import car_balance
+        f, r, info = C.load_car(a.config)
+        fe, re_ = evaluate(f, steer=False, pack=False), evaluate(r, steer=False, pack=False)
+        lltd = None
+        if fe.get("spring") and re_.get("spring"):
+            lltd = car_balance(f, fe, r, re_, None, None, info["arb_f"], info["arb_r"], info["car_targets"])["lltd"]
+            print(f"Front LLTD from the car's roll balance: {lltd * 100:.1f} %")
+        for cfg, ev in ((f, fe), (r, re_)):
+            O.print_loads(cfg, ev, _loads(cfg, ev, lltd))
+        return
     cfg = load(a.config)
     ev = evaluate(cfg, steer=False, pack=False)
     O.print_loads(cfg, ev, _loads(cfg, ev))
@@ -202,7 +214,7 @@ def main():
     p.add_argument("--note", default="", help="what you changed (stored in the log)")
     p.add_argument("--advise", action="store_true", help="suggest single-coordinate fixes for failing targets")
     p.set_defaults(fn=cmd_run)
-    p = sub.add_parser("loads", help="member forces and safety factors for standard load cases")
+    p = sub.add_parser("loads", help="member forces and safety factors for standard load cases (a design or a car file)")
     p.add_argument("config")
     p.set_defaults(fn=cmd_loads)
     p = sub.add_parser("car", help="whole-car roll balance from a car file, or a front and a rear config")

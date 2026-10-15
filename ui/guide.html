@@ -233,17 +233,20 @@ travel uses 48 mm, so the damper must sit near mid-stroke at ride height or it w
 
 <div class="step">
 <h3>Step 5 · Loads and the whole car</h3>
-<p><b>Strength.</b> The Loads tab checks bump, cornering (outer and inner wheel), braking and combined braking and cornering. With
-5/8 × 0.035 in 4130 tubes, the weakest member is the lower wishbone leg to the pivot at X = −230 in braking plus cornering: 2855 N compression
-against a 10 600 N buckling load, so FOS 3.7 against the required 2.0. The pushrod carries 3.0 kN in a 3 g bump; pick rod ends rated well
-above the "worst |force|" column.</p>
+<p><b>Strength.</b> The Loads tab checks bump, cornering (outer and inner wheel), braking and combined braking and cornering. Braking force
+is shared front to rear by the brake bias (60 % front here), the same split the anti-dive figure uses. In the Car view the lateral load
+transfer is split by the car's own roll balance instead of the weight split. With 5/8 × 0.035 in 4130 tubes, the lower wishbone leg to the
+pivot at X = −230 takes 1936 N of compression in braking plus cornering against a 10 600 N buckling load (FOS 5.5). The hardest-worked
+part is the pushrod: 4.0 kN in a 4 g pothole, buckling FOS 3.6 against the required 2.0. Pick rod ends rated well above the "worst |force|"
+column. A 3 g bump would push this wheel past full bump on its spring, so the bump and pothole cases are also solved at full bump, where
+the arms sit at a different angle; both results count.</p>
 <p><b>Impacts and the pushrod mount.</b> Two more cases, a 4 g pothole and a 2 g kerb strike, show how much harder an impact is on the
 parts than normal driving. Below the table, <i>Pushrod mount bending</i> checks the wishbone leg the pushrod sits on: the pushrod lands
-17 mm off that leg's centerline, so the leg bends like a beam. In the pothole case the bare tube would reach about 780 MPa, FOS 0.56.
+17 mm off that leg's centerline, so the leg bends like a beam. In the pothole case the bare tube would reach about 720 MPa, FOS 0.60.
 The fix is a gusset or bracket that carries the pushrod into the ball-joint node, not a bigger tube. <i>Rod ends and bolts</i> then
 compares each member's worst force with your rod end's catalog rating and the bolt's shear capacity.</p>
 <p><b>Compliance.</b> Last on the Loads tab: every link stretches a little under load (rod ends, tube and chassis tab in series, about
-6.5–7 kN/mm each here). In 1.6 g braking the front wheel toes out 0.13°, inside the 0.15° limit; a softer chassis tab would push it over.
+6.5–7 kN/mm each here). In 1.6 g braking the front wheel toes out 0.12°, inside the 0.15° limit; a softer chassis tab would push it over.
 The rod-end and tab stiffnesses are estimates, so measure yours if the result is close to the limit.</p>
 <p><b>Balance.</b> With the matching example rear (3.6 Hz, 75 N/mm springs), the whole-car check
 (<code>python3 susp_solver.py car designs/example_front.json designs/example_rear.json</code>) gives 0.72 deg/g of roll from the springs

@@ -3,7 +3,7 @@
 // Excel writer (SheetJS) is loaded from cdnjs only when Excel export is first used.
 function exportScope() {
   const isCar = !!(car && axleView === "car" && !chal), r = isCar ? (carRes || evalCar()) : null;
-  const withLoads = (e) => { try { return e && e.spring ? S.runLoads(e.cfg, e.susp, e.spring) : null; } catch (x) { return null; } };
+  const withLoads = (e) => { try { return e && e.spring ? S.runLoads(e.cfg, e.susp, e.spring, carLltdFor(e)) : null; } catch (x) { return null; } };
   const corners = isCar ? [["Front", r.F.ev, car.front], ["Rear", r.R.ev, car.rear]].filter(c => c[1])
     : (ev && !err ? [[cfg.axle === "rear" ? "Rear" : "Front", ev, cfg]] : []);
   return { isCar, bal: isCar ? r.bal : null, name: (isCar ? car.name : cfg.name) || "design",

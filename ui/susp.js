@@ -92,7 +92,7 @@
     rack_direction: [0.0, 1.0, 0.0],
     targets: {},
     spring: null,
-    loads: { bump_g: 3.0, corner_g: 1.6, brake_g: 1.6, combined_g: 1.2, accel_g: 1.0, lltd_front: null, pothole_g: 4.0, kerb_g: 2.0 },
+    loads: { bump_g: 3.0, corner_g: 1.6, brake_g: 1.6, combined_g: 1.2, accel_g: 1.0, lltd_front: null, pothole_g: 4.0, kerb_g: 2.0, brake_split: "bias" },
     members: { material: "4130 chromoly steel, normalized (yield is lower next to welds)",
       wishbone: [15.875, 0.889], tie_rod: [15.875, 0.889], pushrod: [15.875, 0.889],
       E: 205000.0, yield: 435.0, sf_target: 2.0, rod_end_rating: null, bolt_dia: 7.94, bolt_grade: "SAE 8", bolt_shear_planes: 2,
@@ -721,11 +721,16 @@
   // ------------------------------------------------------------------ loads
   const MEMBERS = ["upper_front", "upper_rear", "lower_front", "lower_rear", "tie_rod", "pushrod"];
 
-  function loadCases(cfg, susp) {
+  // mirrors loads.load_cases: lltdCar = the car's front LLTD (loads.lltd_front overrides it); braking by brake bias or by grip
+  function loadCases(cfg, susp, lltdCar = null) {
     const veh = cfg.vehicle, L = cfg.loads, W = veh.mass * G, wf = veh.weight_front, h = veh.cg_height, WB = veh.wheelbase;
     const front = cfg.axle === "front", share = front ? wf : 1 - wf;
-    const lltd = L.lltd_front || wf, latShare = front ? lltd : 1 - lltd, t = susp.track;
-    const info = { W, share, Fz0: W * share / 2, long_per_g: W * h / WB / 2, lat_per_g: W * h / t * latShare, lat_share: latShare, h, WB, t };
+    const lltd = L.lltd_front || lltdCar || wf, latShare = front ? lltd : 1 - lltd, t = susp.track;
+    const bias = (L.brake_split || "bias") === "bias", bShare = front ? veh.front_brake_share : 1 - veh.front_brake_share;
+    const info = { W, share, Fz0: W * share / 2, long_per_g: W * h / WB / 2, lat_per_g: W * h / t * latShare, lat_share: latShare, lltd,
+      lltd_from_car: !!(lltdCar && !L.lltd_front), h, WB, t, brake_split: bias ? "bias" : "grip", brake_share: bShare };
+    const brakeFx = (g, Fz) => bias ? -g * W * bShare / 2 : -g * Fz;
+    const bdesc = (g) => bias ? `Fx = ${g} g × car weight × ${(bShare * 100).toFixed(0)} % brake share / 2` : `Fx = ${g} × Fz`;
     const wheel = (ax = 0, ay = 0, side = 1) => {
       const dl = (front ? -1 : 1) * ax * info.long_per_g, dt = side * Math.abs(ay) * info.lat_per_g;
       const Fz = Math.max(0, info.Fz0 + dl + dt);
@@ -742,12 +747,12 @@
       cases.push([`corner ${nm}`, [[[0, 0, Fz], "cp"], [[0, -side * L.corner_g * Fz, 0], "cp"]], `${L.corner_g} g lateral, ${nm} wheel`, parts]);
     }
     { const [Fz, parts] = wheel(-L.brake_g);
-      cases.push(["braking", [[[0, 0, Fz], "cp"], [[-L.brake_g * Fz, 0, 0], bp]], `${L.brake_g} g braking`, parts]); }
+      cases.push(["braking", [[[0, 0, Fz], "cp"], [[brakeFx(L.brake_g, Fz), 0, 0], bp]], `${L.brake_g} g braking (${bdesc(L.brake_g)})`, parts]); }
     const g2 = L.combined_g;
     for (const [side, nm] of [[1, "outer"], [-1, "inner"]]) {
       const [Fz, parts] = wheel(-g2, g2, side);
-      cases.push([`brake+corner ${nm}`, [[[0, 0, Fz], "cp"], [[0, -side * g2 * Fz, 0], "cp"], [[-g2 * Fz, 0, 0], bp]],
-        `${g2} g braking + ${g2} g lateral, ${nm} wheel`, parts]);
+      cases.push([`brake+corner ${nm}`, [[[0, 0, Fz], "cp"], [[0, -side * g2 * Fz, 0], "cp"], [[brakeFx(g2, Fz), 0, 0], bp]],
+        `${g2} g braking + ${g2} g lateral, ${nm} wheel (${bdesc(g2)})`, parts]);
     }
     if (L.pothole_g) cases.push(["pothole", [[[0, 0, L.pothole_g * info.Fz0], "cp"]], `${L.pothole_g} × static wheel load, impact`, `${L.pothole_g} × ${info.Fz0.toFixed(0)} static`]);
     if (L.kerb_g) cases.push(["kerb strike", [[[0, 0, info.Fz0], "cp"], [[0, -L.kerb_g * info.Fz0, 0], "cp"]], `${L.kerb_g} × static wheel load sideways (wheel pushed inboard) + static load, impact`, `${info.Fz0.toFixed(0)} static`]);
@@ -758,23 +763,46 @@
     return [cases, info];
   }
 
-  function loadGeometry(susp, sp) {
-    const h = susp.h, st = sp.state([0, 0, 0, 0, 0, 0]);
-    const pts = { ubj: h.ubj, lbj: h.lbj, tro: h.tro, cp: h.cp, c: susp.c0, rod_out: st.rod_out, rod_in: st.rod_in };
+  // link end points at ride height (dz = 0) or at a wheel travel dz (rack centered); mirrors loads._geometry
+  function loadGeometry(susp, sp, dz = 0) {
+    const h = susp.h;
+    let st, ub = h.ubj, lb = h.lbj, tro = h.tro, cp = h.cp, c = susp.c0;
+    if (!dz) st = sp.state([0, 0, 0, 0, 0, 0]);
+    else {
+      const q = susp.observe(susp.states([dz]).get(dz), dz)._pts;
+      ub = q.ub; lb = q.lb; tro = q.tro; cp = q.cp; c = q.c;
+      let th = 0; const n = Math.max(1, Math.ceil(Math.abs(dz) / 5));        // walk the rocker out so it stays on its branch
+      for (let i = 1; i <= n; i++) { const d = dz * i / n; st = sp.state(susp.states([d]).get(d), th); th = st.rocker_deg * Math.PI / 180; }
+    }
+    const pts = { ubj: ub, lbj: lb, tro, cp, c, rod_out: st.rod_out, rod_in: st.rod_in };
     const inb = { upper_front: h.uif, upper_rear: h.uir, lower_front: h.lif, lower_rear: h.lir, tie_rod: h.tri, pushrod: st.rod_in };
-    const outb = { upper_front: h.ubj, upper_rear: h.ubj, lower_front: h.lbj, lower_rear: h.lbj, tie_rod: h.tro, pushrod: st.rod_out };
+    const outb = { upper_front: ub, upper_rear: ub, lower_front: lb, lower_rear: lb, tie_rod: tro, pushrod: st.rod_out };
     return [pts, inb, outb, st];
   }
 
-  function solveCase(susp, sp, forces) {
-    const pts = loadGeometry(susp, sp)[0];
+  function solveCase(susp, sp, forces, geom = null) {
+    geom = geom || loadGeometry(susp, sp);
+    const pts = geom[0];
     let F = [0, 0, 0], M = [0, 0, 0];
     for (const [f, p] of forces) { F = add(F, f); M = add(M, cross(pts[p], f)); }
-    return solveFM(susp, sp, F, M);
+    return solveFM(susp, sp, F, M, geom);
   }
 
-  function solveFM(susp, sp, F, M) {
-    const [pts, inb, outb, st] = loadGeometry(susp, sp);
+  // pivot reactions on a rigid wishbone (mirrors loads.arm_reactions): equilibrium leaves only the split of the load
+  // along the pivot axis open; take the split that keeps the reactions closest to the leg directions
+  function armReactions(p1, p2, e1, e2, Fsum, Mext) {
+    const d = sub(p2, p1), u = unit(d), r2 = mul(cross(d, Mext), 1 / dot(d, d));   // the part of R2 the moments fix
+    const x0 = sub(mul(Fsum, -1), r2).concat(r2);
+    const nv = mul(u, -1).concat(u);
+    const P = (x) => { const r1 = x.slice(0, 3), r2 = x.slice(3); return sub(r1, mul(e1, dot(r1, e1))).concat(sub(r2, mul(e2, dot(r2, e2)))); };
+    const Pn = P(nv), Px = P(x0), nn = Pn.reduce((s, v) => s + v * v, 0);
+    const lam = nn > 1e-18 ? -Px.reduce((s, v, i) => s + v * Pn[i], 0) / nn : 0;
+    const x = x0.map((v, i) => v + lam * nv[i]);
+    return [x.slice(0, 3), x.slice(3)];
+  }
+
+  function solveFM(susp, sp, F, M, geom = null) {
+    const [pts, inb, outb, st] = geom || loadGeometry(susp, sp);
     const e = {}; for (const k of MEMBERS) e[k] = unit(sub(inb[k], outb[k]));
     const out = {}, rhs = F.concat(M).map(v => -v);
     const colOf = (dir, at) => dir.concat(cross(at, dir));
@@ -794,13 +822,12 @@
       const mbj = dot(u, cross(sub(bj, a), mul(Fb, -1))), mp = dot(u, cross(sub(pts.rod_out, a), e.pushrod));
       if (Math.abs(mp) < 1e-9) throw new SolveError("The pushrod has no lever arm about the wishbone pivot axis.");
       const Tp = -mbj / mp; out.pushrod = Tp;
-      const node = add(mul(Fb, -1), mul(e.pushrod, Tp));
-      const e1 = e[`${arm}_front`], e2 = e[`${arm}_rear`];
-      // least squares: [e1 e2] t = -node
-      const a11 = dot(e1, e1), a12 = dot(e1, e2), a22 = dot(e2, e2), b1 = -dot(e1, node), b2 = -dot(e2, node);
-      const det = a11 * a22 - a12 * a12, t1 = (b1 * a22 - a12 * b2) / det, t2 = (a11 * b2 - a12 * b1) / det;
-      out[`${arm}_front`] = t1; out[`${arm}_rear`] = t2;
-      out.bending = norm(add(node, add(mul(e1, t1), mul(e2, t2))));
+      // the arm as one rigid body: -Fb at the ball joint, the pushrod at its mount, a reaction at each pivot
+      const fRod = mul(e.pushrod, Tp), p1 = inb[`${arm}_front`], p2 = inb[`${arm}_rear`], e1 = e[`${arm}_front`], e2 = e[`${arm}_rear`];
+      const Mext = add(cross(sub(bj, p1), mul(Fb, -1)), cross(sub(pts.rod_out, p1), fRod));
+      const [R1, R2] = armReactions(p1, p2, e1, e2, add(mul(Fb, -1), fRod), Mext);
+      out[`${arm}_front`] = dot(R1, e1); out[`${arm}_rear`] = dot(R2, e2);
+      out.bending = Math.hypot(norm(sub(R1, mul(e1, dot(R1, e1)))), norm(sub(R2, mul(e2, dot(R2, e2)))));
     }
     const Tp = out.pushrod;
     if (sp.direct) { out.damper = Tp; out.rocker_pivot = 0; }
@@ -817,12 +844,29 @@
     return [Math.PI / 4 * (od ** 2 - di ** 2), Math.PI / 64 * (od ** 4 - di ** 4)];
   }
 
-  function runLoads(cfg, susp, sp) {
-    const [cases, info] = loadCases(cfg, susp), results = {}, desc = {}, tire = {}, fz = {};
+  // mirrors loads.wheel_rate_at_ride
+  function wheelRateAtRide(cfg, susp, sp) {
+    const xs = susp.states([-1, 1]), L1 = sp.state(xs.get(-1)).damper_len, L2 = sp.state(xs.get(1)).damper_len, mr = Math.abs(L1 - L2) / 2;
+    return cfg.spring.spring_rate * mr * mr;
+  }
+  // mirrors loads.run_loads: bump and pothole are also solved at the wheel travel that load reaches
+  function runLoads(cfg, susp, sp, lltd = null) {
+    const [cases, info] = loadCases(cfg, susp, lltd), results = {}, desc = {}, tire = {}, fz = {}, deflect = {};
+    const geom0 = loadGeometry(susp, sp), kw = wheelRateAtRide(cfg, susp, sp), travel = +cfg.sweep.travel, extra = [];
     for (const [name, forces, d, parts] of cases) {
-      results[name] = solveCase(susp, sp, forces); desc[name] = d; fz[name] = parts;
-      tire[name] = forces.reduce((acc, [f]) => add(acc, f), [0, 0, 0]);
+      if ((name === "bump" || name === "pothole") && kw > 1e-9) {
+        const Fz = forces.reduce((acc, [f]) => acc + f[2], 0), dz = Math.min(travel, Math.max(0, (Fz - info.Fz0) / kw));
+        if (dz > 0.05) extra.push([`${name} (deflected)`, forces, `${d}, solved at +${dz.toFixed(1)} mm of wheel travel${dz >= travel ? " (full bump)" : ""}`, parts, dz]);
+      }
     }
+    for (const [name, forces, d, parts, dz] of cases.map(c => c.concat([0])).concat(extra)) {
+      let geom;
+      try { geom = dz ? loadGeometry(susp, sp, dz) : geom0; } catch (e) { if (e instanceof SolveError) continue; throw e; }
+      results[name] = solveCase(susp, sp, forces, geom); desc[name] = d; fz[name] = parts;
+      tire[name] = forces.reduce((acc, [f]) => add(acc, f), [0, 0, 0]);
+      if (dz) deflect[name] = dz;
+    }
+    info.wheel_rate = kw;
     const mem = cfg.members, [, inb, outb] = loadGeometry(susp, sp);
     const size = { upper_front: "wishbone", upper_rear: "wishbone", lower_front: "wishbone", lower_rear: "wishbone", tie_rod: "tie_rod", pushrod: "pushrod" };
     const checks = MEMBERS.map(k => {
@@ -836,11 +880,11 @@
         compression: comp, c_case: cmin[1], Pcr, Py, peak: pk[0], p_case: pk[1],
         sf_buckle: comp > 1e-6 ? Pcr / comp : Infinity, sf_yield: pk[0] > 1e-6 ? Py / pk[0] : Infinity };
     });
-    return { results, desc, tire, fz_parts: fz, info, checks, parts: partChecks(cfg, checks), bending_check: bendingCheck(cfg, susp, sp, results),
+    return { results, desc, tire, fz_parts: fz, info, deflect, checks, parts: partChecks(cfg, checks), bending_check: bendingCheck(cfg, susp, sp, results, deflect),
       compliance: compliance(cfg, susp, sp, results) };
   }
   // mirrors loads.link_stiffness / loads.compliance (unit-load method)
-  const IMPACT_CASES = ["bump", "pothole", "kerb strike"];
+  const IMPACT_CASES = ["bump", "pothole", "kerb strike", "bump (deflected)", "pothole (deflected)"];
   function linkStiffness(cfg, k, length) {
     const mem = cfg.members, size = /^(upper|lower)/.test(k) ? "wishbone" : k, [A] = tubeProps(...mem[size]);
     const parts = [mem.E * A / length];
@@ -875,7 +919,7 @@
     return rows.map(r => ({ member: r.member, peak: r.peak, p_case: r.p_case, bolt_capacity: cap,
       sf_bolt: cap ? (r.peak > 1e-6 ? cap / r.peak : Infinity) : null, rod_end_rating: rating, sf_rod_end: rating ? (r.peak > 1e-6 ? rating / r.peak : Infinity) : null }));
   }
-  function bendingCheck(cfg, susp, sp, results) {
+  function bendingCheck(cfg, susp, sp, results, deflect = {}) {
     if (sp.on !== "lower" && sp.on !== "upper") return null;
     const [pts, inb, outb] = loadGeometry(susp, sp), arm = sp.on;
     let best = null;
@@ -884,13 +928,16 @@
       const a = Math.min(Lg, Math.max(0, dot(sub(pts.rod_out, p0), u))), off = norm(sub(pts.rod_out, add(p0, mul(u, a))));
       if (!best || off < best.off) best = { leg, u, Lg, off, a };
     }
-    const { leg, u, Lg, off, a } = best, [od, wall] = cfg.members.wishbone, [A, I] = tubeProps(od, wall);
-    const ep = unit(sub(pts.rod_in, pts.rod_out));
+    const { leg, Lg, off, a } = best, [od, wall] = cfg.members.wishbone, [A, I] = tubeProps(od, wall);
     let worst = null;
     for (const [name, r] of Object.entries(results)) {
-      const F = mul(ep, r.pushrod), Fu = dot(F, u), Pp = norm(sub(F, mul(u, Fu))), M = Pp * a * (Lg - a) / Lg;
-      const sig = M * (od / 2) / I + (Math.abs(r[leg]) + Math.abs(Fu)) / A;
-      if (!worst || sig > worst.stress) worst = { case: name, P_perp: Pp, moment: M, stress: sig };
+      const [gp, gi, go] = deflect[name] ? loadGeometry(susp, sp, deflect[name]) : [pts, inb, outb];
+      const p0 = gi[leg], p1 = go[leg], uu = unit(sub(p1, p0)), Lc = norm(sub(p1, p0));
+      const ac = Math.min(Lc, Math.max(0, dot(sub(gp.rod_out, p0), uu)));
+      const F = mul(unit(sub(gp.rod_in, gp.rod_out)), r.pushrod), Fu = dot(F, uu), Pp = norm(sub(F, mul(uu, Fu))), M = Pp * ac * (Lc - ac) / Lc;
+      const nPivot = r[leg], nNode = nPivot - Fu;     // leg tension either side of the mount
+      const sig = M * (od / 2) / I + Math.max(Math.abs(nPivot), Math.abs(nNode)) / A;
+      if (!worst || sig > worst.stress) worst = { case: name, P_perp: Pp, moment: M, stress: sig, n_pivot: nPivot, n_node: nNode };
     }
     return Object.assign({ leg, length: Lg, a, offset: off, od, wall, sf: worst.stress > 1e-9 ? cfg.members.yield / worst.stress : Infinity }, worst);
   }

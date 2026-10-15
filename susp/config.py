@@ -44,7 +44,8 @@ DEFAULTS = {
     "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0,
               "lltd_front": None,
               "pothole_g": 4.0,     # impact: vertical load as a multiple of the static wheel load
-              "kerb_g": 2.0},       # impact: sideways load on the wheel (pushing it inboard), multiple of static load
+              "kerb_g": 2.0,        # impact: sideways load on the wheel (pushing it inboard), multiple of static load
+              "brake_split": "bias"},  # "bias": braking force shared by vehicle.front_brake_share; "grip": Fx = g x Fz
     "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)",
                 "wishbone": [15.875, 0.889], "tie_rod": [15.875, 0.889], "pushrod": [15.875, 0.889],
                 "E": 205000.0, "yield": 435.0, "sf_target": 2.0,
