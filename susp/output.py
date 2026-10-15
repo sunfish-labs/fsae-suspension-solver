@@ -540,10 +540,28 @@ def print_loads(cfg, ev, L):
                       "OK" if ok else "BELOW FOS"])
     table(["member", "tube OD x wall", "length", "worst compression N", "buckling load Pcr N", "FOS buckle",
            "worst |force| N", "yield force N", "FOS yield", ""], trows)
-    print("  worst |force| is also the load each rod end / spherical bearing must carry - compare with its rated load.")
-    print("\nNot checked here: bending in the pushrod arm (see 'bending load' - keep the pushrod mount near the ball\n"
-          "joint), tabs, welds, inserts, rod-end threads and fatigue. Change g levels under 'loads', tubes and material\n"
-          "under 'members'.")
+    pr = L.get("parts") or []
+    if pr:
+        cap = pr[0]["bolt_capacity"]
+        print(f"\nRod ends and bolts ({mem.get('bolt_dia')} mm grade {mem.get('bolt_grade')} bolt, {mem.get('bolt_shear_planes')} shear plane(s)"
+              + (f": shear capacity {cap:.0f} N" if cap else ": set bolt_dia / bolt_grade to check") + ")")
+        table(["member", "worst |force| N", "bolt FOS", "rod-end FOS"],
+              [[r["member"], f"{r['peak']:.0f} ({r['p_case']})", f_num(r["sf_bolt"], 1) if r["sf_bolt"] is not None else "-",
+                f_num(r["sf_rod_end"], 1) if r["sf_rod_end"] is not None else "enter rod_end_rating"] for r in pr])
+    b = L.get("bending_check")
+    if b:
+        ok = b["sf"] >= mem["sf_target"]
+        print(f"\nPushrod mount bending: the {b['leg'].replace('_', ' ')} leg as a beam pinned at both ends ({b['length']:.0f} mm long), "
+              f"mount {b['a']:.0f} mm from the pivot and {b['offset']:.0f} mm off the leg's centerline.")
+        print(f"  worst case {b['case']}: {b['P_perp']:.0f} N across the leg, {b['moment'] / 1000:.1f} N m, stress {b['stress']:.0f} MPa "
+              f"(bending + axial) -> FOS {b['sf']:.2f} {'OK' if ok else 'BELOW FOS'}")
+        if not ok:
+            print("  A bare tube is overloaded here: mount the pushrod on a gusset or bracket at the ball-joint node, move it closer to\n"
+                  "  the ball joint, or use a stiffer leg. This beam check is conservative if a gusset carries the load.")
+        if b["offset"] > 5:
+            print(f"  The mount is {b['offset']:.0f} mm off the leg's centerline: the bracket also twists the leg (not modeled).")
+    print("\nNot checked here: tabs, welds, inserts, rod-end threads and fatigue. Change g levels under 'loads' (pothole_g and\n"
+          "kerb_g are the impact cases), tubes, material, bolts and rod-end rating under 'members'.")
 
 
 CAR_LABELS = {"roll_gradient": ("Roll gradient", "deg/g", 2), "lltd_vs_weight": ("Front LLTD minus front weight", "% points", 1),

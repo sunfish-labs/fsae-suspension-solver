@@ -115,6 +115,16 @@ the other way, which can put a different leg into compression.
    **Yield FOS** = (yield stress x tube area) / worst axial force. Both are compared with `members.sf_target` (default 2).
    Default tubes are 5/8 in x 0.035 in (15.875 x 0.889 mm) 4130 steel, E 205 GPa, yield 435 MPa. Set your real
    tubes under `members`.
+5. **Impacts:** a pothole case (`pothole_g`, default 4 g vertical on the wheel) and a kerb strike (`kerb_g`, default 2 g
+   sideways into the wheel plus static load) sit beside the driving cases. They are rough design-load factors, not a
+   crash simulation; set them to your team's numbers.
+6. **Pushrod mount bending:** the pushrod rarely lands exactly on a wishbone leg's centerline. The leg is treated as a
+   simply supported beam between its pivot and the ball joint, with the pushrod's push across it at the mount:
+   M = P⊥ × a × (L − a) / L and σ = M·c/I + axial/A. A low FOS here means the mount needs a gusset or bracket into the
+   node, not a bigger tube.
+7. **Rod ends and bolts:** each member's worst force is checked against `members.rod_end_rating` (N, from your rod end's
+   catalog; leave blank to skip) and a bolt in shear: capacity = planes × π/4 × d² × 0.6 × UTS (`bolt_dia` mm,
+   `bolt_grade` 8.8 / 10.9 / 12.9 / SAE 5 / SAE 8, `bolt_shear_planes` 1 or 2).
 
 ## Iterating on the pushrod, rocker and damper
 1. Put your actual damper in the `spring` block: `damper_eye_to_eye` and `damper_stroke`.
@@ -148,8 +158,9 @@ rebound given, the Targets list checks ζ bump 0.4–0.9 and rebound 0.5–1.2 (
   `rocker_rod`, `rocker_damper`, `damper_chassis`, `spring_rate` (N/mm), `damper_stroke`, `unsprung_mass` (kg/corner),
   `damper_eye_to_eye` (mm, extended), `tire_rate` (N/mm), `target_freq_hz`. Leave out the four `rocker_*` keys for a damper mounted directly on the arm.
   Pushrod or pullrod doesn't matter: the geometry decides.
-- `loads`: g levels for `bump_g`, `corner_g`, `brake_g`, `combined_g`, `accel_g`, and optional `lltd_front`.
-- `members`: `material` (label), tube `[OD, wall]` (mm) for `wishbone`, `tie_rod` and `pushrod`; `E`, `yield` (MPa); `sf_target`.
+- `loads`: g levels for `bump_g`, `corner_g`, `brake_g`, `combined_g`, `accel_g`, `pothole_g`, `kerb_g`, and optional `lltd_front`.
+- `members`: `material` (label), tube `[OD, wall]` (mm) for `wishbone`, `tie_rod` and `pushrod`; `E`, `yield` (MPa); `sf_target`;
+  `rod_end_rating` (N), `bolt_dia` (mm), `bolt_grade`, `bolt_shear_planes`.
 - `sweep`: heave travel, rack travel, roll angle and step counts. `clearance`: tube ODs and margin.
 - `targets`: override any target range, e.g. `"roll_center": [30, 60]`, or `null` to drop one.
 - `targets_file`: optional path (relative to the design file) to a shared team targets file:
@@ -181,9 +192,9 @@ Member forces: + = tension.
 - Roll uses equal and opposite wheel travel, so it gives the kinematic roll center. The force-based roll center
   moves once the tires are loaded unevenly.
 - Loads are quasi-static, use the ride-height geometry and the outer wheel only, and assume equal friction use at
-  every tire. There are no impact factors or fatigue, and no checks on tabs, welds or inserts.
-- The pushrod arm is solved as one node. A pushrod mounted well inboard of the ball joint shows up as "bending
-  load" and isn't stress-checked.
+  every tire. Impacts are fixed g factors. There is no fatigue, and no checks on tabs, welds or inserts.
+- The pushrod-mount bending check is a simple beam: it ignores the gusset or bracket you add and any weld
+  heat-affected zone.
 - Clearance is center-line distance plus tube radii. The rim check is radial only.
 - Default targets (ride frequency 2.5-4.5 Hz, bump steer, LLTD = front weight + 5 %, 1 deg/g) are starting points,
   not rules. Check wheelbase and turning limits against the current FSAE rulebook.

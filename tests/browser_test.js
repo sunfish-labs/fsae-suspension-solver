@@ -53,6 +53,9 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   await p.click("#tab_spring"); await p.waitForTimeout(300);
   const sp = await text(p, "#pn_spring");
   check("Spring & damper tab shows damping ratios and critical damping", /Damping ratio/.test(sp) && /Critical damping at the wheel/.test(sp) && /Damper force vs shaft speed/.test(sp));
+  await p.click("#tab_loads"); await p.waitForTimeout(300);
+  const ld = await text(p, "#pn_loads");
+  check("Loads tab has impact cases, mount bending and rod-end / bolt checks", /pothole/.test(ld) && /kerb strike/.test(ld) && /Pushrod mount bending/.test(ld) && /Rod ends and bolts/.test(ld));
   await p.click("#tab_motion"); await p.click('#pn_heave [data-msub="roll"]'); await p.waitForTimeout(300);
   check("Motion → Roll switch", await p.$eval("#pn_roll", e => !e.hidden));
   const labels = await p.$$eval("#hpTable .hpbtn[data-leg]", bs => bs.map(b => b.dataset.leg + ":" + b.textContent));

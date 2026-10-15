@@ -41,10 +41,16 @@ DEFAULTS = {
     # optional blocks (None = not used):
     "spring": None,
     "loads": {"bump_g": 3.0, "corner_g": 1.6, "brake_g": 1.6, "combined_g": 1.2, "accel_g": 1.0,
-              "lltd_front": None},
+              "lltd_front": None,
+              "pothole_g": 4.0,     # impact: vertical load as a multiple of the static wheel load
+              "kerb_g": 2.0},       # impact: sideways load on the wheel (pushing it inboard), multiple of static load
     "members": {"material": "4130 chromoly steel, normalized (yield is lower next to welds)",
                 "wishbone": [15.875, 0.889], "tie_rod": [15.875, 0.889], "pushrod": [15.875, 0.889],
-                "E": 205000.0, "yield": 435.0, "sf_target": 2.0},
+                "E": 205000.0, "yield": 435.0, "sf_target": 2.0,
+                "rod_end_rating": None,      # N, the rod end's catalog radial static (ultimate) rating; None = not checked
+                "bolt_dia": 7.94,            # mm, bolt through each rod end / spherical bearing (7.94 = 5/16 in)
+                "bolt_grade": "SAE 8",       # 8.8, 10.9, 12.9, SAE 5 or SAE 8
+                "bolt_shear_planes": 2},     # 2 = double shear (clevis), 1 = single shear
 }
 
 SPRING_DEFAULTS = {

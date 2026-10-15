@@ -137,6 +137,17 @@ chk = L6["checks"][0]
 A, I = tube_props(chk["od"], chk["wall"])
 check("Euler buckling load of a wishbone leg, N", chk["Pcr"], math.pi ** 2 * cfg["members"]["E"] * I / chk["length"] ** 2, 1e-6, "pi^2 E I / L^2, pinned ends")
 
+print("\n6b. Bolt shear and pushrod-mount bending (textbook formulas)")
+cfgb = corner(spring=dict(TEMPLATE_FRONT["spring"]))
+eb = evaluate(cfgb)
+Lb = run_loads(cfgb, eb["susp"], eb["spring"])
+mem = cfgb["members"]
+check("bolt shear capacity (5/16 in SAE 8, double shear), N", Lb["parts"][0]["bolt_capacity"], 2 * math.pi / 4 * 7.94 ** 2 * 0.6 * 1034.0, 1e-6, "planes x area x 0.6 x tensile strength")
+bc = Lb["bending_check"]
+A, I = tube_props(*mem["wishbone"])
+check("pushrod-mount bending moment, N mm", bc["moment"], bc["P_perp"] * bc["a"] * (bc["length"] - bc["a"]) / bc["length"], 1e-6, "simply supported beam: P a b / L")
+check("pushrod-mount leg FOS", bc["sf"], mem["yield"] / bc["stress"], 1e-9, "yield / (M c / I + axial / A)")
+
 print("\n7. Whole car: lateral load transfer adds up to m g h")
 from susp.config import load_car  # noqa: E402
 fc, rc, info = load_car(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "designs", "example_car.json"))

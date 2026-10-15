@@ -236,6 +236,11 @@ travel uses 48 mm, so the damper must sit near mid-stroke at ride height or it w
 5/8 × 0.035 in 4130 tubes, the weakest member is the lower wishbone leg to the pivot at X = −230 in braking plus cornering: 2855 N compression
 against a 10 600 N buckling load, so FOS 3.7 against the required 2.0. The pushrod carries 3.0 kN in a 3 g bump; pick rod ends rated well
 above the "worst |force|" column.</p>
+<p><b>Impacts and the pushrod mount.</b> Two more cases, a 4 g pothole and a 2 g kerb strike, show how much harder an impact is on the
+parts than normal driving. Below the table, <i>Pushrod mount bending</i> checks the wishbone leg the pushrod sits on: the pushrod lands
+17 mm off that leg's centerline, so the leg bends like a beam. In the pothole case the bare tube would reach about 780 MPa, FOS 0.56.
+The fix is a gusset or bracket that carries the pushrod into the ball-joint node, not a bigger tube. <i>Rod ends and bolts</i> then
+compares each member's worst force with your rod end's catalog rating and the bolt's shear capacity.</p>
 <p><b>Balance.</b> With the matching example rear (3.6 Hz, 75 N/mm springs), the whole-car check
 (<code>python3 susp_solver.py car designs/example_front.json designs/example_rear.json</code>) gives 0.72 deg/g of roll from the springs
 alone. But only 44 % of the lateral load transfer is at the front, against 47 % of the weight on the front. That leans the car toward

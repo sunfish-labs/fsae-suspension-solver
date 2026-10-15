@@ -86,12 +86,16 @@ function buildForm() {
     field("Target damping ratio, high-speed", "", "spring.target_zeta_high", { step: 0.05 })].join("");
   $("#loadFields").innerHTML = [field("Bump", "g", "loads.bump_g", { step: 0.1 }), field("Cornering", "g", "loads.corner_g", { step: 0.1 }),
     field("Braking", "g", "loads.brake_g", { step: 0.1 }), field("Brake + corner", "g", "loads.combined_g", { step: 0.1 }),
-    field("Acceleration (rear)", "g", "loads.accel_g", { step: 0.1 })].join("");
+    field("Acceleration (rear)", "g", "loads.accel_g", { step: 0.1 }), field("Pothole impact (vertical)", "g", "loads.pothole_g", { step: 0.5, opt: 1 }),
+    field("Kerb strike (sideways)", "g", "loads.kerb_g", { step: 0.5, opt: 1 })].join("");
   $("#tubeFields").innerHTML = [field("Wishbone OD", "mm", "members.wishbone.0"), field("Wishbone wall", "mm", "members.wishbone.1"),
     field("Tie rod OD", "mm", "members.tie_rod.0"), field("Tie rod wall", "mm", "members.tie_rod.1"),
     field("Pushrod OD", "mm", "members.pushrod.0"), field("Pushrod wall", "mm", "members.pushrod.1")].join("");
   $("#matFields").innerHTML = [field("Young's modulus E", "MPa", "members.E", { step: 1000 }), field("Yield strength", "MPa", "members.yield", { step: 5 }),
     field("Required FOS", "", "members.sf_target", { step: 0.1 })].join("");
+  $("#partFields").innerHTML = [field("Rod-end rating (catalog)", "N", "members.rod_end_rating", { step: 500, opt: 1 }), field("Bolt diameter", "mm", "members.bolt_dia", { step: 0.1 }),
+    field("Bolt grade", "", "members.bolt_grade", { options: [["SAE 8", "SAE grade 8"], ["SAE 5", "SAE grade 5"], ["8.8", "Metric 8.8"], ["10.9", "Metric 10.9"], ["12.9", "Metric 12.9"]] }),
+    field("Bolt shear", "", "members.bolt_shear_planes", { options: [["2", "Double shear (clevis)"], ["1", "Single shear"]] })].join("");
   $("#clrFields").innerHTML = [field("Wishbone tube OD", "mm", "clearance.wishbone_tube_od"), field("Tie rod OD", "mm", "clearance.tie_rod_od"),
     field("Pushrod OD", "mm", "clearance.pushrod_od"), field("Damper body OD", "mm", "clearance.damper_od"), field("Extra margin", "mm", "clearance.margin")].join("");
   $$("[data-path]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", onInput));
@@ -288,6 +292,7 @@ function renderAll(ms) {
     (m.ride_freq != null ? `<span class="pill neutral">Ride ${fmt(m.ride_freq, 2)} Hz</span>` : "") +
     (m.motion_ratio != null ? `<span class="pill neutral">MR ${fmt(m.motion_ratio, 3)}</span>` : "") +
     (minFos != null ? `<span class="pill ${minFos >= ev.cfg.members.sf_target ? "ok" : "bad"}">Min FOS ${fmt(minFos, 2)}</span>` : "") +
+    (loads && loads.bending_check ? `<span class="pill ${loads.bending_check.sf >= ev.cfg.members.sf_target ? "ok" : "warn"}" title="The pushrod mount bending the wishbone leg (Loads tab)">Mount bending FOS ${fmt(loads.bending_check.sf, 2)}</span>` : "") +
     (base ? `<span class="pill neutral">Baseline: ${esc(baseName)} <button class="btn small" id="btnClearBase" type="button" style="margin-left:4px">Clear</button></span>`
       : `<button class="btn small pinbtn" id="btnBase" type="button" title="Freeze these results; your next edits then show as changes and dashed curves">Pin as baseline</button>`);
   const pb = $("#btnBase"); if (pb) pb.addEventListener("click", () => { if (!ev || err) return; base = ev; baseName = cfg.name || "pinned design"; renderAll(0); });
@@ -516,8 +521,10 @@ function panelSpring() {
 function panelLoads() {
   if (!loads) return `<p class="note">Loads need the pushrod and damper (they carry the vertical load). Turn on "Model the spring and damper".</p>`;
   const L = loads, I = L.info, mem = ev.cfg.members, names = Object.keys(L.results);
-  const label = (k) => { const h = ev.susp.h; return { upper_front: `Upper leg (pivot X ${h.uif[0].toFixed(0)})`, upper_rear: `Upper leg (pivot X ${h.uir[0].toFixed(0)})`,
-    lower_front: `Lower leg (pivot X ${h.lif[0].toFixed(0)})`, lower_rear: `Lower leg (pivot X ${h.lir[0].toFixed(0)})`, tie_rod: ev.cfg.axle === "rear" ? "Toe link" : "Tie rod", pushrod: "Pushrod" }[k]; };
+  // legs named by where they physically are (larger X = front), matching the blue / gold legs in 3D
+  const label = (k) => { const h = ev.susp.h, fr = (a, b) => a[0] >= b[0] ? "front" : "rear";
+    return { upper_front: `Upper ${fr(h.uif, h.uir)} leg`, upper_rear: `Upper ${fr(h.uir, h.uif)} leg`, lower_front: `Lower ${fr(h.lif, h.lir)} leg`, lower_rear: `Lower ${fr(h.lir, h.lif)} leg`,
+      tie_rod: ev.cfg.axle === "rear" ? "Toe link" : "Tie rod", pushrod: "Pushrod" }[k]; };
   const ty = names.map(n => `<tr><td>${esc(n)}</td><td class="n">${fmt(L.tire[n][0], 0)}</td><td class="n">${fmt(L.tire[n][1], 0)}</td><td class="n">${fmt(L.tire[n][2], 0)}</td><td class="mono" style="font-size:12px">${esc(L.fz_parts[n])}</td></tr>`).join("");
   const mrow = (lab, get) => `<tr><td>${lab}</td>${names.map(n => { const v = get(L.results[n]); return `<td class="n">${v > 0 ? "+" : ""}${fmt(v, 0)}</td>`; }).join("")}</tr>`;
   const mr = S.MEMBERS.map(k => mrow(label(k), r => r[k])).join("") + mrow("Damper / spring", r => r.damper) +
@@ -536,7 +543,34 @@ function panelLoads() {
   <div class="tbl-wrap"><table class="data"><thead><tr><th>Member</th>${names.map(n => `<th class="n">${esc(n)}</th>`).join("")}</tr></thead><tbody>${mr}</tbody></table></div>
   <h3 class="sub-h">Strength check · ${esc(mem.material || "steel")} · E ${fmt(mem.E, 0)} MPa · yield ${fmt(mem.yield, 0)} MPa · required FOS ${fmt(mem.sf_target, 1)}</h3>
   <div class="tbl-wrap"><table class="data"><thead><tr><th>Member</th><th class="n">Tube, mm</th><th class="n">Length</th><th class="n">Worst compression, N</th><th class="n">Buckling load, N</th><th class="n">FOS buckling</th><th class="n">Worst |force|, N</th><th class="n">Yield force, N</th><th class="n">FOS yield</th><th></th></tr></thead><tbody>${ck}</tbody></table></div>
-  <p class="note">Buckling load = π²EI/L² with pinned ends. Yield force = yield stress × tube area. The worst |force| is also the load each rod end must be rated for. Tabs, welds, inserts and fatigue are not checked here.</p>`;
+  <p class="note">Buckling load = π²EI/L² with pinned ends. Yield force = yield stress × tube area. Tabs, welds, inserts and fatigue are not checked here.</p>
+  ${partsHtml(L, label, mem)}`;
+}
+function partsHtml(L, label, mem) {
+  let h = "";
+  const b = L.bending_check;
+  if (b) {
+    const ok = b.sf >= mem.sf_target, legName = label(b.leg).toLowerCase();
+    h += `<h3 class="sub-h">Pushrod mount bending the wishbone</h3>
+    <div class="kv"><div><span>Leg carrying the mount</span><b style="font-size:15px">${esc(label(b.leg))}</b></div>
+      <div><span>Mount position along the leg</span><b>${fmt(b.a, 0)} <small>of ${fmt(b.length, 0)} mm</small></b></div>
+      <div><span>Mount offset from the leg's centerline</span><b>${fmt(b.offset, 0)} <small>mm</small></b></div>
+      <div><span>Worst case (${esc(b.case)})</span><b>${fmt(b.moment / 1000, 1)} <small>N m</small> · ${fmt(b.stress, 0)} <small>MPa</small></b></div>
+      <div><span>FOS (bending + axial vs yield)</span><b class="${ok ? "ok-t" : "bad-t"}">${fmt(b.sf, 2)}</b></div></div>
+    <p class="note">The ${esc(legName)} treated as a beam pinned at its inboard pivot and the ball joint, loaded across by the pushrod at the mount: M = P·a·(L−a)/L, stress = M·c/I + axial/A.
+    ${ok ? "" : `<b>A bare tube is overloaded here.</b> Mount the pushrod on a gusset or bracket at the ball-joint node, move it closer to the ball joint, or use a stiffer leg; this check is conservative if a gusset carries the load. `}
+    ${b.offset > 5 ? `The mount sits ${fmt(b.offset, 0)} mm off the leg's centerline, so its bracket also twists the leg (not modeled).` : ""}</p>`;
+  }
+  const P = L.parts || [];
+  if (P.length) {
+    const cap = P[0].bolt_capacity, need = mem.sf_target;
+    const cell = (v) => v == null ? `<td class="n muted">–</td>` : `<td class="n ${v >= need ? "" : "bad-t"}">${fmt(v, 1)}</td>`;
+    h += `<h3 class="sub-h">Rod ends and bolts · ${esc(String(mem.bolt_dia))} mm grade ${esc(String(mem.bolt_grade))} bolt, ${mem.bolt_shear_planes == 1 ? "single" : "double"} shear${cap ? ` (capacity ${fmt(cap, 0)} N)` : ""}</h3>
+    <div class="tbl-wrap"><table class="data"><thead><tr><th>Member</th><th class="n">Worst |force|, N</th><th class="n">Bolt FOS</th><th class="n">Rod-end FOS</th></tr></thead><tbody>
+    ${P.map(r => `<tr><td>${esc(label(r.member))}</td><td class="n">${fmt(r.peak, 0)} <span class="muted">(${esc(r.p_case)})</span></td>${cell(r.sf_bolt)}${r.sf_rod_end == null ? `<td class="n muted">enter rating</td>` : cell(r.sf_rod_end)}</tr>`).join("")}</tbody></table></div>
+    <p class="note">Bolt shear capacity = shear planes × bolt area × 0.6 × tensile strength. Enter your rod end's catalog radial rating (inputs → Loads &amp; materials → Rod ends and bolts) to check it.</p>`;
+  }
+  return h;
 }
 function panelPack() {
   const p = ev.pack, rear = ev.cfg.axle === "rear";

@@ -3,6 +3,7 @@
     python3 ui/test_port.py
 """
 import json, math, os, shutil, subprocess, sys, tempfile
+import numpy as np
 here = os.path.dirname(os.path.abspath(__file__)); root = os.path.dirname(here)
 sys.path.insert(0, root)
 from susp.config import load_config, TEMPLATE_REAR, finish_config, deep_merge, DEFAULTS  # noqa: E402
@@ -23,7 +24,9 @@ for n, raw in cfgs.items():
     c = finish_config(deep_merge(DEFAULTS, raw)); e = evaluate(c)
     m = {k: v for k, v in e["metrics"].items() if isinstance(v, (int, float)) and math.isfinite(v)}
     L = run_loads(c, e["susp"], e["spring"]) if e["spring"] else None
-    py[n] = {"m": m, "loads": L["results"] if L else None}
+    py[n] = {"m": m, "loads": L["results"] if L else None,
+             "bend": {k: float(v) for k, v in (L["bending_check"] or {}).items() if isinstance(v, (int, float, np.floating)) and math.isfinite(v)} if L else None,
+             "parts": [float(r["sf_bolt"]) for r in L["parts"] if r["sf_bolt"] is not None and math.isfinite(r["sf_bolt"])] if L else None}
 # whole-car balance from car files (front + rear + shared vehicle + anti-roll bars)
 from susp.config import load_car  # noqa: E402
 from susp.ride import car_balance  # noqa: E402
@@ -46,6 +49,8 @@ for (const [n, raw] of Object.entries(d.cfgs)) {
     const r = Math.abs(j - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} ${k}: py ${v} js ${j}`); }
   if (p.loads) for (const [c, row] of Object.entries(p.loads)) for (const [k, v] of Object.entries(row)) {
     const r = Math.abs(L.results[c][k] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} ${c} ${k}`); }
+  if (p.bend) for (const [k, v] of Object.entries(p.bend)) { const r = Math.abs(L.bending_check[k] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} bending ${k}: py ${v} js ${L.bending_check[k]}`); }
+  if (p.parts) { const js = L.parts.map(q => q.sf_bolt).filter(v => v != null && isFinite(v)); p.parts.forEach((v, i) => { const r = Math.abs(js[i] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} bolt ${i}`); }); }
 }
 for (const [n, c] of Object.entries(d.cars || {})) {
   const veh = c.raw.vehicle || {}, mk = (ax) => Object.assign({}, c.raw[ax], { axle: ax, vehicle: Object.assign({}, c.raw[ax].vehicle || {}, veh) });

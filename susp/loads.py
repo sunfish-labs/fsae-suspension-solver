@@ -73,6 +73,12 @@ def load_cases(cfg, susp):
         cases.append((f"brake+corner {nm}", [(np.array([0, 0, Fz]), cp), (np.array([0, -side * g2 * Fz, 0]), cp),
                                              (np.array([-g2 * Fz, 0, 0]), brake_pt)],
                       f"{g2:g} g braking + {g2:g} g lateral, {nm} wheel", parts))
+    pg, kg = L.get("pothole_g"), L.get("kerb_g")
+    if pg:
+        cases.append(("pothole", [(np.array([0, 0, pg * Fz0]), cp)], f"{pg:g} x static wheel load, impact", f"{pg:g} x {Fz0:.0f} static"))
+    if kg:
+        cases.append(("kerb strike", [(np.array([0, 0, Fz0]), cp), (np.array([0, -kg * Fz0, 0]), cp)],
+                      f"{kg:g} x static wheel load sideways (wheel pushed inboard) + static load, impact", f"{Fz0:.0f} static"))
     if not front:
         ax = L["accel_g"]
         Fz, parts = wheel(ax=ax)
@@ -187,6 +193,58 @@ def member_checks(cfg, susp, sp, results):
     return rows
 
 
+BOLT_UTS = {"8.8": 800.0, "10.9": 1040.0, "12.9": 1220.0, "SAE 5": 827.0, "SAE 8": 1034.0}   # MPa, minimum tensile
+
+
+def part_checks(cfg, rows):
+    """Rod ends and bolts at each member end, against the worst |force| in that member over all cases.
+    Bolt shear capacity = shear planes x area x 0.6 x tensile strength (ultimate). Rod end: catalog rating."""
+    mem = cfg["members"]
+    d, planes = float(mem.get("bolt_dia") or 0), int(mem.get("bolt_shear_planes") or 2)
+    uts = BOLT_UTS.get(str(mem.get("bolt_grade")), 0.0)
+    cap = planes * math.pi / 4 * d * d * 0.6 * uts if d and uts else None
+    rating = mem.get("rod_end_rating")
+    out = []
+    for r in rows:
+        out.append(dict(member=r["member"], peak=r["peak"], p_case=r["p_case"], bolt_capacity=cap,
+                        sf_bolt=(cap / r["peak"] if cap and r["peak"] > 1e-6 else (float("inf") if cap else None)),
+                        rod_end_rating=rating, sf_rod_end=(rating / r["peak"] if rating and r["peak"] > 1e-6 else (float("inf") if rating else None))))
+    return out
+
+
+def bending_check(cfg, susp, sp, results):
+    """The wishbone leg that carries the pushrod mount, as a beam pinned at the inboard pivot and the ball joint.
+    The pushrod force's component across the leg at distance a from the pivot gives M = P a (L - a) / L; the stress
+    M c / I adds to the axial stress (leg force plus the pushrod's component along the leg) / A."""
+    if sp.on not in ("lower", "upper"):
+        return None
+    pts, inb, outb, st = _geometry(susp, sp)
+    arm = sp.on
+    best = None
+    for leg in (f"{arm}_front", f"{arm}_rear"):
+        p0, p1 = inb[leg], outb[leg]
+        u = unit(p1 - p0)
+        Lg = float(np.linalg.norm(p1 - p0))
+        a = float(np.clip((pts["rod_out"] - p0) @ u, 0.0, Lg))
+        off = float(np.linalg.norm(pts["rod_out"] - (p0 + a * u)))
+        if best is None or off < best[3]:
+            best = (leg, u, Lg, off, a)
+    leg, u, Lg, off, a = best
+    od, wall = cfg["members"]["wishbone"]
+    A, I = tube_props(od, wall)
+    e_p = unit(pts["rod_in"] - pts["rod_out"])
+    worst = None
+    for name, r in results.items():
+        F = r["pushrod"] * e_p
+        P_perp = float(np.linalg.norm(F - (F @ u) * u))
+        M = P_perp * a * (Lg - a) / Lg
+        sig = M * (od / 2) / I + (abs(r[leg]) + abs(F @ u)) / A
+        if worst is None or sig > worst["stress"]:
+            worst = dict(case=name, P_perp=P_perp, moment=M, stress=sig)
+    sy = cfg["members"]["yield"]
+    return dict(leg=leg, length=Lg, a=a, offset=off, od=od, wall=wall, sf=sy / worst["stress"] if worst["stress"] > 1e-9 else float("inf"), **worst)
+
+
 def run_loads(cfg, susp, sp):
     cases, info = load_cases(cfg, susp)
     res, desc, tire, fz = {}, {}, {}, {}
@@ -194,11 +252,15 @@ def run_loads(cfg, susp, sp):
         res[name] = solve_case(susp, sp, forces)
         desc[name], fz[name] = d, parts
         tire[name] = sum(f for f, _ in forces)
+    checks = member_checks(cfg, susp, sp, res)
     return dict(results=res, desc=desc, tire=tire, fz_parts=fz, Fz0=info["Fz0"], info=info,
-                checks=member_checks(cfg, susp, sp, res))
+                checks=checks, parts=part_checks(cfg, checks), bending_check=bending_check(cfg, susp, sp, res))
 
 
 def member_label(k, susp):
+    """Legs named by where the pivot physically is (larger X = front); the JSON keys follow KineSolver's naming."""
     h = susp.h
-    return MEMBER_LABEL[k].format(uif=f"X={h['uif'][0]:.0f}", uir=f"X={h['uir'][0]:.0f}",
-                                  lif=f"X={h['lif'][0]:.0f}", lir=f"X={h['lir'][0]:.0f}")
+    fr = lambda a, b: "front" if a[0] >= b[0] else "rear"
+    return {"upper_front": f"Upper {fr(h['uif'], h['uir'])} leg", "upper_rear": f"Upper {fr(h['uir'], h['uif'])} leg",
+            "lower_front": f"Lower {fr(h['lif'], h['lir'])} leg", "lower_rear": f"Lower {fr(h['lir'], h['lif'])} leg",
+            "tie_rod": "Tie rod", "pushrod": "Pushrod/pullrod"}[k]

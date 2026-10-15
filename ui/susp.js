@@ -92,10 +92,10 @@
     rack_direction: [0.0, 1.0, 0.0],
     targets: {},
     spring: null,
-    loads: { bump_g: 3.0, corner_g: 1.6, brake_g: 1.6, combined_g: 1.2, accel_g: 1.0, lltd_front: null },
+    loads: { bump_g: 3.0, corner_g: 1.6, brake_g: 1.6, combined_g: 1.2, accel_g: 1.0, lltd_front: null, pothole_g: 4.0, kerb_g: 2.0 },
     members: { material: "4130 chromoly steel, normalized (yield is lower next to welds)",
       wishbone: [15.875, 0.889], tie_rod: [15.875, 0.889], pushrod: [15.875, 0.889],
-      E: 205000.0, yield: 435.0, sf_target: 2.0 },
+      E: 205000.0, yield: 435.0, sf_target: 2.0, rod_end_rating: null, bolt_dia: 7.94, bolt_grade: "SAE 8", bolt_shear_planes: 2 },
   };
   const SPRING_DEFAULTS = {
     rod_on: "lower", rod_outboard: null, rocker_pivot: null, rocker_axis: null, rocker_rod: null,
@@ -732,6 +732,8 @@
       cases.push([`brake+corner ${nm}`, [[[0, 0, Fz], "cp"], [[0, -side * g2 * Fz, 0], "cp"], [[-g2 * Fz, 0, 0], bp]],
         `${g2} g braking + ${g2} g lateral, ${nm} wheel`, parts]);
     }
+    if (L.pothole_g) cases.push(["pothole", [[[0, 0, L.pothole_g * info.Fz0], "cp"]], `${L.pothole_g} × static wheel load, impact`, `${L.pothole_g} × ${info.Fz0.toFixed(0)} static`]);
+    if (L.kerb_g) cases.push(["kerb strike", [[[0, 0, info.Fz0], "cp"], [[0, -L.kerb_g * info.Fz0, 0], "cp"]], `${L.kerb_g} × static wheel load sideways (wheel pushed inboard) + static load, impact`, `${info.Fz0.toFixed(0)} static`]);
     if (!front) {
       const [Fz, parts] = wheel(L.accel_g);
       cases.push(["acceleration", [[[0, 0, Fz], "cp"], [[L.accel_g * W / 2, 0, 0], dp]], `${L.accel_g} g acceleration (rear drive)`, parts]);
@@ -812,7 +814,34 @@
         compression: comp, c_case: cmin[1], Pcr, Py, peak: pk[0], p_case: pk[1],
         sf_buckle: comp > 1e-6 ? Pcr / comp : Infinity, sf_yield: pk[0] > 1e-6 ? Py / pk[0] : Infinity };
     });
-    return { results, desc, tire, fz_parts: fz, info, checks };
+    return { results, desc, tire, fz_parts: fz, info, checks, parts: partChecks(cfg, checks), bending_check: bendingCheck(cfg, susp, sp, results) };
+  }
+  // mirrors loads.part_checks / loads.bending_check
+  const BOLT_UTS = { "8.8": 800, "10.9": 1040, "12.9": 1220, "SAE 5": 827, "SAE 8": 1034 };
+  function partChecks(cfg, rows) {
+    const mem = cfg.members, d = +(mem.bolt_dia || 0), planes = +(mem.bolt_shear_planes || 2), uts = BOLT_UTS[String(mem.bolt_grade)] || 0;
+    const cap = d && uts ? planes * Math.PI / 4 * d * d * 0.6 * uts : null, rating = mem.rod_end_rating || null;
+    return rows.map(r => ({ member: r.member, peak: r.peak, p_case: r.p_case, bolt_capacity: cap,
+      sf_bolt: cap ? (r.peak > 1e-6 ? cap / r.peak : Infinity) : null, rod_end_rating: rating, sf_rod_end: rating ? (r.peak > 1e-6 ? rating / r.peak : Infinity) : null }));
+  }
+  function bendingCheck(cfg, susp, sp, results) {
+    if (sp.on !== "lower" && sp.on !== "upper") return null;
+    const [pts, inb, outb] = loadGeometry(susp, sp), arm = sp.on;
+    let best = null;
+    for (const leg of [`${arm}_front`, `${arm}_rear`]) {
+      const p0 = inb[leg], p1 = outb[leg], u = unit(sub(p1, p0)), Lg = norm(sub(p1, p0));
+      const a = Math.min(Lg, Math.max(0, dot(sub(pts.rod_out, p0), u))), off = norm(sub(pts.rod_out, add(p0, mul(u, a))));
+      if (!best || off < best.off) best = { leg, u, Lg, off, a };
+    }
+    const { leg, u, Lg, off, a } = best, [od, wall] = cfg.members.wishbone, [A, I] = tubeProps(od, wall);
+    const ep = unit(sub(pts.rod_in, pts.rod_out));
+    let worst = null;
+    for (const [name, r] of Object.entries(results)) {
+      const F = mul(ep, r.pushrod), Fu = dot(F, u), Pp = norm(sub(F, mul(u, Fu))), M = Pp * a * (Lg - a) / Lg;
+      const sig = M * (od / 2) / I + (Math.abs(r[leg]) + Math.abs(Fu)) / A;
+      if (!worst || sig > worst.stress) worst = { case: name, P_perp: Pp, moment: M, stress: sig };
+    }
+    return Object.assign({ leg, length: Lg, a, offset: off, od, wall, sf: worst.stress > 1e-9 ? cfg.members.yield / worst.stress : Infinity }, worst);
   }
 
   // ---------------------------------------------------------------- whole car (mirrors ride.car_balance)
