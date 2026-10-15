@@ -51,6 +51,8 @@ It needs no install or server; an internet connection loads the 3D library and f
   - **Preview / Apply / Undo:** moves show as a ghost first, and Apply pins the old design as the baseline.
   - Ball joints, contact patch and rocker pivot stay locked unless you unlock them.
   - The glossary text is in `ui/glossary.js` and is inlined by `ui/build.py`.
+- **Challenges** (top bar): two guided exercises (raise the roll center; remove bump steer). Each has live goal meters, locked points, a hint ladder and a star score. The challenge panel takes the place of the inputs column, so it fits on one laptop screen.
+- **Compare tab:** up to four saved designs next to the live one, kept in this browser. It shows targets and key metrics with the change from a chosen reference, the hardpoints that differ, overlaid curves and 3D ghosts, with a CSV copy.
 - **Pin as baseline** freezes the current results. Your next edits then show as change columns and dashed
   baseline curves, which suits the one-coordinate-at-a-time workflow.
 - **Same JSON format as the CLI:** open any config file, or copy or download the current one and run it through

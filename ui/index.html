@@ -150,7 +150,7 @@ input.num::-webkit-outer-spin-button, input.num::-webkit-inner-spin-button { -we
 
 /* tabs */
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: thin; }
-.tabs button { border: 0; background: transparent; padding: 8px 12px; cursor: pointer; font: 600 15px/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em;
+.tabs button { border: 0; background: transparent; padding: 8px 10px; cursor: pointer; font: 600 15px/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em;
   color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; }
 .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
 .tabs button .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--bad); margin-left: 5px; vertical-align: middle; }
@@ -253,6 +253,58 @@ table.fixt td:first-child { white-space: normal; }
 .valchip { font-size: 12px; background: var(--panel-2); border-radius: 6px; padding: 2px 8px; }
 .valchip b { font-family: var(--f-mono); font-weight: 500; }
 .term.flash { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+/* challenge rail */
+.crail-card { display: flex; flex-direction: column; gap: 8px; }
+.crhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.crhead h2 { font-size: 22px; text-transform: uppercase; letter-spacing: .03em; }
+.chip.neutral { background: var(--panel-2); color: var(--muted); }
+.chtitle { font-size: 24px; text-transform: uppercase; letter-spacing: .02em; color: var(--accent); }
+.chtitle + .note { margin: -6px 0 0; }
+.chbrief { font-size: 13px; } .chbrief summary { cursor: pointer; font: 600 12px/1 var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.chbrief p { margin: 6px 0 0; }
+@media (min-width: 961px) { .crail { position: sticky; top: 8px; max-height: calc(100vh - 16px); overflow: auto; border-radius: 10px; } }
+.chpick { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; text-align: left; width: 100%;
+  border: 1px solid var(--line); background: var(--panel-2); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+.chpick:hover { border-color: var(--accent); }
+.chpick b { display: block; font-size: 14.5px; } .chpick small { color: var(--muted); }
+.chn { font: 700 24px/1 var(--f-display); color: var(--accent); text-align: center; }
+.stars { letter-spacing: 2px; color: var(--line); font-size: 16px; white-space: nowrap; } .stars .on { color: #e0a100; }
+.meters { display: flex; flex-direction: column; gap: 8px; }
+.meter { border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px 6px; background: var(--panel); }
+.meter.neutral .mtop b { color: var(--muted); }
+.meters { gap: 6px !important; }
+.mtop small { font-size: 11px; font-weight: 400; }
+.meter.ok { border-color: color-mix(in srgb, var(--ok) 55%, var(--line)); }
+.mtop { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+.mtop b { font: 500 13px var(--f-mono); white-space: nowrap; } .meter.ok .mtop b { color: var(--ok); } .meter.bad .mtop b { color: var(--bad); }
+.mbar { position: relative; height: 8px; border-radius: 4px; background: var(--panel-2); margin: 5px 0 1px; }
+.mband { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--ok) 40%, transparent); border-radius: 4px; }
+.mdot { position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--bad); border: 2px solid var(--panel); transition: left .25s; }
+.meter.ok .mdot { background: var(--ok); }
+.mrng { font-size: 11px; color: var(--muted); }
+.chpts td.lab { width: 40%; } .num.ro { display: block; color: var(--muted); background: transparent; border-color: transparent; }
+.chmove { font-size: 12.5px; color: var(--muted); } .chmove b { color: var(--ink); font-family: var(--f-mono); font-weight: 500; }
+.hint { margin: 0 0 6px; font-size: 13px; background: var(--panel-2); border-left: 3px solid var(--accent); padding: 6px 9px; border-radius: 4px; }
+.chwin { border: 2px solid var(--ok); background: var(--ok-bg); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.chwin p { margin: 0; font-size: 13px; }
+.chwinh { font: 700 20px/1 var(--f-display); text-transform: uppercase; color: var(--ok); display: flex; gap: 10px; align-items: center; }
+body.chal .top .brand h1::after { content: " · challenge"; color: var(--muted); font-size: 18px; }
+/* compare */
+.cmpbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cmpadd { display: inline-flex; gap: 6px; align-items: center; flex: 1 1 320px; min-width: 0; }
+.cmpname { text-align: left; font-family: var(--f-body); min-width: 0; }
+.cmpsel { font-size: 12.5px; padding: 4px 6px; max-width: 220px; }
+.cmpleg { display: flex; flex-wrap: wrap; gap: 8px; }
+.cmpcol { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border: 1px solid var(--line); border-top: 3px solid var(--c); border-radius: 8px; padding: 6px 8px; background: var(--panel); font-size: 12.5px; }
+.cmpcol .sw, .cmpt th .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--c); margin-right: 5px; vertical-align: middle; }
+.cmpren { width: 150px; text-align: left; font-family: var(--f-body); padding: 2px 6px; }
+.cmpcol .small-check { margin: 0; }
+table.cmpt td.n small { display: block; font-size: 11px; }
+table.cmpt td.cpass { background: color-mix(in srgb, var(--ok-bg) 70%, transparent); }
+table.cmpt td.cfail { background: color-mix(in srgb, var(--bad-bg) 80%, transparent); color: var(--bad); }
+table.cmpt tr.sumrow td { background: var(--panel-2); }
+table.cmpt th { white-space: normal; min-width: 90px; }
+.axis0 { color: #d13b2e; } .axis1 { color: #2f8f3e; } .axis2 { color: #2a63c9; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 
@@ -267,13 +319,14 @@ table.fixt td:first-child { white-space: normal; }
     <button class="btn" id="btnDownload" type="button" hidden>Download JSON</button>
     <button class="btn" id="btnUndo" type="button" hidden title="Undo the last applied move">Undo</button>
     <button class="btn" id="btnBase" type="button" title="Freeze the current results to compare your next changes against">Pin as baseline</button>
+    <button class="btn" id="btnChal" type="button">Challenges</button>
     <a class="btn" id="lnkGuide" href="guide.html" target="_blank" rel="noopener">Guide &amp; case study</a>
   </div>
 </header>
 
 <div class="bench">
   <!-- ================= INPUTS ================= -->
-  <section class="inputs" aria-label="Inputs">
+  <section class="inputs" id="cardsIn" aria-label="Inputs">
     <details class="card" open id="cardHp">
       <summary><h2>Double wishbone</h2><span class="hint">mm · X fwd, Y out, Z up</span></summary>
       <div class="body">
@@ -336,6 +389,8 @@ table.fixt td:first-child { white-space: normal; }
       </div>
     </details>
   </section>
+
+  <section class="inputs crail" id="crail" hidden aria-label="Challenge"></section>
 
   <!-- ================= OUTPUT ================= -->
   <section class="out" aria-label="Results">
@@ -1577,7 +1632,7 @@ function interp(xs, ys, x) {
 
 // ------------------------------------------------------------------ results
 const TABS = [["checks", "Targets"], ["heave", "Heave"], ["roll", "Roll"], ["steer", "Steering"], ["spring", "Spring & damper"],
-  ["loads", "Loads"], ["pack", "Packaging"], ["learn", "Learn"]];
+  ["loads", "Loads"], ["pack", "Packaging"], ["compare", "Compare"], ["learn", "Learn"]];
 function renderTabs() {
   const fails = ev && !err ? ev.checks.filter(c => c.status === "FAIL").length : 0;
   $("#tabs").innerHTML = TABS.map(([k, t]) => `<button role="tab" type="button" id="tab_${k}" aria-selected="${tab === k}" aria-controls="pn_${k}" data-tab="${k}">${t}${k === "checks" && fails ? `<span class="dot" aria-label="${fails} failing"></span>` : ""}</button>`).join("");
@@ -1615,8 +1670,9 @@ function renderAll(ms) {
   $("#pn_spring").innerHTML = panelSpring();
   $("#pn_loads").innerHTML = panelLoads();
   $("#pn_pack").innerHTML = panelPack();
+  $("#pn_compare").innerHTML = panelCompare();
   $("#pn_learn").innerHTML = panelLearn();
-  wireChecks(); wireLearn();
+  wireChecks(); wireLearn(); wireCompare(); updateRail();
   showPanel();
 }
 
@@ -1638,7 +1694,7 @@ function panelChecks() {
       const d = (c.value != null && bv != null) ? c.value - bv : null;
       bcol = `<td class="n">${fmt(bv, dec)}</td><td class="n ${d > 0 ? "delta-up" : d < 0 ? "delta-dn" : ""}">${d == null || Math.abs(d) < 10 ** -(dec + 1) ? "–" : (d > 0 ? "+" : "") + fmt(d, dec)}</td>`;
     }
-    const fixBtn = c.status === "n/a" ? "" : `<button class="btn small ${c.status === "FAIL" ? "primary" : ""}" type="button" data-fixgo="${c.key}">${c.status === "FAIL" ? "Fix: what moves this?" : "What moves this?"}</button>`;
+    const fixBtn = c.status === "n/a" || chal ? "" : `<button class="btn small ${c.status === "FAIL" ? "primary" : ""}" type="button" data-fixgo="${c.key}">${c.status === "FAIL" ? "Fix: what moves this?" : "What moves this?"}</button>`;
     rows += `<tr class="clickable${open ? " open" : ""}" data-help="${c.key}" aria-expanded="${open}"><td><span class="caret" aria-hidden="true">${open ? "▾" : "▸"}</span> ${esc(lab)}</td><td class="n">${fmt(c.value, dec)} <span class="muted">${unit}</span></td><td>${rng}</td>${bcol}<td>${st}</td></tr>`;
     const t = TERM_BY_METRIC[c.key], show = t && t.show;
     rows += `<tr class="help" data-helprow="${c.key}"${open ? "" : " hidden"}><td colspan="${ncol}">
@@ -1984,6 +2040,7 @@ function updateScene() {
       dyn.add(buildCorner(preview.ev, po, pst, { col, ghost: true }));
     } catch (e) { /* preview pose unreachable: skip the ghost */ }
   }
+  drawCompareGhosts(dyn, col);
   const D = drawKit(dyn, col), DT = drawKit(dyn, col, true);
   // ground grid, centerline, contact patch, roll center
   const gsize = Math.max(2400, s.track + 1200);
@@ -2041,9 +2098,9 @@ function drawKit(group, col, onTop = false) {
   };
 }
 
-function buildCorner(e, o, sst, { col, mirror = false, ghost = false, xray = false }) {
+function buildCorner(e, o, sst, { col, mirror = false, ghost = false, xray = false, ghostCol = null }) {
   const T = three.T, s = e.susp, sp = e.spring, p = o._pts, h = s.h, g = new T.Group();
-  const mat = (c, extra = {}) => ghost ? new T.MeshBasicMaterial({ color: new T.Color(col.accent || "#cf4a12"), transparent: true, opacity: 0.42, depthWrite: false })
+  const mat = (c, extra = {}) => ghost ? new T.MeshBasicMaterial({ color: new T.Color(ghostCol || col.accent || "#cf4a12"), transparent: true, opacity: 0.42, depthWrite: false })
     : new T.MeshStandardMaterial({ color: new T.Color(c), roughness: 0.55, metalness: 0.25, ...extra });
   const steel = mat("#8d99a6"), steelD = mat("#5d6975"), arm1 = mat(col.s1 || "#1d6aa8"), tie = mat("#6c7a89"), push = mat(col.bad || "#b42318"),
     rocker = mat(col.accent || "#cf4a12", { side: T.DoubleSide }), springM = mat("#26338f", { metalness: 0.4 }), damperM = mat("#e0b21c", { metalness: 0.3 }),
@@ -2333,7 +2390,7 @@ function termValue(t) {
 function panelLearn() {
   const cats = [...new Set(TERMS.map(t => t.cat))];
   return `<div class="learnbar"><input id="learnQ" class="num learnq" type="search" placeholder="Search terms, e.g. scrub, roll center, motion ratio" aria-label="Search the glossary" value="${esc(learnQ)}">
-    <span class="note">Every "Show me" draws the idea on the 3D corner above. Click any joint in the 3D view to see what moving it does.</span></div>
+    <span class="note"><button class="lnk" type="button" id="learnChal">Ready to practice? Try a challenge.</button> Every "Show me" draws the idea on the 3D corner above. Click any joint in the 3D view to see what moving it does.</span></div>
     <nav class="catnav">${cats.map(c => `<a href="#cat_${c.replace(/\W+/g, "_")}">${esc(c)}</a>`).join("")}</nav>
     ${cats.map(c => `<section class="cat" id="cat_${c.replace(/\W+/g, "_")}"><h3 class="sub-h">${esc(c)}</h3><div class="terms">${TERMS.filter(t => t.cat === c).map(t => `
       <article class="term" id="term_${t.id}" data-text="${esc((t.name + " " + (t.aka || "") + " " + t.def).toLowerCase())}">
@@ -2348,6 +2405,7 @@ function wireLearn() {
   const q = $("#learnQ"); if (!q) return;
   const filter = () => { learnQ = q.value.trim().toLowerCase(); $$("#pn_learn .term").forEach(a => a.hidden = !!learnQ && !a.dataset.text.includes(learnQ)); $$("#pn_learn .cat").forEach(c => c.hidden = !$$(".term", c).some(a => !a.hidden)); };
   q.addEventListener("input", filter); filter();
+  const lc = $("#learnChal"); if (lc) lc.onclick = () => { openChallenges(); window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" }); };
   $$("#pn_learn [data-show]").forEach(b => b.addEventListener("click", () => showMe(b.dataset.show)));
   $$("#pn_learn [data-fixkey]").forEach(b => b.addEventListener("click", () => openFixRow(b.dataset.fixkey)));
 }
@@ -2524,9 +2582,14 @@ function influenceMetrics() {
 }
 function openInfluence(path) {
   if (!ev || err || !path) return;
+  if (!influenceAllowed(path)) {
+    const hb = $("#chHints"); if (hb) { hb.insertAdjacentHTML("afterbegin", `<p class="hint lockmsg">The influence panel unlocks with the last hint. Try reasoning it out first!</p>`); hb.scrollIntoView({ block: "nearest" }); }
+    return;
+  }
   drawerPath = path;
   const dr = $("#drawer"); dr.hidden = false; $("#vwrap").classList.add("open");
-  const pt = getPath(cfg, path), locked = lockPack && PACKAGING.has(path), isSpring = path.startsWith("spring.");
+  const chalAx = chal ? (chal.def.unlock.includes(path) ? chal.def.axes : []) : [0, 1, 2];
+  const pt = getPath(cfg, path), locked = (lockPack && PACKAGING.has(path) && !chal) || !chalAx.length, isSpring = path.startsWith("spring.");
   const dirs = [[2, "Up", "Raise"], [1, "Out", "Outboard"], [0, "Fwd", "Forward"]];
   const front = cfg.axle === "front";
   let rows = "", qb, effects = [];
@@ -2551,10 +2614,10 @@ function openInfluence(path) {
     rows += `<tr><td>${tid ? `<button class="lnk" type="button" data-term="${tid}">${esc(lab)}</button>` : esc(lab)}</td><td class="n muted">${fmt(ev.metrics[k], dec)}</td>${cells}</tr>`;
   }
   dr.innerHTML = `<div class="drhead"><div><h3>${esc(pointName(path))}</h3><p class="note mono">${esc(path.replace("hardpoints.", ""))} · ${pt.map(v => fmt(v, 1)).join(", ")}</p></div><button class="btn small" type="button" id="drClose" aria-label="Close">✕</button></div>
-    ${locked ? `<p class="lockmsg">Locked: usually set by the ${isSpring ? "chassis" : "upright and wheel"} package. The effects below are for learning. <button class="lnk" type="button" id="drUnlock">Unlock</button></p>` : ""}
+    ${locked ? (chal ? `<p class="lockmsg">This point is fixed in this challenge. The effects below are for learning.</p>` : `<p class="lockmsg">Locked: usually set by the ${isSpring ? "chassis" : "upright and wheel"} package. The effects below are for learning. <button class="lnk" type="button" id="drUnlock">Unlock</button></p>`) : ""}
     <p class="note">What moving this point <b>5 mm</b> does. Color strength = size of the change; red outline = a target that would start failing. Moving the other way does roughly the opposite.</p>
     <div class="tbl-wrap"><table class="data inf"><thead><tr><th>Metric</th><th class="n">Now</th>${dirs.map(([, lab]) => `<th class="n">${lab} 5</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>
-    ${locked ? "" : `<div class="tact drpv"><span class="note">Preview a 5 mm move:</span>${dirs.map(([ax, , long]) => `<button class="btn small" type="button" data-pv="${ax}">${long}</button>`).join("")}</div>`}`;
+    ${locked ? "" : `<div class="tact drpv"><span class="note">Preview a 5 mm move:</span>${dirs.filter(([ax]) => chalAx.includes(ax)).map(([ax, , long]) => `<button class="btn small" type="button" data-pv="${ax}">${long}</button>`).join("")}</div>`}`;
   $("#drClose").onclick = closeInfluence;
   const ul = $("#drUnlock"); if (ul) ul.onclick = () => setLock(false);
   $$("#drawer [data-pv]").forEach(b => b.addEventListener("click", () => { const ax = +b.dataset.pv, c = { pts: [path], axis: ax, name: pointName(path) }; startPreview(movedCfg(cfg, c, 5), describeMove(c, 5)); }));
@@ -2562,6 +2625,249 @@ function openInfluence(path) {
   view.hl = { path }; updateScene();
 }
 function closeInfluence() { drawerPath = null; $("#drawer").hidden = true; $("#vwrap").classList.remove("open"); view.hl = null; updateScene(); }
+
+// ------------------------------------------------------------------ challenges
+// Challenge mode swaps the inputs column for a "challenge rail" of the same size, so nothing new competes for
+// screen space: the brief, live goal meters, only the points you may move, a hint ladder and the score.
+const presetCfg = (prefix) => { const p = PRESETS.find(q => (q.label || "").startsWith(prefix)); return p ? JSON.parse(JSON.stringify(p.cfg)) : null; };
+const CHALLENGES = [
+  { id: "rc", n: 1, title: "Lift the roll center", stage: "Stage 1 · inboard pivots", start: "Case study 1", ref: "Case study 2", tab: "roll", overlay: "roll_center",
+    brief: "This first-draft front corner has its roll center 5 mm off the ground, and it slides almost 400 mm sideways for every degree of body roll. Move only the four inboard pivots, up/down (Z) and in/out (Y), until the roll center is 25–60 mm high, stays put in roll, and the camber gain is reasonable.",
+    unlock: ["hardpoints.upper_inboard_front", "hardpoints.upper_inboard_rear", "hardpoints.lower_inboard_front", "hardpoints.lower_inboard_rear"], axes: [1, 2],
+    goals: ["roll_center", "rc_lat", "camber_gain"],
+    bonus: { key: "antidive", text: "Anti-dive 5–20 %" },
+    hints: [
+      "The roll center is where the line from each contact patch through that side's instant center crosses the middle of the car (Show me → Roll center). To raise it, the instant center must rise, so the wishbones must lean toward each other more steeply. Try lowering both lower inboard pivots by the same amount.",
+      "Roll-center movement in roll (rc_lat) comes from a short, steep front-view swing arm. Keep the arms converging gently: move the upper pivots up as well as the lower pivots down, and keep the upper arm shorter than the lower arm.",
+      "The influence panel is now unlocked: click any of your four pivots in the 3D view to see what 5 mm up or outboard does to every goal. For the bonus, anti-dive comes from the front and rear pivots being at different heights.",
+    ] },
+  { id: "bs", n: 2, title: "Kill the bump steer", stage: "Stage 2 · tie rod", start: "Case study 2", tab: "heave", overlay: "bump_steer", par: 31,
+    brief: "The pivots are done, but this wheel steers itself 0.09° per inch of bump and its toe wanders 0.18° over the travel. A car like that darts over every bump. Move only the tie-rod ends, in/out (Y) and up/down (Z), until bump steer is within ±0.03 deg/in and toe never changes by more than 0.05°, without wrecking the Ackermann.",
+    unlock: ["hardpoints.trackrod_inboard", "hardpoints.trackrod_outboard"], axes: [1, 2],
+    goals: ["bump_steer", "bump_steer_max", "ackermann"],
+    bonus: { fn: (c, c0) => V.norm(V.sub(c.hardpoints.trackrod_outboard, c0.hardpoints.trackrod_outboard)) < 0.05, text: "Leave the outer end alone (it is on the upright, which is already made)" },
+    hints: [
+      "Bump steer appears when the tie rod swings on a different arc from the wishbones. Look at the Toe change chart in the Heave tab: a sloped straight line means the tie-rod height is wrong; a U or arch means its length is wrong.",
+      "Height (Z of the inner end) mostly sets the slope; length (Y of the inner end) mostly sets the curve. Move one at a time in 2–5 mm steps and watch the chart flatten.",
+      "The influence panel is now unlocked: click the tie-rod inner end in the 3D view to see what 5 mm up or outboard does to bump steer and the toe curve.",
+    ] },
+];
+let chal = null;   // { def, start, prev, hint, done }
+const chalStore = () => { try { return JSON.parse(store.get("susp.chal") || "{}"); } catch (e) { return {}; } };
+const starsHtml = (n) => `<span class="stars" aria-label="${n} of 3 stars">${[0, 1, 2].map(i => `<span class="${i < n ? "on" : ""}">★</span>`).join("")}</span>`;
+function chalPar(def) {
+  if (def.par) return def.par;
+  const a = presetCfg(def.start), b = presetCfg(def.ref); if (!a || !b) return null;
+  return def.unlock.reduce((s, p) => s + V.norm(V.sub(getPath(b, p), getPath(a, p))), 0);
+}
+function chalMoved() { return chal.def.unlock.reduce((s, p) => s + V.norm(V.sub(getPath(cfg, p), getPath(chal.start, p))), 0); }
+
+function openChallenges() {          // the chooser, shown in the rail
+  $("#cardsIn").hidden = true; $("#crail").hidden = false;
+  const best = chalStore();
+  $("#crail").innerHTML = `<div class="card crail-card"><div class="crhead"><h2>Challenges</h2><button class="btn small" type="button" id="chClose">Close</button></div>
+    <p class="note">Short exercises on real geometry. Only the points named in each challenge can move, the goals update live, and hints unlock one at a time. Your current design is put back when you leave.</p>
+    ${CHALLENGES.map(d => `<button class="chpick" type="button" data-ch="${d.id}"><span class="chn">${d.n}</span><span><b>${esc(d.title)}</b><small>${esc(d.stage)}</small></span>${starsHtml(best[d.id] || 0)}</button>`).join("")}
+    <p class="note">Stars: ★ goals met · ★ bonus · ★ moved no more than par (the total millimeters a reference solution moves).</p></div>`;
+  $("#chClose").onclick = closeRail;
+  $$("#crail [data-ch]").forEach(b => b.addEventListener("click", () => startChallenge(b.dataset.ch)));
+  $("#crail").scrollIntoView({ block: "nearest" });
+}
+function closeRail() { if (chal) return exitChallenge(); $("#crail").hidden = true; $("#cardsIn").hidden = false; }
+function startChallenge(id) {
+  const def = CHALLENGES.find(d => d.id === id), start = presetCfg(def.start);
+  if (!start) return;
+  const prev = chal ? chal.prev : JSON.parse(JSON.stringify(cfg));
+  chal = { def, start: JSON.parse(JSON.stringify(start)), prev, hint: 0, done: false, par: chalPar(def) };
+  document.body.classList.add("chal");
+  closeInfluence(); showMe(null); undoStack.length = 0; fixRows.clear(); openRows.clear();
+  view.target = null; loadCfg(start); $("#preset").value = "custom";
+  base = ev; baseName = "challenge start"; tab = def.tab;
+  buildRail(); renderAll(0);
+}
+function exitChallenge(keep = false) {
+  if (!chal) return;
+  const prev = chal.prev; chal = null; document.body.classList.remove("chal");
+  $("#crail").hidden = true; $("#cardsIn").hidden = false; closeInfluence(); showMe(null); base = null;
+  if (!keep) { view.target = null; loadCfg(prev); $("#preset").value = "custom"; } else renderAll(0);
+}
+function buildRail() {
+  const d = chal.def, lab = (p) => pointName(p);
+  $("#crail").innerHTML = `<div class="card crail-card">
+    <div class="crhead"><span class="chip neutral">Challenge ${d.n} of ${CHALLENGES.length}</span><button class="btn small" type="button" id="chExit">Exit</button></div>
+    <h2 class="chtitle">${esc(d.title)}</h2><p class="note">${esc(d.stage)}</p>
+    <details class="chbrief" open><summary>The brief</summary><p>${esc(d.brief)}</p></details>
+    <div class="sub-h">Goals</div><div id="chGoals" class="meters"></div><div id="chDone"></div>
+    <div class="sub-h">Points you can move <span class="muted">(X is fixed)</span></div>
+    <table class="pt chpts"><thead><tr><th>Point</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody>
+    ${d.unlock.map(p => `<tr><td class="lab"><button class="lnk" type="button" data-chhp="${p}">${esc(lab(p))}</button></td>${[0, 1, 2].map(i => d.axes.includes(i)
+      ? `<td class="c"><input class="num" type="number" step="0.5" inputmode="decimal" data-chpath="${p}.${i}" aria-label="${esc(lab(p))} ${"XYZ"[i]}"></td>`
+      : `<td class="c"><span class="num ro">${fmt(getPath(cfg, p)[i], 1)}</span></td>`).join("")}</tr>`).join("")}</tbody></table>
+    <div class="chmove" id="chMove"></div>
+    <div class="tact"><button class="btn small" type="button" id="chReset">Start over</button><button class="btn small" type="button" id="chShow">Show me ${esc(OVERLAYS[d.overlay].name.toLowerCase())}</button></div>
+    <div class="sub-h">Hints</div><div id="chHints"></div></div>`;
+  $$("#crail [data-chpath]").forEach(inp => inp.addEventListener("input", () => {
+    const v = +inp.value; if (inp.value === "" || !Number.isFinite(v)) return;
+    setPath(cfg, inp.dataset.chpath, v); $("#preset").value = "custom"; schedule();
+  }));
+  $$("#crail [data-chhp]").forEach(b => b.addEventListener("click", () => openInfluence(b.dataset.chhp)));
+  $("#chExit").onclick = () => exitChallenge();
+  $("#chReset").onclick = () => { chal.done = false; chal.hint = chal.hint; view.target = null; loadCfg(JSON.parse(JSON.stringify(chal.start))); base = ev; baseName = "challenge start"; renderAll(0); };
+  $("#chShow").onclick = () => showMe(d.overlay);
+  updateRail();
+}
+function meter(key, c, lab, unit, dec) {
+  const lo = c.lo, hi = c.hi, v = c.value, ok = c.status === "PASS";
+  const a = lo ?? hi - Math.abs(hi) - 1, b = hi ?? lo + Math.abs(lo) + 1, w = (b - a) || 1;
+  const d0 = Math.min(a - w * 0.6, v - w * 0.15), d1 = Math.max(b + w * 0.6, v + w * 0.15), X = (x) => ((x - d0) / (d1 - d0) * 100).toFixed(2);
+  const vs = Math.max(0, Math.min(100, +X(v)));
+  const rng = `${lo == null ? "≤ " : fmt(lo, dec)}${lo != null && hi != null ? " to " : ""}${hi == null ? " or more" : fmt(hi, dec)}`;
+  return `<div class="meter ${ok ? "ok" : "bad"}"><div class="mtop"><span>${esc(lab)} <small class="muted">target ${rng}</small></span><b>${fmt(v, dec)} <small>${esc(unit)}</small> ${ok ? "✓" : "✗"}</b></div>
+    <div class="mbar" title="green band = target ${rng} ${esc(unit)}"><span class="mband" style="left:${lo == null ? 0 : X(lo)}%;right:${hi == null ? 0 : (100 - X(hi))}%"></span><span class="mdot" style="left:${vs}%"></span></div></div>`;
+}
+function updateRail() {
+  if (!chal || err || !ev || !$("#chGoals")) return;
+  const d = chal.def, row = (k) => ev.checks.find(r => r.key === k);
+  $$("#crail [data-chpath]").forEach(inp => { if (document.activeElement !== inp) inp.value = getPath(cfg, inp.dataset.chpath); });
+  const goalsOk = d.goals.every(k => (row(k) || {}).status === "PASS"), goalsOkPre = goalsOk;
+  let bonusOk = false, bonusHtml = "";
+  if (d.bonus.key) { const c = row(d.bonus.key); bonusOk = c && c.status === "PASS"; if (c) { const [lab, unit, dec] = metricLabel(d.bonus.key); bonusHtml = meter(d.bonus.key, c, "Bonus · " + lab, unit, dec); } }
+  else { bonusOk = d.bonus.fn(cfg, chal.start); bonusHtml = `<div class="meter ${bonusOk ? "ok" : "neutral"}"><div class="mtop"><span>Bonus · ${esc(d.bonus.text)}</span><b>${bonusOk ? (goalsOkPre ? "✓" : "✓ so far") : "✗"}</b></div></div>`; }
+  $("#chGoals").innerHTML = d.goals.map(k => { const c = row(k); if (!c) return ""; const [lab, unit, dec] = metricLabel(k); return meter(k, c, lab, unit, dec); }).join("") + bonusHtml;
+  const moved = chalMoved(), par = chal.par;
+  $("#chMove").innerHTML = `Moved <b>${fmt(moved, 1)} mm</b> in total${par ? ` · par ${fmt(par, 0)} mm` : ""}`;
+  $("#chHints").innerHTML = d.hints.map((h, i) => i < chal.hint ? `<p class="hint"><b>Hint ${i + 1}.</b> ${esc(h)}</p>` : "").join("") +
+    (chal.hint < d.hints.length ? `<button class="btn small" type="button" id="chHint">Show hint ${chal.hint + 1} of ${d.hints.length}${chal.hint === d.hints.length - 1 ? " (unlocks the influence panel)" : ""}</button>` : "");
+  const hb = $("#chHint"); if (hb) hb.onclick = () => { chal.hint++; updateRail(); };
+  const stars = goalsOk ? 1 + (bonusOk ? 1 : 0) + (par && moved <= par + 0.5 ? 1 : 0) : 0;
+  if (goalsOk) {
+    const best = chalStore(); if ((best[d.id] || 0) < stars) { best[d.id] = stars; store.set("susp.chal", JSON.stringify(best)); }
+    const next = CHALLENGES.find(q => q.n === d.n + 1);
+    $("#chDone").innerHTML = `<div class="chwin"><div class="chwinh">Solved ${starsHtml(stars)}</div>
+      <p>${bonusOk ? "Bonus met." : `Bonus not yet: ${esc(d.bonus.key ? metricLabel(d.bonus.key)[0] : d.bonus.text)}.`} ${par ? (moved <= par + 0.5 ? `You moved ${fmt(moved, 0)} mm, within par.` : `You moved ${fmt(moved, 0)} mm; par is ${fmt(par, 0)} mm. Can you get there with smaller moves?`) : ""}</p>
+      <div class="tact"><button class="btn small" type="button" id="chCmp">Compare start vs. yours</button>${next ? `<button class="btn small primary" type="button" id="chNext">Next challenge</button>` : ""}<button class="btn small" type="button" id="chKeep">Finish and keep this design</button></div></div>`;
+    $("#chCmp").onclick = () => { cmpAdd(`${d.title}: start`, chal.start); cmpAdd(`${d.title}: yours`, cfg); tab = "compare"; renderAll(0); };
+    if (next) $("#chNext").onclick = () => startChallenge(next.id);
+    $("#chKeep").onclick = () => exitChallenge(true);
+  } else $("#chDone").innerHTML = "";
+}
+const influenceAllowed = (path) => !chal || (chal.hint >= chal.def.hints.length);
+
+// ------------------------------------------------------------------ compare
+// Saved designs (kept in this browser) side by side with the live design: every target and key metric with its
+// change from a chosen reference, the hardpoints that differ, overlaid curves, and optional ghosts in the 3D view.
+const CMP_COLORS = ["#1d6aa8", "#cf4a12", "#2f8f6b", "#7a4fd0", "#b08400"];
+let cmp = (() => { try { return JSON.parse(store.get("susp.cmp") || "[]"); } catch (e) { return []; } })();
+let cmpRef = -1, cmpOnlyDiff = false;
+const cmpGhost = new Set();
+const cmpCache = new Map();
+function cmpSave() { store.set("susp.cmp", JSON.stringify(cmp)); }
+function cmpAdd(name, c) {
+  if (cmp.length >= 4) cmp.shift();
+  let nm = name || "Design", i = 2; while (cmp.some(q => q.name === nm)) nm = `${name} (${i++})`;
+  cmp.push({ name: nm, cfg: JSON.parse(JSON.stringify(c)) }); cmpSave();
+}
+function cmpEval(c) {
+  const key = JSON.stringify(c); if (cmpCache.has(key)) return cmpCache.get(key);
+  let r; try { const e = S.evaluate(c); const l = e.spring ? S.runLoads(e.cfg, e.susp, e.spring) : null; r = { ev: e, loads: l }; } catch (e) { r = { err: e.message }; }
+  if (cmpCache.size > 30) cmpCache.clear(); cmpCache.set(key, r); return r;
+}
+function cmpCols() {   // live design first, then saved ones
+  return [{ name: "Current (live)", color: "var(--s1)", hex: CMP_COLORS[0], r: { ev, loads }, live: true }]
+    .concat(cmp.map((q, i) => ({ name: q.name, color: CMP_COLORS[i + 1], hex: CMP_COLORS[i + 1], r: cmpEval(q.cfg), idx: i })));
+}
+const CMP_EXTRA = [["fvsa", "Front-view swing arm"], ["track_change", ""], ["roll_camber", ""], ["steer_arm", ""], ["turn_radius", ""], ["motion_ratio", ""], ["mr_progression", ""], ["wheel_rate", ""], ["damper_used", ""], ["rocker_rot", ""]];
+function panelCompare() {
+  const cols = cmpCols(), ok = cols.filter(c => c.r && c.r.ev), refC = cols[cmpRef + 1] && cmpRef + 1 < cols.length ? cols[cmpRef + 1] : cols[0];
+  const presetOpts = PRESETS.map((p, i) => `<option value="${i}">${esc(p.label)}</option>`).join("");
+  const head = `<div class="cmpbar">
+    <span class="cmpadd"><input class="num cmpname" id="cmpName" type="text" placeholder="Name, e.g. raised pivots" aria-label="Name for the saved design" value="${esc(cfg.name || "")}"><button class="btn small primary" type="button" id="cmpSaveCur">Save current design</button></span>
+    <select class="sel cmpsel" id="cmpPreset" aria-label="Add an example design"><option value="">Add an example…</option>${presetOpts}</select>
+    <button class="btn small" type="button" id="cmpFileBtn">Add from file…</button><input type="file" id="cmpFile" accept=".json,application/json" multiple hidden>
+    ${cmp.length ? `<button class="btn small" type="button" id="cmpCsv">Copy table (CSV)</button><button class="btn small" type="button" id="cmpClear">Remove all</button>` : ""}</div>`;
+  if (!cmp.length) return head + `<p class="note">Save the design on screen, add an example or open design files to compare up to four designs with the live one: every target side by side with the change from a reference, the hardpoints that differ, the curves overlaid, and ghosts in the 3D view. Saved designs stay in this browser only.</p>`;
+  const legend = `<div class="cmpleg">${cols.map((c, j) => `<div class="cmpcol" style="--c:${c.hex}">
+      <span class="sw"></span>${c.live ? `<b>${esc(c.name)}</b>` : `<input class="num cmpren" type="text" value="${esc(c.name)}" data-ren="${c.idx}" aria-label="Rename">`}
+      <label class="small-check"><input type="radio" name="cmpref" value="${j - 1}" ${refC === c ? "checked" : ""}> reference</label>
+      ${c.live ? "" : `<label class="small-check"><input type="checkbox" data-ghost="${c.idx}" ${cmpGhost.has(c.idx) ? "checked" : ""}> 3D</label>
+      <button class="btn small" type="button" data-load="${c.idx}" title="Make this the design you are editing">Load</button><button class="btn small" type="button" data-del="${c.idx}" aria-label="Remove">✕</button>`}
+      ${c.r && c.r.err ? `<span class="bad-t">does not solve</span>` : ""}</div>`).join("")}</div>`;
+  // metric rows
+  const keys = [...new Set(ok.flatMap(c => c.r.ev.checks.map(r => r.key)))];
+  CMP_EXTRA.forEach(([k]) => { if (!keys.includes(k) && ok.some(c => c.r.ev.metrics[k] != null)) keys.push(k); });
+  const val = (c, k) => k === "min_fos" ? (c.r.loads ? Math.min(...c.r.loads.checks.map(q => Math.min(q.sf_buckle, q.sf_yield))) : null) : k === "link_clearance" ? c.r.ev.metrics.clearance_min : c.r.ev.metrics[k];
+  if (ok.some(c => c.r.loads)) keys.push("min_fos");
+  const lab = (k) => k === "min_fos" ? ["Lowest member FOS", "", 2] : k === "link_clearance" ? ["Min link clearance", "mm", 1] : metricLabel(k);
+  let rows = "";
+  const met = cols.map(c => c.r && c.r.ev ? `${c.r.ev.checks.filter(r => r.status === "PASS").length}/${c.r.ev.checks.filter(r => r.status !== "n/a").length}` : "–");
+  rows += `<tr class="sumrow"><td>Targets met</td>${met.map(m => `<td class="n"><b>${m}</b></td>`).join("")}</tr>`;
+  for (const k of keys) {
+    const [L, unit, dec] = lab(k), rv = refC.r && refC.r.ev ? val(refC, k) : null;
+    const vals = cols.map(c => c.r && c.r.ev ? val(c, k) : null);
+    if (cmpOnlyDiff && vals.every(v => v == null || rv == null || Math.abs(v - rv) < 10 ** -(dec + 1) * 5)) continue;
+    rows += `<tr><td>${esc(L)} <span class="muted">${esc(unit)}</span></td>${cols.map((c, j) => {
+      const v = vals[j]; if (v == null || !Number.isFinite(v)) return `<td class="n muted">–</td>`;
+      const ck = c.r.ev.checks.find(r => r.key === k), st = k === "min_fos" ? (v >= c.r.ev.cfg.members.sf_target ? "PASS" : "FAIL") : ck ? ck.status : null;
+      const dlt = c !== refC && rv != null && Number.isFinite(rv) ? v - rv : null;
+      return `<td class="n ${st === "PASS" ? "cpass" : st === "FAIL" ? "cfail" : ""}">${fmt(v, dec)}${dlt != null && Math.abs(dlt) >= 10 ** -(dec + 1) * 5 ? `<small class="${dlt > 0 ? "delta-up" : "delta-dn"}">${dlt > 0 ? "+" : ""}${fmt(dlt, dec)}</small>` : ""}</td>`; }).join("")}</tr>`;
+  }
+  const table = `<div class="tbl-wrap"><table class="data cmpt"><thead><tr><th>Metric</th>${cols.map(c => `<th class="n" style="--c:${c.hex}"><span class="sw"></span>${esc(c.name)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="note">Green = meets that design's own target, red = misses it. Small numbers are the change from the reference. <label class="small-check" style="display:inline-flex"><input type="checkbox" id="cmpDiff" ${cmpOnlyDiff ? "checked" : ""}> only rows that differ</label></p>`;
+  // hardpoint differences
+  const hpRows = [];
+  const allPts = S.HP_ORDER.map(k => "hardpoints." + k).concat(S.SPRING_POINTS.map(k => "spring." + k));
+  const cfgOf = (c) => c.live ? cfg : cmp[c.idx].cfg, refCfg = cfgOf(refC);
+  for (const p of allPts) for (let i = 0; i < 3; i++) {
+    const rv = (getPath(refCfg, p) || [])[i];
+    const vs = cols.map(c => (getPath(cfgOf(c), p) || [])[i]);
+    if (vs.every(v => v == null || rv == null || Math.abs(v - rv) < 0.05)) continue;
+    hpRows.push(`<tr><td>${esc(pointName(p))} <b class="axis${i}">${"XYZ"[i]}</b></td>${vs.map((v, j) => v == null ? `<td class="n muted">–</td>` : `<td class="n">${fmt(v, 1)}${cols[j] !== refC && rv != null && Math.abs(v - rv) >= 0.05 ? `<small class="${v > rv ? "delta-up" : "delta-dn"}">${v > rv ? "+" : ""}${fmt(v - rv, 1)}</small>` : ""}</td>`).join("")}</tr>`);
+  }
+  const hp = `<h3 class="sub-h">Hardpoints that differ from the reference, mm</h3>${hpRows.length ? `<div class="tbl-wrap"><table class="data cmpt"><thead><tr><th>Point</th>${cols.map(c => `<th class="n" style="--c:${c.hex}"><span class="sw"></span>${esc(c.name)}</th>`).join("")}</tr></thead><tbody>${hpRows.join("")}</tbody></table></div>` : `<p class="note">All hardpoints match the reference.</p>`}`;
+  // curves
+  const ser = (get, xget, rowsOf) => ok.map(c => { const rs = rowsOf(c.r.ev); return rs ? { name: null, x: rs.map(xget), y: rs.map(get(rs)), color: c.color, w: c === refC ? 2.6 : 1.8, dash: c.live ? null : null } : null; }).filter(Boolean);
+  const heave = (e) => e.rows, roll = (e) => e.roll, steer = (e) => e.steer ? e.steer.filter(r => Number.isFinite(r.ackermann)) : null;
+  const toe0 = (rs) => { const r0 = rs.reduce((a, r) => Math.abs(r.dz) < Math.abs(a.dz) ? r : a); return (r) => r.toe - r0.toe; };
+  const charts = `<h3 class="sub-h">Curves</h3><div class="charts">
+    ${chart({ title: "Camber, deg", xlabel: "wheel travel, mm", series: ser(() => r => r.camber, r => r.dz, heave) })}
+    ${chart({ title: "Toe change, deg", xlabel: "wheel travel, mm", series: ser(toe0, r => r.dz, heave) })}
+    ${chart({ title: "Roll center height, mm", xlabel: "wheel travel, mm", series: ser(() => r => r.roll_center, r => r.dz, heave) })}
+    ${chart({ title: "Roll center sideways, mm", xlabel: "body roll, deg", series: ser(() => r => r.rc_lateral, r => r.roll, roll) })}
+    ${ok.some(c => c.r.ev.steer) ? chart({ title: "Ackermann, %", xlabel: "outer wheel angle, deg", series: ser(() => r => r.ackermann, r => r.outer, steer) }) : ""}
+    ${ok.some(c => c.r.ev.spring) ? chart({ title: "Motion ratio", xlabel: "wheel travel, mm", series: ser(() => r => r.motion_ratio, r => r.dz, (e) => e.spring ? e.rows : null) }) : ""}
+  </div>`;
+  return head + legend + table + hp + charts;
+}
+function wireCompare() {
+  const P = $("#pn_compare"); if (!P) return;
+  const rerender = () => { P.innerHTML = panelCompare(); wireCompare(); updateScene(); };
+  $("#cmpSaveCur", P).onclick = () => { cmpAdd($("#cmpName").value.trim() || cfg.name || "Saved design", cfg); rerender(); };
+  $("#cmpPreset", P).onchange = (e) => { const p = PRESETS[+e.target.value]; if (p) { cmpAdd(p.label, p.cfg); rerender(); } };
+  $("#cmpFileBtn", P).onclick = () => $("#cmpFile").click();
+  $("#cmpFile", P).onchange = async (e) => {
+    for (const f of e.target.files) { try { const raw = JSON.parse(await f.text()); if (!raw.hardpoints) continue; S.finishConfig(JSON.parse(JSON.stringify(raw))); cmpAdd(raw.name || f.name.replace(/\.json$/i, ""), raw); } catch (ex) { /* skip files that are not designs */ } }
+    rerender();
+  };
+  const csv = $("#cmpCsv", P); if (csv) csv.onclick = async () => {
+    const t = $("table.cmpt", P), lines = $$("tr", t).map(tr => $$("th,td", tr).map(c => `"${c.textContent.replace(/\s+/g, " ").trim().replace(/"/g, '""')}"`).join(","));
+    try { await navigator.clipboard.writeText(lines.join("\n")); csv.textContent = "Copied"; } catch (ex) { csv.textContent = "Copy blocked by the browser"; }
+    setTimeout(() => { csv.textContent = "Copy table (CSV)"; }, 1800);
+  };
+  const clr = $("#cmpClear", P); if (clr) clr.onclick = () => { cmp = []; cmpGhost.clear(); cmpRef = -1; cmpSave(); rerender(); };
+  $$("[data-ren]", P).forEach(inp => inp.addEventListener("change", () => { cmp[+inp.dataset.ren].name = inp.value.trim() || cmp[+inp.dataset.ren].name; cmpSave(); rerender(); }));
+  $$("input[name=cmpref]", P).forEach(r => r.addEventListener("change", () => { cmpRef = +r.value; rerender(); }));
+  $$("[data-ghost]", P).forEach(cb => cb.addEventListener("change", () => { const i = +cb.dataset.ghost; cb.checked ? cmpGhost.add(i) : cmpGhost.delete(i); updateScene(); }));
+  $$("[data-del]", P).forEach(b => b.addEventListener("click", () => { const i = +b.dataset.del; cmp.splice(i, 1); cmpGhost.clear(); if (cmpRef >= i) cmpRef = -1; cmpSave(); rerender(); }));
+  $$("[data-load]", P).forEach(b => b.addEventListener("click", () => { const q = cmp[+b.dataset.load]; if (chal) exitChallenge(true); undoStack.push(JSON.parse(JSON.stringify(cfg))); view.target = null; loadCfg(JSON.parse(JSON.stringify(q.cfg))); $("#preset").value = "custom"; }));
+  const od = $("#cmpDiff", P); if (od) od.onchange = () => { cmpOnlyDiff = od.checked; rerender(); };
+}
+function drawCompareGhosts(dyn, col) {
+  for (const i of cmpGhost) {
+    const q = cmp[i]; if (!q) continue; const r = cmpEval(q.cfg); if (!r.ev) continue;
+    try { const s2 = r.ev.susp, x2 = s2.pose(pose.dz, pose.rack), o2 = s2.observe(x2, pose.dz, pose.rack), st2 = r.ev.spring ? r.ev.spring.state(x2, rad0(pose.dz)) : null;
+      dyn.add(buildCorner(r.ev, o2, st2, { col, ghost: true, ghostCol: CMP_COLORS[i + 1] })); } catch (e) { /* that pose is out of reach for this design */ }
+  }
+}
 
 // ------------------------------------------------------------------ toolbar
 function loadCfg(raw, name) {
@@ -2574,7 +2880,7 @@ function loadCfg(raw, name) {
   fillForm(); run(); return true;
 }
 $("#preset").innerHTML = PRESETS.map((p, i) => `<option value="${i}">${esc(p.label)}</option>`).join("") + `<option value="custom" hidden>Your edits</option>`;
-$("#preset").addEventListener("change", (e) => { if (e.target.value !== "custom") { view.target = null; loadCfg(PRESETS[+e.target.value].cfg); } });
+$("#preset").addEventListener("change", (e) => { if (e.target.value !== "custom") { if (chal) exitChallenge(true); view.target = null; loadCfg(PRESETS[+e.target.value].cfg); } });
 $("#btnLoad").addEventListener("click", () => $("#fileIn").click());
 $("#fileIn").addEventListener("change", async (e) => {
   const f = e.target.files[0]; if (!f) return;
@@ -2585,7 +2891,7 @@ $("#fileIn").addEventListener("change", async (e) => {
       cfg.targets = Object.assign({}, t, cfg.targets || {});
       $("#preset").value = "custom"; run();
       $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner warn">Applied ${Object.keys(t).length} target ranges from ${esc(f.name)} to this design. They are now saved in its JSON under <span class="mono">targets</span>.</div>`);
-    } else { view.target = null; if (loadCfg(raw)) $("#preset").value = "custom"; }
+    } else { if (chal) exitChallenge(true); view.target = null; if (loadCfg(raw)) $("#preset").value = "custom"; }
   }
   catch (ex) { $("#errBox").innerHTML = `<div class="banner bad">${esc(f.name)} is not a valid config: ${esc(ex.message)}</div>`; }
   e.target.value = "";
@@ -2608,6 +2914,7 @@ $("#btnApplyJson").addEventListener("click", () => {
   catch (ex) { $("#jsonMsg").textContent = "Not valid JSON: " + ex.message; }
 });
 $("#btnUndo").addEventListener("click", () => undo());
+$("#btnChal").addEventListener("click", () => { if (chal) { $("#crail").scrollIntoView({ block: "nearest" }); return; } openChallenges(); });
 $("#btnBase").addEventListener("click", () => { if (!ev || err) return; base = ev; baseName = cfg.name || "pinned design"; renderAll(0); });
 document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dataset.path) $("#preset").value = "custom"; });
 
