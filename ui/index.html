@@ -62,7 +62,20 @@ button, select, input { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* top bar */
-.top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-block: 14px 12px; }
+.top { display: flex; flex-direction: column; gap: 8px; padding-block: 14px 12px; }
+.toprow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.tb-right { justify-content: flex-end; margin-left: auto; }
+.welcome { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: color-mix(in srgb, var(--ink) 45%, transparent); }
+.wcard { position: relative; width: min(680px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: var(--panel); border-radius: 14px; padding: 22px 24px; box-shadow: 0 20px 60px rgba(0,0,0,.3); display: flex; flex-direction: column; gap: 10px; }
+.wcard h2 { font-size: 30px; color: var(--accent); text-transform: uppercase; }
+.wcard p { margin: 0; }
+.wclose { position: absolute; top: 12px; right: 12px; }
+.wgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 6px 0; }
+.wbig { text-align: left; border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px; padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+.wbig:hover, .wbig:focus-visible { border-color: var(--accent); }
+.wbig b { font: 600 18px/1.1 var(--f-display); text-transform: uppercase; letter-spacing: .02em; }
+.wbig span { font-size: 12.5px; color: var(--muted); }
+.wlinks a { color: var(--ink); }
 .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
 .brand h1 { font-size: 30px; line-height: 1; color: var(--accent); text-transform: uppercase; letter-spacing: .02em; }
 .brand span { color: var(--muted); font-size: 13px; }
@@ -282,21 +295,29 @@ table.fixt td:first-child { white-space: normal; }
 .mdot { position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--bad); border: 2px solid var(--panel); transition: left .25s; }
 .meter.ok .mdot { background: var(--ok); }
 .mrng { font-size: 11px; color: var(--muted); }
+.mexp { text-decoration: none; font-size: 12.5px; } .mchart { margin-top: 6px; } .mchart .chart { border: 0; padding: 0; }
 .chpts td.lab { width: 40%; } .num.ro { display: block; color: var(--muted); background: transparent; border-color: transparent; }
 .chmove { font-size: 12.5px; color: var(--muted); } .chmove b { color: var(--ink); font-family: var(--f-mono); font-weight: 500; }
 table.lvt { font-size: 12px; background: var(--panel); margin: 6px 0 4px; }
 table.lvt th { white-space: normal; font-size: 10.5px; padding: 4px 5px; } table.lvt td { padding: 4px 5px; }
 table.lvt td:first-child { white-space: normal; }
 .lv-now td { background: var(--panel-2); }
-.lv-good { background: color-mix(in srgb, var(--ok-bg) 85%, transparent); color: var(--ok); font-weight: 600; }
-.lv-bad { background: color-mix(in srgb, var(--bad-bg) 85%, transparent); color: var(--bad); }
+.lv-good { background: color-mix(in srgb, var(--ok) calc(var(--s, 1) * 26%), transparent); color: var(--ok); font-weight: 600; }
+.lv-bad { background: color-mix(in srgb, var(--bad) calc(var(--s, 1) * 22%), transparent); color: var(--bad); }
+table.lvt th.lv-focus { color: var(--ink); } table.lvt td.lv-focus { box-shadow: inset 2px 0 0 var(--accent); }
+.lvlead { margin: 4px 0 !important; }
 .lv-bonus td:first-child { color: var(--muted); font-style: italic; }
 .lvk { padding: 0 4px; border-radius: 3px; }
-.hint p { margin: 4px 0; }
-.hint { margin: 0 0 6px; font-size: 13px; background: var(--panel-2); border-left: 3px solid var(--accent); padding: 6px 9px; border-radius: 4px; }
+.chint p { margin: 4px 0; }
+.chint { margin: 0 0 6px; font-size: 13px; background: var(--panel-2); border-left: 3px solid var(--accent); padding: 6px 9px; border-radius: 4px; }
 .chwin { border: 2px solid var(--ok); background: var(--ok-bg); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
 .chwin p { margin: 0; font-size: 13px; }
 .chwinh { font: 700 20px/1 var(--f-display); text-transform: uppercase; color: var(--ok); display: flex; gap: 10px; align-items: center; }
+body.chal .rk { display: none; }
+body.chal.focus #status, body.chal.focus #errBox, body.chal.focus #tabs, body.chal.focus #panels { display: none; }
+.focusbox { display: flex; flex-direction: column; gap: 8px; }
+.focushd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.focushd h3 { font-size: 17px; text-transform: uppercase; letter-spacing: .03em; }
 body.chal .top .brand h1::after { content: " · challenge"; color: var(--muted); font-size: 18px; }
 /* compare */
 .cmpbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -318,20 +339,40 @@ table.cmpt th { white-space: normal; min-width: 90px; }
 </style>
 
 <header class="top">
-  <div class="brand"><h1>Suspension Solver</h1><span>FSAE double wishbone · one corner, rigid links</span></div>
-  <div class="toolbar">
-    <label class="muted" for="preset" style="font-size:12.5px">Design</label>
-    <select id="preset" class="sel"></select>
-    <button class="btn" id="btnLoad" type="button">Open JSON…</button>
-    <input id="fileIn" type="file" accept=".json,application/json" hidden>
-    <button class="btn" id="btnCopy" type="button">Copy JSON</button>
-    <button class="btn" id="btnDownload" type="button" hidden>Download JSON</button>
-    <button class="btn" id="btnUndo" type="button" hidden title="Undo the last applied move">Undo</button>
-    <button class="btn" id="btnBase" type="button" title="Freeze the current results to compare your next changes against">Pin as baseline</button>
-    <button class="btn" id="btnChal" type="button">Challenges</button>
-    <a class="btn" id="lnkGuide" href="guide.html" target="_blank" rel="noopener">Guide &amp; case study</a>
+  <div class="toprow">
+    <div class="brand"><h1>Suspension Solver</h1><span>FSAE double wishbone · rigid links</span></div>
+    <div class="toolbar"><button class="btn small" id="btnStart" type="button">Start here</button></div>
+  </div>
+  <div class="toprow">
+    <div class="toolbar">
+      <label class="muted" for="preset" style="font-size:12.5px">Design</label>
+      <select id="preset" class="sel"></select>
+    </div>
+    <div class="toolbar tb-right">
+      <button class="btn" id="btnUndo" type="button" hidden title="Undo the last applied move">Undo</button>
+      <button class="btn" id="btnLoad" type="button">Open JSON…</button>
+      <input id="fileIn" type="file" accept=".json,application/json" hidden>
+      <button class="btn" id="btnDownload" type="button" hidden title="Save this design as a JSON file on your computer">Save JSON</button>
+      <button class="btn" id="btnCopy" type="button">Copy JSON</button>
+      <button class="btn" id="btnBase" type="button" title="Freeze the current results to compare your next changes against">Pin as baseline</button>
+    </div>
   </div>
 </header>
+<div class="welcome" id="welcome" hidden>
+  <div class="wcard" role="dialog" aria-modal="true" aria-labelledby="wTitle">
+    <button class="btn small wclose" type="button" id="wClose" aria-label="Close">✕</button>
+    <h2 id="wTitle">FSAE Suspension Solver</h2>
+    <p>Design and check a double-wishbone corner: move the hardpoints, watch the corner move in 3D, and see every target pass or fail as you type.</p>
+    <div class="wgrid">
+      <button class="wbig" type="button" id="wExplore"><b>Explore the example car</b><span>An invented front corner that meets every target. Drag the sliders, click a joint, open the tabs.</span></button>
+      <button class="wbig" type="button" id="wOpen"><b>Open your design</b><span>A JSON file from your team's private folder. It is read in your browser and never uploaded.</span></button>
+      <button class="wbig" type="button" id="wChal"><b>Try a challenge</b><span>Two short exercises with live goals and hints: lift a roll center, kill bump steer.</span></button>
+    </div>
+    <p class="wlinks"><a href="guide.html" target="_blank" rel="noopener">Guide &amp; case study</a> · <button class="lnk" type="button" id="wLearn">Learn the terms</button></p>
+    <p class="note">Your work is kept in this browser between visits. Save JSON (or Copy JSON) to keep a file of it.</p>
+    <label class="small-check"><input type="checkbox" id="wHide"> Don't show this again</label>
+  </div>
+</div>
 
 <div class="bench">
   <!-- ================= INPUTS ================= -->
@@ -432,12 +473,13 @@ table.cmpt th { white-space: normal; min-width: 90px; }
       </div>
       <div class="pose">
         <label for="poseZ">Travel</label><input type="range" id="poseZ" min="-30" max="30" step="0.5" value="0"><output id="poseZo">0 mm</output>
-        <label for="poseR">Rack</label><input type="range" id="poseR" min="-35" max="35" step="0.5" value="0"><output id="poseRo">0 mm</output>
+        <label for="poseR" class="rk">Rack</label><input type="range" id="poseR" class="rk" min="-35" max="35" step="0.5" value="0"><output id="poseRo" class="rk">0 mm</output>
       </div>
     </div>
 
     <div class="status" id="status"></div>
     <div id="errBox"></div>
+    <div id="focusBox" class="focusbox" hidden></div>
 
     <div>
       <div class="tabs" role="tablist" id="tabs"></div>
@@ -2036,7 +2078,7 @@ function updateScene() {
   const p = o._pts, h = s.h;
   const xray = !!view.overlay && view.overlay !== "labels";
   dyn.add(buildCorner(ev, o, sst, { col, xray }));
-  if (view.mirror || (view.overlay === "ackermann" && cfg.axle === "front")) {
+  if (view.mirror || view.overlay === "roll_center" || (view.overlay === "ackermann" && cfg.axle === "front")) {
     // the left wheel is the mirror image of the right wheel at the opposite rack position
     let oL = o, sL = sst;
     if (pose.rack) { try { const xl = s.pose(pose.dz, -pose.rack); oL = s.observe(xl, pose.dz, -pose.rack); sL = sp ? sp.state(xl, rad0(pose.dz)) : null; } catch (e) { oL = null; } }
@@ -2220,7 +2262,7 @@ function showMe(id) {
   if (id === "fvsa" || id === "roll_center") {
     const ic = o0.fv_ic, icy = ic ? Math.max(ic[0], p.cp[1] - 5000) : -p.cp[1];
     const lo = Math.min(icy, id === "roll_center" ? -p.cp[1] : p.cp[1]) - 150, hi = p.cp[1] + s.cfg.wheel.tire_width;
-    frameOn([p.cp[0], (lo + hi) / 2, Math.max(250, (ic ? Math.min(ic[1], 1500) : 0) / 2)], fitR(hi - lo, D + 300));
+    frameOn([p.cp[0], (lo + hi) / 2, Math.max(250, (ic ? Math.min(ic[1], 1500) : 0) / 2) - 170], fitR(hi - lo, D + 650));
   } else if (id === "anti") {
     const Lr = s.WB * 0.7, dirx = cfg.axle === "front" ? -1 : 1;
     frameOn([p.cp[0] + dirx * Lr / 2, p.cp[1], 350], fitR(Lr + D + 200, D + 500));
@@ -2233,6 +2275,8 @@ function showMe(id) {
   } else if (id === "labels" || id === "motion_ratio") frameOn([p.cp[0], p.cp[1] * 0.55, 260], fitR(p.cp[1] * 1.3 + 500, D + 300));
   else if (id === "toe" || id === "bump_steer" || id === "steer_arm") frameOn([p.cp[0], p.cp[1] * 0.8, 0], fitR(p.cp[1] + 700, 1300));
   else frameOn([p.cp[0], p.cp[1] * 0.85, 280], fitR(p.cp[1] * 0.6 + 600, D + 480));
+  clearTimeout(view.ovTimer); view.ovStage = 3;
+  if (id === "roll_center" && !reduceMotion) { view.ovStage = 1; view.ovTimer = setTimeout(() => { view.ovStage = 2; updateScene(); view.ovTimer = setTimeout(() => { view.ovStage = 3; updateScene(); }, 1600); }, 1600); }
   if (ov.anim && !reduceMotion) view.anim = { t0: null, T: cfg.sweep.travel };
   else if (ov.anim) setTravel(cfg.sweep.travel);
   else if (pose.dz) setTravel(0);
@@ -2251,7 +2295,7 @@ function stepAnim(now) {
   updateScene();
 }
 function drawOverlay(id, { D, o, p, h, s, x, sst, col }) {
-  const A = col.accent, m = ev.metrics, cap = (name, val, note) => { $("#ovcap").innerHTML = `<span><b>${esc(name)}</b>${val ? ` <span class="mono">${val}</span>` : ""}${note ? ` · ${note}` : ""}</span>${OVERLAYS[id].anim ? `<button class="btn small" type="button" id="ovReplay">Replay</button>` : ""}<button class="btn small" type="button" id="ovHide">Hide</button>`; };
+  const A = col.accent, m = ev.metrics, cap = (name, val, note) => { $("#ovcap").innerHTML = `<span><b>${esc(name)}</b>${val ? ` <span class="mono">${val}</span>` : ""}${note ? ` · ${note}` : ""}</span>${OVERLAYS[id].anim || id === "roll_center" ? `<button class="btn small" type="button" id="ovReplay">Replay</button>` : ""}<button class="btn small" type="button" id="ovHide">Hide</button>`; };
   const { k, g } = axisGround(p);
   const axisRod = () => { D.rod(g, V.add(p.ub, V.mul(k, 140)), 3.2, A); D.dot(g, A, 9); };
   const wheelUp = () => V.unit(V.sub([0, 0, 1], V.mul(p.a, p.a[2])));
@@ -2313,17 +2357,21 @@ function drawOverlay(id, { D, o, p, h, s, x, sst, col }) {
       const ic = [p.cp[0], o.fv_ic[0], o.fv_ic[1]];
       if (Math.abs(ic[1] - p.cp[1]) > 5200) { const u = V.unit(V.sub(ic, [p.cp[0], p.lb[1], p.lb[2]])); D.line([[p.cp[0], p.ub[1], p.ub[2]], V.add([p.cp[0], p.ub[1], p.ub[2]], V.mul(V.unit(V.sub(ic, [p.cp[0], p.ub[1], p.ub[2]])), 4000))], col.s1, true); D.line([[p.cp[0], p.lb[1], p.lb[2]], V.add([p.cp[0], p.lb[1], p.lb[2]], V.mul(u, 4000))], col.s1, true);
         cap(OVERLAYS[id].name, id === "fvsa" ? `${fmt(o.fvsa, 0)} mm` : `${fmt(o.roll_center, 1)} mm`, `the wishbones (dashed blue) cross ${fmt(Math.abs(ic[1] - p.cp[1]) / 1000, 1)} m away, off screen: nearly parallel arms`); break; }
+      const stg = id === "roll_center" ? (view.ovStage || 3) : 3;
       D.line([[p.cp[0], p.ub[1], p.ub[2]], ic], col.s1, true); D.line([[p.cp[0], p.lb[1], p.lb[2]], ic], col.s1, true);
+      if (stg === 1) { cap("Roll center · step 1 of 3", "", "extend both wishbones inboard (dashed blue) until they cross"); break; }
       D.dot(ic, col.s1, 16); D.label(V.add(ic, [0, 0, 70]), "instant center", col.s1);
+      if (stg === 2) { cap("Roll center · step 2 of 3", "", "where the extended wishbones cross is the instant center (blue dot)"); break; }
       if (id === "fvsa") {
         D.rod([p.cp[0], p.cp[1], 2], [p.cp[0], ic[1], 2], 4, A); D.line([ic, [p.cp[0], ic[1], 0]], col.muted, true);
         D.label([p.cp[0], (p.cp[1] + ic[1]) / 2, -70], `FVSA ${fmt(o.fvsa, 0)} mm`, A);
         cap("Front-view swing arm", `${fmt(o.fvsa, 0)} mm`, "dashed blue = the wishbones extended until they cross");
       } else {
         const rc = [p.cp[0], 0, o.roll_center + p.cp[2]];
-        D.rod(p.cp, ic, 3, A); D.rod([p.cp[0], -p.cp[1], p.cp[2]], [p.cp[0], -ic[1], ic[2]], 3, A);
+        D.line([[p.cp[0], 0, 0], [p.cp[0], 0, Math.max(450, rc[2] + 250)]], col.muted, true); D.label([p.cp[0], 0, Math.max(450, rc[2] + 250) + 30], "car centerline", col.muted);
+        D.rod(p.cp, ic, 3, A); D.rod([p.cp[0], -p.cp[1], p.cp[2]], [p.cp[0], -ic[1], ic[2]], 3, A); D.dot([p.cp[0], -ic[1], ic[2]], col.s1, 10);
         D.dot(rc, A, 18); D.label(V.add(rc, [0, 0, 80]), `roll center ${fmt(o.roll_center, 1)} mm`, A);
-        cap("Roll center", `${fmt(o.roll_center, 1)} mm`, "contact patch → instant center lines from both sides cross at the roll center");
+        cap("Roll center", `${fmt(o.roll_center, 1)} mm`, "orange: contact patch → instant center; where the lines from both sides cross the centerline is the roll center");
       }
       break;
     }
@@ -2592,7 +2640,7 @@ function influenceMetrics() {
 function openInfluence(path) {
   if (!ev || err || !path) return;
   if (!influenceAllowed(path)) {
-    const hb = $("#chHints"); if (hb) { hb.insertAdjacentHTML("afterbegin", `<p class="hint lockmsg">The influence panel unlocks with the last hint. Try reasoning it out first!</p>`); hb.scrollIntoView({ block: "nearest" }); }
+    const hb = $("#chHints"); if (hb) { hb.insertAdjacentHTML("afterbegin", `<p class="chint lockmsg">The influence panel unlocks with the last hint. Try reasoning it out first!</p>`); hb.scrollIntoView({ block: "nearest" }); }
     return;
   }
   drawerPath = path;
@@ -2646,8 +2694,9 @@ const CHALLENGES = [
     goals: ["roll_center", "rc_lat", "camber_gain"],
     bonus: { key: "antidive", text: "Anti-dive 5–20 %" },
     concept: [
-      "In the front view, extend both wishbones inboard until their lines cross. That crossing is the instant center (IC): the wheel moves as if it swings about it. A line from the contact patch through the IC meets the car's centerline at the roll center.",
-      "Two things to remember. A higher IC gives a higher roll center. A closer IC (a shorter swing arm) gives more camber gain. So the job is to raise the IC without pulling it closer, and no single pivot move does both. That is why you will need to combine moves.",
+      "Click Show me below: the view turns to face the front of the car and builds the roll center in three steps. The dashed blue lines are your upper and lower wishbones, extended inboard. Where they cross is the instant center (blue dot): the wheel moves as if it swings about that point.",
+      "The orange line runs from the tire's contact patch through the instant center. The same line is drawn from the other side of the car (shown faintly). Where the two orange lines cross on the car's centerline is the roll center (orange dot).",
+      "Two rules: a higher instant center gives a higher roll center, and a closer instant center (a shorter swing arm) gives more camber gain. No single pivot move raises it without pulling it closer, so you will need to combine moves.",
     ],
     show: "roll_center", step: 5,
     levers: [
@@ -2663,7 +2712,8 @@ const CHALLENGES = [
     goals: ["bump_steer", "bump_steer_max", "ackermann"],
     bonus: { fn: (c, c0) => V.norm(V.sub(c.hardpoints.trackrod_outboard, c0.hardpoints.trackrod_outboard)) < 0.05, text: "Leave the outer end alone (it is on the upright, which is already made)" },
     concept: [
-      "As the wheel moves up, the tie rod's outer end swings on an arc around its inner end, and the ball joints swing on arcs set by the wishbones. If those arcs differ, the tie rod pushes or pulls the steering arm and the wheel steers itself: bump steer.",
+      "Click Show me below: the wheel moves through bump in the top view, and the orange line shows which way it points (drawn 25× larger). If the line swings, the car has bump steer.",
+      "It happens because the tie rod's outer end swings on an arc around its inner end, while the upright moves on arcs set by the wishbones. If those arcs differ, the tie rod pushes or pulls the steering arm and the wheel steers itself.",
       "Rule of thumb: the inner end's height (Z) sets the slope of the toe curve (a straight sloped line in Heave → Toe change), and the tie rod's length (Y) sets its curvature (a U or arch shape). Moving the outer end in or out also changes the steering-arm geometry, so watch Ackermann.",
     ],
     show: "bump_steer", step: 2,
@@ -2701,7 +2751,7 @@ function startChallenge(id) {
   if (!start) return;
   const prev = chal ? chal.prev : JSON.parse(JSON.stringify(cfg));
   chal = { def, start: JSON.parse(JSON.stringify(start)), prev, hint: 0, done: false, par: chalPar(def) };
-  document.body.classList.add("chal");
+  document.body.classList.add("chal", "focus");
   closeInfluence(); showMe(null); undoStack.length = 0; fixRows.clear(); openRows.clear();
   view.target = null; loadCfg(start); $("#preset").value = "custom";
   base = ev; baseName = "challenge start"; tab = def.tab;
@@ -2709,7 +2759,7 @@ function startChallenge(id) {
 }
 function exitChallenge(keep = false) {
   if (!chal) return;
-  const prev = chal.prev; chal = null; document.body.classList.remove("chal");
+  const prev = chal.prev; chal = null; document.body.classList.remove("chal", "focus"); $("#focusBox").hidden = true;
   $("#crail").hidden = true; $("#cardsIn").hidden = false; closeInfluence(); showMe(null); base = null;
   if (!keep) { view.target = null; loadCfg(prev); $("#preset").value = "custom"; } else renderAll(0);
 }
@@ -2744,8 +2794,37 @@ function meter(key, c, lab, unit, dec) {
   const d0 = Math.min(a - w * 0.6, v - w * 0.15), d1 = Math.max(b + w * 0.6, v + w * 0.15), X = (x) => ((x - d0) / (d1 - d0) * 100).toFixed(2);
   const vs = Math.max(0, Math.min(100, +X(v)));
   const rng = `${lo == null ? "≤ " : fmt(lo, dec)}${lo != null && hi != null ? " to " : ""}${hi == null ? " or more" : fmt(hi, dec)}`;
-  return `<div class="meter ${ok ? "ok" : "bad"}"><div class="mtop"><span>${esc(lab)} <small class="muted">target ${rng}</small></span><b>${fmt(v, dec)} <small>${esc(unit)}</small> ${ok ? "✓" : "✗"}</b></div>
-    <div class="mbar" title="green band = target ${rng} ${esc(unit)}"><span class="mband" style="left:${lo == null ? 0 : X(lo)}%;right:${hi == null ? 0 : (100 - X(hi))}%"></span><span class="mdot" style="left:${vs}%"></span></div></div>`;
+  const can = !!meterChart(key, true), open = can && chal && chal.open && chal.open.has(key);
+  return `<div class="meter ${ok ? "ok" : "bad"}"><div class="mtop"><span>${can ? `<button class="lnk mexp" type="button" data-mexp="${key}" aria-expanded="${open}">${open ? "▾" : "▸"} ${esc(lab)}</button>` : esc(lab)} <small class="muted">target ${rng}</small></span><b>${fmt(v, dec)} <small>${esc(unit)}</small> ${ok ? "✓" : "✗"}</b></div>
+    <div class="mbar" title="green band = target ${rng} ${esc(unit)}"><span class="mband" style="left:${lo == null ? 0 : X(lo)}%;right:${hi == null ? 0 : (100 - X(hi))}%"></span><span class="mdot" style="left:${vs}%"></span></div>${open ? `<div class="mchart">${meterChart(key)}</div>` : ""}</div>`;
+}
+// the curve behind each goal, with the target band, so an abstract number becomes "flatten this line"
+function meterChart(key, probe = false) {
+  const R = ev.rows, B = base && base.rows, Ro = ev.roll, Bo = base && base.roll, tg = S.defaultTargets(ev.cfg)[key] || [null, null];
+  const ser = (rows, x, y, cur) => ({ x: rows.map(x), y: rows.map(y), color: cur ? "var(--s1)" : "var(--base)", dash: cur ? null : "4 3", w: cur ? 2 : 1.4, name: cur ? "now" : "start" });
+  const two = (rs, bs, x, y) => [...(bs ? [ser(bs, x, y, false)] : []), ser(rs, x, y, true)];
+  const toe = (rs) => { const r0 = rs.reduce((a, r) => Math.abs(r.dz) < Math.abs(a.dz) ? r : a); return (r) => r.toe - r0.toe; };
+  const spec = {
+    roll_center: () => ({ title: "Roll center height vs wheel travel, mm", xlabel: "wheel travel, mm", band: tg, series: two(R, B, r => r.dz, r => r.roll_center) }),
+    rc_lat: () => Ro && ({ title: "Roll center sideways position vs roll, mm", cap: "a flat line = the roll center stays put", xlabel: "body roll, deg", series: two(Ro, Bo, r => r.roll, r => r.rc_lateral) }),
+    camber_gain: () => ({ title: "Camber vs wheel travel, deg", cap: "slope = camber gain", xlabel: "wheel travel, mm", series: two(R, B, r => r.dz, r => r.camber) }),
+    antidive: () => ({ title: "Anti-dive vs wheel travel, %", xlabel: "wheel travel, mm", band: tg, series: two(R, B, r => r.dz, r => r.antidive) }),
+    bump_steer: () => ({ title: "Toe change vs wheel travel, deg", cap: "slope = bump steer; flatten the line", xlabel: "wheel travel, mm", series: [...(B ? [{ ...ser(B, r => r.dz, toe(B), false) }] : []), ser(R, r => r.dz, toe(R), true)] }),
+    bump_steer_max: () => ({ title: "Toe change vs wheel travel, deg", cap: "the whole line must stay inside the green band", xlabel: "wheel travel, mm", band: tg[1] != null ? [-tg[1], tg[1]] : null, series: [...(B ? [{ ...ser(B, r => r.dz, toe(B), false) }] : []), ser(R, r => r.dz, toe(R), true)] }),
+    ackermann: () => ev.steer && ({ title: "Ackermann vs outer wheel angle, %", xlabel: "outer wheel angle, deg", band: tg, series: two(ev.steer.filter(r => Number.isFinite(r.ackermann)), base && base.steer ? base.steer.filter(r => Number.isFinite(r.ackermann)) : null, r => r.outer, r => r.ackermann) }),
+  }[key];
+  if (probe) return !!spec;
+  const s = spec && spec(); return s ? chart({ ...s, h: 150 }) : "";
+}
+// focus layout: in a challenge, the results area shows only the goal curves; "Show full results" brings back the tabs
+function renderFocus() {
+  const fb = $("#focusBox"), focus = document.body.classList.contains("focus");
+  fb.hidden = false;
+  if (!focus) { fb.innerHTML = `<div class="focushd"><span class="note">Showing all results.</span><button class="btn small" type="button" id="fbToggle">Back to focus view</button></div>`; }
+  else fb.innerHTML = `<div class="focushd"><h3>Your goals as curves</h3><button class="btn small" type="button" id="fbToggle">Show full results</button></div>
+    <div class="charts">${chal.def.goals.concat(chal.def.bonus.key ? [chal.def.bonus.key] : []).filter((k, i, a) => meterChart(k, true) && !(k === "bump_steer" && a.includes("bump_steer_max"))).map(k => meterChart(k)).join("")}</div>
+    <p class="note">Dashed = where you started. Drag the Travel slider to see the corner move along these curves.</p>`;
+  $("#fbToggle").onclick = () => { document.body.classList.toggle("focus"); renderFocus(); };
 }
 function updateRail() {
   if (!chal || err || !ev || !$("#chGoals")) return;
@@ -2758,6 +2837,8 @@ function updateRail() {
   $("#chGoals").innerHTML = d.goals.map(k => { const c = row(k); if (!c) return ""; const [lab, unit, dec] = metricLabel(k); return meter(k, c, lab, unit, dec); }).join("") + bonusHtml;
   const moved = chalMoved(), par = chal.par;
   $("#chMove").innerHTML = `Moved <b>${fmt(moved, 1)} mm</b> in total${par ? ` · par ${fmt(par, 0)} mm` : ""}`;
+  renderFocus();
+  $$("#chGoals [data-mexp]").forEach(b => b.addEventListener("click", () => { chal.open = chal.open || new Set(); const k = b.dataset.mexp; chal.open.has(k) ? chal.open.delete(k) : chal.open.add(k); updateRail(); }));
   renderHints();
   const stars = goalsOk ? 1 + (bonusOk ? 1 : 0) + (par && moved <= par + 0.5 ? 1 : 0) : 0;
   if (goalsOk) {
@@ -2786,19 +2867,53 @@ function chalViol(e, keys) {
 const chalQuick = (c) => S.evaluate(c, { full: false, steer: cfg.axle === "front" && chal.def.goals.includes("ackermann"), pack: false });
 const chalFull = (c) => S.evaluate(c, { steer: cfg.axle === "front" && chal.def.goals.includes("ackermann"), pack: false });
 function leverTable() {
-  const d = chal.def, keys = d.goals.concat(d.bonus.key ? [d.bonus.key] : []);
+  // Option A: every move is shown in the direction that helps, ranked by how few millimeters it needs to bring the
+  // goal that is furthest from its target into range, with the other goals' resulting values as side effects.
+  const d = chal.def, keys = d.goals.concat(d.bonus.key ? [d.bonus.key] : []), st = d.step;
   let e0; try { e0 = chalFull(cfg); } catch (x) { return `<p class="note">The current geometry does not solve.</p>`; }
-  const head = keys.map(k => `<th class="n">${esc(metricLabel(k)[0])}</th>`).join("");
-  const now = keys.map(k => { const c = e0.checks.find(r => r.key === k), [, , dec] = metricLabel(k); return `<td class="n"><b>${fmt(c.value, dec)}</b></td>`; }).join("");
-  const rows = d.levers.map(lv => {
-    let e1; try { e1 = chalFull(leverCfg(cfg, lv, d.step)); } catch (x) { return ""; }
+  const chk = (e, k) => e.checks.find(r => r.key === k);
+  const goalsLeft = d.goals.filter(k => chalViol(e0, [k]) > 0);
+  const focus = goalsLeft.length ? goalsLeft.reduce((a, k) => chalViol(e0, [k]) > chalViol(e0, [a]) ? k : a) : (d.bonus.key && chalViol(e0, [d.bonus.key]) > 0 ? d.bonus.key : null);
+  if (!focus) return `<p class="note">Every goal is met. Nothing left to fix.</p>`;
+  const fc = chk(e0, focus), [fLab, fUnit, fDec] = metricLabel(focus);
+  const w = fc.lo != null && fc.hi != null ? fc.hi - fc.lo : Math.abs(fc.lo ?? fc.hi) || 1;
+  const aim = fc.lo != null && fc.value < fc.lo ? fc.lo + 0.1 * w : fc.hi - 0.1 * w;
+  const rows = [];
+  for (const lv of d.levers) {
+    let ep, em; try { ep = chalFull(leverCfg(cfg, lv, st)); em = chalFull(leverCfg(cfg, lv, -st)); } catch (x) { continue; }
+    const slope = (chk(ep, focus).value - chk(em, focus).value) / (2 * st);          // focus metric per mm
+    const tot = (e) => chalViol(e, d.goals) + (lv.bonusOnly ? chalViol(e, [d.bonus.key]) : 0);
+    let sgn = Math.abs(slope) > 1e-12 ? Math.sign((aim - fc.value) * slope) : (tot(ep) <= tot(em) ? 1 : -1);
+    const e1 = sgn > 0 ? ep : em;
+    // walk along this move (helpful direction) with the solver until the goal is in range, or record the best it gets
+    let need = Infinity, best = { v: chalViol(e0, [focus]), mm: 0, val: fc.value }, prevMm = 0, prevV = best.v;
+    for (const k of [1, 2, 3, 4, 6, 8, 10, 13, 16, 20]) {
+      const mm = k * st; let ek; try { ek = chalQuick(leverCfg(cfg, lv, sgn * mm)); } catch (x) { break; }
+      const vk = chalViol(ek, [focus]);
+      if (vk < best.v - 1e-12) best = { v: vk, mm, val: chk(ek, focus).value };
+      if (vk <= 0) { need = prevV > 0 ? prevMm + (mm - prevMm) * prevV / (prevV - vk + 1e-12) : mm; break; }
+      prevMm = mm; prevV = vk;
+    }
+    const nm = sgn > 0 ? lv.name : lv.name.replace(/ (up|inboard|outboard)/, (m) => ({ " up": " down", " inboard": " outboard", " outboard": " inboard" }[m])).replace("front down, rear up", "front up, rear down");
+    rows.push({ nm, e1, need, best });
+  }
+  rows.sort((a, b) => a.need - b.need || a.best.v - b.best.v);
+  const head = keys.map(k => `<th class="n${k === focus ? " lv-focus" : ""}">${esc(metricLabel(k)[0])}</th>`).join("");
+  const now = keys.map(k => `<td class="n${k === focus ? " lv-focus" : ""}"><b>${fmt(chk(e0, k).value, metricLabel(k)[2])}</b></td>`).join("");
+  const body = rows.map(r => {
     const cells = keys.map(k => {
-      const c0 = e0.checks.find(r => r.key === k), c1 = e1.checks.find(r => r.key === k), [, , dec] = metricLabel(k);
-      const v0 = chalViol(e0, [k]), v1 = chalViol(e1, [k]), cls = v1 < v0 - 1e-9 ? "lv-good" : v1 > v0 + 1e-9 ? "lv-bad" : "";
-      return `<td class="n ${cls}">${fmt(c1.value, dec)}</td>`; }).join("");
-    return `<tr${lv.bonusOnly ? ' class="lv-bonus"' : ""}><td>${esc(lv.name)} ${d.step} mm</td>${cells}</tr>`; }).join("");
-  return `<div class="tbl-wrap"><table class="data lvt"><thead><tr><th>If you…</th>${head}</tr></thead><tbody><tr class="lv-now"><td>Now</td>${now}</tr>${rows}</tbody></table></div>
-    <p class="note">Re-solved live from your current geometry. <span class="lv-good lvk">green</span> = closer to its target, <span class="lv-bad lvk">red</span> = further away. Look for moves whose side effects cancel each other; the opposite move does roughly the opposite.</p>`;
+      const v0 = chalViol(e0, [k]), v1 = chalViol(r.e1, [k]), dv = v1 - v0;
+      const cls = dv < -1e-9 ? "lv-good" : dv > 1e-9 ? "lv-bad" : "", s = Math.min(1, Math.abs(dv) / Math.max(v0, 0.05) * 2);
+      return `<td class="n ${cls}${k === focus ? " lv-focus" : ""}" style="--s:${(0.25 + 0.75 * s).toFixed(2)}">${fmt(chk(r.e1, k).value, metricLabel(k)[2])}</td>`; }).join("");
+    const needTxt = Number.isFinite(r.need) ? `<b>≈ ${fmt(r.need, r.need < 10 ? 1 : 0)} mm</b>`
+      : r.best.mm ? `<span class="muted">not alone: best ${fmt(r.best.val, fDec)} at ${fmt(r.best.mm, 0)} mm</span>` : `<span class="muted">does not help</span>`;
+    return `<tr><td>${esc(r.nm)} ${st} mm</td><td class="n">${needTxt}</td>${cells}</tr>`; }).join("");
+  const alone = rows.some(r => Number.isFinite(r.need));
+  return `<p class="lvlead">Furthest from target: <b>${esc(fLab)}</b> (${fmt(fc.value, fDec)} ${esc(fUnit)}). Moves are shown in the direction that helps it, best first.</p>
+    ${alone ? "" : `<p class="lvlead"><b>No single move fixes it on its own.</b> Take the top move, then look at this table again: the next move usually finishes the job. Combining two moves is normal.</p>`}
+    <div class="tbl-wrap"><table class="data lvt"><thead><tr><th>Move</th><th class="n">Fixes ${esc(fLab.toLowerCase())} after</th>${head}</tr></thead>
+    <tbody><tr class="lv-now"><td>Now</td><td></td>${now}</tr>${body}</tbody></table></div>
+    <p class="note">Values are re-solved from your current geometry after one ${st} mm step. <span class="lv-good lvk" style="--s:1">green</span> = that goal gets closer to its target, <span class="lv-bad lvk" style="--s:1">red</span> = further away; stronger color = bigger change. "Fixes … after" walks along each move with the solver: a number means that move alone gets the goal into range; "not alone" means it helps but stalls, so combine it with another move. A big number is not wrong; it just takes a large change.</p>`;
 }
 const stepCache = new Map();
 async function nextStep(box) {
@@ -2819,11 +2934,11 @@ async function nextStep(box) {
   }
   if (best.c) { try { best.e = chalFull(best.c); } catch (x) { /* keep the quick result */ } }
   let html;
-  if (!best.moves.length) html = `<p class="hint"><b>Hint 3.</b> No combination of two of these moves improves things from here. Try <b>Start over</b>, and change pairs of pivots together.</p>`;
+  if (!best.moves.length) html = `<p class="chint"><b>Hint 3.</b> No combination of two of these moves improves things from here. Try <b>Start over</b>, and change pairs of pivots together.</p>`;
   else {
     const txt = best.moves.map(([lv, k]) => `<b>${esc(lv.name.replace(/ (up|inboard|outboard)/, (m) => k > 0 ? m : { " up": " down", " inboard": " outboard", " outboard": " inboard" }[m]))} ${Math.abs(k) * d.step} mm</b>`).join(" and ");
     const res = keys.map(k => { const c = best.e.checks.find(r => r.key === k), [lab, unit, dec] = metricLabel(k); return `${esc(lab)} ${fmt(c.value, dec)} ${esc(unit)} ${c.status === "PASS" ? "✓" : "✗"}`; }).join(" · ");
-    html = `<div class="hint"><b>Hint 3: a next step.</b> From where you are now, try ${txt}. That gives: ${res}.
+    html = `<div class="chint"><b>Hint 3.</b> From where you are now, try ${txt}. That gives: ${res}.
       ${chalViol(best.e, keys) > 0 ? " Not solved yet: take the step, then look at the lever table again." : ""}
       <div class="tact" style="margin-top:6px"><button class="btn small" type="button" id="chStepPv">Preview it</button></div></div>`;
     stepCfg.set(sig, best.c);
@@ -2835,11 +2950,11 @@ const stepCfg = new Map();
 function renderHints() {
   const d = chal.def, H = $("#chHints"); if (!H) return;
   let html = "";
-  if (chal.hint >= 1) html += `<div class="hint"><b>Hint 1: the idea.</b> ${d.concept.map(p => `<p>${esc(p)}</p>`).join("")}<button class="btn small" type="button" id="chHintShow">Show me ${esc(OVERLAYS[d.show].name.toLowerCase())}</button></div>`;
-  if (chal.hint >= 2) html += `<div class="hint"><b>Hint 2: what each move does right now.</b>${leverTable()}</div>`;
+  if (chal.hint >= 1) html += `<div class="chint"><b>Hint 1.</b> ${d.concept.map(p => `<p>${esc(p)}</p>`).join("")}<button class="btn small" type="button" id="chHintShow">Show me ${esc(OVERLAYS[d.show].name.toLowerCase())}</button></div>`;
+  if (chal.hint >= 2) html += `<div class="chint"><b>Hint 2. What each move does right now.</b>${leverTable()}</div>`;
   if (chal.hint >= 3) { const sig = JSON.stringify(cfg.hardpoints) + d.id;
-    html += `<div id="chStep">${stepCache.get(sig) || `<button class="btn small primary" type="button" id="chStepGo">Hint 3: suggest a next step from here</button>`}</div><p class="note">The influence panel is unlocked: click any of your points in the 3D view.</p>`; }
-  const labels = ["Hint 1: the idea", "Hint 2: what each move does now", "Hint 3: a next step (also unlocks the influence panel)"];
+    html += `<div id="chStep">${stepCache.get(sig) || `<button class="btn small primary" type="button" id="chStepGo">Hint 3: suggest a next step from here</button><p class="note">The solver tries every move in the table above, and every pair of them, at 1 to 4 steps either way (416 combinations). It scores how far each goal is from its target and shows the best one. It is a plain search, not AI: the same geometry always gets the same suggestion.</p>`}</div><p class="note">The influence panel is unlocked: click any of your points in the 3D view.</p>`; }
+  const labels = ["Show hint 1", "Show hint 2: what each move does", "Show hint 3: a suggested next step (also unlocks the influence panel)"];
   if (chal.hint < 3) html += `<button class="btn small" type="button" id="chHint">${labels[chal.hint]}</button>`;
   if (chal.hint === 3 && !stepCache.has(JSON.stringify(cfg.hardpoints) + d.id)) { /* step search runs on request */ }
   H.innerHTML = html;
@@ -2997,19 +3112,42 @@ $("#btnCopy").addEventListener("click", async (e) => {
   catch (ex) { $("#cardJson").open = true; $("#jsonBox").focus(); $("#jsonBox").select(); b.textContent = "Select and copy below"; }
   setTimeout(() => b.textContent = "Copy JSON", 1800);
 });
-if (location.protocol === "file:") {
+// Save JSON: a real file on the user's computer. Chrome/Edge can save straight back to the file that was opened;
+// other browsers download a copy. Hidden only inside sandboxed embeds, where downloads are blocked.
+let framed = false; try { framed = window.self !== window.top; } catch (e) { framed = true; }
+let fileHandle = null;
+if (!framed) {
   $("#btnDownload").hidden = false;
-  $("#btnDownload").addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify(exportCfg(), null, 2)], { type: "application/json" }), a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = (cfg.name || "design").replace(/[^\w.-]+/g, "_") + ".json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  $("#btnDownload").addEventListener("click", async () => {
+    const txt = JSON.stringify(exportCfg(), null, 2), name = (cfg.name || "design").replace(/[^\w.-]+/g, "_") + ".json", b = $("#btnDownload");
+    try {
+      if (window.showSaveFilePicker) {
+        if (!fileHandle) fileHandle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: "Design JSON", accept: { "application/json": [".json"] } }] });
+        const w = await fileHandle.createWritable(); await w.write(txt); await w.close();
+        b.textContent = "Saved to " + fileHandle.name; setTimeout(() => b.textContent = "Save JSON", 2000); return;
+      }
+    } catch (ex) { if (ex && ex.name === "AbortError") return; fileHandle = null; }
+    const blob = new Blob([txt], { type: "application/json" }), a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 }
+// first-visit card, shown on every visit until "Don't show this again" is ticked
+function openWelcome() { $("#welcome").hidden = false; $("#wHide").checked = store.get("susp.hideWelcome") === "1"; setTimeout(() => $("#wExplore").focus(), 0); }
+function closeWelcome() { store.set("susp.hideWelcome", $("#wHide").checked ? "1" : "0"); $("#welcome").hidden = true; }
+$("#btnStart").addEventListener("click", openWelcome);
+$("#wClose").addEventListener("click", closeWelcome);
+$("#welcome").addEventListener("click", (e) => { if (e.target.id === "welcome") closeWelcome(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#welcome").hidden) closeWelcome(); });
+$("#wExplore").addEventListener("click", () => { closeWelcome(); if (!chal) { $("#preset").value = "0"; $("#preset").dispatchEvent(new Event("change")); } });
+$("#wOpen").addEventListener("click", () => { closeWelcome(); $("#fileIn").click(); });
+$("#wChal").addEventListener("click", () => { closeWelcome(); openChallenges(); });
+$("#wLearn").addEventListener("click", () => { closeWelcome(); tab = "learn"; renderTabs(); showPanel(); $("#tabs").scrollIntoView({ block: "start" }); });
 $("#btnApplyJson").addEventListener("click", () => {
   try { const raw = JSON.parse($("#jsonBox").value); if (loadCfg(raw)) { $("#jsonMsg").textContent = "Applied."; $("#preset").value = "custom"; } }
   catch (ex) { $("#jsonMsg").textContent = "Not valid JSON: " + ex.message; }
 });
 $("#btnUndo").addEventListener("click", () => undo());
-$("#btnChal").addEventListener("click", () => { if (chal) { $("#crail").scrollIntoView({ block: "nearest" }); return; } openChallenges(); });
+
 $("#btnBase").addEventListener("click", () => { if (!ev || err) return; base = ev; baseName = cfg.name || "pinned design"; renderAll(0); });
 document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dataset.path) $("#preset").value = "custom"; });
 
@@ -3020,6 +3158,7 @@ const savedTab = store.get("susp.tab"); if (savedTab && TABS.some(t => t[0] === 
 let boot = PRESETS[0].cfg, saved = store.get("susp.cfg");
 if (saved) { try { const raw = JSON.parse(saved); S.finishConfig(raw); boot = raw; $("#preset").value = "custom"; } catch (e) { /* ignore a bad draft */ } }
 loadCfg(boot);
+if (store.get("susp.hideWelcome") !== "1") openWelcome();
 })();
 </script>
 

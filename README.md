@@ -12,7 +12,7 @@ Design files do not go in this repository.
 - Keep your JSON files in a `private/` folder next to the code. Git ignores that folder, so it is never uploaded.
   You can also keep them anywhere else, such as a team drive.
 - In the web app, click **Open JSON…** to load one of your files. It is read in your browser and nothing is
-  uploaded. Use **Copy JSON** (or **Download JSON** when running the page from your own computer) to save changes
+  uploaded. Use **Save JSON** (Chrome and Edge can save straight back to the same file) or **Copy JSON** to save changes
   back to your private files.
 - Share designs inside the team through your own private channel (team drive, private chat), never by committing
   them here.
@@ -51,7 +51,7 @@ It needs no install or server; an internet connection loads the 3D library and f
   - **Preview / Apply / Undo:** moves show as a ghost first, and Apply pins the old design as the baseline.
   - Ball joints, contact patch and rocker pivot stay locked unless you unlock them.
   - The glossary text is in `ui/glossary.js` and is inlined by `ui/build.py`.
-- **Challenges** (top bar): two guided exercises (raise the roll center; remove bump steer). Each has live goal meters, locked points, a hint ladder and a star score. The challenge panel takes the place of the inputs column, so it fits on one laptop screen.
+- **Start here** card (shown on each visit until "Don't show this again" is ticked): explore the example, open a design, or try a **challenge**. Two guided exercises (raise the roll center; remove bump steer). Each has live goal meters with expandable curves, locked points, solver-computed hints and a star score. The challenge panel takes the place of the inputs column, and a focus layout shows only the goal curves, so it fits on one laptop screen.
 - **Compare tab:** up to four saved designs next to the live one, kept in this browser. It shows targets and key metrics with the change from a chosen reference, the hardpoints that differ, overlaid curves and 3D ghosts, with a CSV copy.
 - **Pin as baseline** freezes the current results. Your next edits then show as change columns and dashed
   baseline curves, which suits the one-coordinate-at-a-time workflow.
