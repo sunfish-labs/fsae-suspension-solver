@@ -7,6 +7,7 @@ import math
 import numpy as np
 
 from .config import HP_ORDER, METRIC_HELP, METRICS, validate
+from .schema import METRICS_FILE
 from .kinematics import check_targets, rack_for_angle
 from .loads import MEMBERS, member_label
 
@@ -586,8 +587,7 @@ def print_loads(cfg, ev, L):
           "kerb_g are the impact cases), tubes, material, bolts and rod-end rating under 'members'.")
 
 
-CAR_LABELS = {"roll_gradient": ("Roll gradient", "deg/g", 2), "lltd_vs_weight": ("Front LLTD minus front weight", "% points", 1),
-              "freq_ratio": ("Ride frequency ratio, rear / front", "", 2)}
+CAR_LABELS = {k: (d["label"], d["unit"], d["decimals"]) for k, d in METRICS_FILE["car"].items()}
 
 
 def print_car(cfg_f, cfg_r, out):

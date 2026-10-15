@@ -24,9 +24,11 @@ css = open(os.path.join(src, "style.css")).read()
 mods = sorted(f for f in os.listdir(src) if f.endswith(".js"))
 app_js = "(function () {\n" + "".join(open(os.path.join(src, f)).read() for f in mods) + "})();"
 html = html.replace("/*CSS*/", css.rstrip("\n"), 1).replace("/*APP_JS*/", app_js, 1)
-js = open(os.path.join(here, "susp.js")).read()
 glossary = open(os.path.join(here, "glossary.js")).read()
 cad = open(os.path.join(here, "cad.js")).read()
+# the shared schema (schema/*.json, also read by the Python solver), as window.SUSP_SCHEMA for susp.js
+schema = {n: json.load(open(os.path.join(root, "schema", n + ".json"))) for n in ("defaults", "metrics", "targets", "points")}
+js = "window.SUSP_SCHEMA = " + json.dumps(schema, ensure_ascii=False, separators=(",", ":")) + ";\n" + open(os.path.join(here, "susp.js")).read()
 html = html.replace("/*SUSP_JS*/", js).replace("/*CAD_JS*/", cad).replace("/*GLOSSARY_JS*/", glossary).replace("/*PRESETS*/", json.dumps(presets))
 SITE = "https://sunfish-labs.github.io/fsae-suspension-solver/ui/"
 local_html = html.replace("/*GUIDE_URL*/", "guide.html")

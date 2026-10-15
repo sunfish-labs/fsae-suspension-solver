@@ -205,7 +205,8 @@ def damping(sc, MR, k_w, k_r, k_t, m_s):
 # --------------------------------------------------------------------------- #
 #  Whole-car roll balance (front + rear configs)
 # --------------------------------------------------------------------------- #
-CAR_TARGETS = {"roll_gradient": [0.5, 1.5], "lltd_vs_weight": [0.0, 10.0], "freq_ratio": [1.0, 1.2]}
+from .schema import TARGETS_FILE  # noqa: E402
+CAR_TARGETS = TARGETS_FILE["car"]
 
 
 def _series(a, b):

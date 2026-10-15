@@ -1,5 +1,6 @@
 // ------------------------------------------------------------------ Learn tab
-const TERMS = window.SUSP_TERMS || [];
+// each glossary term's live value comes from the metric that names it as its term (schema/metrics.json)
+const TERMS = (window.SUSP_TERMS || []).map(t => Object.assign({}, t, { metric: Object.keys(S.SCHEMA.metrics.corner).find(k => S.SCHEMA.metrics.corner[k].term === t.id) || null }));
 const TERM_BY_METRIC = Object.fromEntries(TERMS.filter(t => t.metric).map(t => [t.metric, t]));
 let learnQ = "";
 function termValue(t) {

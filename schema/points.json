@@ -1,0 +1,118 @@
+{
+ "_doc": "Point names. key = JSON key (KineSolver naming, 'front' = smaller X); short = internal name; label and hint = the web app's input table; aliases = extra names the CSV importer accepts.",
+ "hardpoints": [
+  {
+   "key": "upper_inboard_front",
+   "short": "uif",
+   "label": "Upper inboard front",
+   "hint": "smaller-X pivot"
+  },
+  {
+   "key": "upper_inboard_rear",
+   "short": "uir",
+   "label": "Upper inboard rear",
+   "hint": "larger-X pivot"
+  },
+  {
+   "key": "lower_inboard_front",
+   "short": "lif",
+   "label": "Lower inboard front",
+   "hint": "smaller-X pivot"
+  },
+  {
+   "key": "lower_inboard_rear",
+   "short": "lir",
+   "label": "Lower inboard rear",
+   "hint": "larger-X pivot"
+  },
+  {
+   "key": "upper_outboard",
+   "short": "ubj",
+   "label": "Upper outboard",
+   "hint": "upper ball joint"
+  },
+  {
+   "key": "lower_outboard",
+   "short": "lbj",
+   "label": "Lower outboard",
+   "hint": "lower ball joint"
+  },
+  {
+   "key": "trackrod_inboard",
+   "short": "tri",
+   "label": "Trackrod inboard",
+   "hint": "rack end"
+  },
+  {
+   "key": "trackrod_outboard",
+   "short": "tro",
+   "label": "Trackrod outboard",
+   "hint": "steering arm"
+  },
+  {
+   "key": "contact_patch",
+   "short": "cp",
+   "label": "Tire contact patch",
+   "hint": "ground, Z = 0"
+  }
+ ],
+ "spring_points": [
+  {
+   "key": "rod_outboard",
+   "label": "Pushrod outboard",
+   "hint": "on the arm / upright"
+  },
+  {
+   "key": "rocker_pivot",
+   "label": "Rocker pivot",
+   "hint": "chassis"
+  },
+  {
+   "key": "rocker_axis",
+   "label": "Rocker axis",
+   "hint": "pivot bolt direction"
+  },
+  {
+   "key": "rocker_rod",
+   "label": "Rocker \u2013 pushrod point",
+   "hint": ""
+  },
+  {
+   "key": "rocker_damper",
+   "label": "Rocker \u2013 damper point",
+   "hint": ""
+  },
+  {
+   "key": "damper_chassis",
+   "label": "Damper chassis mount",
+   "hint": ""
+  }
+ ],
+ "aliases": {
+  "tie_rod_inboard": "tri",
+  "tie_rod_outboard": "tro",
+  "tierod_inboard": "tri",
+  "tierod_outboard": "tro",
+  "toe_link_inboard": "tri",
+  "toe_link_outboard": "tro",
+  "upper_ball_joint": "ubj",
+  "lower_ball_joint": "lbj",
+  "upper_balljoint": "ubj",
+  "lower_balljoint": "lbj",
+  "contact": "cp",
+  "tire_contact_patch": "cp",
+  "tyre_contact_patch": "cp",
+  "uca_front": "uif",
+  "uca_rear": "uir",
+  "lca_front": "lif",
+  "lca_rear": "lir"
+ },
+ "spring_aliases": {
+  "pushrod_outboard": "rod_outboard",
+  "pullrod_outboard": "rod_outboard",
+  "rocker_pushrod": "rocker_rod",
+  "damper_inboard": "damper_chassis",
+  "shock_chassis": "damper_chassis",
+  "rocker_shock": "rocker_damper"
+ }
+}

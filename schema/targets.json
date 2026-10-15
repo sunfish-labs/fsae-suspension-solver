@@ -1,0 +1,139 @@
+{
+ "_doc": "Built-in target ranges: broad sanity checks, narrowed per design (targets) or by a team targets file. conditional ranges apply when the design has that part.",
+ "general": {
+  "front": {
+   "camber": [
+    -3.0,
+    -0.5
+   ],
+   "camber_gain": [
+    0.2,
+    1.0
+   ],
+   "caster": [
+    3,
+    8
+   ],
+   "kpi": [
+    0,
+    9
+   ],
+   "scrub": [
+    0,
+    30
+   ],
+   "trail": [
+    5,
+    30
+   ],
+   "toe": [
+    -0.5,
+    0.25
+   ],
+   "roll_center": [
+    0,
+    75
+   ],
+   "antidive": [
+    0,
+    40
+   ],
+   "ackermann": [
+    0,
+    100
+   ],
+   "bump_steer": [
+    -0.05,
+    0.05
+   ],
+   "bump_steer_max": [
+    null,
+    0.1
+   ]
+  },
+  "rear": {
+   "camber": [
+    -3.0,
+    -0.5
+   ],
+   "camber_gain": [
+    0.2,
+    1.0
+   ],
+   "toe": [
+    0.0,
+    0.5
+   ],
+   "roll_center": [
+    0,
+    100
+   ],
+   "antisquat": [
+    0,
+    60
+   ],
+   "bump_steer": [
+    -0.05,
+    0.05
+   ],
+   "bump_steer_max": [
+    null,
+    0.1
+   ]
+  }
+ },
+ "conditional": {
+  "spring": {
+   "ride_freq": [
+    2.5,
+    4.5
+   ]
+  },
+  "damper_stroke": {
+   "damper_margin": [
+    0.0,
+    null
+   ]
+  },
+  "damper_eye_to_eye": {
+   "damper_topout": [
+    2.0,
+    null
+   ],
+   "damper_bottomout": [
+    2.0,
+    null
+   ]
+  },
+  "rocker": {
+   "trans_min": [
+    45.0,
+    null
+   ]
+  },
+  "damping": {
+   "zeta_bump_low": [
+    0.4,
+    0.9
+   ],
+   "zeta_rebound_low": [
+    0.5,
+    1.2
+   ]
+  }
+ },
+ "car": {
+  "roll_gradient": [
+   0.5,
+   1.5
+  ],
+  "lltd_vs_weight": [
+   0.0,
+   10.0
+  ],
+  "freq_ratio": [
+   1.0,
+   1.2
+  ]
+ }
+}

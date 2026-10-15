@@ -1,0 +1,144 @@
+{
+ "_doc": {
+  "vehicle.track": "null -> 2 x contact patch Y",
+  "vehicle.brakes": "'outboard' (at the upright) or 'inboard' (on the chassis)",
+  "vehicle.drive": "rear only: 'inboard' (chassis-mounted diff) or 'outboard'",
+  "vehicle.mass": "whole car including the driver, kg",
+  "vehicle.weight_front": "fraction of the weight on the front axle",
+  "vehicle.rack_c_factor": "rack mm per steering-wheel turn (optional)",
+  "targets_file": "optional shared team targets JSON, path relative to this design file",
+  "spring": "optional block (null = not modeled); see spring_defaults",
+  "loads.pothole_g": "impact: vertical load as a multiple of the static wheel load",
+  "loads.kerb_g": "impact: sideways load on the wheel (pushing it inboard), multiple of the static load",
+  "loads.brake_split": "'bias': braking force shared by vehicle.front_brake_share; 'grip': Fx = g x Fz",
+  "loads.lltd_front": "front lateral load transfer share; null = from the car's roll balance or the weight split",
+  "members.rod_end_rating": "N, the rod end's catalog radial static (ultimate) rating; null = not checked",
+  "members.bolt_dia": "mm, bolt through each rod end (7.94 = 5/16 in)",
+  "members.bolt_grade": "8.8, 10.9, 12.9, SAE 5 or SAE 8",
+  "members.bolt_shear_planes": "2 = double shear (clevis), 1 = single shear",
+  "members.rod_end_k": "N/mm, axial stiffness of one rod end (each link has two); an estimate",
+  "members.mount_k": "N/mm, chassis tab or bracket at the inboard end of each link; an estimate",
+  "members.toe_comp_limit": "deg, largest acceptable compliance toe change (cornering, braking, accel)",
+  "members.camber_comp_limit": "deg, largest acceptable compliance camber change",
+  "spring.rod_on": "'lower' arm, 'upper' arm or 'upright'",
+  "spring.rocker_axis": "direction of the rocker pivot bolt",
+  "spring.spring_rate": "N/mm",
+  "spring.damper_stroke": "mm, optional",
+  "spring.damper_eye_to_eye": "mm, fully extended, optional",
+  "spring.unsprung_mass": "kg per corner",
+  "spring.tire_rate": "N/mm vertical tire stiffness",
+  "spring.damper_bump_low": "N per m/s at the shaft, from the damper dyno; also _high and rebound_low/_high",
+  "spring.damper_knee": "mm/s shaft speed where low-speed turns into high-speed"
+ },
+ "defaults": {
+  "name": "untitled",
+  "axle": "front",
+  "wheel": {
+   "camber_deg": -1.0,
+   "toe_deg": 0.0,
+   "tire_radius": 254.0,
+   "tire_width": 190.5,
+   "rim_diameter_in": 13.0
+  },
+  "vehicle": {
+   "wheelbase": 1700.0,
+   "track": null,
+   "cg_height": 300.0,
+   "front_brake_share": 0.5,
+   "brakes": "outboard",
+   "drive": "inboard",
+   "mass": 280.0,
+   "weight_front": 0.46,
+   "rack_c_factor": null
+  },
+  "sweep": {
+   "travel": 30.0,
+   "steps": 41,
+   "rack_travel": 35.0,
+   "rack_steps": 14,
+   "ackermann_at_outer_deg": 15.0,
+   "roll_deg": 2.0,
+   "roll_steps": 9
+  },
+  "clearance": {
+   "wishbone_tube_od": 25.4,
+   "tie_rod_od": 16.0,
+   "pushrod_od": 15.9,
+   "damper_od": 55.0,
+   "margin": 5.0
+  },
+  "rack_direction": [
+   0.0,
+   1.0,
+   0.0
+  ],
+  "targets": {},
+  "targets_file": null,
+  "spring": null,
+  "loads": {
+   "bump_g": 3.0,
+   "corner_g": 1.6,
+   "brake_g": 1.6,
+   "combined_g": 1.2,
+   "accel_g": 1.0,
+   "lltd_front": null,
+   "pothole_g": 4.0,
+   "kerb_g": 2.0,
+   "brake_split": "bias"
+  },
+  "members": {
+   "material": "4130 chromoly steel, normalized (yield is lower next to welds)",
+   "wishbone": [
+    15.875,
+    0.889
+   ],
+   "tie_rod": [
+    15.875,
+    0.889
+   ],
+   "pushrod": [
+    15.875,
+    0.889
+   ],
+   "E": 205000.0,
+   "yield": 435.0,
+   "sf_target": 2.0,
+   "rod_end_rating": null,
+   "bolt_dia": 7.94,
+   "bolt_grade": "SAE 8",
+   "bolt_shear_planes": 2,
+   "rod_end_k": 40000.0,
+   "mount_k": 20000.0,
+   "toe_comp_limit": 0.15,
+   "camber_comp_limit": 0.25
+  }
+ },
+ "spring_defaults": {
+  "rod_on": "lower",
+  "rod_outboard": null,
+  "rocker_pivot": null,
+  "rocker_axis": null,
+  "rocker_rod": null,
+  "rocker_damper": null,
+  "damper_chassis": null,
+  "spring_rate": 35.0,
+  "damper_stroke": null,
+  "damper_eye_to_eye": null,
+  "unsprung_mass": 11.0,
+  "tire_rate": 110.0,
+  "target_freq_hz": null,
+  "damper_bump_low": null,
+  "damper_bump_high": null,
+  "damper_rebound_low": null,
+  "damper_rebound_high": null,
+  "damper_knee": 50.0,
+  "target_zeta_low": 0.7,
+  "target_zeta_high": 0.35
+ },
+ "damper_keys": [
+  "damper_bump_low",
+  "damper_bump_high",
+  "damper_rebound_low",
+  "damper_rebound_high"
+ ]
+}

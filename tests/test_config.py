@@ -79,6 +79,17 @@ far = dict(front, hardpoints=dict(front["hardpoints"], trackrod_inboard=[2000.0,
 from susp.kinematics import evaluate  # noqa: E402
 check("links that can't reach -> SolveError", raises(SolveError, lambda: evaluate(make_config(far))))
 
+print("\n3. One schema for both languages")
+from susp.config import METRICS, load_car as _lc  # noqa: E402
+from susp.kinematics import evaluate as _ev  # noqa: E402
+fc, rc_, _ = _lc(os.path.join(ROOT, "designs", "example_car.json"))
+missing = sorted({k for c in (fc, rc_) for k, v in _ev(c)["metrics"].items() if isinstance(v, (int, float)) and k not in METRICS})
+check("every metric the solver reports has a label in schema/metrics.json", not missing, missing)
+schema_metrics = json.load(open(os.path.join(ROOT, "schema", "metrics.json")))["corner"]
+terms = {t for t in (d.get("term") for d in schema_metrics.values()) if t}
+gl = open(os.path.join(ROOT, "ui", "glossary.js")).read()
+check("every metric's glossary term exists", all(f'id: "{t}"' in gl for t in terms), [t for t in terms if f'id: "{t}"' not in gl])
+
 bad = results.count(False)
 print(f"\n{len(results) - bad} of {len(results)} input-handling checks passed")
 sys.exit(1 if bad else 0)

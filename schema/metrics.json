@@ -1,0 +1,362 @@
+{
+ "_doc": "Metric labels, units, decimals and help text, shared by the Python solver and the web app (term = the Learn-tab glossary entry). corner = per-corner metrics, car = whole-car balance.",
+ "corner": {
+  "camber": {
+   "label": "Static camber",
+   "unit": "deg",
+   "decimals": 2,
+   "help": "Wheel lean at ride height. Negative = top leans in. Sets static grip; tune with static camber shims.",
+   "term": "camber"
+  },
+  "toe": {
+   "label": "Static toe (+ = in)",
+   "unit": "deg",
+   "decimals": 3,
+   "help": "Static toe. + = toe-in. Front usually slight toe-out, rear slight toe-in.",
+   "term": "toe"
+  },
+  "caster": {
+   "label": "Caster",
+   "unit": "deg",
+   "decimals": 2,
+   "help": "Kingpin tilt seen from the side. More caster = more self-centring and camber gain while steering, heavier steering.",
+   "term": "caster"
+  },
+  "kpi": {
+   "label": "KPI",
+   "unit": "deg",
+   "decimals": 2,
+   "help": "Kingpin inclination seen from the front. Drives scrub radius and steering-induced camber/jacking.",
+   "term": "kpi"
+  },
+  "scrub": {
+   "label": "Scrub radius",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Distance from the steering axis ground point to the contact patch (+ = axis meets ground inboard). Large = kickback and heavy steering.",
+   "term": "scrub"
+  },
+  "trail": {
+   "label": "Mechanical trail",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Distance from the steering axis ground point to the contact patch along X. Gives self-centring torque.",
+   "term": "trail"
+  },
+  "roll_center": {
+   "label": "Roll center height",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Height of the roll center above ground. Higher = more load transfer through links, less body roll; big swings hurt consistency.",
+   "term": "roll_center"
+  },
+  "fvsa": {
+   "label": "Front-view swing arm",
+   "unit": "mm",
+   "decimals": 0,
+   "help": "Front-view swing arm length. Sets camber gain and where the roll center moves in heave.",
+   "term": "fvsa"
+  },
+  "camber_gain": {
+   "label": "Camber gain",
+   "unit": "deg/in",
+   "decimals": 3,
+   "help": "How much camber changes per inch of bump. Controlled by front-view swing arm (FVSA): longer FVSA = less gain.",
+   "term": "camber_gain"
+  },
+  "bump_steer": {
+   "label": "Bump steer (+ = in)",
+   "unit": "deg/in",
+   "decimals": 3,
+   "help": "Toe change per inch of bump (+ = toe-in). Should be near 0. Fixed with tie-rod inboard/outboard heights.",
+   "term": "bump_steer"
+  },
+  "bump_steer_max": {
+   "label": "Max |toe change|",
+   "unit": "deg",
+   "decimals": 3,
+   "help": "Largest toe change anywhere in the sweep. Catches curved toe traces that a slope hides."
+  },
+  "bump_steer_curve": {
+   "label": "Toe curvature (avg of ends, + = in)",
+   "unit": "deg",
+   "decimals": 3,
+   "help": "Curved (U-shaped) part of the toe trace: toe at full bump and full droop averaged. Comes from tie-rod LENGTH/angle (move trackrod_inboard.y); the slope part comes from tie-rod HEIGHT."
+  },
+  "track_change": {
+   "label": "Track change",
+   "unit": "mm",
+   "decimals": 2,
+   "help": "Sideways contact-patch movement over the sweep. Big = tire scrub and unpredictable grip.",
+   "term": "track_change"
+  },
+  "antidive": {
+   "label": "Anti-dive",
+   "unit": "%",
+   "decimals": 1,
+   "help": "Share of braking weight transfer taken through the links at the front. 0 = all through springs.",
+   "term": "antidive"
+  },
+  "antisquat": {
+   "label": "Anti-squat",
+   "unit": "%",
+   "decimals": 1,
+   "help": "Share of acceleration weight transfer taken through the links at the rear.",
+   "term": "antisquat"
+  },
+  "antilift": {
+   "label": "Anti-lift",
+   "unit": "%",
+   "decimals": 1,
+   "help": "Rear equivalent of anti-dive: link share of braking transfer at the rear.",
+   "term": "antilift"
+  },
+  "ackermann": {
+   "label": "Ackermann",
+   "unit": "%",
+   "decimals": 0,
+   "help": "How closely the steering matches the true-turning-geometry angle split. 0 = parallel steer, 100 = full Ackermann.",
+   "term": "ackermann"
+  },
+  "clearance_min": {
+   "label": "Min link clearance",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Smallest center-line distance between moving links (tie rod, pushrod, wishbone legs) over heave and steer."
+  },
+  "clearance_margin": {
+   "label": "Clearance margin (worst pair)",
+   "unit": "mm",
+   "decimals": 1
+  },
+  "rim_margin": {
+   "label": "Rim radial margin",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Gap between the farthest hardpoint and the rim radius (radial only)."
+  },
+  "roll_camber": {
+   "label": "Roll camber (outer, to ground)",
+   "unit": "deg/deg",
+   "decimals": 3,
+   "help": "Camber change of the outer wheel relative to the GROUND per degree of body roll. 1.0 = wheel leans with the body (no compensation, e.g. equal parallel arms); 0 = wheel stays at static camber. More camber gain lowers it.",
+   "term": "roll_camber"
+  },
+  "roll_camber_max": {
+   "label": "Outer camber to ground at max roll",
+   "unit": "deg",
+   "decimals": 2
+  },
+  "rc_lat": {
+   "label": "Roll center lateral shift",
+   "unit": "mm/deg",
+   "decimals": 1,
+   "help": "How far the roll center moves sideways per degree of roll. Large values make the car's balance change through a corner.",
+   "term": "rc_lat"
+  },
+  "rc_height_roll": {
+   "label": "Roll center height at max roll",
+   "unit": "mm",
+   "decimals": 1
+  },
+  "rc_min": {
+   "label": "Lowest roll center over the travel",
+   "unit": "mm",
+   "decimals": 1
+  },
+  "rc_max": {
+   "label": "Highest roll center over the travel",
+   "unit": "mm",
+   "decimals": 1
+  },
+  "roll_max_deg": {
+   "label": "Body roll swept in the roll check",
+   "unit": "deg",
+   "decimals": 1
+  },
+  "roll_steer": {
+   "label": "Roll steer (outer, + = in)",
+   "unit": "deg/deg",
+   "decimals": 3,
+   "help": "Toe change of the outer wheel per degree of roll (+ = toe-in). Mostly bump steer seen through roll.",
+   "term": "roll_steer"
+  },
+  "turn_radius": {
+   "label": "Turning radius (outer front wheel)",
+   "unit": "m",
+   "decimals": 2,
+   "help": "Path radius of the outer front wheel at full rack travel (kinematic, no slip). Must fit the tightest hairpin."
+  },
+  "steer_arm": {
+   "label": "Steering arm length",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Distance from the tie-rod outer joint to the steering axis. Short arm = high rack force and sensitive steering.",
+   "term": "steer_arm"
+  },
+  "motion_ratio": {
+   "label": "Motion ratio (damper/wheel)",
+   "unit": "",
+   "decimals": 3,
+   "help": "Damper travel per unit wheel travel at ride height. Wheel rate = spring rate x MR^2.",
+   "term": "motion_ratio"
+  },
+  "mr_progression": {
+   "label": "Motion ratio change over travel",
+   "unit": "%",
+   "decimals": 1,
+   "term": "mr_progression"
+  },
+  "wheel_rate": {
+   "label": "Wheel rate",
+   "unit": "N/mm",
+   "decimals": 1,
+   "term": "wheel_rate"
+  },
+  "ride_rate": {
+   "label": "Ride rate (with tire)",
+   "unit": "N/mm",
+   "decimals": 1,
+   "term": "ride_rate"
+  },
+  "ride_freq": {
+   "label": "Ride frequency",
+   "unit": "Hz",
+   "decimals": 2,
+   "help": "Natural frequency of the sprung corner on its springs and tire. Sets how stiff the car feels; FSAE cars often run 2.5-4.5 Hz.",
+   "term": "ride_freq"
+  },
+  "spring_for_target": {
+   "label": "Spring rate for target freq",
+   "unit": "N/mm",
+   "decimals": 1
+  },
+  "c_crit": {
+   "label": "Critical damping at the wheel (body)",
+   "unit": "N s/m",
+   "decimals": 0,
+   "term": "critical_damping"
+  },
+  "c_crit_hop": {
+   "label": "Critical damping at the wheel (wheel hop)",
+   "unit": "N s/m",
+   "decimals": 0
+  },
+  "zeta_bump_low": {
+   "label": "Damping ratio, bump low-speed",
+   "unit": "",
+   "decimals": 2,
+   "term": "damping_ratio"
+  },
+  "zeta_rebound_low": {
+   "label": "Damping ratio, rebound low-speed",
+   "unit": "",
+   "decimals": 2
+  },
+  "zeta_bump_high": {
+   "label": "Damping ratio, bump high-speed",
+   "unit": "",
+   "decimals": 2
+  },
+  "zeta_rebound_high": {
+   "label": "Damping ratio, rebound high-speed",
+   "unit": "",
+   "decimals": 2
+  },
+  "zeta_hop": {
+   "label": "Wheel-hop damping ratio (bump high-speed)",
+   "unit": "",
+   "decimals": 2
+  },
+  "damper_c_low_target": {
+   "label": "Damper rate for the low-speed target",
+   "unit": "N s/m",
+   "decimals": 0
+  },
+  "damper_c_high_target": {
+   "label": "Damper rate for the high-speed target",
+   "unit": "N s/m",
+   "decimals": 0
+  },
+  "damper_used": {
+   "label": "Damper stroke used",
+   "unit": "mm",
+   "decimals": 1
+  },
+  "damper_margin": {
+   "label": "Damper stroke left",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Damper stroke left over after the full wheel travel."
+  },
+  "rocker_rot": {
+   "label": "Rocker rotation over travel",
+   "unit": "deg",
+   "decimals": 1
+  },
+  "static_spring_force": {
+   "label": "Spring force at ride height",
+   "unit": "N",
+   "decimals": 0
+  },
+  "damper_topout": {
+   "label": "Damper room to full extension (droop)",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Room before the damper fully extends at full droop."
+  },
+  "damper_bottomout": {
+   "label": "Damper room to full compression (bump)",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Room before the damper fully compresses at full bump."
+  },
+  "damper_static_pos": {
+   "label": "Damper compressed at ride height",
+   "unit": "% stroke",
+   "decimals": 0,
+   "help": "How far into its stroke the damper sits at ride height. With symmetric bump/droop travel you want roughly 40-60 %.",
+   "term": "damper_stroke"
+  },
+  "trans_min": {
+   "label": "Worst rocker transmission angle",
+   "unit": "deg",
+   "decimals": 0,
+   "help": "Angle between the rod (or damper) and the rocker arm it acts on, worst case over travel. 90 deg = best leverage; below ~45 deg the rocker approaches a toggle and the motion ratio changes quickly.",
+   "term": "trans_min"
+  },
+  "rod_angle": {
+   "label": "Pushrod angle from horizontal",
+   "unit": "deg",
+   "decimals": 0
+  },
+  "hop_freq": {
+   "label": "Wheel-hop frequency",
+   "unit": "Hz",
+   "decimals": 1
+  },
+  "link_clearance": {
+   "label": "Link clearance",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Tightest center-line gap between moving links over travel and steer, against tube radii plus margin."
+  }
+ },
+ "car": {
+  "roll_gradient": {
+   "label": "Roll gradient",
+   "unit": "deg/g",
+   "decimals": 2
+  },
+  "lltd_vs_weight": {
+   "label": "Front LLTD minus front weight",
+   "unit": "% points",
+   "decimals": 1
+  },
+  "freq_ratio": {
+   "label": "Ride frequency ratio, rear / front",
+   "unit": "",
+   "decimals": 2
+  }
+ }
+}

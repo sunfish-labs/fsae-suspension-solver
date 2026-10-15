@@ -8,28 +8,8 @@ const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;
 const attr = esc;
 const cssq = (s) => String(s).replace(/["\\]/g, "\\$&");
 
-const HELP = {
-  camber: "Wheel lean at ride height. Negative = top leans in. Set by shims, so it is easy to adjust later.",
-  camber_gain: "Camber change per inch of bump. Shorter front-view swing arm = more gain.",
-  caster: "Kingpin tilt seen from the side. More caster = more self-centring and steering camber, heavier steering.",
-  kpi: "Kingpin inclination seen from the front. Drives scrub radius and steering jacking.",
-  scrub: "Steering axis ground point to contact patch, sideways. Large = kickback and heavy steering.",
-  trail: "Steering axis ground point to contact patch, fore-aft. Gives self-centring torque.",
-  toe: "Static toe, + = toe-in. Set by tie-rod length.",
-  roll_center: "Roll center height at ride height. Higher = more load transfer through links, less body roll.",
-  antidive: "Share of braking weight transfer taken by the links at the front. Negative = pro-dive.",
-  antisquat: "Share of acceleration weight transfer taken by the links at the rear.",
-  ackermann: "0 % = parallel steer, 100 % = full Ackermann, negative = anti-Ackermann.",
-  bump_steer: "Toe change per inch of bump. Fix the slope with tie-rod height.",
-  bump_steer_max: "Largest toe change anywhere in the travel. Catches U-shaped toe curves (fix those with tie-rod length).",
-  ride_freq: "Natural frequency of the sprung corner on spring and tire. FSAE cars often run 2.5–4.5 Hz.",
-  damper_margin: "Damper stroke left over after the full wheel travel.",
-  damper_topout: "Room before the damper fully extends at full droop.",
-  damper_bottomout: "Room before the damper fully compresses at full bump.",
-  trans_min: "Angle between pushrod or damper and the rocker arm it drives, worst over travel. 90° is best; under 45° the rocker nears a toggle.",
-  link_clearance: "Tightest center-line gap between moving links over travel and steer, against tube radii plus margin.",
-  rim_margin: "Gap from the farthest outboard joint to the rim radius (radial check only).",
-};
+// one-line help for each target row, from the shared schema (schema/metrics.json)
+const HELP = Object.fromEntries(Object.entries(S.SCHEMA.metrics.corner).filter(([, d]) => d.help).map(([k, d]) => [k, d.help]));
 
 // ------------------------------------------------------------------ state
 let cfg = null, ev = null, loads = null, err = null, base = null, baseName = "";
@@ -45,15 +25,9 @@ function setPath(o, path, v) {
 }
 
 // ------------------------------------------------------------------ input builders
-const HP_LABELS = {
-  upper_inboard_front: ["Upper inboard front", "smaller-X pivot"], upper_inboard_rear: ["Upper inboard rear", "larger-X pivot"],
-  lower_inboard_front: ["Lower inboard front", "smaller-X pivot"], lower_inboard_rear: ["Lower inboard rear", "larger-X pivot"],
-  upper_outboard: ["Upper outboard", "upper ball joint"], lower_outboard: ["Lower outboard", "lower ball joint"],
-  trackrod_inboard: ["Trackrod inboard", "rack end"], trackrod_outboard: ["Trackrod outboard", "steering arm"],
-  contact_patch: ["Tire contact patch", "ground, Z = 0"] };
-const SP_LABELS = { rod_outboard: ["Pushrod outboard", "on the arm / upright"], rocker_pivot: ["Rocker pivot", "chassis"],
-  rocker_axis: ["Rocker axis", "pivot bolt direction"], rocker_rod: ["Rocker – pushrod point", ""],
-  rocker_damper: ["Rocker – damper point", ""], damper_chassis: ["Damper chassis mount", ""] };
+// input-table names for the points (schema/points.json): [label, hint]
+const HP_LABELS = Object.fromEntries(S.SCHEMA.points.hardpoints.map(p => [p.key, [p.label, p.hint]]));
+const SP_LABELS = Object.fromEntries(S.SCHEMA.points.spring_points.map(p => [p.key, [p.label, p.hint]]));
 
 function numInput(path, opts = {}) {
   const id = "in_" + path.replace(/\./g, "_");

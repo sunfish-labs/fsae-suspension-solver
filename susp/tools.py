@@ -13,6 +13,7 @@ import numpy as np
 from .config import (HP, HP_ORDER, METRICS, SHORT2LONG, SPRING_POINTS, TEMPLATE_FRONT, TEMPLATE_REAR,
                      cfg_to_json)
 from .errors import ConfigError, GoalError, UnknownPointError
+from .schema import POINTS_FILE
 from .kinematics import SolveError, check_targets, evaluate
 from .output import f_num, table
 
@@ -419,14 +420,8 @@ def show_history(path, metrics=None, plot=None):
 # --------------------------------------------------------------------------- #
 #  CSV import (e.g. SolidWorks sketch points)
 # --------------------------------------------------------------------------- #
-_ALIASES = {"tie_rod_inboard": "tri", "tie_rod_outboard": "tro", "tierod_inboard": "tri", "tierod_outboard": "tro",
-            "toe_link_inboard": "tri", "toe_link_outboard": "tro",
-            "upper_ball_joint": "ubj", "lower_ball_joint": "lbj", "upper_balljoint": "ubj", "lower_balljoint": "lbj",
-            "contact": "cp", "tire_contact_patch": "cp", "tyre_contact_patch": "cp",
-            "uca_front": "uif", "uca_rear": "uir", "lca_front": "lif", "lca_rear": "lir"}
-_SPRING_ALIASES = {"pushrod_outboard": "rod_outboard", "pullrod_outboard": "rod_outboard",
-                   "rocker_pushrod": "rocker_rod", "damper_inboard": "damper_chassis", "shock_chassis": "damper_chassis",
-                   "rocker_shock": "rocker_damper"}
+_ALIASES = POINTS_FILE["aliases"]
+_SPRING_ALIASES = POINTS_FILE["spring_aliases"]
 
 
 def import_csv(path, axle, mapping="x,y,z", scale=1.0, offset="0,0,0", name=None):

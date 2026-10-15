@@ -643,6 +643,7 @@ body { border-top: 4px solid var(--gold); }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+window.SUSP_SCHEMA = {"defaults":{"_doc":{"vehicle.track":"null -> 2 x contact patch Y","vehicle.brakes":"'outboard' (at the upright) or 'inboard' (on the chassis)","vehicle.drive":"rear only: 'inboard' (chassis-mounted diff) or 'outboard'","vehicle.mass":"whole car including the driver, kg","vehicle.weight_front":"fraction of the weight on the front axle","vehicle.rack_c_factor":"rack mm per steering-wheel turn (optional)","targets_file":"optional shared team targets JSON, path relative to this design file","spring":"optional block (null = not modeled); see spring_defaults","loads.pothole_g":"impact: vertical load as a multiple of the static wheel load","loads.kerb_g":"impact: sideways load on the wheel (pushing it inboard), multiple of the static load","loads.brake_split":"'bias': braking force shared by vehicle.front_brake_share; 'grip': Fx = g x Fz","loads.lltd_front":"front lateral load transfer share; null = from the car's roll balance or the weight split","members.rod_end_rating":"N, the rod end's catalog radial static (ultimate) rating; null = not checked","members.bolt_dia":"mm, bolt through each rod end (7.94 = 5/16 in)","members.bolt_grade":"8.8, 10.9, 12.9, SAE 5 or SAE 8","members.bolt_shear_planes":"2 = double shear (clevis), 1 = single shear","members.rod_end_k":"N/mm, axial stiffness of one rod end (each link has two); an estimate","members.mount_k":"N/mm, chassis tab or bracket at the inboard end of each link; an estimate","members.toe_comp_limit":"deg, largest acceptable compliance toe change (cornering, braking, accel)","members.camber_comp_limit":"deg, largest acceptable compliance camber change","spring.rod_on":"'lower' arm, 'upper' arm or 'upright'","spring.rocker_axis":"direction of the rocker pivot bolt","spring.spring_rate":"N/mm","spring.damper_stroke":"mm, optional","spring.damper_eye_to_eye":"mm, fully extended, optional","spring.unsprung_mass":"kg per corner","spring.tire_rate":"N/mm vertical tire stiffness","spring.damper_bump_low":"N per m/s at the shaft, from the damper dyno; also _high and rebound_low/_high","spring.damper_knee":"mm/s shaft speed where low-speed turns into high-speed"},"defaults":{"name":"untitled","axle":"front","wheel":{"camber_deg":-1.0,"toe_deg":0.0,"tire_radius":254.0,"tire_width":190.5,"rim_diameter_in":13.0},"vehicle":{"wheelbase":1700.0,"track":null,"cg_height":300.0,"front_brake_share":0.5,"brakes":"outboard","drive":"inboard","mass":280.0,"weight_front":0.46,"rack_c_factor":null},"sweep":{"travel":30.0,"steps":41,"rack_travel":35.0,"rack_steps":14,"ackermann_at_outer_deg":15.0,"roll_deg":2.0,"roll_steps":9},"clearance":{"wishbone_tube_od":25.4,"tie_rod_od":16.0,"pushrod_od":15.9,"damper_od":55.0,"margin":5.0},"rack_direction":[0.0,1.0,0.0],"targets":{},"targets_file":null,"spring":null,"loads":{"bump_g":3.0,"corner_g":1.6,"brake_g":1.6,"combined_g":1.2,"accel_g":1.0,"lltd_front":null,"pothole_g":4.0,"kerb_g":2.0,"brake_split":"bias"},"members":{"material":"4130 chromoly steel, normalized (yield is lower next to welds)","wishbone":[15.875,0.889],"tie_rod":[15.875,0.889],"pushrod":[15.875,0.889],"E":205000.0,"yield":435.0,"sf_target":2.0,"rod_end_rating":null,"bolt_dia":7.94,"bolt_grade":"SAE 8","bolt_shear_planes":2,"rod_end_k":40000.0,"mount_k":20000.0,"toe_comp_limit":0.15,"camber_comp_limit":0.25}},"spring_defaults":{"rod_on":"lower","rod_outboard":null,"rocker_pivot":null,"rocker_axis":null,"rocker_rod":null,"rocker_damper":null,"damper_chassis":null,"spring_rate":35.0,"damper_stroke":null,"damper_eye_to_eye":null,"unsprung_mass":11.0,"tire_rate":110.0,"target_freq_hz":null,"damper_bump_low":null,"damper_bump_high":null,"damper_rebound_low":null,"damper_rebound_high":null,"damper_knee":50.0,"target_zeta_low":0.7,"target_zeta_high":0.35},"damper_keys":["damper_bump_low","damper_bump_high","damper_rebound_low","damper_rebound_high"]},"metrics":{"_doc":"Metric labels, units, decimals and help text, shared by the Python solver and the web app (term = the Learn-tab glossary entry). corner = per-corner metrics, car = whole-car balance.","corner":{"camber":{"label":"Static camber","unit":"deg","decimals":2,"help":"Wheel lean at ride height. Negative = top leans in. Sets static grip; tune with static camber shims.","term":"camber"},"toe":{"label":"Static toe (+ = in)","unit":"deg","decimals":3,"help":"Static toe. + = toe-in. Front usually slight toe-out, rear slight toe-in.","term":"toe"},"caster":{"label":"Caster","unit":"deg","decimals":2,"help":"Kingpin tilt seen from the side. More caster = more self-centring and camber gain while steering, heavier steering.","term":"caster"},"kpi":{"label":"KPI","unit":"deg","decimals":2,"help":"Kingpin inclination seen from the front. Drives scrub radius and steering-induced camber/jacking.","term":"kpi"},"scrub":{"label":"Scrub radius","unit":"mm","decimals":1,"help":"Distance from the steering axis ground point to the contact patch (+ = axis meets ground inboard). Large = kickback and heavy steering.","term":"scrub"},"trail":{"label":"Mechanical trail","unit":"mm","decimals":1,"help":"Distance from the steering axis ground point to the contact patch along X. Gives self-centring torque.","term":"trail"},"roll_center":{"label":"Roll center height","unit":"mm","decimals":1,"help":"Height of the roll center above ground. Higher = more load transfer through links, less body roll; big swings hurt consistency.","term":"roll_center"},"fvsa":{"label":"Front-view swing arm","unit":"mm","decimals":0,"help":"Front-view swing arm length. Sets camber gain and where the roll center moves in heave.","term":"fvsa"},"camber_gain":{"label":"Camber gain","unit":"deg/in","decimals":3,"help":"How much camber changes per inch of bump. Controlled by front-view swing arm (FVSA): longer FVSA = less gain.","term":"camber_gain"},"bump_steer":{"label":"Bump steer (+ = in)","unit":"deg/in","decimals":3,"help":"Toe change per inch of bump (+ = toe-in). Should be near 0. Fixed with tie-rod inboard/outboard heights.","term":"bump_steer"},"bump_steer_max":{"label":"Max |toe change|","unit":"deg","decimals":3,"help":"Largest toe change anywhere in the sweep. Catches curved toe traces that a slope hides."},"bump_steer_curve":{"label":"Toe curvature (avg of ends, + = in)","unit":"deg","decimals":3,"help":"Curved (U-shaped) part of the toe trace: toe at full bump and full droop averaged. Comes from tie-rod LENGTH/angle (move trackrod_inboard.y); the slope part comes from tie-rod HEIGHT."},"track_change":{"label":"Track change","unit":"mm","decimals":2,"help":"Sideways contact-patch movement over the sweep. Big = tire scrub and unpredictable grip.","term":"track_change"},"antidive":{"label":"Anti-dive","unit":"%","decimals":1,"help":"Share of braking weight transfer taken through the links at the front. 0 = all through springs.","term":"antidive"},"antisquat":{"label":"Anti-squat","unit":"%","decimals":1,"help":"Share of acceleration weight transfer taken through the links at the rear.","term":"antisquat"},"antilift":{"label":"Anti-lift","unit":"%","decimals":1,"help":"Rear equivalent of anti-dive: link share of braking transfer at the rear.","term":"antilift"},"ackermann":{"label":"Ackermann","unit":"%","decimals":0,"help":"How closely the steering matches the true-turning-geometry angle split. 0 = parallel steer, 100 = full Ackermann.","term":"ackermann"},"clearance_min":{"label":"Min link clearance","unit":"mm","decimals":1,"help":"Smallest center-line distance between moving links (tie rod, pushrod, wishbone legs) over heave and steer."},"clearance_margin":{"label":"Clearance margin (worst pair)","unit":"mm","decimals":1},"rim_margin":{"label":"Rim radial margin","unit":"mm","decimals":1,"help":"Gap between the farthest hardpoint and the rim radius (radial only)."},"roll_camber":{"label":"Roll camber (outer, to ground)","unit":"deg/deg","decimals":3,"help":"Camber change of the outer wheel relative to the GROUND per degree of body roll. 1.0 = wheel leans with the body (no compensation, e.g. equal parallel arms); 0 = wheel stays at static camber. More camber gain lowers it.","term":"roll_camber"},"roll_camber_max":{"label":"Outer camber to ground at max roll","unit":"deg","decimals":2},"rc_lat":{"label":"Roll center lateral shift","unit":"mm/deg","decimals":1,"help":"How far the roll center moves sideways per degree of roll. Large values make the car's balance change through a corner.","term":"rc_lat"},"rc_height_roll":{"label":"Roll center height at max roll","unit":"mm","decimals":1},"rc_min":{"label":"Lowest roll center over the travel","unit":"mm","decimals":1},"rc_max":{"label":"Highest roll center over the travel","unit":"mm","decimals":1},"roll_max_deg":{"label":"Body roll swept in the roll check","unit":"deg","decimals":1},"roll_steer":{"label":"Roll steer (outer, + = in)","unit":"deg/deg","decimals":3,"help":"Toe change of the outer wheel per degree of roll (+ = toe-in). Mostly bump steer seen through roll.","term":"roll_steer"},"turn_radius":{"label":"Turning radius (outer front wheel)","unit":"m","decimals":2,"help":"Path radius of the outer front wheel at full rack travel (kinematic, no slip). Must fit the tightest hairpin."},"steer_arm":{"label":"Steering arm length","unit":"mm","decimals":1,"help":"Distance from the tie-rod outer joint to the steering axis. Short arm = high rack force and sensitive steering.","term":"steer_arm"},"motion_ratio":{"label":"Motion ratio (damper/wheel)","unit":"","decimals":3,"help":"Damper travel per unit wheel travel at ride height. Wheel rate = spring rate x MR^2.","term":"motion_ratio"},"mr_progression":{"label":"Motion ratio change over travel","unit":"%","decimals":1,"term":"mr_progression"},"wheel_rate":{"label":"Wheel rate","unit":"N/mm","decimals":1,"term":"wheel_rate"},"ride_rate":{"label":"Ride rate (with tire)","unit":"N/mm","decimals":1,"term":"ride_rate"},"ride_freq":{"label":"Ride frequency","unit":"Hz","decimals":2,"help":"Natural frequency of the sprung corner on its springs and tire. Sets how stiff the car feels; FSAE cars often run 2.5-4.5 Hz.","term":"ride_freq"},"spring_for_target":{"label":"Spring rate for target freq","unit":"N/mm","decimals":1},"c_crit":{"label":"Critical damping at the wheel (body)","unit":"N s/m","decimals":0,"term":"critical_damping"},"c_crit_hop":{"label":"Critical damping at the wheel (wheel hop)","unit":"N s/m","decimals":0},"zeta_bump_low":{"label":"Damping ratio, bump low-speed","unit":"","decimals":2,"term":"damping_ratio"},"zeta_rebound_low":{"label":"Damping ratio, rebound low-speed","unit":"","decimals":2},"zeta_bump_high":{"label":"Damping ratio, bump high-speed","unit":"","decimals":2},"zeta_rebound_high":{"label":"Damping ratio, rebound high-speed","unit":"","decimals":2},"zeta_hop":{"label":"Wheel-hop damping ratio (bump high-speed)","unit":"","decimals":2},"damper_c_low_target":{"label":"Damper rate for the low-speed target","unit":"N s/m","decimals":0},"damper_c_high_target":{"label":"Damper rate for the high-speed target","unit":"N s/m","decimals":0},"damper_used":{"label":"Damper stroke used","unit":"mm","decimals":1},"damper_margin":{"label":"Damper stroke left","unit":"mm","decimals":1,"help":"Damper stroke left over after the full wheel travel."},"rocker_rot":{"label":"Rocker rotation over travel","unit":"deg","decimals":1},"static_spring_force":{"label":"Spring force at ride height","unit":"N","decimals":0},"damper_topout":{"label":"Damper room to full extension (droop)","unit":"mm","decimals":1,"help":"Room before the damper fully extends at full droop."},"damper_bottomout":{"label":"Damper room to full compression (bump)","unit":"mm","decimals":1,"help":"Room before the damper fully compresses at full bump."},"damper_static_pos":{"label":"Damper compressed at ride height","unit":"% stroke","decimals":0,"help":"How far into its stroke the damper sits at ride height. With symmetric bump/droop travel you want roughly 40-60 %.","term":"damper_stroke"},"trans_min":{"label":"Worst rocker transmission angle","unit":"deg","decimals":0,"help":"Angle between the rod (or damper) and the rocker arm it acts on, worst case over travel. 90 deg = best leverage; below ~45 deg the rocker approaches a toggle and the motion ratio changes quickly.","term":"trans_min"},"rod_angle":{"label":"Pushrod angle from horizontal","unit":"deg","decimals":0},"hop_freq":{"label":"Wheel-hop frequency","unit":"Hz","decimals":1},"link_clearance":{"label":"Link clearance","unit":"mm","decimals":1,"help":"Tightest center-line gap between moving links over travel and steer, against tube radii plus margin."}},"car":{"roll_gradient":{"label":"Roll gradient","unit":"deg/g","decimals":2},"lltd_vs_weight":{"label":"Front LLTD minus front weight","unit":"% points","decimals":1},"freq_ratio":{"label":"Ride frequency ratio, rear / front","unit":"","decimals":2}}},"targets":{"_doc":"Built-in target ranges: broad sanity checks, narrowed per design (targets) or by a team targets file. conditional ranges apply when the design has that part.","general":{"front":{"camber":[-3.0,-0.5],"camber_gain":[0.2,1.0],"caster":[3,8],"kpi":[0,9],"scrub":[0,30],"trail":[5,30],"toe":[-0.5,0.25],"roll_center":[0,75],"antidive":[0,40],"ackermann":[0,100],"bump_steer":[-0.05,0.05],"bump_steer_max":[null,0.1]},"rear":{"camber":[-3.0,-0.5],"camber_gain":[0.2,1.0],"toe":[0.0,0.5],"roll_center":[0,100],"antisquat":[0,60],"bump_steer":[-0.05,0.05],"bump_steer_max":[null,0.1]}},"conditional":{"spring":{"ride_freq":[2.5,4.5]},"damper_stroke":{"damper_margin":[0.0,null]},"damper_eye_to_eye":{"damper_topout":[2.0,null],"damper_bottomout":[2.0,null]},"rocker":{"trans_min":[45.0,null]},"damping":{"zeta_bump_low":[0.4,0.9],"zeta_rebound_low":[0.5,1.2]}},"car":{"roll_gradient":[0.5,1.5],"lltd_vs_weight":[0.0,10.0],"freq_ratio":[1.0,1.2]}},"points":{"_doc":"Point names. key = JSON key (KineSolver naming, 'front' = smaller X); short = internal name; label and hint = the web app's input table; aliases = extra names the CSV importer accepts.","hardpoints":[{"key":"upper_inboard_front","short":"uif","label":"Upper inboard front","hint":"smaller-X pivot"},{"key":"upper_inboard_rear","short":"uir","label":"Upper inboard rear","hint":"larger-X pivot"},{"key":"lower_inboard_front","short":"lif","label":"Lower inboard front","hint":"smaller-X pivot"},{"key":"lower_inboard_rear","short":"lir","label":"Lower inboard rear","hint":"larger-X pivot"},{"key":"upper_outboard","short":"ubj","label":"Upper outboard","hint":"upper ball joint"},{"key":"lower_outboard","short":"lbj","label":"Lower outboard","hint":"lower ball joint"},{"key":"trackrod_inboard","short":"tri","label":"Trackrod inboard","hint":"rack end"},{"key":"trackrod_outboard","short":"tro","label":"Trackrod outboard","hint":"steering arm"},{"key":"contact_patch","short":"cp","label":"Tire contact patch","hint":"ground, Z = 0"}],"spring_points":[{"key":"rod_outboard","label":"Pushrod outboard","hint":"on the arm / upright"},{"key":"rocker_pivot","label":"Rocker pivot","hint":"chassis"},{"key":"rocker_axis","label":"Rocker axis","hint":"pivot bolt direction"},{"key":"rocker_rod","label":"Rocker – pushrod point","hint":""},{"key":"rocker_damper","label":"Rocker – damper point","hint":""},{"key":"damper_chassis","label":"Damper chassis mount","hint":""}],"aliases":{"tie_rod_inboard":"tri","tie_rod_outboard":"tro","tierod_inboard":"tri","tierod_outboard":"tro","toe_link_inboard":"tri","toe_link_outboard":"tro","upper_ball_joint":"ubj","lower_ball_joint":"lbj","upper_balljoint":"ubj","lower_balljoint":"lbj","contact":"cp","tire_contact_patch":"cp","tyre_contact_patch":"cp","uca_front":"uif","uca_rear":"uir","lca_front":"lif","lca_rear":"lir"},"spring_aliases":{"pushrod_outboard":"rod_outboard","pullrod_outboard":"rod_outboard","rocker_pushrod":"rocker_rod","damper_inboard":"damper_chassis","shock_chassis":"damper_chassis","rocker_shock":"rocker_damper"}}};
 /* susp.js - FSAE double-wishbone solver (browser port of the Python `susp` package).
    Same conventions: X forward, Y outboard, Z up, mm, deg, N; right-hand wheel; ground at Z = 0.
    Every function mirrors a Python function of the same name; selftest compares the two. */
@@ -718,70 +719,17 @@ body { border-top: 4px solid var(--gold); }
   }
 
   // ------------------------------------------------------------------ config
-  const HP = {
-    upper_inboard_front: "uif", upper_inboard_rear: "uir", lower_inboard_front: "lif", lower_inboard_rear: "lir",
-    upper_outboard: "ubj", lower_outboard: "lbj", trackrod_inboard: "tri", trackrod_outboard: "tro",
-    contact_patch: "cp",
-  };
+  // the shared schema (schema/*.json): inlined into the page by build.py as window.SUSP_SCHEMA; read from disk in Node
+  const SCHEMA = root.SUSP_SCHEMA || (() => {
+    const path = require("path"), dir = path.join(__dirname, "..", "schema");
+    return Object.fromEntries(["defaults", "metrics", "targets", "points"].map(n => [n, require(path.join(dir, n + ".json"))]));
+  })();
+  const HP = Object.fromEntries(SCHEMA.points.hardpoints.map(p => [p.key, p.short]));
   const HP_ORDER = Object.keys(HP);
-  const SPRING_POINTS = ["rod_outboard", "rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper", "damper_chassis"];
-
-  const DEFAULTS = {
-    name: "untitled", axle: "front",
-    wheel: { camber_deg: -1.0, toe_deg: 0.0, tire_radius: 254.0, tire_width: 190.5, rim_diameter_in: 13.0 },
-    vehicle: { wheelbase: 1700.0, track: null, cg_height: 300.0, front_brake_share: 0.5, brakes: "outboard",
-      drive: "inboard", mass: 280.0, weight_front: 0.46, rack_c_factor: null },
-    sweep: { travel: 30.0, steps: 41, rack_travel: 35.0, rack_steps: 14, ackermann_at_outer_deg: 15.0,
-      roll_deg: 2.0, roll_steps: 9 },
-    clearance: { wishbone_tube_od: 25.4, tie_rod_od: 16.0, pushrod_od: 15.9, damper_od: 55.0, margin: 5.0 },
-    rack_direction: [0.0, 1.0, 0.0],
-    targets: {},
-    spring: null,
-    loads: { bump_g: 3.0, corner_g: 1.6, brake_g: 1.6, combined_g: 1.2, accel_g: 1.0, lltd_front: null, pothole_g: 4.0, kerb_g: 2.0, brake_split: "bias" },
-    members: { material: "4130 chromoly steel, normalized (yield is lower next to welds)",
-      wishbone: [15.875, 0.889], tie_rod: [15.875, 0.889], pushrod: [15.875, 0.889],
-      E: 205000.0, yield: 435.0, sf_target: 2.0, rod_end_rating: null, bolt_dia: 7.94, bolt_grade: "SAE 8", bolt_shear_planes: 2,
-      rod_end_k: 40000.0, mount_k: 20000.0, toe_comp_limit: 0.15, camber_comp_limit: 0.25 },
-  };
-  const SPRING_DEFAULTS = {
-    rod_on: "lower", rod_outboard: null, rocker_pivot: null, rocker_axis: null, rocker_rod: null,
-    rocker_damper: null, damper_chassis: null, spring_rate: 35.0, damper_stroke: null, damper_eye_to_eye: null,
-    unsprung_mass: 11.0, tire_rate: 110.0, target_freq_hz: null,
-    damper_bump_low: null, damper_bump_high: null, damper_rebound_low: null, damper_rebound_high: null, damper_knee: 50.0,
-    target_zeta_low: 0.7, target_zeta_high: 0.35,
-  };
-
-  const METRICS = {
-    camber: ["Static camber", "deg", 2], toe: ["Static toe (+ = in)", "deg", 3], caster: ["Caster", "deg", 2],
-    kpi: ["KPI", "deg", 2], scrub: ["Scrub radius", "mm", 1], trail: ["Mechanical trail", "mm", 1],
-    roll_center: ["Roll center height", "mm", 1], fvsa: ["Front-view swing arm", "mm", 0],
-    camber_gain: ["Camber gain", "deg/in", 3], bump_steer: ["Bump steer (+ = in)", "deg/in", 3],
-    bump_steer_max: ["Max |toe change|", "deg", 3], bump_steer_curve: ["Toe curvature (+ = in)", "deg", 3],
-    track_change: ["Track change", "mm", 2], antidive: ["Anti-dive", "%", 1], antisquat: ["Anti-squat", "%", 1],
-    antilift: ["Anti-lift", "%", 1], ackermann: ["Ackermann", "%", 0],
-    clearance_min: ["Min link clearance", "mm", 1], clearance_margin: ["Clearance margin", "mm", 1],
-    rim_margin: ["Rim radial margin", "mm", 1],
-    roll_camber: ["Roll camber (outer, to ground)", "deg/deg", 3],
-    roll_camber_max: ["Outer camber to ground at max roll", "deg", 2],
-    rc_lat: ["Roll center lateral shift", "mm/deg", 1], rc_height_roll: ["Roll center height at max roll", "mm", 1],
-    roll_steer: ["Roll steer (outer, + = in)", "deg/deg", 3],
-    turn_radius: ["Turning radius (outer front wheel)", "m", 2], steer_arm: ["Steering arm length", "mm", 1],
-    motion_ratio: ["Motion ratio (damper/wheel)", "", 3], mr_progression: ["Motion ratio change over travel", "%", 1],
-    wheel_rate: ["Wheel rate", "N/mm", 1], ride_rate: ["Ride rate (with tire)", "N/mm", 1],
-    ride_freq: ["Ride frequency", "Hz", 2], spring_for_target: ["Spring rate for target freq", "N/mm", 1],
-    c_crit: ["Critical damping at the wheel (body)", "N s/m", 0], c_crit_hop: ["Critical damping at the wheel (wheel hop)", "N s/m", 0],
-    zeta_bump_low: ["Damping ratio, bump low-speed", "", 2], zeta_rebound_low: ["Damping ratio, rebound low-speed", "", 2],
-    zeta_bump_high: ["Damping ratio, bump high-speed", "", 2], zeta_rebound_high: ["Damping ratio, rebound high-speed", "", 2],
-    zeta_hop: ["Wheel-hop damping ratio (bump high-speed)", "", 2],
-    damper_c_low_target: ["Damper rate for the low-speed target", "N s/m", 0], damper_c_high_target: ["Damper rate for the high-speed target", "N s/m", 0],
-    damper_used: ["Damper stroke used", "mm", 1], damper_margin: ["Damper stroke left", "mm", 1],
-    rocker_rot: ["Rocker rotation over travel", "deg", 1], static_spring_force: ["Spring force at ride height", "N", 0],
-    damper_topout: ["Damper room to full extension", "mm", 1],
-    damper_bottomout: ["Damper room to full compression", "mm", 1],
-    damper_static_pos: ["Damper compressed at ride height", "% stroke", 0],
-    trans_min: ["Worst rocker transmission angle", "deg", 0], rod_angle: ["Pushrod angle from horizontal", "deg", 0],
-    hop_freq: ["Wheel-hop frequency", "Hz", 1],
-  };
+  const SPRING_POINTS = SCHEMA.points.spring_points.map(p => p.key);
+  const DEFAULTS = clone(SCHEMA.defaults.defaults);
+  const SPRING_DEFAULTS = clone(SCHEMA.defaults.spring_defaults);
+  const METRICS = Object.fromEntries(Object.entries(SCHEMA.metrics.corner).map(([k, d]) => [k, [d.label, d.unit, d.decimals]]));
 
   function deepMerge(base, over) {
     const out = clone(base);
@@ -812,22 +760,14 @@ body { border-top: 4px solid var(--gold); }
   }
 
   // Broad starting ranges that suit most FSAE cars; narrow them per design ("targets") or with a team targets file.
-  const GENERAL_TARGETS = {
-    front: { camber: [-3.0, -0.5], camber_gain: [0.2, 1.0], caster: [3, 8], kpi: [0, 9], scrub: [0, 30], trail: [5, 30],
-      toe: [-0.5, 0.25], roll_center: [0, 75], antidive: [0, 40], ackermann: [0, 100], bump_steer: [-0.05, 0.05], bump_steer_max: [null, 0.10] },
-    rear: { camber: [-3.0, -0.5], camber_gain: [0.2, 1.0], toe: [0.0, 0.5], roll_center: [0, 100], antisquat: [0, 60],
-      bump_steer: [-0.05, 0.05], bump_steer_max: [null, 0.10] },
-  };
+  const GENERAL_TARGETS = SCHEMA.targets.general;
   function defaultTargets(cfg) {
-    const t = clone(GENERAL_TARGETS[cfg.axle]);
-    if (cfg.spring) {
-      t.ride_freq = [2.5, 4.5];
-      if (cfg.spring.damper_stroke) {
-        t.damper_margin = [0.0, null];
-        if (cfg.spring.damper_eye_to_eye) { t.damper_topout = [2.0, null]; t.damper_bottomout = [2.0, null]; }
-      }
-      if (cfg.spring.rocker_pivot != null) t.trans_min = [45.0, null];
-      if (cfg.spring.damper_bump_low && cfg.spring.damper_rebound_low) { t.zeta_bump_low = [0.4, 0.9]; t.zeta_rebound_low = [0.5, 1.2]; }
+    const t = clone(GENERAL_TARGETS[cfg.axle]), sp = cfg.spring, cond = SCHEMA.targets.conditional;
+    if (sp) {
+      Object.assign(t, cond.spring);
+      if (sp.damper_stroke) { Object.assign(t, cond.damper_stroke); if (sp.damper_eye_to_eye) Object.assign(t, cond.damper_eye_to_eye); }
+      if (sp.rocker_pivot != null) Object.assign(t, cond.rocker);
+      if (sp.damper_bump_low && sp.damper_rebound_low) Object.assign(t, cond.damping);
     }
     Object.assign(t, cfg._team_targets || {}, cfg.targets || {});   // general, then the team file, then the design's own
     for (const k of Object.keys(t)) if (t[k] == null) delete t[k];
@@ -1588,9 +1528,8 @@ body { border-top: 4px solid var(--gold); }
   }
 
   // ---------------------------------------------------------------- whole car (mirrors ride.car_balance)
-  const CAR_TARGETS = { roll_gradient: [0.5, 1.5], lltd_vs_weight: [0.0, 10.0], freq_ratio: [1.0, 1.2] };
-  const CAR_LABELS = { roll_gradient: ["Roll gradient", "deg/g", 2], lltd_vs_weight: ["Front LLTD minus front weight", "% points", 1],
-    freq_ratio: ["Ride frequency ratio, rear / front", "", 2] };
+  const CAR_TARGETS = SCHEMA.targets.car;
+  const CAR_LABELS = Object.fromEntries(Object.entries(SCHEMA.metrics.car).map(([k, d]) => [k, [d.label, d.unit, d.decimals]]));
   function carBalance(fcfg, fev, rcfg, rev, o = {}) {
     const G = 9.81, veh = fcfg.vehicle, m = veh.mass, wf = veh.weight_front, h = veh.cg_height / 1000, WB = veh.wheelbase / 1000;
     const fr = fev.ride, rr = rev.ride, muf = 2 * fcfg.spring.unsprung_mass, mur = 2 * rcfg.spring.unsprung_mass;
@@ -1622,7 +1561,7 @@ body { border-top: 4px solid var(--gold); }
     return out;
   }
 
-  root.Susp = { SolveError, HP, HP_ORDER, SPRING_POINTS, DEFAULTS, SPRING_DEFAULTS, METRICS, deepMerge, finishConfig,
+  root.Susp = { SCHEMA, SolveError, HP, HP_ORDER, SPRING_POINTS, DEFAULTS, SPRING_DEFAULTS, METRICS, deepMerge, finishConfig,
     defaultTargets, targetsFromFile, unknownTargetKeys, GENERAL_TARGETS, carBalance, CAR_TARGETS, CAR_LABELS, validate, Suspension, Spring, evaluate, runLoads, rackForAngle, MEMBERS, checkTargets,
     vec: { add, sub, mul, dot, cross, norm, unit, perp, rodrigues, matvec, deg, rad } };
 })(typeof window !== "undefined" ? window : globalThis);
@@ -1829,7 +1768,8 @@ body { border-top: 4px solid var(--gold); }
 <script>
 /* glossary.js - plain-language suspension terms for the Learn tab and the Targets help rows.
    Each term: id, name, aka (other names), cat, def (what it is), conv (sign convention in this tool),
-   moves (what changes it), metric (key in the solver's metrics, for the live value), show (3D overlay id). */
+   moves (what changes it), show (3D overlay id). The metric that shows each term's live value is set in
+   schema/metrics.json (its "term"). */
 window.SUSP_TERMS = [
   // ---------------------------------------------------------------- the parts
   { id: "hardpoint", cat: "The parts", name: "Hardpoint", show: "labels",
@@ -1855,36 +1795,36 @@ window.SUSP_TERMS = [
     def: "The spring and damper unit. The spring holds the car up; the damper controls how fast the suspension moves. Its stroke (how far it can compress) limits wheel travel." },
 
   // ---------------------------------------------------------------- alignment at ride height
-  { id: "camber", cat: "Alignment at ride height", name: "Camber", metric: "camber", show: "camber",
+  { id: "camber", cat: "Alignment at ride height", name: "Camber", show: "camber",
     def: "How far the wheel leans from vertical, seen from the front. A little negative camber helps the outer tire in a corner, where the body roll and tire flex push it the other way.",
     conv: "Negative = top of the wheel leans toward the car's center.",
     moves: "Set with shims at the upright; easy to change after the car is built." },
-  { id: "toe", cat: "Alignment at ride height", name: "Toe", metric: "toe", show: "toe",
+  { id: "toe", cat: "Alignment at ride height", name: "Toe", show: "toe",
     def: "The angle between the wheel's heading and straight ahead, seen from above. Toe-out on the front sharpens turn-in; toe-in on the rear adds stability.",
     conv: "Positive = toe-in (front of the wheel points toward the centerline).",
     moves: "Tie-rod length; set during alignment." },
   { id: "kingpin", cat: "Alignment at ride height", name: "Steering axis", aka: "kingpin axis", show: "kingpin",
     def: "The line through the upper and lower ball joints. The wheel steers about this line, so its angles (caster and KPI) and where it meets the ground (scrub and trail) shape the steering feel." },
-  { id: "caster", cat: "Alignment at ride height", name: "Caster", metric: "caster", show: "caster",
+  { id: "caster", cat: "Alignment at ride height", name: "Caster", show: "caster",
     def: "The tilt of the steering axis seen from the side. More caster gives more self-centering, more camber gain while steering and heavier steering.",
     conv: "Positive = top of the axis tilted rearward.",
     moves: "Fore-aft position of the upper ball joint relative to the lower one." },
-  { id: "kpi", cat: "Alignment at ride height", name: "KPI", aka: "kingpin inclination, steering axis inclination", metric: "kpi", show: "kpi",
+  { id: "kpi", cat: "Alignment at ride height", name: "KPI", aka: "kingpin inclination, steering axis inclination", show: "kpi",
     def: "The tilt of the steering axis seen from the front. It lifts the car slightly as you steer, which helps self-centering, and it reduces scrub radius.",
     conv: "Positive = top of the axis tilted toward the car's center.",
     moves: "Sideways position of the upper ball joint relative to the lower one." },
-  { id: "scrub", cat: "Alignment at ride height", name: "Scrub radius", metric: "scrub", show: "scrub",
+  { id: "scrub", cat: "Alignment at ride height", name: "Scrub radius", show: "scrub",
     def: "The sideways distance, at the ground, between where the steering axis meets the ground and the center of the contact patch. A large scrub radius means bumps and braking forces kick the steering wheel.",
     conv: "Positive = the axis meets the ground inboard of the contact patch.",
     moves: "KPI and how far outboard the ball joints sit inside the wheel (wheel offset)." },
-  { id: "trail", cat: "Alignment at ride height", name: "Mechanical trail", metric: "trail", show: "trail",
+  { id: "trail", cat: "Alignment at ride height", name: "Mechanical trail", show: "trail",
     def: "The fore-aft distance, at the ground, from where the steering axis meets the ground to the contact patch. Like a shopping-cart caster, trail makes the wheel want to point straight and gives steering feel.",
     conv: "Positive = the axis meets the ground ahead of the contact patch.",
     moves: "Caster and the fore-aft offset of the ball joints from the wheel center." },
-  { id: "steer_arm", cat: "Alignment at ride height", name: "Steering arm", metric: "steer_arm", show: "steer_arm",
+  { id: "steer_arm", cat: "Alignment at ride height", name: "Steering arm", show: "steer_arm",
     def: "The perpendicular distance from the tie-rod outer joint to the steering axis. A short arm makes steering quick but raises rack forces.",
     moves: "Position of the trackrod outboard point on the upright." },
-  { id: "ackermann", cat: "Alignment at ride height", name: "Ackermann", metric: "ackermann", show: "ackermann",
+  { id: "ackermann", cat: "Alignment at ride height", name: "Ackermann", show: "ackermann",
     def: "How much more the inner wheel steers than the outer wheel. With 100 % Ackermann both wheels point around the same turn center on the rear-axle line; 0 % is parallel steer; negative is anti-Ackermann.",
     conv: "Measured here at a set outer-wheel angle (15° by default).",
     moves: "The steering-arm angle in top view and the rack's fore-aft position (trackrod points X and Y)." },
@@ -1893,74 +1833,74 @@ window.SUSP_TERMS = [
   { id: "travel", cat: "How the wheel moves", name: "Bump, droop and heave", aka: "jounce, rebound", show: "travel",
     def: "Bump (jounce) is the wheel moving up relative to the chassis; droop (rebound) is moving down. Heave is both wheels moving together, as over a crest or under aero load. The Travel slider moves this wheel in bump and droop.",
     conv: "Positive travel = bump." },
-  { id: "camber_gain", cat: "How the wheel moves", name: "Camber gain", metric: "camber_gain", show: "camber_gain",
+  { id: "camber_gain", cat: "How the wheel moves", name: "Camber gain", show: "camber_gain",
     def: "How much the camber changes as the wheel moves up. Some gain keeps the outer tire flatter when the car rolls; too much makes the car twitchy over bumps.",
     conv: "Degrees per inch of bump; positive = camber gets more negative in bump.",
     moves: "The front-view swing arm: a shorter swing arm gives more gain." },
   { id: "ic_front", cat: "How the wheel moves", name: "Instant center (front view)", aka: "IC", show: "fvsa",
     def: "Extend the two wishbones in the front view until they cross: that point is the instant center. For small movements the wheel swings about it as if on one long arm.",
     moves: "Angles of the wishbones in the front view (inboard pivot heights and positions)." },
-  { id: "fvsa", cat: "How the wheel moves", name: "Front-view swing arm", aka: "FVSA", metric: "fvsa", show: "fvsa",
+  { id: "fvsa", cat: "How the wheel moves", name: "Front-view swing arm", aka: "FVSA", show: "fvsa",
     def: "The length of that imaginary arm, from the contact patch to the front-view instant center. It sets camber gain and how the roll center moves.",
     moves: "Inboard pivot heights and arm lengths. Parallel arms give an infinitely long swing arm and no camber gain." },
-  { id: "roll_center", cat: "How the wheel moves", name: "Roll center", metric: "roll_center", show: "roll_center",
+  { id: "roll_center", cat: "How the wheel moves", name: "Roll center", show: "roll_center",
     def: "Draw a line from each contact patch through its front-view instant center; where the left and right lines cross is the roll center. Lateral force acts through it: a higher roll center takes more cornering load through the links and less through the springs, so the car rolls less but can jack up.",
     conv: "Height above the ground, in mm.",
     moves: "Inboard pivot heights move it up and down most directly." },
-  { id: "rc_lat", cat: "How the wheel moves", name: "Roll-center movement", aka: "roll-center migration", metric: "rc_lat", show: "roll_center",
+  { id: "rc_lat", cat: "How the wheel moves", name: "Roll-center movement", aka: "roll-center migration", show: "roll_center",
     def: "How far the roll center moves sideways for each degree of body roll. A roll center that wanders makes the car's balance change part-way through a corner.",
     moves: "Relative arm lengths: a short upper and long lower arm usually keeps it steady." },
-  { id: "roll_camber", cat: "How the wheel moves", name: "Roll camber", metric: "roll_camber",
+  { id: "roll_camber", cat: "How the wheel moves", name: "Roll camber",
     def: "How much the outer wheel's camber relative to the ground changes per degree of body roll. 1.0 means the wheel leans with the body (no help at all); 0 means it stays at its static camber.",
     conv: "Degrees of camber per degree of roll, outer wheel, relative to the ground.",
     moves: "Camber gain: more gain lowers roll camber, at the cost of camber changes in bumps." },
-  { id: "bump_steer", cat: "How the wheel moves", name: "Bump steer", metric: "bump_steer", show: "bump_steer",
+  { id: "bump_steer", cat: "How the wheel moves", name: "Bump steer", show: "bump_steer",
     def: "Toe change as the wheel moves up and down. The wheel steering itself over bumps makes the car wander and feel nervous, so it should be close to zero.",
     conv: "Slope in degrees per inch, positive = toe-in in bump. Max toe change catches U-shaped curves.",
     moves: "Tie-rod height fixes the slope; tie-rod length and angle fix the curve." },
-  { id: "roll_steer", cat: "How the wheel moves", name: "Roll steer", metric: "roll_steer",
+  { id: "roll_steer", cat: "How the wheel moves", name: "Roll steer",
     def: "Toe change of the outer wheel per degree of body roll. It is mostly bump steer seen through roll, and on the rear it changes the car's stability in corners." },
-  { id: "track_change", cat: "How the wheel moves", name: "Track change", aka: "scrub (in heave)", metric: "track_change", show: "track_change",
+  { id: "track_change", cat: "How the wheel moves", name: "Track change", aka: "scrub (in heave)", show: "track_change",
     def: "How far the contact patch moves sideways over the wheel's travel. Large changes scrub the tire sideways over bumps and upset grip.",
     moves: "Roll-center height: a roll center near the ground keeps track change small." },
   { id: "svsa", cat: "How the wheel moves", name: "Side-view instant center", aka: "SVSA", show: "anti",
     def: "Seen from the side, the wishbone pivot axes also meet at an instant center. The line from the contact patch to it decides how braking and drive forces push the body up or down (anti-dive and anti-squat)." },
-  { id: "antidive", cat: "How the wheel moves", name: "Anti-dive", metric: "antidive", show: "anti",
+  { id: "antidive", cat: "How the wheel moves", name: "Anti-dive", show: "anti",
     def: "The share of the front's braking weight transfer that goes through the links instead of compressing the springs. Some anti-dive reduces nose dive; too much makes the front feel stiff and numb under braking.",
     conv: "Percent. 0 % = all through the springs, 100 % = no dive. Negative = pro-dive.",
     moves: "Tilting the wishbone pivot axes in the side view (front and rear pivots at different heights)." },
-  { id: "antisquat", cat: "How the wheel moves", name: "Anti-squat", metric: "antisquat", show: "anti",
+  { id: "antisquat", cat: "How the wheel moves", name: "Anti-squat", show: "anti",
     def: "The rear-axle version for acceleration: the share of the weight transfer under power that goes through the links instead of squatting the springs.",
     moves: "Side-view tilt of the rear wishbone pivot axes." },
-  { id: "antilift", cat: "How the wheel moves", name: "Anti-lift", metric: "antilift", show: "anti",
+  { id: "antilift", cat: "How the wheel moves", name: "Anti-lift", show: "anti",
     def: "The rear under braking: how much the links resist the rear lifting as weight moves forward." },
 
   // ---------------------------------------------------------------- springs and damping
-  { id: "motion_ratio", cat: "Springs and damping", name: "Motion ratio", aka: "installation ratio", metric: "motion_ratio", show: "motion_ratio",
+  { id: "motion_ratio", cat: "Springs and damping", name: "Motion ratio", aka: "installation ratio", show: "motion_ratio",
     def: "How far the damper moves for each millimeter of wheel travel. It scales everything: the spring feels MR² times as stiff at the wheel.",
     conv: "Damper travel ÷ wheel travel (some books use the inverse).",
     moves: "Rocker arm lengths and angles, and where the pushrod meets the wishbone." },
-  { id: "mr_progression", cat: "Springs and damping", name: "Progression", aka: "rising rate", metric: "mr_progression",
+  { id: "mr_progression", cat: "Springs and damping", name: "Progression", aka: "rising rate",
     def: "How much the motion ratio changes from full droop to full bump. A slightly rising ratio stiffens the car near full bump, which helps resist bottoming out.",
     moves: "The angles between the pushrod, damper and rocker arms." },
-  { id: "wheel_rate", cat: "Springs and damping", name: "Wheel rate", metric: "wheel_rate",
+  { id: "wheel_rate", cat: "Springs and damping", name: "Wheel rate",
     def: "The spring's stiffness as felt at the wheel: spring rate × motion ratio²." },
-  { id: "ride_rate", cat: "Springs and damping", name: "Ride rate", metric: "ride_rate",
+  { id: "ride_rate", cat: "Springs and damping", name: "Ride rate",
     def: "Wheel rate and tire stiffness acting in series. It is the stiffness the body actually sits on." },
-  { id: "ride_freq", cat: "Springs and damping", name: "Ride frequency", metric: "ride_freq",
+  { id: "ride_freq", cat: "Springs and damping", name: "Ride frequency",
     def: "How fast the body would bounce on that corner's springs and tire. It is the clearest single measure of how stiff a car is; many FSAE cars without big aero run roughly 2.5 to 4.5 Hz.",
     moves: "Spring rate (the Spring & damper tab gives the rate for a target frequency) and motion ratio." },
-  { id: "trans_min", cat: "Springs and damping", name: "Transmission angle", metric: "trans_min", show: "motion_ratio",
+  { id: "trans_min", cat: "Springs and damping", name: "Transmission angle", show: "motion_ratio",
     def: "The angle between the pushrod (or damper) and the rocker arm it acts on. Near 90° the rocker has the most leverage; below about 45° it nears a toggle point where the motion ratio changes fast.",
     moves: "Rocker arm angles relative to the pushrod and damper." },
-  { id: "damper_stroke", cat: "Springs and damping", name: "Damper stroke and sag", metric: "damper_static_pos",
+  { id: "damper_stroke", cat: "Springs and damping", name: "Damper stroke and sag",
     def: "Stroke is how far the damper can compress. Sag is how far into that stroke it sits at ride height. With equal bump and droop travel, aim for roughly the middle so it neither tops out nor bottoms out.",
     moves: "Damper chassis mount position and rocker geometry." },
-  { id: "damping_ratio", cat: "Springs and damping", name: "Damping ratio", aka: "ζ, zeta", metric: "zeta_bump_low",
+  { id: "damping_ratio", cat: "Springs and damping", name: "Damping ratio", aka: "ζ, zeta",
     def: "How much of the 'just stops bouncing' damping a corner has: 1.0 is critical damping, where the body returns without overshooting. Below 1 it overshoots a little and settles; above 1 it creeps back. Low-speed damping (slow shaft speeds) controls body roll and pitch; high-speed damping handles bumps and kerbs.",
     conv: "ζ = damper rate × motion ratio² ÷ critical damping. Common starting points: about 0.6–0.8 low-speed, 0.3–0.4 high-speed, rebound stiffer than bump.",
     moves: "Damper clicks (adjusters), damper valving, and the motion ratio (damping at the wheel goes with MR²)." },
-  { id: "critical_damping", cat: "Springs and damping", name: "Critical damping", metric: "c_crit",
+  { id: "critical_damping", cat: "Springs and damping", name: "Critical damping",
     def: "The damping at the wheel that would just stop the corner from bouncing: 2 × √(ride rate × sprung mass). Real cars run a fraction of it (the damping ratio).",
     moves: "Stiffer springs or more mass raise it." },
   { id: "unsprung", cat: "Springs and damping", name: "Unsprung mass and wheel hop",
@@ -2004,28 +1944,8 @@ const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;
 const attr = esc;
 const cssq = (s) => String(s).replace(/["\\]/g, "\\$&");
 
-const HELP = {
-  camber: "Wheel lean at ride height. Negative = top leans in. Set by shims, so it is easy to adjust later.",
-  camber_gain: "Camber change per inch of bump. Shorter front-view swing arm = more gain.",
-  caster: "Kingpin tilt seen from the side. More caster = more self-centring and steering camber, heavier steering.",
-  kpi: "Kingpin inclination seen from the front. Drives scrub radius and steering jacking.",
-  scrub: "Steering axis ground point to contact patch, sideways. Large = kickback and heavy steering.",
-  trail: "Steering axis ground point to contact patch, fore-aft. Gives self-centring torque.",
-  toe: "Static toe, + = toe-in. Set by tie-rod length.",
-  roll_center: "Roll center height at ride height. Higher = more load transfer through links, less body roll.",
-  antidive: "Share of braking weight transfer taken by the links at the front. Negative = pro-dive.",
-  antisquat: "Share of acceleration weight transfer taken by the links at the rear.",
-  ackermann: "0 % = parallel steer, 100 % = full Ackermann, negative = anti-Ackermann.",
-  bump_steer: "Toe change per inch of bump. Fix the slope with tie-rod height.",
-  bump_steer_max: "Largest toe change anywhere in the travel. Catches U-shaped toe curves (fix those with tie-rod length).",
-  ride_freq: "Natural frequency of the sprung corner on spring and tire. FSAE cars often run 2.5–4.5 Hz.",
-  damper_margin: "Damper stroke left over after the full wheel travel.",
-  damper_topout: "Room before the damper fully extends at full droop.",
-  damper_bottomout: "Room before the damper fully compresses at full bump.",
-  trans_min: "Angle between pushrod or damper and the rocker arm it drives, worst over travel. 90° is best; under 45° the rocker nears a toggle.",
-  link_clearance: "Tightest center-line gap between moving links over travel and steer, against tube radii plus margin.",
-  rim_margin: "Gap from the farthest outboard joint to the rim radius (radial check only).",
-};
+// one-line help for each target row, from the shared schema (schema/metrics.json)
+const HELP = Object.fromEntries(Object.entries(S.SCHEMA.metrics.corner).filter(([, d]) => d.help).map(([k, d]) => [k, d.help]));
 
 // ------------------------------------------------------------------ state
 let cfg = null, ev = null, loads = null, err = null, base = null, baseName = "";
@@ -2041,15 +1961,9 @@ function setPath(o, path, v) {
 }
 
 // ------------------------------------------------------------------ input builders
-const HP_LABELS = {
-  upper_inboard_front: ["Upper inboard front", "smaller-X pivot"], upper_inboard_rear: ["Upper inboard rear", "larger-X pivot"],
-  lower_inboard_front: ["Lower inboard front", "smaller-X pivot"], lower_inboard_rear: ["Lower inboard rear", "larger-X pivot"],
-  upper_outboard: ["Upper outboard", "upper ball joint"], lower_outboard: ["Lower outboard", "lower ball joint"],
-  trackrod_inboard: ["Trackrod inboard", "rack end"], trackrod_outboard: ["Trackrod outboard", "steering arm"],
-  contact_patch: ["Tire contact patch", "ground, Z = 0"] };
-const SP_LABELS = { rod_outboard: ["Pushrod outboard", "on the arm / upright"], rocker_pivot: ["Rocker pivot", "chassis"],
-  rocker_axis: ["Rocker axis", "pivot bolt direction"], rocker_rod: ["Rocker – pushrod point", ""],
-  rocker_damper: ["Rocker – damper point", ""], damper_chassis: ["Damper chassis mount", ""] };
+// input-table names for the points (schema/points.json): [label, hint]
+const HP_LABELS = Object.fromEntries(S.SCHEMA.points.hardpoints.map(p => [p.key, [p.label, p.hint]]));
+const SP_LABELS = Object.fromEntries(S.SCHEMA.points.spring_points.map(p => [p.key, [p.label, p.hint]]));
 
 function numInput(path, opts = {}) {
   const id = "in_" + path.replace(/\./g, "_");
@@ -3145,7 +3059,8 @@ document.addEventListener("keydown", (e) => {
   else if ((k === "z" && e.shiftKey) || k === "y") { e.preventDefault(); redo(); }
 });
 // ------------------------------------------------------------------ Learn tab
-const TERMS = window.SUSP_TERMS || [];
+// each glossary term's live value comes from the metric that names it as its term (schema/metrics.json)
+const TERMS = (window.SUSP_TERMS || []).map(t => Object.assign({}, t, { metric: Object.keys(S.SCHEMA.metrics.corner).find(k => S.SCHEMA.metrics.corner[k].term === t.id) || null }));
 const TERM_BY_METRIC = Object.fromEntries(TERMS.filter(t => t.metric).map(t => [t.metric, t]));
 let learnQ = "";
 function termValue(t) {

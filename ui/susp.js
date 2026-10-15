@@ -73,70 +73,17 @@
   }
 
   // ------------------------------------------------------------------ config
-  const HP = {
-    upper_inboard_front: "uif", upper_inboard_rear: "uir", lower_inboard_front: "lif", lower_inboard_rear: "lir",
-    upper_outboard: "ubj", lower_outboard: "lbj", trackrod_inboard: "tri", trackrod_outboard: "tro",
-    contact_patch: "cp",
-  };
+  // the shared schema (schema/*.json): inlined into the page by build.py as window.SUSP_SCHEMA; read from disk in Node
+  const SCHEMA = root.SUSP_SCHEMA || (() => {
+    const path = require("path"), dir = path.join(__dirname, "..", "schema");
+    return Object.fromEntries(["defaults", "metrics", "targets", "points"].map(n => [n, require(path.join(dir, n + ".json"))]));
+  })();
+  const HP = Object.fromEntries(SCHEMA.points.hardpoints.map(p => [p.key, p.short]));
   const HP_ORDER = Object.keys(HP);
-  const SPRING_POINTS = ["rod_outboard", "rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper", "damper_chassis"];
-
-  const DEFAULTS = {
-    name: "untitled", axle: "front",
-    wheel: { camber_deg: -1.0, toe_deg: 0.0, tire_radius: 254.0, tire_width: 190.5, rim_diameter_in: 13.0 },
-    vehicle: { wheelbase: 1700.0, track: null, cg_height: 300.0, front_brake_share: 0.5, brakes: "outboard",
-      drive: "inboard", mass: 280.0, weight_front: 0.46, rack_c_factor: null },
-    sweep: { travel: 30.0, steps: 41, rack_travel: 35.0, rack_steps: 14, ackermann_at_outer_deg: 15.0,
-      roll_deg: 2.0, roll_steps: 9 },
-    clearance: { wishbone_tube_od: 25.4, tie_rod_od: 16.0, pushrod_od: 15.9, damper_od: 55.0, margin: 5.0 },
-    rack_direction: [0.0, 1.0, 0.0],
-    targets: {},
-    spring: null,
-    loads: { bump_g: 3.0, corner_g: 1.6, brake_g: 1.6, combined_g: 1.2, accel_g: 1.0, lltd_front: null, pothole_g: 4.0, kerb_g: 2.0, brake_split: "bias" },
-    members: { material: "4130 chromoly steel, normalized (yield is lower next to welds)",
-      wishbone: [15.875, 0.889], tie_rod: [15.875, 0.889], pushrod: [15.875, 0.889],
-      E: 205000.0, yield: 435.0, sf_target: 2.0, rod_end_rating: null, bolt_dia: 7.94, bolt_grade: "SAE 8", bolt_shear_planes: 2,
-      rod_end_k: 40000.0, mount_k: 20000.0, toe_comp_limit: 0.15, camber_comp_limit: 0.25 },
-  };
-  const SPRING_DEFAULTS = {
-    rod_on: "lower", rod_outboard: null, rocker_pivot: null, rocker_axis: null, rocker_rod: null,
-    rocker_damper: null, damper_chassis: null, spring_rate: 35.0, damper_stroke: null, damper_eye_to_eye: null,
-    unsprung_mass: 11.0, tire_rate: 110.0, target_freq_hz: null,
-    damper_bump_low: null, damper_bump_high: null, damper_rebound_low: null, damper_rebound_high: null, damper_knee: 50.0,
-    target_zeta_low: 0.7, target_zeta_high: 0.35,
-  };
-
-  const METRICS = {
-    camber: ["Static camber", "deg", 2], toe: ["Static toe (+ = in)", "deg", 3], caster: ["Caster", "deg", 2],
-    kpi: ["KPI", "deg", 2], scrub: ["Scrub radius", "mm", 1], trail: ["Mechanical trail", "mm", 1],
-    roll_center: ["Roll center height", "mm", 1], fvsa: ["Front-view swing arm", "mm", 0],
-    camber_gain: ["Camber gain", "deg/in", 3], bump_steer: ["Bump steer (+ = in)", "deg/in", 3],
-    bump_steer_max: ["Max |toe change|", "deg", 3], bump_steer_curve: ["Toe curvature (+ = in)", "deg", 3],
-    track_change: ["Track change", "mm", 2], antidive: ["Anti-dive", "%", 1], antisquat: ["Anti-squat", "%", 1],
-    antilift: ["Anti-lift", "%", 1], ackermann: ["Ackermann", "%", 0],
-    clearance_min: ["Min link clearance", "mm", 1], clearance_margin: ["Clearance margin", "mm", 1],
-    rim_margin: ["Rim radial margin", "mm", 1],
-    roll_camber: ["Roll camber (outer, to ground)", "deg/deg", 3],
-    roll_camber_max: ["Outer camber to ground at max roll", "deg", 2],
-    rc_lat: ["Roll center lateral shift", "mm/deg", 1], rc_height_roll: ["Roll center height at max roll", "mm", 1],
-    roll_steer: ["Roll steer (outer, + = in)", "deg/deg", 3],
-    turn_radius: ["Turning radius (outer front wheel)", "m", 2], steer_arm: ["Steering arm length", "mm", 1],
-    motion_ratio: ["Motion ratio (damper/wheel)", "", 3], mr_progression: ["Motion ratio change over travel", "%", 1],
-    wheel_rate: ["Wheel rate", "N/mm", 1], ride_rate: ["Ride rate (with tire)", "N/mm", 1],
-    ride_freq: ["Ride frequency", "Hz", 2], spring_for_target: ["Spring rate for target freq", "N/mm", 1],
-    c_crit: ["Critical damping at the wheel (body)", "N s/m", 0], c_crit_hop: ["Critical damping at the wheel (wheel hop)", "N s/m", 0],
-    zeta_bump_low: ["Damping ratio, bump low-speed", "", 2], zeta_rebound_low: ["Damping ratio, rebound low-speed", "", 2],
-    zeta_bump_high: ["Damping ratio, bump high-speed", "", 2], zeta_rebound_high: ["Damping ratio, rebound high-speed", "", 2],
-    zeta_hop: ["Wheel-hop damping ratio (bump high-speed)", "", 2],
-    damper_c_low_target: ["Damper rate for the low-speed target", "N s/m", 0], damper_c_high_target: ["Damper rate for the high-speed target", "N s/m", 0],
-    damper_used: ["Damper stroke used", "mm", 1], damper_margin: ["Damper stroke left", "mm", 1],
-    rocker_rot: ["Rocker rotation over travel", "deg", 1], static_spring_force: ["Spring force at ride height", "N", 0],
-    damper_topout: ["Damper room to full extension", "mm", 1],
-    damper_bottomout: ["Damper room to full compression", "mm", 1],
-    damper_static_pos: ["Damper compressed at ride height", "% stroke", 0],
-    trans_min: ["Worst rocker transmission angle", "deg", 0], rod_angle: ["Pushrod angle from horizontal", "deg", 0],
-    hop_freq: ["Wheel-hop frequency", "Hz", 1],
-  };
+  const SPRING_POINTS = SCHEMA.points.spring_points.map(p => p.key);
+  const DEFAULTS = clone(SCHEMA.defaults.defaults);
+  const SPRING_DEFAULTS = clone(SCHEMA.defaults.spring_defaults);
+  const METRICS = Object.fromEntries(Object.entries(SCHEMA.metrics.corner).map(([k, d]) => [k, [d.label, d.unit, d.decimals]]));
 
   function deepMerge(base, over) {
     const out = clone(base);
@@ -167,22 +114,14 @@
   }
 
   // Broad starting ranges that suit most FSAE cars; narrow them per design ("targets") or with a team targets file.
-  const GENERAL_TARGETS = {
-    front: { camber: [-3.0, -0.5], camber_gain: [0.2, 1.0], caster: [3, 8], kpi: [0, 9], scrub: [0, 30], trail: [5, 30],
-      toe: [-0.5, 0.25], roll_center: [0, 75], antidive: [0, 40], ackermann: [0, 100], bump_steer: [-0.05, 0.05], bump_steer_max: [null, 0.10] },
-    rear: { camber: [-3.0, -0.5], camber_gain: [0.2, 1.0], toe: [0.0, 0.5], roll_center: [0, 100], antisquat: [0, 60],
-      bump_steer: [-0.05, 0.05], bump_steer_max: [null, 0.10] },
-  };
+  const GENERAL_TARGETS = SCHEMA.targets.general;
   function defaultTargets(cfg) {
-    const t = clone(GENERAL_TARGETS[cfg.axle]);
-    if (cfg.spring) {
-      t.ride_freq = [2.5, 4.5];
-      if (cfg.spring.damper_stroke) {
-        t.damper_margin = [0.0, null];
-        if (cfg.spring.damper_eye_to_eye) { t.damper_topout = [2.0, null]; t.damper_bottomout = [2.0, null]; }
-      }
-      if (cfg.spring.rocker_pivot != null) t.trans_min = [45.0, null];
-      if (cfg.spring.damper_bump_low && cfg.spring.damper_rebound_low) { t.zeta_bump_low = [0.4, 0.9]; t.zeta_rebound_low = [0.5, 1.2]; }
+    const t = clone(GENERAL_TARGETS[cfg.axle]), sp = cfg.spring, cond = SCHEMA.targets.conditional;
+    if (sp) {
+      Object.assign(t, cond.spring);
+      if (sp.damper_stroke) { Object.assign(t, cond.damper_stroke); if (sp.damper_eye_to_eye) Object.assign(t, cond.damper_eye_to_eye); }
+      if (sp.rocker_pivot != null) Object.assign(t, cond.rocker);
+      if (sp.damper_bump_low && sp.damper_rebound_low) Object.assign(t, cond.damping);
     }
     Object.assign(t, cfg._team_targets || {}, cfg.targets || {});   // general, then the team file, then the design's own
     for (const k of Object.keys(t)) if (t[k] == null) delete t[k];
@@ -943,9 +882,8 @@
   }
 
   // ---------------------------------------------------------------- whole car (mirrors ride.car_balance)
-  const CAR_TARGETS = { roll_gradient: [0.5, 1.5], lltd_vs_weight: [0.0, 10.0], freq_ratio: [1.0, 1.2] };
-  const CAR_LABELS = { roll_gradient: ["Roll gradient", "deg/g", 2], lltd_vs_weight: ["Front LLTD minus front weight", "% points", 1],
-    freq_ratio: ["Ride frequency ratio, rear / front", "", 2] };
+  const CAR_TARGETS = SCHEMA.targets.car;
+  const CAR_LABELS = Object.fromEntries(Object.entries(SCHEMA.metrics.car).map(([k, d]) => [k, [d.label, d.unit, d.decimals]]));
   function carBalance(fcfg, fev, rcfg, rev, o = {}) {
     const G = 9.81, veh = fcfg.vehicle, m = veh.mass, wf = veh.weight_front, h = veh.cg_height / 1000, WB = veh.wheelbase / 1000;
     const fr = fev.ride, rr = rev.ride, muf = 2 * fcfg.spring.unsprung_mass, mur = 2 * rcfg.spring.unsprung_mass;
@@ -977,7 +915,7 @@
     return out;
   }
 
-  root.Susp = { SolveError, HP, HP_ORDER, SPRING_POINTS, DEFAULTS, SPRING_DEFAULTS, METRICS, deepMerge, finishConfig,
+  root.Susp = { SCHEMA, SolveError, HP, HP_ORDER, SPRING_POINTS, DEFAULTS, SPRING_DEFAULTS, METRICS, deepMerge, finishConfig,
     defaultTargets, targetsFromFile, unknownTargetKeys, GENERAL_TARGETS, carBalance, CAR_TARGETS, CAR_LABELS, validate, Suspension, Spring, evaluate, runLoads, rackForAngle, MEMBERS, checkTargets,
     vec: { add, sub, mul, dot, cross, norm, unit, perp, rodrigues, matvec, deg, rad } };
 })(typeof window !== "undefined" ? window : globalThis);
