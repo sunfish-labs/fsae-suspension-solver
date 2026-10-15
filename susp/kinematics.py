@@ -324,7 +324,8 @@ class Suspension:
                 inner, outer, cam_in, cam_out = -fb, fa, b["camber"], a["camber"]
             ack = float("nan")
             if outer > 1.0 and inner > 0.5:
-                cot = lambda t: 1.0 / math.tan(math.radians(t))
+                def cot(t):
+                    return 1.0 / math.tan(math.radians(t))
                 ack = (cot(outer) - cot(inner)) * self.WB / self.track * 100.0
             rows.append(dict(rack=float(r), inner=inner, outer=outer, ackermann=ack,
                              camber_inner=cam_in, camber_outer=cam_out))
@@ -369,7 +370,8 @@ class Suspension:
                 f"upper arm leg to pivot X={h['uif'][0]:.0f}": ("upper", h["uif"], p["ub"]),
                 f"upper arm leg to pivot X={h['uir'][0]:.0f}": ("upper", h["uir"], p["ub"]),
             }
-            need = lambda a, b: (od[a] + od[b]) / 2 + cl["margin"]
+            def need(a, b):
+                return (od[a] + od[b]) / 2 + cl["margin"]
             checks = [(f"{rodname} - {n}", (p["tri"], p["tro"]), (s0, s1), need("tie rod", "arm"))
                       for n, (_, s0, s1) in legs.items()]
             if spring is not None:

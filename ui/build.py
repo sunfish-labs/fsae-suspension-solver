@@ -1,9 +1,11 @@
 """Build ui/index.html: inline susp.js and the preset designs into app.html (one self-contained file)."""
-import json, os, sys
+import glob
+import json
+import os
+import sys
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.dirname(here)
 sys.path.insert(0, root)
-import glob
 
 # Only the public example designs in designs/ are built into the page. Team designs stay in private/ (git-ignored)
 # and are opened in the page with "Open JSON".

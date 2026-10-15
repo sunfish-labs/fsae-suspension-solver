@@ -2297,12 +2297,6 @@ function wireChecks() {
 }
 
 const C = { s1: "var(--s1)", s2: "var(--s2)", s3: "var(--s3)", base: "var(--base)" };
-function withBase(key, getter, sweepRows, baseRows, color = C.s1, name = null) {
-  const out = [];
-  if (baseRows) out.push({ name: name ? "baseline" : null, x: baseRows.map(r => r.dz), y: baseRows.map(getter), color: C.base, dash: "4 3", w: 1.5 });
-  out.push({ name: name ? "current" : null, x: sweepRows.map(r => r.dz), y: sweepRows.map(getter), color });
-  return out;
-}
 function panelHeave() {
   const rows = ev.rows, br = base ? base.rows : null, m = ev.metrics, T = ev.cfg.sweep.travel;
   const r0 = (rs) => rs.reduce((a, r) => Math.abs(r.dz) < Math.abs(a.dz) ? r : a);
@@ -2404,7 +2398,7 @@ function rockerSvg() {
 // damper force against shaft speed: low-speed slope up to the knee, high-speed slope above (bilinear)
 function damperForce(cl, ch, knee, v) { const a = Math.min(v, knee); return (cl * a + ch * Math.max(0, v - knee)) / 1000; }
 function dampingBlock() {
-  const rd = ev.ride, sc = ev.cfg.spring, MR = rd.motion_ratio, knee = +sc.damper_knee || 50;
+  const rd = ev.ride, sc = ev.cfg.spring, knee = +sc.damper_knee || 50;
   const z = (k) => rd[k] == null ? `<span class="muted">–</span>` : fmt(rd[k], 2);
   const has = sc.damper_bump_low || sc.damper_rebound_low || sc.damper_bump_high || sc.damper_rebound_high;
   const v = Array.from({ length: 31 }, (_, i) => i * 10), tl = rd.damper_c_low_target, th = rd.damper_c_high_target;
@@ -2584,7 +2578,7 @@ function layoutLabels() {
   const box = $("#vlabels"), list = three.labels || [];
   box.hidden = !list.length; $$(".vlab", box).forEach(n => n.remove());
   if (!list.length) { $("#vlabSvg").innerHTML = ""; return; }
-  const W = three.cv.clientWidth, H = three.cv.clientHeight, T = three.T;
+  const W = three.cv.clientWidth, H = three.cv.clientHeight;
   const pts = list.map(l => { const v = toT(l.pt).project(three.cam); return { ...l, x: (v.x + 1) / 2 * W, y: (1 - v.y) / 2 * H }; });
   const cx = pts.reduce((a, q) => a + q.x, 0) / pts.length, top = 50, bot = H - ($("#ovcap").hidden ? 52 : 100), gap = 22;
   let svg = "";
@@ -3009,11 +3003,6 @@ function ackPoints(s) {   // where each front wheel's axle line crosses the rear
     return { rx, w };
   } catch (e) { return null; }
 }
-function lineIntersect2(p1, d1, p2, d2, infinite = false) {
-  const det = d1[0] * (-d2[1]) - (-d2[0]) * d1[1]; if (Math.abs(det) < 1e-9) return null;
-  const bx = p2[0] - p1[0], by = p2[1] - p1[1], t = (bx * (-d2[1]) - (-d2[0]) * by) / det;
-  return t > 0 || infinite ? [p1[0] + t * d1[0], p1[1] + t * d1[1]] : null;
-}
 function rad0(dz) { // rocker angle guess from the sweep, keeps the rocker on its branch
   if (!ev.ride) return 0; const r = ev.rows; let best = r[0]; for (const q of r) if (Math.abs(q.dz - dz) < Math.abs(best.dz - dz)) best = q; return (best.rocker_deg || 0) * Math.PI / 180;
 }
@@ -3302,7 +3291,7 @@ function openInfluence(path) {
   if (isSpring) keys.sort((a, b) => (SPRING_KEYS.has(b) ? 1 : 0) - (SPRING_KEYS.has(a) ? 1 : 0));
   const tg = S.defaultTargets(ev.cfg);
   for (const k of keys) {
-    const [lab, unit, dec] = metricLabel(k), b0 = qb.metrics[k];
+    const [lab, , dec] = metricLabel(k), b0 = qb.metrics[k];
     const cells = effects.map(e => {
       if (!e) return `<td class="n muted">–</td>`;
       const d = e.metrics[k] - b0; if (!Number.isFinite(d)) return `<td class="n muted">–</td>`;
@@ -3993,7 +3982,7 @@ function reportHtml() {
     }
   }
   for (const k of X.corners) {
-    const e = k.e, m = e.metrics, hp = e.cfg.hardpoints, sp = e.cfg.spring;
+    const e = k.e, hp = e.cfg.hardpoints, sp = e.cfg.spring;
     body += `<h2 class="pb">${k.lab}: ${esc(k.c.name || "")}</h2>`;
     body += tbl(["Target", "Value", "Range", "Status"], checkRows(e).map(c => `<tr><td>${esc(c.lab)}</td><td class="n">${fmt(c.value, c.dec)} ${esc(c.unit)}</td><td>${rngTxt(c.lo, c.hi, c.dec)}</td><td>${st(c.status)}</td></tr>`));
     const pts = S.HP_ORDER.map(p => [HP_LABELS[p][0], hp[p]]).concat(sp ? S.SPRING_POINTS.filter(p => sp[p]).map(p => [SP_LABELS[p][0], sp[p]]) : []);
@@ -4221,7 +4210,7 @@ $("#carFile").addEventListener("change", async (e) => {
 });
 $$("#axleSeg button").forEach(b => b.addEventListener("click", () => { if (chal) return; setView(b.dataset.ax); }));
 $("#btnCopy").addEventListener("click", async (e) => {
-  const txt = JSON.stringify(exportCurrent(), null, 2), b = e.currentTarget;
+  const txt = JSON.stringify(exportCurrent(), null, 2);
   $("#xmenu").open = false;
   try { await navigator.clipboard.writeText(txt); flash("Copied the JSON"); }
   catch (ex) { if (axleView === "car") setView("front"); $("#cardJson").open = true; $("#jsonBox").focus(); $("#jsonBox").select(); flash("Copy blocked by the browser: select the JSON box and copy"); }
@@ -4234,7 +4223,7 @@ if (!framed) {
   $("#btnDownload").hidden = false; if (window.showSaveFilePicker) $("#btnSaveAs").hidden = false;
   $("#btnSaveAs").addEventListener("click", () => { fileHandle = null; $("#btnDownload").click(); });
   $("#btnDownload").addEventListener("click", async () => {
-    const txt = JSON.stringify(exportCurrent(), null, 2), name = ((axleView === "car" && car && !chal ? car.name : cfg.name) || "design").replace(/[^\w.-]+/g, "_") + ".json", b = $("#btnDownload");
+    const txt = JSON.stringify(exportCurrent(), null, 2), name = ((axleView === "car" && car && !chal ? car.name : cfg.name) || "design").replace(/[^\w.-]+/g, "_") + ".json";
     try {
       if (window.showSaveFilePicker) {
         if (!fileHandle) fileHandle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: "Design JSON", accept: { "application/json": [".json"] } }] });

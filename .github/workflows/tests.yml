@@ -13,7 +13,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install numpy scipy cadquery-ocp
+      - run: pip install -e ".[dev]"
+      - name: Python lint (ruff)
+        run: ruff check .
       - name: Python solver self-test (KineSolver comparison and physics checks)
         run: python3 susp_solver.py selftest
       - name: Hand-calculation checks (exact answers)
@@ -23,10 +25,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Build the web page
-        run: python3 ui/build.py
+      - name: Build the web page (and check the committed copy is up to date)
+        run: |
+          python3 ui/build.py
+          git diff --exit-code ui/index.html || (echo "ui/index.html is out of date: run python3 ui/build.py and commit it" && exit 1)
       - name: Browser solver matches the Python solver
         run: python3 ui/test_port.py
+      - name: Randomized parity, 200 perturbed designs (Python vs browser)
+        run: python3 tests/test_parity.py
       - name: CAD export reads back in a CAD kernel (OpenCascade)
         run: python3 tests/test_cad.py
       - name: Install browser test tools
@@ -34,5 +40,10 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
+      - name: JavaScript lint (ESLint)
+        working-directory: tests
+        run: |
+          node lint_bundle.js
+          npx eslint .
       - name: Web app end-to-end checks
         run: node tests/browser_test.js

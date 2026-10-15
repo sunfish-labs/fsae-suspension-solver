@@ -224,7 +224,8 @@ def draw_front(ax, ev, color="C0", full=True):
     s, h = ev["susp"], ev["susp"].h
     o = ev["rows"][len(ev["rows"]) // 2]
     p = o["_pts"]
-    L = lambda a, b, **k: ax.plot([a[1], b[1]], [a[2], b[2]], **k)
+    def L(a, b, **k):
+        return ax.plot([a[1], b[1]], [a[2], b[2]], **k)
     for piv, bj in (("uif", "ub"), ("uir", "ub"), ("lif", "lb"), ("lir", "lb")):
         L(h[piv], p[bj], color=color, lw=2)
     L(p["ub"], p["lb"], color=color, lw=3)
@@ -267,7 +268,8 @@ def draw_side(ax, ev, color="C0", full=True):
     s, h = ev["susp"], ev["susp"].h
     o = ev["rows"][len(ev["rows"]) // 2]
     p = o["_pts"]
-    L = lambda a, b, **k: ax.plot([a[0], b[0]], [a[2], b[2]], **k)
+    def L(a, b, **k):
+        return ax.plot([a[0], b[0]], [a[2], b[2]], **k)
     for piv, bj in (("uif", "ub"), ("uir", "ub"), ("lif", "lb"), ("lir", "lb")):
         L(h[piv], p[bj], color=color, lw=2)
     L(p["ub"], p["lb"], color=color, lw=3)
@@ -290,7 +292,8 @@ def draw_side(ax, ev, color="C0", full=True):
 def draw_top(ax, ev, color="C0"):
     h = ev["susp"].h
     p = ev["rows"][len(ev["rows"]) // 2]["_pts"]
-    L = lambda a, b, **k: ax.plot([a[0], b[0]], [a[1], b[1]], **k)
+    def L(a, b, **k):
+        return ax.plot([a[0], b[0]], [a[1], b[1]], **k)
     for piv, bj in (("uif", "ub"), ("uir", "ub")):
         L(h[piv], p[bj], color=color, lw=2, alpha=0.5)
     for piv, bj in (("lif", "lb"), ("lir", "lb")):
@@ -426,8 +429,8 @@ def make_rocker_plot(ev, path, quiet=False):
     u = np.cross(v, k)                                   # "outboard" for a fore-aft pivot axis
     if u[1] < 0:
         u, k = -u, -k
-    P = lambda q: ((q - c) @ u, (q - c) @ v)
-    th = 0.0
+    def P(q):
+        return ((q - c) @ u, (q - c) @ v)
     for i, lab, ls in picks:
         st = sp.state(rows[i]["_x"], math.radians(rows[i].get("rocker_deg", 0.0)))
         ro, ri, dout = P(st["rod_out"]), P(st["rod_in"]), P(st["damper_out"])
@@ -673,7 +676,7 @@ th{color:var(--mut);font-weight:600}.pass{color:var(--ok);font-weight:700}.fail{
       f"generated {datetime.datetime.now():%Y-%m-%d %H:%M} · rigid-link kinematics</div>")
     if issues:
         A("<div class=warnbox><b>Input checks</b><ul>" + "".join(
-            f"<li>{'ERROR: ' if l == 'error' else ''}{E(msg)}</li>" for l, msg in issues) + "</ul></div>")
+            f"<li>{'ERROR: ' if lv == 'error' else ''}{E(msg)}</li>" for lv, msg in issues) + "</ul></div>")
     A(f"<div class='banner {'ok' if npass == ntot else 'bad'}'>{npass} of {ntot} checks pass"
       f"{'' if npass == ntot else ' - see the fixes below'}</div>")
     show = ["camber", "camber_gain", "roll_camber", "caster", "kpi", "scrub", "trail", "roll_center", "rc_lat",
@@ -752,7 +755,7 @@ th{color:var(--mut);font-weight:600}.pass{color:var(--ok);font-weight:700}.fail{
         sel = [st[i] for i in range(0, len(st), max(1, len(st) // 7))]
         if st[-1] not in sel:
             sel.append(st[-1])
-        A(f"<h2>Steering</h2><div class=scroll><table><tr><th>Rack (mm)<th>Inner (°)<th>Outer (°)<th>Ackermann (%)"
+        A("<h2>Steering</h2><div class=scroll><table><tr><th>Rack (mm)<th>Inner (°)<th>Outer (°)<th>Ackermann (%)"
           "<th>Inner camber<th>Outer camber</tr>")
         for r in sel:
             A(f"<tr><td>{r['rack']:.1f}<td>{r['inner']:.2f}<td>{r['outer']:.2f}<td>{f_num(r['ackermann'], 0)}"

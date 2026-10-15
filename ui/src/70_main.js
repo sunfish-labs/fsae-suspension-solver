@@ -52,7 +52,7 @@ $("#carFile").addEventListener("change", async (e) => {
 });
 $$("#axleSeg button").forEach(b => b.addEventListener("click", () => { if (chal) return; setView(b.dataset.ax); }));
 $("#btnCopy").addEventListener("click", async (e) => {
-  const txt = JSON.stringify(exportCurrent(), null, 2), b = e.currentTarget;
+  const txt = JSON.stringify(exportCurrent(), null, 2);
   $("#xmenu").open = false;
   try { await navigator.clipboard.writeText(txt); flash("Copied the JSON"); }
   catch (ex) { if (axleView === "car") setView("front"); $("#cardJson").open = true; $("#jsonBox").focus(); $("#jsonBox").select(); flash("Copy blocked by the browser: select the JSON box and copy"); }
@@ -65,7 +65,7 @@ if (!framed) {
   $("#btnDownload").hidden = false; if (window.showSaveFilePicker) $("#btnSaveAs").hidden = false;
   $("#btnSaveAs").addEventListener("click", () => { fileHandle = null; $("#btnDownload").click(); });
   $("#btnDownload").addEventListener("click", async () => {
-    const txt = JSON.stringify(exportCurrent(), null, 2), name = ((axleView === "car" && car && !chal ? car.name : cfg.name) || "design").replace(/[^\w.-]+/g, "_") + ".json", b = $("#btnDownload");
+    const txt = JSON.stringify(exportCurrent(), null, 2), name = ((axleView === "car" && car && !chal ? car.name : cfg.name) || "design").replace(/[^\w.-]+/g, "_") + ".json";
     try {
       if (window.showSaveFilePicker) {
         if (!fileHandle) fileHandle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: "Design JSON", accept: { "application/json": [".json"] } }] });

@@ -46,7 +46,7 @@ function reportHtml() {
     }
   }
   for (const k of X.corners) {
-    const e = k.e, m = e.metrics, hp = e.cfg.hardpoints, sp = e.cfg.spring;
+    const e = k.e, hp = e.cfg.hardpoints, sp = e.cfg.spring;
     body += `<h2 class="pb">${k.lab}: ${esc(k.c.name || "")}</h2>`;
     body += tbl(["Target", "Value", "Range", "Status"], checkRows(e).map(c => `<tr><td>${esc(c.lab)}</td><td class="n">${fmt(c.value, c.dec)} ${esc(c.unit)}</td><td>${rngTxt(c.lo, c.hi, c.dec)}</td><td>${st(c.status)}</td></tr>`));
     const pts = S.HP_ORDER.map(p => [HP_LABELS[p][0], hp[p]]).concat(sp ? S.SPRING_POINTS.filter(p => sp[p]).map(p => [SP_LABELS[p][0], sp[p]]) : []);

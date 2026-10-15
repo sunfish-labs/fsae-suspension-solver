@@ -2,7 +2,12 @@
 and line where the solver put it, in every axis frame and both unit systems. Run from the repo root:
     python3 tests/test_cad.py
 Needs node and, for the CAD read-back, `pip install cadquery-ocp` (skipped with a note if it is missing)."""
-import json, math, os, subprocess, sys, tempfile
+import json
+import math
+import os
+import subprocess
+import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -73,21 +78,27 @@ except ImportError:
     print("  (skipped: pip install cadquery-ocp to read the files back)")
 else:
     def shape_of(reader, path):
-        r = reader(); assert r.ReadFile(path) == IFSelect_RetDone; r.TransferRoots(); return r.OneShape()
+        r = reader()
+        assert r.ReadFile(path) == IFSelect_RetDone
+        r.TransferRoots()
+        return r.OneShape()
 
     def verts_edges(sh):
         ex, vs = TopExp_Explorer(sh, TopAbs_VERTEX), []
         while ex.More():
-            p = BRep_Tool.Pnt_s(TopoDS.Vertex(ex.Current())); vs.append((p.X(), p.Y(), p.Z())); ex.Next()
+            p = BRep_Tool.Pnt_s(TopoDS.Vertex(ex.Current()))
+            vs.append((p.X(), p.Y(), p.Z()))
+            ex.Next()
         ex, ne = TopExp_Explorer(sh, TopAbs_EDGE), 0
         while ex.More():
-            ne += 1; ex.Next()
+            ne += 1
+            ex.Next()
         return vs, ne
 
     for units in ("mm", "in"):
         base, gg = gen(car, {"frame": "sw", "origin": "axle", "units": units, "poses": ["bump", "droop", "steer"]})
         k = 25.4 if units == "in" else 1.0           # OpenCascade reports everything in mm
-        want = [p["p"] for p in gg["points"]] + [l["a"] for l in gg["lines"]] + [l["b"] for l in gg["lines"]]
+        want = [p["p"] for p in gg["points"]] + [ln["a"] for ln in gg["lines"]] + [ln["b"] for ln in gg["lines"]]
         for kind, reader, ext in (("IGES", IGESControl_Reader, ".igs"), ("STEP", STEPControl_Reader, ".step")):
             vs, ne = verts_edges(shape_of(reader, base + ext))
             miss = max(min(math.dist([c * k for c in q], v) for v in vs) for q in want)

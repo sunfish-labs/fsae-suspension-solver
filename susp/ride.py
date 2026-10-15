@@ -22,7 +22,8 @@ class Spring:
         self.s = susp
         self.sc = sc
         h = susp.h
-        A = lambda k: np.array(sc[k], float)
+        def A(k):
+            return np.array(sc[k], float)
         self.on = sc["rod_on"]
         self.p0 = A("rod_outboard")
         self.dch = A("damper_chassis")
@@ -64,7 +65,8 @@ class Spring:
         if self.direct:
             return dict(rod_out=p, rod_in=self.dch, damper_out=p, damper_len=float(np.linalg.norm(p - self.dch)),
                         rocker_deg=0.0)
-        f = lambda th: float(np.linalg.norm(self.rocker_at(th)[0] - p)) - self.Lrod
+        def f(th):
+            return float(np.linalg.norm(self.rocker_at(th)[0] - p)) - self.Lrod
         th = th0
         for _ in range(50):
             r = f(th)
@@ -153,7 +155,7 @@ def ride_metrics(cfg, susp, sp, rows):
             out["damper_bottomout"] = float(L.min()) - closed          # room before full compression (bump)
             out["damper_static_pos"] = (float(e2e) - float(L[i0])) / float(sc["damper_stroke"]) * 100
     # geometry quality over the travel
-    pr = [s["rod_out"] for s in sts]
+    [s["rod_out"] for s in sts]
     e = sts[i0]["rod_in"] - sts[i0]["rod_out"]
     out["rod_angle"] = math.degrees(math.atan2(abs(e[2]), math.hypot(e[0], e[1])))
     if not sp.direct:
@@ -230,7 +232,8 @@ def car_balance(fcfg, fev, rcfg, rev, target_grad=None, target_lltd=None, arb_f=
     z_ra = zrf + (zrr - zrf) * a_s / WB
     d = hs - z_ra                               # roll moment arm
     deg = math.pi / 180
-    roll_k = lambda k_nmm, t: k_nmm * 1000 * t ** 2 / 2 * deg       # N/mm per wheel -> Nm/deg for the axle
+    def roll_k(k_nmm, t):
+        return k_nmm * 1000 * t ** 2 / 2 * deg       # N/mm per wheel -> Nm/deg for the axle
     Ksf, Ksr = roll_k(fr["wheel_rate"], tf), roll_k(rr["wheel_rate"], tr)
     Ktf, Ktr = roll_k(fcfg["spring"]["tire_rate"], tf), roll_k(rcfg["spring"]["tire_rate"], tr)
     Kf, Kr = _series(Ksf + arb_f, Ktf), _series(Ksr + arb_r, Ktr)

@@ -12,3 +12,5 @@ __pycache__/
 
 # test dependencies
 tests/node_modules/
+tests/.lint/
+*.egg-info/

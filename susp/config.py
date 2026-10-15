@@ -224,7 +224,8 @@ def load_car(path):
         sys.exit(f"{path}: a car file needs a 'front' and a 'rear' corner")
     out = []
     for axle in ("front", "rear"):
-        c = dict(raw[axle]); c["axle"] = axle
+        c = dict(raw[axle])
+        c["axle"] = axle
         if raw.get("vehicle"):
             c["vehicle"] = deep_merge(c.get("vehicle") or {}, raw["vehicle"])
         cfg = finish_config(deep_merge(DEFAULTS, c), f"{path} ({axle})")
@@ -312,8 +313,10 @@ def validate(cfg):
     """Return a list of (level, message). level is 'error' or 'warn'."""
     h = {HP[k]: np.array(v, float) for k, v in cfg["hardpoints"].items()}
     out = []
-    W = lambda m: out.append(("warn", m))
-    E = lambda m: out.append(("error", m))
+    def W(m):
+        return out.append(("warn", m))
+    def E(m):
+        return out.append(("error", m))
     R = cfg["wheel"]["tire_radius"]
     if abs(h["cp"][2]) > 1.0:
         W(f"contact_patch Z is {h['cp'][2]:.1f} mm. The ground should be Z = 0 (Z up). "

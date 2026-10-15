@@ -2,17 +2,24 @@
 
     python3 ui/test_port.py
 """
-import json, math, os, shutil, subprocess, sys, tempfile
+import glob
+import json
+import math
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
 import numpy as np
-here = os.path.dirname(os.path.abspath(__file__)); root = os.path.dirname(here)
+here = os.path.dirname(os.path.abspath(__file__))
+root = os.path.dirname(here)
 sys.path.insert(0, root)
-from susp.config import load_config, TEMPLATE_REAR, finish_config, deep_merge, DEFAULTS  # noqa: E402
+from susp.config import finish_config, deep_merge, DEFAULTS  # noqa: E402
 from susp.kinematics import evaluate  # noqa: E402
 from susp.loads import run_loads  # noqa: E402
 
 if not shutil.which("node"):
     sys.exit("node is not installed - skip (the UI itself does not need node)")
-import glob
 files = sorted(glob.glob(os.path.join(root, "designs", "*.json")) + glob.glob(os.path.join(root, "designs", "case_study", "*.json")) + glob.glob(os.path.join(root, "private", "*.json")))
 cfgs = {}
 for f in files:
@@ -21,7 +28,8 @@ for f in files:
         cfgs[os.path.relpath(f, root)] = raw
 py = {}
 for n, raw in cfgs.items():
-    c = finish_config(deep_merge(DEFAULTS, raw)); e = evaluate(c)
+    c = finish_config(deep_merge(DEFAULTS, raw))
+    e = evaluate(c)
     m = {k: v for k, v in e["metrics"].items() if isinstance(v, (int, float)) and math.isfinite(v)}
     L = run_loads(c, e["susp"], e["spring"]) if e["spring"] else None
     py[n] = {"m": m, "loads": L["results"] if L else None,

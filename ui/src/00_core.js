@@ -364,12 +364,6 @@ function wireChecks() {
 }
 
 const C = { s1: "var(--s1)", s2: "var(--s2)", s3: "var(--s3)", base: "var(--base)" };
-function withBase(key, getter, sweepRows, baseRows, color = C.s1, name = null) {
-  const out = [];
-  if (baseRows) out.push({ name: name ? "baseline" : null, x: baseRows.map(r => r.dz), y: baseRows.map(getter), color: C.base, dash: "4 3", w: 1.5 });
-  out.push({ name: name ? "current" : null, x: sweepRows.map(r => r.dz), y: sweepRows.map(getter), color });
-  return out;
-}
 function panelHeave() {
   const rows = ev.rows, br = base ? base.rows : null, m = ev.metrics, T = ev.cfg.sweep.travel;
   const r0 = (rs) => rs.reduce((a, r) => Math.abs(r.dz) < Math.abs(a.dz) ? r : a);
@@ -471,7 +465,7 @@ function rockerSvg() {
 // damper force against shaft speed: low-speed slope up to the knee, high-speed slope above (bilinear)
 function damperForce(cl, ch, knee, v) { const a = Math.min(v, knee); return (cl * a + ch * Math.max(0, v - knee)) / 1000; }
 function dampingBlock() {
-  const rd = ev.ride, sc = ev.cfg.spring, MR = rd.motion_ratio, knee = +sc.damper_knee || 50;
+  const rd = ev.ride, sc = ev.cfg.spring, knee = +sc.damper_knee || 50;
   const z = (k) => rd[k] == null ? `<span class="muted">–</span>` : fmt(rd[k], 2);
   const has = sc.damper_bump_low || sc.damper_rebound_low || sc.damper_bump_high || sc.damper_rebound_high;
   const v = Array.from({ length: 31 }, (_, i) => i * 10), tl = rd.damper_c_low_target, th = rd.damper_c_high_target;

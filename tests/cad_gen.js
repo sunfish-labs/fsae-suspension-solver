@@ -1,4 +1,5 @@
 // Writes the CAD exports for a design or car file (used by tests/test_cad.py): node tests/cad_gen.js ui design.json out_base [options-json]
+/* global Susp, SuspCAD */
 const path=require('path'), fs=require('fs');
 const ui=path.resolve(process.argv[2]); require(ui+'/susp.js'); require(ui+'/cad.js');
 const raw=JSON.parse(fs.readFileSync(process.argv[3])); const out=process.argv[4]; const opts=JSON.parse(process.argv[5]||'{}');

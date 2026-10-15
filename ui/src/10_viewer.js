@@ -51,7 +51,7 @@ function layoutLabels() {
   const box = $("#vlabels"), list = three.labels || [];
   box.hidden = !list.length; $$(".vlab", box).forEach(n => n.remove());
   if (!list.length) { $("#vlabSvg").innerHTML = ""; return; }
-  const W = three.cv.clientWidth, H = three.cv.clientHeight, T = three.T;
+  const W = three.cv.clientWidth, H = three.cv.clientHeight;
   const pts = list.map(l => { const v = toT(l.pt).project(three.cam); return { ...l, x: (v.x + 1) / 2 * W, y: (1 - v.y) / 2 * H }; });
   const cx = pts.reduce((a, q) => a + q.x, 0) / pts.length, top = 50, bot = H - ($("#ovcap").hidden ? 52 : 100), gap = 22;
   let svg = "";
@@ -475,11 +475,6 @@ function ackPoints(s) {   // where each front wheel's axle line crosses the rear
       const t = Math.abs(d[0]) > 1e-6 ? (rx - c[0]) / d[0] : NaN; return { c, d, hit: Number.isFinite(t) ? [rx, c[1] + t * d[1]] : null }; });
     return { rx, w };
   } catch (e) { return null; }
-}
-function lineIntersect2(p1, d1, p2, d2, infinite = false) {
-  const det = d1[0] * (-d2[1]) - (-d2[0]) * d1[1]; if (Math.abs(det) < 1e-9) return null;
-  const bx = p2[0] - p1[0], by = p2[1] - p1[1], t = (bx * (-d2[1]) - (-d2[0]) * by) / det;
-  return t > 0 || infinite ? [p1[0] + t * d1[0], p1[1] + t * d1[1]] : null;
 }
 function rad0(dz) { // rocker angle guess from the sweep, keeps the rocker on its branch
   if (!ev.ride) return 0; const r = ev.rows; let best = r[0]; for (const q of r) if (Math.abs(q.dz - dz) < Math.abs(best.dz - dz)) best = q; return (best.rocker_deg || 0) * Math.PI / 180;

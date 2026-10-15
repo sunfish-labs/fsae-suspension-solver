@@ -254,6 +254,9 @@ After editing, run `python3 ui/build.py`, then the checks:
     python3 susp_solver.py selftest      # Python solver vs KineSolver and physics checks
     python3 ui/test_port.py              # browser solver matches the Python solver
     python3 tests/test_analytic.py       # hand calculations with exact answers
+    python3 tests/test_parity.py         # 200 randomly perturbed designs: Python and browser agree
+    ruff check .                         # Python lint (pip install -e ".[dev]")
+    (cd tests && node lint_bundle.js && npx eslint .)   # JavaScript lint
     python3 tests/test_cad.py            # CAD export read back in OpenCascade (pip install cadquery-ocp)
     (cd tests && npm ci) && node tests/browser_test.js   # the web app end to end in a headless browser
 

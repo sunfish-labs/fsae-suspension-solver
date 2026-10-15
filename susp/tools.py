@@ -12,7 +12,7 @@ import numpy as np
 
 from .config import (HP, HP_ORDER, METRICS, SHORT2LONG, SPRING_POINTS, TEMPLATE_FRONT, TEMPLATE_REAR,
                      cfg_to_json)
-from .kinematics import SolveError, Suspension, check_targets, evaluate
+from .kinematics import SolveError, check_targets, evaluate
 from .output import f_num, table
 
 HIST_METRICS = ["camber", "toe", "caster", "kpi", "scrub", "trail", "roll_center", "camber_gain", "bump_steer",
@@ -309,7 +309,8 @@ def optimize(cfg, vary_spec, goal_specs, bound=40.0, reg=0.005, min_clearance=No
     ev0 = evaluate(cfg, steer=need_steer, pack=need_pack)
     ev1 = evaluate(new, steer=need_steer, pack=need_pack)
     print("\nMoves (mm):")
-    was = lambda c, p, a: point_ref(c, p)["xyz".index(a)]
+    def was(c, p, a):
+        return point_ref(c, p)["xyz".index(a)]
     table(["coordinate", "was", "now", "change"],
           [[f"{p}.{a}", f"{was(cfg, p, a):.2f}", f"{was(new, p, a):.1f}", f"{was(new, p, a) - was(cfg, p, a):+.1f}"]
            for p, a in vary])

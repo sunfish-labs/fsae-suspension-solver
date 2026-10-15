@@ -13,7 +13,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from susp.config import TEMPLATE_FRONT, TEMPLATE_REAR, make_config  # noqa: E402
+from susp.config import TEMPLATE_FRONT, make_config  # noqa: E402
 from susp.kinematics import evaluate  # noqa: E402
 from susp.loads import run_loads, tube_props  # noqa: E402
 from susp.ride import car_balance  # noqa: E402
@@ -61,7 +61,8 @@ m = e["metrics"]
 
 def cross2(p1, p2, q1, q2):            # intersection of lines p1-p2 and q1-q2 in the (y, z) plane
     d1, d2, w = np.subtract(p2, p1), np.subtract(q2, q1), np.subtract(q1, p1)
-    c = lambda a, b: a[0] * b[1] - a[1] * b[0]
+    def c(a, b):
+        return a[0] * b[1] - a[1] * b[0]
     t = c(w, d2) / c(d1, d2)
     return np.add(p1, t * d1)
 
@@ -134,8 +135,8 @@ for name, forces, *_ in load_cases(cfg, e["susp"])[0]:
 check("largest force imbalance on the upright, N", worst_f, 0.0, 1e-6, "sum of forces = 0")
 check("largest moment imbalance on the upright, N mm", worst_m, 0.0, 1e-3, "sum of moments = 0")
 chk = L6["checks"][0]
-A, I = tube_props(chk["od"], chk["wall"])
-check("Euler buckling load of a wishbone leg, N", chk["Pcr"], math.pi ** 2 * cfg["members"]["E"] * I / chk["length"] ** 2, 1e-6, "pi^2 E I / L^2, pinned ends")
+A, Imom = tube_props(chk["od"], chk["wall"])
+check("Euler buckling load of a wishbone leg, N", chk["Pcr"], math.pi ** 2 * cfg["members"]["E"] * Imom / chk["length"] ** 2, 1e-6, "pi^2 E I / L^2, pinned ends")
 
 print("\n6b. Bolt shear and pushrod-mount bending (textbook formulas)")
 cfgb = corner(spring=dict(TEMPLATE_FRONT["spring"]))
@@ -144,7 +145,7 @@ Lb = run_loads(cfgb, eb["susp"], eb["spring"])
 mem = cfgb["members"]
 check("bolt shear capacity (5/16 in SAE 8, double shear), N", Lb["parts"][0]["bolt_capacity"], 2 * math.pi / 4 * 7.94 ** 2 * 0.6 * 1034.0, 1e-6, "planes x area x 0.6 x tensile strength")
 bc = Lb["bending_check"]
-A, I = tube_props(*mem["wishbone"])
+A, Imom = tube_props(*mem["wishbone"])
 check("pushrod-mount bending moment, N mm", bc["moment"], bc["P_perp"] * bc["a"] * (bc["length"] - bc["a"]) / bc["length"], 1e-6, "simply supported beam: P a b / L")
 check("pushrod-mount leg FOS", bc["sf"], mem["yield"] / bc["stress"], 1e-9, "yield / (M c / I + axial / A)")
 

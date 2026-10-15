@@ -168,8 +168,8 @@ def solve_FM(susp, sp, F, M):
 def tube_props(od, wall):
     di = od - 2 * wall
     A = math.pi / 4 * (od ** 2 - di ** 2)
-    I = math.pi / 64 * (od ** 4 - di ** 4)
-    return A, I
+    Imom = math.pi / 64 * (od ** 4 - di ** 4)
+    return A, Imom
 
 
 def member_checks(cfg, susp, sp, results):
@@ -182,9 +182,9 @@ def member_checks(cfg, susp, sp, results):
     rows = []
     for k in MEMBERS:
         od, wall = mem[size[k]]
-        A, I = tube_props(od, wall)
+        A, Imom = tube_props(od, wall)
         L = float(np.linalg.norm(inb[k] - outb[k]))
-        Pcr = math.pi ** 2 * E * I / L ** 2           # pin-ended Euler column (K = 1)
+        Pcr = math.pi ** 2 * E * Imom / L ** 2           # pin-ended Euler column (K = 1)
         Py = Sy * A                                    # axial force that yields the tube
         vals = [(r[k], name) for name, r in results.items()]
         tmax = max(vals)
@@ -237,14 +237,14 @@ def bending_check(cfg, susp, sp, results):
             best = (leg, u, Lg, off, a)
     leg, u, Lg, off, a = best
     od, wall = cfg["members"]["wishbone"]
-    A, I = tube_props(od, wall)
+    A, Imom = tube_props(od, wall)
     e_p = unit(pts["rod_in"] - pts["rod_out"])
     worst = None
     for name, r in results.items():
         F = r["pushrod"] * e_p
         P_perp = float(np.linalg.norm(F - (F @ u) * u))
         M = P_perp * a * (Lg - a) / Lg
-        sig = M * (od / 2) / I + (abs(r[leg]) + abs(F @ u)) / A
+        sig = M * (od / 2) / Imom + (abs(r[leg]) + abs(F @ u)) / A
         if worst is None or sig > worst["stress"]:
             worst = dict(case=name, P_perp=P_perp, moment=M, stress=sig)
     sy = cfg["members"]["yield"]
@@ -314,7 +314,8 @@ def run_loads(cfg, susp, sp):
 def member_label(k, susp):
     """Legs named by where the pivot physically is (larger X = front); the JSON keys follow KineSolver's naming."""
     h = susp.h
-    fr = lambda a, b: "front" if a[0] >= b[0] else "rear"
+    def fr(a, b):
+        return "front" if a[0] >= b[0] else "rear"
     return {"upper_front": f"Upper {fr(h['uif'], h['uir'])} leg", "upper_rear": f"Upper {fr(h['uir'], h['uif'])} leg",
             "lower_front": f"Lower {fr(h['lif'], h['lir'])} leg", "lower_rear": f"Lower {fr(h['lir'], h['lif'])} leg",
             "tie_rod": "Tie rod", "pushrod": "Pushrod/pullrod"}[k]

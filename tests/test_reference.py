@@ -42,7 +42,8 @@ for f in files:
     for k, (want, tol) in case.get("at_ride_height", {}).items():
         got = e["metrics"].get(k)
         ok = got is not None and abs(got - want) <= tol
-        total += 1; fails += not ok
+        total += 1
+        fails += not ok
         print(f"  {'ok  ' if ok else 'FAIL'} {k}: solver {got if got is None else round(got, 4)}, reference {want} ± {tol}")
     rows = e["rows"]
     x = np.array([r["dz"] for r in rows])
@@ -51,7 +52,8 @@ for f in files:
         y = np.array([r[k] for r in rows])
         worst = max(abs(np.interp(dz, x, y) - v) for dz, v in pts)
         ok = worst <= tol
-        total += 1; fails += not ok
+        total += 1
+        fails += not ok
         print(f"  {'ok  ' if ok else 'FAIL'} {k} curve: largest difference {worst:.4g} over {len(pts)} points (tol {tol})")
 print(f"\n{total - fails} of {total} reference comparisons passed")
 sys.exit(1 if fails else 0)

@@ -217,7 +217,7 @@ function openInfluence(path) {
   if (isSpring) keys.sort((a, b) => (SPRING_KEYS.has(b) ? 1 : 0) - (SPRING_KEYS.has(a) ? 1 : 0));
   const tg = S.defaultTargets(ev.cfg);
   for (const k of keys) {
-    const [lab, unit, dec] = metricLabel(k), b0 = qb.metrics[k];
+    const [lab, , dec] = metricLabel(k), b0 = qb.metrics[k];
     const cells = effects.map(e => {
       if (!e) return `<td class="n muted">–</td>`;
       const d = e.metrics[k] - b0; if (!Number.isFinite(d)) return `<td class="n muted">–</td>`;
