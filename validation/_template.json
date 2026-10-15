@@ -1,0 +1,14 @@
+{
+  "name": "Copy this file, drop the leading underscore, and fill in your reference numbers",
+  "source": "e.g. KineSolver (date), OptimumKinematics 2.x, Lotus SHARK, a published paper, or a bump-rig measurement",
+  "design": "designs/example_front.json",
+  "at_ride_height": {
+    "camber_gain": [0.0, 0.02],
+    "roll_center": [0.0, 1.0],
+    "caster": [0.0, 0.05]
+  },
+  "curves": {
+    "camber": [[-25, 0.0], [0, 0.0], [25, 0.0]]
+  },
+  "curve_tol": {"camber": 0.05}
+}

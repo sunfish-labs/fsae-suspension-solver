@@ -83,7 +83,7 @@ footer { margin-top: 48px; color: var(--muted); font-size: 14px; border-top: 1px
 </header>
 <nav class="toc" aria-label="Contents">
   <a href="#start">Five-minute start</a><a href="#private">Keeping designs private</a><a href="#order">Order of work</a>
-  <a href="#car">Front, rear, car</a><a href="#learn">Learning tools</a><a href="#case">Case study</a><a href="#targets">Targets</a><a href="#mistakes">Common mistakes</a><a href="#limits">Limits</a>
+  <a href="#car">Front, rear, car</a><a href="#learn">Learning tools</a><a href="#case">Case study</a><a href="#targets">Targets</a><a href="#mistakes">Common mistakes</a><a href="#valid">Validation</a><a href="#limits">Limits</a>
 </nav>
 
 <p class="lead">The solver takes the nine hardpoints of a double-wishbone corner, plus an optional pushrod, rocker and damper. It shows how
@@ -292,6 +292,25 @@ combination of full droop, ride height and full bump with full left lock, center
 lay out the rocker.</p></div>
 <div><h3>Trusting one corner</h3><p>Use the whole-car check before choosing springs and anti-roll bars.</p></div>
 </div>
+
+<h2 id="valid">How the numbers are checked</h2>
+<p>Every change to the solver is tested automatically on GitHub before it reaches this site:</p>
+<ul>
+  <li><b>Against KineSolver.</b> On three real corners (two front, one rear), camber, caster, KPI, toe, roll center and anti-dive / squat / lift at full bump and droop all agree within about 0.06 mm and 0.04°, the precision KineSolver's charts show.</li>
+  <li><b>Against hand calculations.</b> 22 cases with exact answers, such as:
+    <ul>
+      <li>equal parallel arms give zero camber gain and bump steer;</li>
+      <li>a roll center and swing arm built with a ruler;</li>
+      <li>caster, KPI, scrub and trail from the ball-joint coordinates;</li>
+      <li>a damper's motion ratio equals its lever ratio times the cosine of its angle;</li>
+      <li>the member forces hold the upright in exact equilibrium;</li>
+      <li>Euler buckling loads;</li>
+      <li>the car's load transfer adding up to <i>m g h</i>.</li>
+    </ul></li>
+  <li><b>Browser against Python.</b> The two versions of the solver agree to about 1e-11, so this page and the command-line tool give the same answers.</li>
+  <li><b>The web app itself</b> is clicked through in a real browser: the challenges are solved by following the hints, the exports open, and the phone layout fits.</li>
+</ul>
+<p class="small">Not yet checked against an outside source: loads, ride and the whole-car balance (they are checked by physics identities only). If you have results from another tool or from your car on a rig, add them to the <code>validation/</code> folder (instructions inside). They are then checked on every change.</p>
 
 <h2 id="limits">What the solver does not do</h2>
 <ul>

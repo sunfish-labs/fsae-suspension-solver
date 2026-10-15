@@ -16,6 +16,10 @@ jobs:
       - run: pip install numpy scipy
       - name: Python solver self-test (KineSolver comparison and physics checks)
         run: python3 susp_solver.py selftest
+      - name: Hand-calculation checks (exact answers)
+        run: python3 tests/test_analytic.py
+      - name: Reference cases (validation/)
+        run: python3 tests/test_reference.py
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
