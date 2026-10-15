@@ -1,7 +1,6 @@
 // ------------------------------------------------------------------ 3D viewer
 const view = { theta: 0.95, phi: 1.12, r: 1550, target: null, mode: "iso", rc: true, mirror: false, overlay: null, hl: null, anim: null };
 let three = null, preview = null;
-const undoStack = [];
 const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 function initThree() {
   if (!window.THREE) { $("#vmsg").hidden = false; $("#vmsg").textContent = "The 3D view needs the three.js library, which did not load. All results below still work."; return; }

@@ -74,6 +74,23 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   await p.click("#btnLearn"); await p.waitForTimeout(400);
   check("Learn opens the glossary", (await p.$$eval("#pn_learn .term", a => a.length)) >= 40);
 
+  console.log("\nUndo and redo for every edit");
+  const box = "#in_hardpoints_upper_outboard_2", orig = await p.inputValue(box);
+  await p.click(box); await p.fill(box, ""); await p.type(box, "350", { delay: 40 }); await p.waitForTimeout(400);
+  await p.click("body", { position: { x: 5, y: 700 } });
+  await p.click("#btnUndo"); await p.waitForTimeout(500);
+  check("one Undo reverts a whole typing burst", (await p.inputValue(box)) === orig, `${await p.inputValue(box)} vs ${orig}`);
+  await p.click("#btnRedo"); await p.waitForTimeout(500);
+  check("Redo reapplies it", (await p.inputValue(box)) === "350");
+  await p.keyboard.press(process.platform === "darwin" ? "Meta+z" : "Control+z"); await p.waitForTimeout(500);
+  check("Ctrl/Cmd+Z undoes outside text boxes", (await p.inputValue(box)) === orig);
+  await p.click('#axleSeg [data-ax="car"]'); await p.waitForTimeout(500);
+  const arb0 = await p.inputValue('[data-cpath="arb.front"]');
+  await p.fill('[data-cpath="arb.front"]', "123"); await p.waitForTimeout(600); await p.click("body", { position: { x: 5, y: 700 } });
+  await p.click("#btnUndo"); await p.waitForTimeout(600);
+  check("Undo works in the Car view (anti-roll bar edit)", (await p.inputValue('[data-cpath="arb.front"]')) === arb0, await p.inputValue('[data-cpath="arb.front"]'));
+  await p.click('#axleSeg [data-ax="front"]'); await p.waitForTimeout(500);
+
   console.log("\nChallenges solved by following the hints only");
   for (const id of ["rc", "bs"]) {
     await p.click("#btnStart"); await p.click("#wChal"); await p.click(`[data-ch="${id}"]`); await p.waitForTimeout(900);

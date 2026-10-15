@@ -326,7 +326,7 @@ table.cmpt th { white-space: normal; min-width: 90px; }
 .axis0 { color: #d13b2e; } .axis1 { color: #2f8f3e; } .axis2 { color: #2a63c9; }
 /* front / rear / car */
 .axseg button { padding: 5px 14px; font: 600 14px/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em; }
-body.carview #tabs, body.carview #panels, body.carview #btnBase, body.carview #btnUndo, body.carview #showSel, body.carview #dispMenu, body.carview #vhint { display: none !important; }
+body.carview #tabs, body.carview #panels, body.carview #btnBase, body.carview #showSel, body.carview #dispMenu, body.carview #vhint { display: none !important; }
 body.chal .axseg { opacity: .45; pointer-events: none; }
 .slot { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel-2); }
 .slot small { display: block; }

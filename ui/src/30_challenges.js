@@ -69,8 +69,8 @@ function startChallenge(id) {
   chal = { def, start: JSON.parse(JSON.stringify(start)), prev, prevView, hint: 0, done: false, par: chalPar(def) };
   axleView = "front"; applyViewClasses();
   document.body.classList.add("chal", "focus");
-  closeInfluence(); showMe(null); undoStack.length = 0; fixRows.clear(); openRows.clear();
-  view.target = null; loadCfg(start); $("#preset").value = "custom";
+  closeInfluence(); showMe(null); fixRows.clear(); openRows.clear();
+  view.target = null; loadCfg(start); $("#preset").value = "custom"; resetHistory();
   base = ev; baseName = "challenge start"; tab = def.tab;
   buildRail(); renderAll(0);
 }
@@ -81,7 +81,7 @@ function exitChallenge(keep = false) {
   $("#crail").hidden = true; $("#cardsIn").hidden = false; closeInfluence(); showMe(null); base = null;
   if (!keep) { view.target = null; loadCfg(prev, "your edits", { toView: axleView }); $("#preset").value = "custom"; }
   else { if (car) { car.front = cfg; } loadCfg(cfg, "challenge result", { toView: "front" }); }
-  applyViewClasses();
+  applyViewClasses(); resetHistory();
 }
 function buildRail() {
   const d = chal.def, lab = (p) => pointName(p);

@@ -103,7 +103,7 @@ function wireCompare() {
   $$("input[name=cmpref]", P).forEach(r => r.addEventListener("change", () => { cmpRef = +r.value; rerender(); }));
   $$("[data-ghost]", P).forEach(cb => cb.addEventListener("change", () => { const i = +cb.dataset.ghost; cb.checked ? cmpGhost.add(i) : cmpGhost.delete(i); updateScene(); }));
   $$("[data-del]", P).forEach(b => b.addEventListener("click", () => { const i = +b.dataset.del; cmp.splice(i, 1); cmpGhost.clear(); if (cmpRef >= i) cmpRef = -1; cmpSave(); rerender(); }));
-  $$("[data-load]", P).forEach(b => b.addEventListener("click", () => { const q = cmp[+b.dataset.load]; if (chal) exitChallenge(true); undoStack.push(JSON.parse(JSON.stringify(cfg))); view.target = null; loadCfg(JSON.parse(JSON.stringify(q.cfg))); $("#preset").value = "custom"; }));
+  $$("[data-load]", P).forEach(b => b.addEventListener("click", () => { const q = cmp[+b.dataset.load]; if (chal) exitChallenge(true);  view.target = null; loadCfg(JSON.parse(JSON.stringify(q.cfg))); $("#preset").value = "custom"; }));
   const od = $("#cmpDiff", P); if (od) od.onchange = () => { cmpOnlyDiff = od.checked; rerender(); };
 }
 function drawCompareGhosts(dyn, col) {

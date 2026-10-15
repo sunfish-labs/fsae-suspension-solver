@@ -1,5 +1,6 @@
 // ------------------------------------------------------------------ toolbar
 function loadCfg(raw, name, opts = {}) {
+  pushHistory();
   try { S.finishConfig(raw); } catch (e) { $("#jsonMsg").textContent = e.message; return false; }
   cfg = JSON.parse(JSON.stringify(raw));
   for (const k of ["wheel", "vehicle", "sweep", "clearance", "loads", "members"]) cfg[k] = S.deepMerge(S.DEFAULTS[k], cfg[k] || {});
@@ -95,6 +96,7 @@ $("#btnApplyJson").addEventListener("click", () => {
   catch (ex) { $("#jsonMsg").textContent = "Not valid JSON: " + ex.message; }
 });
 $("#btnUndo").addEventListener("click", () => undo());
+$("#btnRedo").addEventListener("click", () => redo());
 
 
 document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dataset.path) $("#preset").value = "custom"; });

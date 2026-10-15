@@ -177,17 +177,11 @@ function startPreview(nc, label) {
 }
 function endPreview() { preview = null; $("#pvbar").hidden = true; $("#ovcap").hidden = !view.overlay; updateScene(); }
 function applyCfg(nc, label) {
-  undoStack.push(JSON.parse(JSON.stringify(cfg)));
+  pushHistory();
   if (!err && ev && !chal) { base = ev; baseName = "before: " + label; }
   preview = null; $("#pvbar").hidden = true;
   cfg = JSON.parse(JSON.stringify(nc)); $("#preset").value = "custom";
   fillForm(); run();
-  if (drawerPath) openInfluence(drawerPath);
-}
-function undo() {
-  if (!undoStack.length) return;
-  cfg = undoStack.pop(); preview = null; $("#pvbar").hidden = true;
-  base = null; $("#preset").value = "custom"; fillForm(); run();
   if (drawerPath) openInfluence(drawerPath);
 }
 

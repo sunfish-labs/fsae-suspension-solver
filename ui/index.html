@@ -341,7 +341,7 @@ table.cmpt th { white-space: normal; min-width: 90px; }
 .axis0 { color: #d13b2e; } .axis1 { color: #2f8f3e; } .axis2 { color: #2a63c9; }
 /* front / rear / car */
 .axseg button { padding: 5px 14px; font: 600 14px/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em; }
-body.carview #tabs, body.carview #panels, body.carview #btnBase, body.carview #btnUndo, body.carview #showSel, body.carview #dispMenu, body.carview #vhint { display: none !important; }
+body.carview #tabs, body.carview #panels, body.carview #btnBase, body.carview #showSel, body.carview #dispMenu, body.carview #vhint { display: none !important; }
 body.chal .axseg { opacity: .45; pointer-events: none; }
 .slot { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel-2); }
 .slot small { display: block; }
@@ -438,7 +438,8 @@ body { border-top: 4px solid var(--gold); }
       <input id="fileIn" type="file" accept=".json,application/json" hidden>
     </div>
     <div class="toolbar tb-right">
-      <button class="btn" id="btnUndo" type="button" hidden title="Undo the last applied move">Undo</button>
+      <button class="btn" id="btnUndo" type="button" hidden title="Undo the last change (Cmd/Ctrl+Z)">↶ Undo</button>
+      <button class="btn" id="btnRedo" type="button" hidden title="Redo (Shift+Cmd/Ctrl+Z)">↷ Redo</button>
     </div>
   </div>
 </header>
@@ -1884,7 +1885,7 @@ function showPanel() { $$("#panels > .panel").forEach(p => p.hidden = p.dataset.
 
 function renderAll(ms) {
   renderTabs();
-  $("#btnUndo").hidden = !undoStack.length;
+  syncUndoButtons();
   const P = $("#panels");
   if (err) {
     $("#status").innerHTML = `<span class="pill bad">No solution</span>`;
@@ -2163,7 +2164,6 @@ function panelPack() {
 // ------------------------------------------------------------------ 3D viewer
 const view = { theta: 0.95, phi: 1.12, r: 1550, target: null, mode: "iso", rc: true, mirror: false, overlay: null, hl: null, anim: null };
 let three = null, preview = null;
-const undoStack = [];
 const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 function initThree() {
   if (!window.THREE) { $("#vmsg").hidden = false; $("#vmsg").textContent = "The 3D view needs the three.js library, which did not load. All results below still work."; return; }
@@ -2667,6 +2667,52 @@ $("#posePlay").addEventListener("click", () => { stopAnim(); if (!reduceMotion) 
 const mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", () => updateScene());
 new MutationObserver(() => updateScene()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
+// ------------------------------------------------------------------ history: undo / redo for every change
+// A snapshot is taken just before each change: typing in any field (a burst of keystrokes in one box counts as one
+// step), target ranges, car settings, applied moves, opening a design or example. Undo / Redo buttons in the header,
+// Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z (or Ctrl+Y) when the cursor is not in a text box.
+const hist = { undo: [], redo: [], last: 0, lastEl: null, restoring: false };
+function snapshot() {
+  return chal ? { kind: "cfg", cfg: JSON.stringify(cfg) }
+    : { kind: "car", view: axleView, car: JSON.stringify({ name: car.name, vehicle: car.vehicle, arb: car.arb, car_targets: car.car_targets, src: car.src, front: car.front, rear: car.rear }) };
+}
+function pushHistory(el) {
+  if (hist.restoring || !cfg || (!chal && !car)) return;
+  const now = Date.now();
+  if (el && el === hist.lastEl && now - hist.last < 1500) { hist.last = now; return; }     // same box, same burst
+  hist.undo.push(snapshot()); if (hist.undo.length > 100) hist.undo.shift();
+  hist.redo.length = 0; hist.last = now; hist.lastEl = el || null; syncUndoButtons();
+}
+function resetHistory() { hist.undo.length = 0; hist.redo.length = 0; hist.lastEl = null; syncUndoButtons(); }
+function restoreSnapshot(s) {
+  hist.restoring = true;
+  try {
+    if (s.kind === "cfg") cfg = JSON.parse(s.cfg);
+    else { const raw = JSON.parse(s.car); car = carFrom(raw); if (raw.src) car.src = raw.src; axleView = s.view; cfg = car[axleView === "rear" ? "rear" : "front"]; applyViewClasses(); }
+    preview = null; $("#pvbar").hidden = true; savedSpring = null; savedRocker = null; $("#preset").value = "custom";
+    fillForm(); run();
+    if (drawerPath) openInfluence(drawerPath);
+  } finally { hist.restoring = false; }
+}
+function undo() { if (!hist.undo.length) return; hist.redo.push(snapshot()); restoreSnapshot(hist.undo.pop()); hist.lastEl = null; syncUndoButtons(); flash("Undone"); }
+function redo() { if (!hist.redo.length) return; hist.undo.push(snapshot()); restoreSnapshot(hist.redo.pop()); hist.lastEl = null; syncUndoButtons(); flash("Redone"); }
+function syncUndoButtons() { const u = $("#btnUndo"), r = $("#btnRedo"); if (u) u.hidden = !hist.undo.length; if (r) r.hidden = !hist.redo.length; }
+// record before any model-bound field changes (capture phase runs before the field's own handler)
+function recordEdit(e) {
+  const t = e.target; if (!t || !t.dataset || hist.restoring) return;
+  const d = t.dataset;
+  if (d.path || d.cpath || d.ctg || d.tkey || d.chpath || d.ren !== undefined || t.id === "springOn" || t.id === "rockerOn") pushHistory(t);
+}
+document.addEventListener("input", recordEdit, true);
+document.addEventListener("change", recordEdit, true);
+document.addEventListener("keydown", (e) => {
+  if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+  const a = document.activeElement, tag = a ? a.tagName : "";
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (a && a.isContentEditable)) return;   // let the box handle its own undo
+  const k = e.key.toLowerCase();
+  if (k === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+  else if ((k === "z" && e.shiftKey) || k === "y") { e.preventDefault(); redo(); }
+});
 // ------------------------------------------------------------------ Learn tab
 const TERMS = window.SUSP_TERMS || [];
 const TERM_BY_METRIC = Object.fromEntries(TERMS.filter(t => t.metric).map(t => [t.metric, t]));
@@ -2846,17 +2892,11 @@ function startPreview(nc, label) {
 }
 function endPreview() { preview = null; $("#pvbar").hidden = true; $("#ovcap").hidden = !view.overlay; updateScene(); }
 function applyCfg(nc, label) {
-  undoStack.push(JSON.parse(JSON.stringify(cfg)));
+  pushHistory();
   if (!err && ev && !chal) { base = ev; baseName = "before: " + label; }
   preview = null; $("#pvbar").hidden = true;
   cfg = JSON.parse(JSON.stringify(nc)); $("#preset").value = "custom";
   fillForm(); run();
-  if (drawerPath) openInfluence(drawerPath);
-}
-function undo() {
-  if (!undoStack.length) return;
-  cfg = undoStack.pop(); preview = null; $("#pvbar").hidden = true;
-  base = null; $("#preset").value = "custom"; fillForm(); run();
   if (drawerPath) openInfluence(drawerPath);
 }
 
@@ -2988,8 +3028,8 @@ function startChallenge(id) {
   chal = { def, start: JSON.parse(JSON.stringify(start)), prev, prevView, hint: 0, done: false, par: chalPar(def) };
   axleView = "front"; applyViewClasses();
   document.body.classList.add("chal", "focus");
-  closeInfluence(); showMe(null); undoStack.length = 0; fixRows.clear(); openRows.clear();
-  view.target = null; loadCfg(start); $("#preset").value = "custom";
+  closeInfluence(); showMe(null); fixRows.clear(); openRows.clear();
+  view.target = null; loadCfg(start); $("#preset").value = "custom"; resetHistory();
   base = ev; baseName = "challenge start"; tab = def.tab;
   buildRail(); renderAll(0);
 }
@@ -3000,7 +3040,7 @@ function exitChallenge(keep = false) {
   $("#crail").hidden = true; $("#cardsIn").hidden = false; closeInfluence(); showMe(null); base = null;
   if (!keep) { view.target = null; loadCfg(prev, "your edits", { toView: axleView }); $("#preset").value = "custom"; }
   else { if (car) { car.front = cfg; } loadCfg(cfg, "challenge result", { toView: "front" }); }
-  applyViewClasses();
+  applyViewClasses(); resetHistory();
 }
 function buildRail() {
   const d = chal.def, lab = (p) => pointName(p);
@@ -3307,7 +3347,7 @@ function wireCompare() {
   $$("input[name=cmpref]", P).forEach(r => r.addEventListener("change", () => { cmpRef = +r.value; rerender(); }));
   $$("[data-ghost]", P).forEach(cb => cb.addEventListener("change", () => { const i = +cb.dataset.ghost; cb.checked ? cmpGhost.add(i) : cmpGhost.delete(i); updateScene(); }));
   $$("[data-del]", P).forEach(b => b.addEventListener("click", () => { const i = +b.dataset.del; cmp.splice(i, 1); cmpGhost.clear(); if (cmpRef >= i) cmpRef = -1; cmpSave(); rerender(); }));
-  $$("[data-load]", P).forEach(b => b.addEventListener("click", () => { const q = cmp[+b.dataset.load]; if (chal) exitChallenge(true); undoStack.push(JSON.parse(JSON.stringify(cfg))); view.target = null; loadCfg(JSON.parse(JSON.stringify(q.cfg))); $("#preset").value = "custom"; }));
+  $$("[data-load]", P).forEach(b => b.addEventListener("click", () => { const q = cmp[+b.dataset.load]; if (chal) exitChallenge(true);  view.target = null; loadCfg(JSON.parse(JSON.stringify(q.cfg))); $("#preset").value = "custom"; }));
   const od = $("#cmpDiff", P); if (od) od.onchange = () => { cmpOnlyDiff = od.checked; rerender(); };
 }
 function drawCompareGhosts(dyn, col) {
@@ -3350,6 +3390,7 @@ function exportCar() {
   return { type: "car", name: car.name, vehicle: car.vehicle, arb: car.arb, car_targets: car.car_targets, front: strip(car.front), rear: strip(car.rear) };
 }
 function loadCar(raw, label) {
+  pushHistory();
   try { car = carFrom(raw); } catch (e) { $("#errBox").innerHTML = `<div class="banner bad">That car file does not load: ${esc(e.message)}</div>`; return false; }
   if (label) car.src = { front: label, rear: label };
   cfg = car[axleView === "rear" ? "rear" : "front"]; savedSpring = null; savedRocker = null;
@@ -3688,6 +3729,7 @@ function wireExport() {
 
 // ------------------------------------------------------------------ toolbar
 function loadCfg(raw, name, opts = {}) {
+  pushHistory();
   try { S.finishConfig(raw); } catch (e) { $("#jsonMsg").textContent = e.message; return false; }
   cfg = JSON.parse(JSON.stringify(raw));
   for (const k of ["wheel", "vehicle", "sweep", "clearance", "loads", "members"]) cfg[k] = S.deepMerge(S.DEFAULTS[k], cfg[k] || {});
@@ -3783,6 +3825,7 @@ $("#btnApplyJson").addEventListener("click", () => {
   catch (ex) { $("#jsonMsg").textContent = "Not valid JSON: " + ex.message; }
 });
 $("#btnUndo").addEventListener("click", () => undo());
+$("#btnRedo").addEventListener("click", () => redo());
 
 
 document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dataset.path) $("#preset").value = "custom"; });

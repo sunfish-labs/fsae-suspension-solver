@@ -30,6 +30,7 @@ function exportCar() {
   return { type: "car", name: car.name, vehicle: car.vehicle, arb: car.arb, car_targets: car.car_targets, front: strip(car.front), rear: strip(car.rear) };
 }
 function loadCar(raw, label) {
+  pushHistory();
   try { car = carFrom(raw); } catch (e) { $("#errBox").innerHTML = `<div class="banner bad">That car file does not load: ${esc(e.message)}</div>`; return false; }
   if (label) car.src = { front: label, rear: label };
   cfg = car[axleView === "rear" ? "rear" : "front"]; savedSpring = null; savedRocker = null;

@@ -271,7 +271,7 @@ function showPanel() { $$("#panels > .panel").forEach(p => p.hidden = p.dataset.
 
 function renderAll(ms) {
   renderTabs();
-  $("#btnUndo").hidden = !undoStack.length;
+  syncUndoButtons();
   const P = $("#panels");
   if (err) {
     $("#status").innerHTML = `<span class="pill bad">No solution</span>`;
