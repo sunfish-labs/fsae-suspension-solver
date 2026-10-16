@@ -1,0 +1,32 @@
+# Tags each new version: when the version in pyproject.toml changes on main, this creates the tag v<version>.
+# Run it by hand with a tag and a commit to tag an older commit.
+name: tag version
+on:
+  push:
+    branches: [main]
+    paths: [pyproject.toml]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag to create (blank = v<version in pyproject.toml>)"
+        required: false
+      sha:
+        description: "commit to tag (blank = the latest)"
+        required: false
+permissions:
+  contents: write
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - env:
+          TAG: ${{ inputs.tag }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          t="${TAG:-v$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")}"
+          if git rev-parse -q --verify "refs/tags/$t" >/dev/null; then echo "$t already exists"; exit 0; fi
+          git tag "$t" "${SHA:-HEAD}"
+          git push origin "$t"
