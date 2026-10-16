@@ -165,9 +165,10 @@ def print_ride(cfg, ev):
     kind = "direct-acting damper" if ev["spring"].direct else "rocker"
     print(f"\nSpring and damper ({sc['rod_on']}-arm rod, {kind}; spring {sc['spring_rate']:g} N/mm, "
           f"tire {sc['tire_rate']:g} N/mm, sprung corner {rd['_m_sprung']:.1f} kg)")
-    keys = ["motion_ratio", "mr_progression", "wheel_rate", "ride_rate", "ride_freq", "static_spring_force",
-            "spring_for_target", "damper_used", "damper_margin", "damper_static_pos", "damper_topout",
-            "damper_bottomout", "rod_angle", "rocker_rot", "trans_min"]
+    keys = ["motion_ratio", "mr_progression", "wheel_rate", "wheel_rate_bump", "bumpstop_travel", "ride_rate", "ride_freq",
+            "static_spring_force", "spring_for_target", "damper_used", "damper_margin", "damper_static_pos", "damper_topout",
+            "damper_bottomout", "rod_angle", "rocker_rot", "trans_min",
+            "arb_twist", "arb_wheel_rate", "arb_roll", "arb_progression", "arb_tau", "arb_fos"]
     table(["metric", "value", "unit"], [mrow(m, k) for k in keys if k in m])
     lo, mid, hi = rd["_damper_len_range"]
     e2e = sc.get("damper_eye_to_eye")
@@ -328,7 +329,7 @@ def print_car(cfg_f, cfg_r, out):
     rows = [["Ride frequency", f"{out['freq_f']:.2f}", f"{out['freq_r']:.2f}", "Hz"],
             ["Roll center height", f"{out['rc_f']:.0f}", f"{out['rc_r']:.0f}", "mm"],
             ["Roll stiffness: springs", f"{out['Ksf']:.0f}", f"{out['Ksr']:.0f}", "Nm/deg"],
-            ["  anti-roll bar (input)", f"{out['arb_in_f']:.0f}", f"{out['arb_in_r']:.0f}", "Nm/deg"],
+            [f"  anti-roll bar ({out['arb_src_f']} / {out['arb_src_r']})", f"{out['arb_in_f']:.0f}", f"{out['arb_in_r']:.0f}", "Nm/deg"],
             ["  axle total, with tires", f"{out['Kf']:.0f}", f"{out['Kr']:.0f}", "Nm/deg"],
             ["Load transfer per wheel per g", f"{out['dFz_f']:.0f}", f"{out['dFz_r']:.0f}", "N/g"],
             ["  of which geometric (through links)", f"{out['geo_f']:.0f}", f"{out['geo_r']:.0f}", "N/g"]]
@@ -337,6 +338,13 @@ def print_car(cfg_f, cfg_r, out):
     print(f"roll gradient: {out['grad']:.2f} deg/g")
     print(f"LLTD front: {out['lltd'] * 100:.1f} %  (front weight {out['wf'] * 100:.0f} %; front LLTD a few % above "
           "front weight is a common starting point for mild understeer)")
+    if "ay_lim_f" in out:
+        b = out["limit_balance"]
+        print(f"tires at the limit (mu {out['tire_mu']:g}, load sensitivity {out['tire_load_sens']:g}): front axle "
+              f"{out['ay_lim_f']:.2f} g, rear {out['ay_lim_r']:.2f} g (load transfer costs {out['grip_loss_f']:.1f} / "
+              f"{out['grip_loss_r']:.1f} % of the grip) -> "
+              + ("neutral" if abs(b) < 0.005 else ("the front lets go first (understeer)" if b > 0 else "the rear lets go first (oversteer)"))
+              + f"; both axles let go together at {out['lltd_neutral'] * 100:.1f} % front LLTD")
     print("\nCar targets:")
     table(["target", "value", "range", "status"], [[CAR_LABELS[c["key"]][0], f"{c['value']:.{CAR_LABELS[c['key']][2]}f} {CAR_LABELS[c['key']][1]}",
           f"{c['lo']} to {c['hi']}", c["status"]] for c in out["checks"]])

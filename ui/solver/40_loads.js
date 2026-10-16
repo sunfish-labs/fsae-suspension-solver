@@ -267,7 +267,7 @@ function wheelRateAtRide(cfg, susp, sp) {
     L1 = sp.state(xs.get(-1)).damper_len,
     L2 = sp.state(xs.get(1)).damper_len,
     mr = Math.abs(L1 - L2) / 2;
-  return cfg.spring.spring_rate * mr * mr;
+  return springRateAt(cfg.spring, 0) * mr * mr;
 }
 // mirrors loads.run_loads: bump and pothole are also solved at the wheel travel that load reaches
 function runLoads(cfg, susp, sp, lltd = null) {
@@ -284,7 +284,10 @@ function runLoads(cfg, susp, sp, lltd = null) {
   for (const [name, forces, d, parts] of cases) {
     if ((name === "bump" || name === "pothole") && kw > 1e-9) {
       const Fz = forces.reduce((acc, [f]) => acc + f[2], 0),
-        dz = Math.min(travel, Math.max(0, (Fz - info.Fz0) / kw));
+        // dual-rate spring or bump stop: integrate the rate curve
+        dz = springNonlinear(cfg.spring)
+          ? wheelTravelUnder(cfg, susp, sp, Fz - info.Fz0, travel)
+          : Math.min(travel, Math.max(0, (Fz - info.Fz0) / kw));
       if (dz > 0.05)
         extra.push([
           `${name} (deflected)`,

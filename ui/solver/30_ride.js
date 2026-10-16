@@ -64,6 +64,116 @@ class Spring {
   }
 }
 
+// ---- the spring as fitted (mirrors ride.spring_rate_at / spring_nonlinear / wheel_travel_under)
+function springRateAt(sc, x) {
+  let k = +sc.spring_rate;
+  if (sc.spring_rate2 != null && sc.spring_breakpoint != null && x > +sc.spring_breakpoint) k = +sc.spring_rate2;
+  const g = sc.bumpstop_gap;
+  if (g != null && x > +g) k += +(sc.bumpstop_k || 0) + 2 * +(sc.bumpstop_k2 || 0) * (x - +g);
+  return k;
+}
+const springNonlinear = sc => (sc.spring_rate2 != null && sc.spring_breakpoint != null) || sc.bumpstop_gap != null;
+function wheelTravelUnder(cfg, susp, sp, dF, zmax) {
+  if (dF <= 0) return 0;
+  const n = Math.max(1, Math.ceil(zmax / 1)),
+    zs = [...Array(n + 1).keys()].map(i => (zmax * i) / n),
+    xs = susp.states(zs),
+    L = [];
+  let th = 0;
+  for (const z of zs) {
+    const st = sp.state(xs.get(Number(z)), th);
+    th = rad(st.rocker_deg);
+    L.push(st.damper_len);
+  }
+  let F = 0;
+  for (let j = 0; j < n; j++) {
+    const x0 = L[0] - L[j],
+      x1 = L[0] - L[j + 1],
+      dz = zs[j + 1] - zs[j],
+      df = (springRateAt(cfg.spring, (x0 + x1) / 2) * (x1 - x0) ** 2) / dz;
+    if (F + df >= dF) return df > 0 ? zs[j] + ((dF - F) / df) * dz : zs[j];
+    F += df;
+  }
+  return zmax;
+}
+// ---- anti-roll bar driven by its own drop link (mirrors ride.ArbLink / arb_metrics)
+class ArbLink {
+  constructor(susp, sp, a) {
+    const h = susp.h;
+    this.s = susp;
+    this.sp = sp;
+    this.on = a.link_on || "lower";
+    this.p0 = a.link_outboard.map(Number);
+    this.t0 = a.arm_tip.map(Number);
+    this.c = a.bar_pivot.map(Number);
+    this.k = unit((a.bar_axis || [0, 1, 0]).map(Number));
+    this.L = norm(sub(this.t0, this.p0));
+    if (this.on === "lower" || this.on === "upper") {
+      this.piv = this.on === "lower" ? [h.lif, h.lir] : [h.uif, h.uir];
+      this.bj_i = this.on === "lower" ? 1 : 0;
+      this.bj0 = susp.P0[this.bj_i];
+    }
+  }
+  linkOut(x, st) {
+    if (this.on === "upright") return this.s.move(x, this.p0);
+    if (this.on === "rocker") return add(this.sp.c, matvec(rodrigues(mul(this.sp.k, rad(st.rocker_deg))), sub(this.p0, this.sp.c)));
+    const [P] = this.s.unpack(x),
+      [a, b] = this.piv,
+      u = unit(sub(b, a)),
+      v0 = perp(sub(this.bj0, a), u),
+      v1 = perp(sub(P[this.bj_i], a), u);
+    return add(a, matvec(rodrigues(mul(u, Math.atan2(dot(u, cross(v0, v1)), dot(v0, v1)))), sub(this.p0, a)));
+  }
+  theta(x, st, th0 = 0) {
+    const p = this.linkOut(x, st),
+      f = th => norm(sub(add(this.c, matvec(rodrigues(mul(this.k, th)), sub(this.t0, this.c))), p)) - this.L;
+    let th = th0;
+    for (let i = 0; i < 50; i++) {
+      const r = f(th);
+      if (Math.abs(r) < 1e-10) return th;
+      const d = (f(th + 1e-7) - r) / 1e-7;
+      if (Math.abs(d) < 1e-12) throw new SolveError("The anti-roll bar's drop link points through the bar axis (toggle). Move arm_tip.");
+      th -= Math.max(-0.2, Math.min(0.2, r / d));
+    }
+    if (Math.abs(f(th)) > 1e-6) throw new SolveError("The anti-roll bar's drop link cannot reach the bar arm here.");
+    return th;
+  }
+}
+function arbMetrics(cfg, susp, sp, rows, sts, zs, i0) {
+  const a = cfg.arb,
+    bar = new ArbLink(susp, sp, a),
+    order = [...Array(rows.length - i0).keys()].map(i => i + i0).concat([...Array(i0).keys()].reverse()),
+    ths = new Array(rows.length);
+  let th = 0;
+  for (const i of order) {
+    if (i === i0 - 1) th = ths[i0];
+    th = bar.theta(rows[i]._x, sts[i], th);
+    ths[i] = th;
+  }
+  const dth = gradient2(ths, zs),
+    tp = Math.abs(dth[i0]),
+    od = +a.bar_od,
+    di = a.bar_wall ? Math.max(0, od - 2 * a.bar_wall) : 0,
+    J = (Math.PI / 32) * (od ** 4 - di ** 4),
+    Lb = +(a.bar_length || 2 * Math.abs(a.arm_tip[1])),
+    Gm = +(a.bar_G || 79300),
+    Kt = (Gm * J) / Lb,
+    kw = 2 * Kt * tp * tp,
+    t = susp.track,
+    twist = 2 * tp * (t / 2) * Math.tan(rad(+cfg.sweep.roll_deg)),
+    tau = (Gm * twist * od) / 2 / Lb,
+    yld = +(a.bar_yield || cfg.members.yield);
+  rows.forEach((r, i) => (r.arb_deg = deg(ths[i])));
+  return {
+    arb_twist: deg(tp),
+    arb_wheel_rate: kw,
+    arb_roll: ((kw * 1000 * (t / 1000) ** 2) / 2) * (Math.PI / 180),
+    arb_tau: tau,
+    arb_fos: tau > 0 ? (0.577 * yld) / tau : Infinity,
+    arb_progression: tp > 0 ? ((Math.abs(dth[dth.length - 1]) - Math.abs(dth[0])) / tp) * 100 : 0,
+  };
+}
+
 function angleToArm(arm, force, k) {
   const a = perp(arm, k),
     f = perp(force, k),
@@ -97,9 +207,9 @@ function gradient2(L, zs) {
   return g;
 }
 // mirrors ride.aero_sag: travel where the spring has taken the downforce F, ride-height loss and the frequency there
-function aeroSag(F, zs, mr, ks, kt, ms, i0) {
+function aeroSag(F, zs, kwRows, kt, ms, i0) {
   const zUp = zs.slice(i0),
-    kw = mr.slice(i0).map(m => ks * m * m);
+    kw = kwRows.slice(i0);
   let force = 0,
     zAt = zUp[zUp.length - 1],
     kwAt = kw[kw.length - 1];
@@ -142,9 +252,12 @@ function rideMetrics(cfg, susp, sp, rows) {
     r.rocker_deg = sts[i].rocker_deg;
     r._spring = sts[i];
   });
-  const MR = mr[i0];
+  const MR = mr[i0],
+    xd = L.map(v => L[i0] - v),
+    kwRows = xd.map((x, i) => springRateAt(sc, x) * mr[i] * mr[i]);
+  rows.forEach((r, i) => (r.wheel_rate = kwRows[i]));
   if (MR < 1e-6) throw new SolveError("The motion ratio is zero: the damper does not move with the wheel. Check the spring geometry.");
-  const ks = +sc.spring_rate,
+  const ks = springRateAt(sc, 0),
     kt = +sc.tire_rate;
   const share = cfg.axle === "front" ? veh.weight_front : 1 - veh.weight_front;
   const mc = (veh.mass * share) / 2,
@@ -196,8 +309,20 @@ function rideMetrics(cfg, susp, sp, rows) {
     out.spring_for_target = krt < kt ? (krt * kt) / (kt - krt) / (MR * MR) : NaN;
   }
   Object.assign(out, damping(sc, MR, kw, kr, kt, ms));
+  out.wheel_rate_bump = kwRows[kwRows.length - 1];
+  if (sc.bumpstop_gap != null) {
+    const g = +sc.bumpstop_gap;
+    if (g <= 0) out.bumpstop_travel = 0;
+    else
+      for (let j = i0; j < rows.length - 1; j++)
+        if (xd[j + 1] >= g && g > xd[j]) {
+          out.bumpstop_travel = zs[j] + ((g - xd[j]) / (xd[j + 1] - xd[j])) * (zs[j + 1] - zs[j]);
+          break;
+        }
+  }
   const aero = veh[cfg.axle === "front" ? "aero_front" : "aero_rear"];
-  if (aero) Object.assign(out, aeroSag(aero / 2, zs, mr, ks, kt, ms, i0));
+  if (aero) Object.assign(out, aeroSag(aero / 2, zs, kwRows, kt, ms, i0));
+  if (cfg.arb) Object.assign(out, arbMetrics(cfg, susp, sp, rows, sts, zs, i0));
   return out;
 }
 // mirrors ride.damping: damper c (N per m/s at the shaft) acts at the wheel as c MR^2

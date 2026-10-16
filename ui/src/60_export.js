@@ -131,6 +131,8 @@ function reportHtml() {
           return `<tr><td>${lab}</td><td class="n">${fmt(c.value, dec)} ${unit}</td><td>${rngTxt(c.lo, c.hi, dec)}</td><td>${st(c.status)}</td></tr>`;
         })
       );
+      if (B.ay_lim_f != null)
+        body += `<p class="note">Tires at the limit (μ ${fmt(B.tire_mu, 2)}, load sensitivity ${fmt(B.tire_load_sens, 2)}): front axle ${fmt(B.ay_lim_f, 2)} g, rear ${fmt(B.ay_lim_r, 2)} g; ${Math.abs(B.limit_balance) < 0.005 ? "neutral" : B.limit_balance > 0 ? "the front lets go first (understeer)" : "the rear lets go first (oversteer)"}. Both axles let go together at ${fmt(B.lltd_neutral * 100, 1)} % front LLTD.${B.arb_src_f === "geometry" || B.arb_src_r === "geometry" ? " Bar stiffness from the linkage geometry: " + [B.arb_src_f === "geometry" ? "front" : "", B.arb_src_r === "geometry" ? "rear" : ""].filter(Boolean).join(" and ") + "." : ""}</p>`;
       body += `<div class="kv"><div><span>Roll gradient</span><b>${fmt(B.grad, 2)} deg/g</b></div><div><span>Front LLTD</span><b>${fmt(B.lltd * 100, 1)} %</b></div>
         <div><span>Sprung mass / CG</span><b>${fmt(B.ms, 0)} kg / ${fmt(B.hs, 0)} mm</b></div><div><span>Roll axis at CG / moment arm</span><b>${fmt(B.z_ra, 0)} / ${fmt(B.arm, 0)} mm</b></div></div>`;
       const F = X.corners[0].e.metrics,
@@ -201,7 +203,18 @@ function reportHtml() {
           ["", "Value"],
           [
             ["Motion ratio", fmt(r.motion_ratio, 3)],
-            ["Wheel rate, N/mm", fmt(r.wheel_rate, 1)],
+            ["Wheel rate at ride / full bump, N/mm", `${fmt(r.wheel_rate, 1)} / ${fmt(r.wheel_rate_bump, 1)}`],
+            ...(r.bumpstop_travel != null ? [["Wheel travel to the bump stop, mm", fmt(r.bumpstop_travel, 1)]] : []),
+            ...(r.arb_roll != null
+              ? [
+                  ["Anti-roll bar: twist per wheel travel, deg/mm", fmt(r.arb_twist, 3)],
+                  ["Anti-roll bar: roll stiffness (this axle), Nm/deg", fmt(r.arb_roll, 0)],
+                  [
+                    `Anti-roll bar: shear stress at ${fmt(e.cfg.sweep.roll_deg, 1)}° roll, MPa / FOS`,
+                    `${fmt(r.arb_tau, 0)} / ${fmt(r.arb_fos, 2)}`,
+                  ],
+                ]
+              : []),
             ["Ride frequency, Hz", fmt(r.ride_freq, 2)],
             ["Critical damping at the wheel (body / wheel hop), N s/m", `${fmt(r.c_crit, 0)} / ${fmt(r.c_crit_hop, 0)}`],
             ["Damping ratio bump: low / high speed", `${z("zeta_bump_low")} / ${z("zeta_bump_high")}`],

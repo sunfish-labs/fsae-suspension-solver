@@ -75,6 +75,45 @@ def _check_extras(cfg, where):
         if miss:
             raise ConfigError(f"{where}: wheel.caliper needs numbers for {', '.join(miss)} "
                               "(clock_deg, radius and size in mm, offset along the spin axis in mm)")
+    sp = cfg.get("spring") or {}
+    num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)  # noqa: E731
+    if (sp.get("spring_rate2") is None) != (sp.get("spring_breakpoint") is None):
+        raise ConfigError(f"{where}: a dual-rate spring needs both spring.spring_rate2 (N/mm) and spring.spring_breakpoint (mm)")
+    if sp.get("spring_rate2") is not None and not (num(sp["spring_rate2"]) and sp["spring_rate2"] > 0 and num(sp["spring_breakpoint"]) and sp["spring_breakpoint"] >= 0):
+        raise ConfigError(f"{where}: spring.spring_rate2 must be > 0 and spring.spring_breakpoint >= 0 mm")
+    if sp.get("bumpstop_gap") is not None:
+        if not num(sp["bumpstop_gap"]) or not (num(sp.get("bumpstop_k")) and sp["bumpstop_k"] > 0):
+            raise ConfigError(f"{where}: a bump stop needs spring.bumpstop_gap (mm) and spring.bumpstop_k (N/mm, > 0)")
+        if sp.get("bumpstop_k2") is not None and not (num(sp["bumpstop_k2"]) and sp["bumpstop_k2"] >= 0):
+            raise ConfigError(f"{where}: spring.bumpstop_k2 must be a number >= 0 (N/mm^2)")
+    veh = cfg["vehicle"]
+    if veh.get("tire_load_sens") is not None and not (num(veh["tire_load_sens"]) and 0 <= veh["tire_load_sens"] < 1):
+        raise ConfigError(f"{where}: vehicle.tire_load_sens must be between 0 and 1 (typically 0.1-0.3)")
+    if veh.get("tire_mu") is not None and not (num(veh["tire_mu"]) and veh["tire_mu"] > 0):
+        raise ConfigError(f"{where}: vehicle.tire_mu must be > 0")
+    arb = cfg.get("arb")
+    if arb is not None:
+        if not isinstance(arb, dict):
+            raise ConfigError(f"{where}: arb must be an object (see the README: anti-roll bar linkage)")
+        if not cfg.get("spring"):
+            raise ConfigError(f"{where}: the anti-roll bar linkage needs the spring block (it is part of the ride model)")
+        miss = [k for k in ("link_outboard", "arm_tip", "bar_pivot") if not _vec3(arb.get(k))]
+        if miss:
+            raise ConfigError(f"{where}: arb needs {', '.join(miss)} as [x, y, z]")
+        if arb.get("link_on", "lower") not in ("lower", "upper", "upright", "rocker"):
+            raise ConfigError(f"{where}: arb.link_on must be lower, upper, upright or rocker")
+        if arb.get("link_on") == "rocker" and cfg["spring"].get("rocker_pivot") is None:
+            raise ConfigError(f"{where}: arb.link_on = rocker needs a rocker in the spring block")
+        if not (num(arb.get("bar_od")) and arb["bar_od"] > 0):
+            raise ConfigError(f"{where}: arb.bar_od (mm) is needed")
+        w = arb.get("bar_wall")
+        if w is not None and not (num(w) and 0 < w < arb["bar_od"] / 2):
+            raise ConfigError(f"{where}: arb.bar_wall must be between 0 and half the OD (null = solid bar)")
+        for k in ("bar_length", "bar_G", "bar_yield"):
+            if arb.get(k) is not None and not (num(arb[k]) and arb[k] > 0):
+                raise ConfigError(f"{where}: arb.{k} must be > 0")
+        if arb.get("bar_axis") is not None and not (_vec3(arb["bar_axis"]) and any(arb["bar_axis"])):
+            raise ConfigError(f"{where}: arb.bar_axis must be a direction [x, y, z]")
     js = cfg.get("joints") or {}
     if not isinstance(js, dict):
         raise ConfigError(f"{where}: joints must be an object keyed by joint, e.g. {{\"trackrod_outboard\": {{\"bolt\": \"x\"}}}}")
@@ -188,6 +227,8 @@ def default_targets(cfg):
             t.update(cond["rocker"])
         if sp_.get("damper_bump_low") and sp_.get("damper_rebound_low"):     # body control (low-speed)
             t.update(cond["damping"])
+    if cfg.get("arb") and cfg.get("spring"):
+        t["arb_fos"] = [float(cfg["members"].get("sf_target") or 2.0), None]
     if (cfg.get("wheel") or {}).get("caliper"):
         t["caliper_rim_margin"] = [float((cfg.get("clearance") or {}).get("caliper_margin", 3.0)), None]
     hs = cfg.get("halfshaft") if cfg["axle"] == "rear" else None

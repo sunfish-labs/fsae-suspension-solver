@@ -14,15 +14,37 @@ def _series(a, b):
     return 1 / (1 / a + 1 / b) if a > 0 and b > 0 else 0.0
 
 
+def axle_limit(mu, k, c, F0):
+    """Lateral acceleration (g) where an axle saturates: its grip mu (2 F0 - 2 k dFz^2 / F0) with dFz = c ay (c: load
+    transfer per wheel per g) equals the axle weight 2 F0 times ay. Once the inner wheel lifts (dFz = F0) the axle
+    keeps mu (1 - k) of its weight."""
+    q = mu * k * (c / F0) ** 2
+    ay = mu if q < 1e-15 else (-1 + math.sqrt(1 + 4 * mu * q)) / (2 * q)
+    if c * ay > F0:
+        ay = mu * (1 - k)
+    return ay
+
+
 def car_balance(fcfg, fev, rcfg, rev, target_grad=None, target_lltd=None, arb_f=0.0, arb_r=0.0, targets=None):
     """Roll gradient, LLTD and the anti-roll stiffness needed. Steady-state, rigid chassis, small angles.
 
     Each axle's roll stiffness is its springs (wheel rate) plus any anti-roll bar, in series with its tires:
     K = 1 / (1 / (K_springs + K_arb) + 1 / K_tires), with K_springs = wheel_rate * t^2 / 2. ARB rates are given
-    at the wheels, in Nm per degree of body roll."""
+    at the wheels, in Nm per degree of body roll. A corner with an "arb" linkage block uses the bar stiffness worked out
+    from its geometry instead of arb_f / arb_r.
+
+    With vehicle.tire_load_sens (k) set, each tire's friction falls with load, mu = tire_mu (1 - k (Fz / Fz0 - 1)), so
+    an axle's lateral grip is mu (2 Fz0 - 2 k dFz^2 / Fz0) for a load transfer dFz: the axle that transfers more load
+    (relative to its static load) saturates first. Reports each axle's limit (g) and the front LLTD that makes them
+    equal (with the same k front and rear)."""
     veh = fcfg["vehicle"]
     m, wf, h, WB = veh["mass"], veh["weight_front"], veh["cg_height"] / 1000, veh["wheelbase"] / 1000
     fr, rr = fev["ride"], rev["ride"]
+    src_f, src_r = "input", "input"
+    if fr.get("arb_roll") is not None:
+        arb_f, src_f = fr["arb_roll"], "geometry"
+    if rr.get("arb_roll") is not None:
+        arb_r, src_r = rr["arb_roll"], "geometry"
     muf, mur = 2 * fcfg["spring"]["unsprung_mass"], 2 * rcfg["spring"]["unsprung_mass"]
     Rf, Rr = fev["susp"].R / 1000, rev["susp"].R / 1000
     tf, tr = fev["susp"].track / 1000, rev["susp"].track / 1000
@@ -48,9 +70,26 @@ def car_balance(fcfg, fev, rcfg, rev, target_grad=None, target_lltd=None, arb_f=
     dF, dR = transfer(Kf / (Kf + Kr))
     lltd = dF * tf / (dF * tf + dR * tr)    # share of the total lateral load transfer moment at the front
     out = dict(ms=ms, hs=hs * 1000, z_ra=z_ra * 1000, arm=d * 1000, Kf=Kf, Kr=Kr, Ksf=Ksf, Ksr=Ksr, Ktf=Ktf, Ktr=Ktr,
-               arb_in_f=arb_f, arb_in_r=arb_r, grad=grad, lltd=lltd,
+               arb_in_f=arb_f, arb_in_r=arb_r, arb_src_f=src_f, arb_src_r=src_r, grad=grad, lltd=lltd,
                freq_f=fr["ride_freq"], freq_r=rr["ride_freq"], wf=wf, dFz_f=dF, dFz_r=dR, rc_f=zrf * 1000, rc_r=zrr * 1000,
                geo_f=(msf * G * zrf + muf * G * Rf) / tf, geo_r=(msr * G * zrr + mur * G * Rr) / tr)
+    # tire load sensitivity: each axle's lateral limit, and the LLTD that saturates both axles together
+    ks = veh.get("tire_load_sens")
+    if ks is not None:
+        mu = float(veh.get("tire_mu") or 1.5)
+        F0f, F0r = m * wf * G / 2, m * (1 - wf) * G / 2
+        out.update(tire_mu=mu, tire_load_sens=float(ks), ay_lim_f=axle_limit(mu, float(ks), dF, F0f),
+                   ay_lim_r=axle_limit(mu, float(ks), dR, F0r))
+        out["limit_balance"] = out["ay_lim_r"] - out["ay_lim_f"]       # + : the front lets go first (understeer)
+        out["grip_loss_f"] = (1 - out["ay_lim_f"] / mu) * 100
+        out["grip_loss_r"] = (1 - out["ay_lim_r"] / mu) * 100
+        # dF(lam) / F0f = dR(lam) / F0r is linear in lam
+        a1, b1 = ms * G * d / tf / F0f, (msf * G * zrf + muf * G * Rf) / tf / F0f
+        a2, b2 = -ms * G * d / tr / F0r, (ms * G * d + msr * G * zrr + mur * G * Rr) / tr / F0r
+        if abs(a1 - a2) > 1e-12:
+            lam_n = (b2 - b1) / (a1 - a2)
+            dFn, dRn = transfer(lam_n)
+            out["lltd_neutral"] = dFn * tf / (dFn * tf + dRn * tr)
     tg = target_grad if target_grad else 1.0
     tl = target_lltd if target_lltd else wf + 0.05
     K_need = ms * G * d / tg

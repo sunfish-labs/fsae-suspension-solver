@@ -188,7 +188,7 @@ function carField(label, unit, path, opts = {}) {
     val = v == null ? "" : opts.scale ? +(v * opts.scale).toFixed(6) : v;
   if (opts.options)
     return `<div class="field"><label>${label}<select data-cpath="${attr(path)}" data-type="select">${opts.options.map(([k, t]) => `<option value="${attr(k)}"${k === v ? " selected" : ""}>${t}</option>`).join("")}</select></label></div>`;
-  return `<div class="field"><label>${label} <i>${unit}</i></label><input class="num" type="number" step="${attr(opts.step ?? "any")}" data-cpath="${attr(path)}"${opts.scale ? ` data-scale="${attr(opts.scale)}"` : ""} value="${attr(val)}" aria-label="${esc(label)}"></div>`;
+  return `<div class="field"><label>${label} <i>${unit}</i></label><input class="num" type="number" step="${attr(opts.step ?? "any")}" data-cpath="${attr(path)}"${opts.scale ? ` data-scale="${attr(opts.scale)}"` : ""}${opts.opt ? ' data-opt="1"' : ""} value="${attr(val)}" aria-label="${esc(label)}"></div>`;
 }
 function renderCarIn() {
   const box = $("#carIn");
@@ -230,16 +230,20 @@ function renderCarIn() {
         ],
       })}</div></div></div>
     <div class="card"><div class="hd"><h2>Anti-roll bars</h2><span class="hint">0 = none</span></div><div class="body"><div class="fields">
-      ${carField("Front bar, at the wheels", "Nm/deg", "arb.front", { step: 10 })}${carField("Rear bar, at the wheels", "Nm/deg", "arb.rear", { step: 10 })}</div>
-      <p class="note">A bar adds roll stiffness without changing the ride frequency. How much you add at each end sets the balance: more at the front moves load transfer forward (more understeer).</p></div></div>
+      ${car.front.arb ? `<div class="field"><label>Front bar, at the wheels <i>Nm/deg</i></label><div class="muted">from the linkage (Front view → Pushrod, rocker &amp; damper)</div></div>` : carField("Front bar, at the wheels", "Nm/deg", "arb.front", { step: 10 })}${car.rear.arb ? `<div class="field"><label>Rear bar, at the wheels <i>Nm/deg</i></label><div class="muted">from the linkage (Rear view → Pushrod, rocker &amp; damper)</div></div>` : carField("Rear bar, at the wheels", "Nm/deg", "arb.rear", { step: 10 })}</div>
+      <p class="note">A bar adds roll stiffness without changing the ride frequency. How much you add at each end sets the balance: more at the front moves load transfer forward (more understeer). Model a bar's drop link and tube in a corner view to get its stiffness from the geometry.</p></div></div>
+    <div class="card"><div class="hd"><h2>Tires at the limit</h2><span class="hint">optional</span></div><div class="body"><div class="fields">
+      ${carField("Tire friction μ at static load", "", "vehicle.tire_mu", { step: 0.05 })}${carField("Load sensitivity k (blank = off)", "", "vehicle.tire_load_sens", { step: 0.01, opt: 1 })}</div>
+      <p class="note">μ = μ₀ (1 − k (Fz / Fz₀ − 1)): a loaded tire gives less grip per newton, so the axle that transfers more load (relative to its weight) lets go first. Fit k to your tire's data (e.g. the FSAE Tire Test Consortium); 0.1–0.3 is common.</p></div></div>
     <div class="card"><div class="hd"><h2>Car targets</h2><span class="hint">whole-car checks</span></div><div class="body"><div class="fields">
       ${rng("roll_gradient", "Roll gradient", "deg/g")}${rng("lltd_vs_weight", "Front LLTD minus front weight", "% pts")}${rng("freq_ratio", "Ride frequency ratio, rear/front", "")}</div></div></div>`;
   $$("[data-cpath]", box).forEach(el =>
     el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
       let v = el.dataset.type === "select" || el.dataset.type === "text" ? el.value : +el.value;
       if (typeof v === "number") {
-        if (el.value === "" || !Number.isFinite(v)) return;
-        if (el.dataset.scale) v /= +el.dataset.scale;
+        if (el.value === "" && el.dataset.opt) v = null;
+        else if (el.value === "" || !Number.isFinite(v)) return;
+        if (v != null && el.dataset.scale) v /= +el.dataset.scale;
       }
       setPath(car, el.dataset.cpath, v);
       schedule();
@@ -369,7 +373,9 @@ function renderCarBox() {
       <div><span>Sprung mass / CG height</span><b>${fmt(B.ms, 0)} <small>kg</small> / ${fmt(B.hs, 0)} <small>mm</small></b></div>
       <div><span>Roll axis height at the CG</span><b>${fmt(B.z_ra, 0)} <small>mm</small></b></div>
       <div><span>Roll moment arm</span><b>${fmt(B.arm, 0)} <small>mm</small></b></div>
-      <div><span>Ride frequency ratio, rear/front</span><b>${fmt(B.freq_r / B.freq_f, 2)}</b></div></div>
+      <div><span>Ride frequency ratio, rear/front</span><b>${fmt(B.freq_r / B.freq_f, 2)}</b></div>
+      ${B.ay_lim_f != null ? `<div><span>Lateral limit front / rear axle</span><b>${fmt(B.ay_lim_f, 2)} / ${fmt(B.ay_lim_r, 2)} <small>g</small></b></div><div><span>Front LLTD for both axles to let go together</span><b>${fmt(B.lltd_neutral * 100, 1)} <small>%</small></b></div>` : ""}</div>
+      ${B.ay_lim_f != null ? `<p class="note">With tire load sensitivity k = ${fmt(B.tire_load_sens, 2)}: load transfer costs the front ${fmt(B.grip_loss_f, 1)} % and the rear ${fmt(B.grip_loss_r, 1)} % of their grip. ${Math.abs(B.limit_balance) < 0.005 ? "Both axles reach their limit together (neutral)." : B.limit_balance > 0 ? `The front lets go ${fmt(B.limit_balance, 2)} g before the rear: understeer at the limit.` : `The rear lets go ${fmt(-B.limit_balance, 2)} g before the front: oversteer at the limit.`}</p>` : ""}
       <p class="note">${und >= 0 ? `Front LLTD is ${fmt(und, 1)} points above the front weight share: the car leans toward understeer at the limit.` : `Front LLTD is ${fmt(-und, 1)} points below the front weight share: the car leans toward oversteer at the limit.`}
       Most teams start a few points above the front weight share and tune from driver feedback.</p>
       <div class="banner neutral-b"><b>Anti-roll bars for ${fmt(B.target_grad, 2)} deg/g and ${fmt(B.target_lltd * 100, 0)} % front LLTD</b> (the middle of your car targets):

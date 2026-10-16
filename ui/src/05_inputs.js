@@ -2,6 +2,11 @@
 // ------------------------------------------------------------------ input builders
 // input-table names for the points (schema/points.json): [label, hint]
 const HP_LABELS = Object.fromEntries(S.SCHEMA.points.hardpoints.map(p => [p.key, [p.label, p.hint]]));
+const ARB_LABELS = {
+  link_outboard: ["Drop link, lower end", "on the part it is mounted on (wishbone, upright or rocker)"],
+  arm_tip: ["Drop link, upper end", "= the tip of the bar's arm"],
+  bar_pivot: ["Bar axis point", "any point on the bar's axis (the axis runs along Y)"],
+};
 const SP_LABELS = Object.fromEntries(S.SCHEMA.points.spring_points.map(p => [p.key, [p.label, p.hint]]));
 
 function numInput(path, opts = {}) {
@@ -18,7 +23,7 @@ function ptRows(tbody, list, prefix, labels) {
   tbody.innerHTML = list
     .map(
       k =>
-        `<tr data-row="${attr(k)}"><td class="lab"${labels[k][1] ? ` title="${esc(labels[k][1])}"` : ""}>${k === "rocker_axis" ? labels[k][0] : `<button class="lnk hpbtn" type="button" data-hp="${prefix}.${k}" title="${labels[k][1] ? esc(labels[k][1]) + " · " : ""}click: what does moving this point do?">${labels[k][0]}</button>`}</td>` +
+        `<tr data-row="${attr(k)}"><td class="lab"${labels[k][1] ? ` title="${esc(labels[k][1])}"` : ""}>${k === "rocker_axis" || prefix === "arb" ? labels[k][0] : `<button class="lnk hpbtn" type="button" data-hp="${prefix}.${k}" title="${labels[k][1] ? esc(labels[k][1]) + " · " : ""}click: what does moving this point do?">${labels[k][0]}</button>`}</td>` +
         [0, 1, 2]
           .map(
             i =>
@@ -103,6 +108,21 @@ function buildForm() {
     field("Knee (low → high speed)", "mm/s", "spring.damper_knee", { step: 5 }),
     field("Target damping ratio, low-speed", "", "spring.target_zeta_low", { step: 0.05 }),
     field("Target damping ratio, high-speed", "", "spring.target_zeta_high", { step: 0.05 }),
+  ].join("");
+  $("#progFields").innerHTML = [
+    field("Second spring rate", "N/mm", "spring.spring_rate2", { step: 1, opt: 1 }),
+    field("…from damper compression", "mm", "spring.spring_breakpoint", { step: 0.5, opt: 1 }),
+    field("Bump stop gap", "mm", "spring.bumpstop_gap", { step: 0.5, opt: 1 }),
+    field("Bump stop rate at touch", "N/mm", "spring.bumpstop_k", { step: 5, opt: 1 }),
+    field("Bump stop progression", "N/mm²", "spring.bumpstop_k2", { step: 0.5, opt: 1 }),
+  ].join("");
+  ptRows($("#arbTable tbody"), ["link_outboard", "arm_tip", "bar_pivot"], "arb", ARB_LABELS);
+  $("#arbFields").innerHTML = [
+    field("Bar OD", "mm", "arb.bar_od", { step: 0.1 }),
+    field("Bar wall (blank = solid)", "mm", "arb.bar_wall", { step: 0.1, opt: 1 }),
+    field("Active length between arms", "mm", "arb.bar_length", { step: 5, opt: 1 }),
+    field("Shear modulus G", "MPa", "arb.bar_G", { step: 100, opt: 1 }),
+    field("Bar yield strength", "MPa", "arb.bar_yield", { step: 10, opt: 1 }),
   ].join("");
   $("#loadFields").innerHTML = [
     field("Bump", "g", "loads.bump_g", { step: 0.1 }),
@@ -208,6 +228,10 @@ function syncLegLabels() {
 function fillForm() {
   $$("[data-path]").forEach(el => {
     const path = el.dataset.path;
+    if (path.startsWith("arb.") && !cfg.arb) {
+      el.value = "";
+      return;
+    }
     if (path.startsWith("spring.") && !cfg.spring) {
       const v = getPath({ spring: savedSpring || S.DEFAULTS.spring || {} }, path);
       el.value = v == null ? "" : v;
@@ -219,6 +243,9 @@ function fillForm() {
     el.value = v == null ? "" : v;
   });
   $("#springOn").checked = !!cfg.spring;
+  $("#arbOn").checked = !!cfg.arb;
+  $("#arbOn").disabled = !cfg.spring;
+  $("#arbBody").hidden = !cfg.arb;
   $("#springBody").hidden = !cfg.spring;
   $("#rockerOn").value = cfg.spring && cfg.spring.rocker_pivot == null ? "0" : "1";
   syncRockerRows();
@@ -264,6 +291,7 @@ function onInput(e) {
     }
   }
   if (path.startsWith("spring.") && !cfg.spring) return;
+  if (path.startsWith("arb.") && !cfg.arb) return;
   const blk = path.startsWith("wheel.caliper.") ? "caliper" : path.startsWith("halfshaft.") ? "halfshaft" : null;
   if (blk && v == null && !path.endsWith("plunge_max")) {
     if (blk === "caliper") cfg.wheel.caliper = null;
@@ -289,6 +317,35 @@ $("#springOn").addEventListener("change", e => {
   else {
     savedSpring = cfg.spring;
     cfg.spring = null;
+  }
+  fillForm();
+  schedule();
+});
+// a starting bar for this axle: a vertical drop link from halfway along the lower wishbone, bar arm 100 mm forward
+function arbTemplate() {
+  const h = cfg.hardpoints,
+    mid = [0, 1, 2].map(i => (h.lower_inboard_front[i] + h.lower_inboard_rear[i]) / 2),
+    lo = [0, 1, 2].map(i => +(mid[i] + 0.5 * (h.lower_outboard[i] - mid[i])).toFixed(1));
+  lo[0] += 40;
+  const tip = [lo[0], lo[1] - 40, lo[2] + 180];
+  return {
+    link_on: "lower",
+    link_outboard: lo,
+    arm_tip: tip,
+    bar_pivot: [tip[0] + 100, tip[1], tip[2]],
+    bar_axis: [0, 1, 0],
+    bar_od: 12.7,
+    bar_wall: null,
+    bar_length: null,
+  };
+}
+let savedArb = null;
+$("#arbOn").addEventListener("change", e => {
+  pushHistory();
+  if (e.target.checked) cfg.arb = savedArb || arbTemplate();
+  else {
+    savedArb = cfg.arb;
+    cfg.arb = null;
   }
   fillForm();
   schedule();

@@ -43,7 +43,15 @@
   "clearance.caliper_margin": "mm, gap the caliper needs to the rim barrel and the links",
   "members.rod_end_misalign": "deg, the rod ends' catalog misalignment limit (each side of square); joints.<key>.allow overrides one joint",
   "members.bearing_misalign": "deg, the spherical bearings' (ball joints') catalog misalignment limit",
-  "joints": "per-joint overrides keyed like the hardpoints and spring points: {\"bolt\": \"x\"|\"y\"|\"z\"|\"pivot\"|\"kingpin\"|\"rocker\"|[x, y, z], \"square\": true|false, \"type\": \"rod_end\"|\"bearing\", \"allow\": deg}"
+  "joints": "per-joint overrides keyed like the hardpoints and spring points: {\"bolt\": \"x\"|\"y\"|\"z\"|\"pivot\"|\"kingpin\"|\"rocker\"|[x, y, z], \"square\": true|false, \"type\": \"rod_end\"|\"bearing\", \"allow\": deg}",
+  "spring.spring_rate2": "N/mm, second rate of a dual-rate spring, from spring_breakpoint on (optional)",
+  "spring.spring_breakpoint": "mm of damper compression beyond ride height where spring_rate2 takes over",
+  "spring.bumpstop_gap": "mm of damper compression beyond ride height before the bump stop touches (optional; 0 = touching at ride height)",
+  "spring.bumpstop_k": "N/mm, bump stop rate at first touch (needed with bumpstop_gap)",
+  "spring.bumpstop_k2": "N/mm^2, makes the bump stop progressive: force = k d + k2 d^2 for d mm of squash (optional)",
+  "vehicle.tire_mu": "tire friction coefficient at its static load (for the limit balance; 1.5 if not given)",
+  "vehicle.tire_load_sens": "tire load sensitivity k: mu = tire_mu (1 - k (Fz / Fz0 - 1)); fit it to your tire data (e.g. TTC); null = off",
+  "arb": "optional anti-roll bar linkage for this axle: {link_on: lower|upper|upright|rocker, link_outboard: [x,y,z] drop link's lower end, arm_tip: [x,y,z] the bar arm's end, bar_pivot: [x,y,z] a point on the bar axis, bar_axis: [0,1,0], bar_od, bar_wall (null = solid), bar_length (active length between arms; null = 2 x |arm_tip y|), bar_G (MPa, 79300 steel), bar_yield (MPa)}; replaces the car's arb number for this axle"
  },
  "defaults": {
   "name": "untitled",
@@ -68,7 +76,9 @@
    "weight_front": 0.46,
    "rack_c_factor": null,
    "aero_front": null,
-   "aero_rear": null
+   "aero_rear": null,
+   "tire_mu": 1.5,
+   "tire_load_sens": null
   },
   "sweep": {
    "travel": 30.0,
@@ -142,6 +152,7 @@
    "column_k": null
   },
   "halfshaft": null,
+  "arb": null,
   "joints": {}
  },
  "spring_defaults": {
@@ -153,6 +164,11 @@
   "rocker_damper": null,
   "damper_chassis": null,
   "spring_rate": 35.0,
+  "spring_rate2": null,
+  "spring_breakpoint": null,
+  "bumpstop_gap": null,
+  "bumpstop_k": null,
+  "bumpstop_k2": null,
   "damper_stroke": null,
   "damper_eye_to_eye": null,
   "unsprung_mass": 11.0,

@@ -111,7 +111,8 @@ function panelSpring() {
   const bRows = base && base.ride ? base.rows : null;
   return `<div class="kv">
     ${kv("Motion ratio (damper/wheel)", "motion_ratio", "", 3)}${kv("MR change over travel", "mr_progression", "%", 1)}
-    ${kv("Wheel rate", "wheel_rate", "N/mm", 1)}${kv("Ride rate with tire", "ride_rate", "N/mm", 1)}
+    ${kv("Wheel rate", "wheel_rate", "N/mm", 1)}${kv("Wheel rate at full bump", "wheel_rate_bump", "N/mm", 1)}
+    ${kv("Wheel travel to the bump stop", "bumpstop_travel", "mm", 1)}${kv("Ride rate with tire", "ride_rate", "N/mm", 1)}
     ${kv("Ride frequency", "ride_freq", "Hz", 2)}${kv(`Spring for ${fmt(sc.target_freq_hz, 1)} Hz`, "spring_for_target", "N/mm", 1)}
     ${kv("Ride-height loss under aero", "aero_sag", "mm", 1)}${kv("Ride frequency under aero", "ride_freq_aero", "Hz", 2)}
     ${kv("Spring force at ride height", "static_spring_force", "N", 0)}${kv("Damper stroke used", "damper_used", "mm", 1)}
@@ -119,6 +120,12 @@ function panelSpring() {
     ${kv("Room to full compression", "damper_bottomout", "mm", 1)}${kv("Rocker rotation", "rocker_rot", "deg", 1)}
     ${kv("Worst transmission angle", "trans_min", "deg", 0)}${kv("Pushrod angle", "rod_angle", "deg", 0)}
     <div><span>Wheel-hop frequency</span><b>${fmt(rd.hop_freq, 1)} <small>Hz</small></b></div></div>
+  ${
+    m.arb_roll != null
+      ? `<h3 class="sub-h">Anti-roll bar linkage</h3><div class="kv">${kv("Bar twist per wheel travel", "arb_twist", "deg/mm", 3)}${kv("Bar rate at each wheel (roll)", "arb_wheel_rate", "N/mm", 1)}${kv("Bar roll stiffness, this axle", "arb_roll", "Nm/deg", 0)}${kv("Twist-per-mm change over travel", "arb_progression", "%", 1)}${kv(`Shear stress at ${fmt(ev.cfg.sweep.roll_deg, 1)}° roll`, "arb_tau", "MPa", 0)}${kv("Bar FOS (shear)", "arb_fos", "", 2)}</div>
+      <p class="note">The bar's stiffness comes from its tube (G J / L) and its own motion ratio (twist per mm of wheel travel, from the drop-link geometry). The Car view uses it in place of the typed bar number.</p>`
+      : ""
+  }
   <p class="note">Damper length ${fmt(hi, 1)} / ${fmt(mid, 1)} / ${fmt(lo, 1)} mm at full droop / ride height / full bump${e2e && stroke ? `; the damper is ${fmt(e2e, 0)} mm extended and ${fmt(e2e - stroke, 0)} mm closed` : ". Add the damper's eye-to-eye length and stroke to check top-out and bottom-out"}.
   ${rd._arm_rod ? `Rocker arms ${fmt(rd._arm_rod, 1)} mm (pushrod side) and ${fmt(rd._arm_damper, 1)} mm (damper side).` : ""}</p>
   ${dampingBlock()}
@@ -134,6 +141,18 @@ function panelSpring() {
           ? [{ name: "baseline", x: bRows.map(r => r.dz), y: bRows.map(r => r.motion_ratio), color: C.base, dash: "4 3", w: 1.5 }]
           : []),
         { name: bRows ? "current" : null, x, y: rows.map(r => r.motion_ratio), color: C.s1 },
+      ],
+    })}
+    ${chart({
+      title: "Wheel rate, N/mm",
+      cap: "spring (and bump stop) rate x motion ratio squared",
+      xlabel: "wheel travel, mm",
+      marker: pose.dz,
+      series: [
+        ...(bRows && bRows[0].wheel_rate != null
+          ? [{ name: "baseline", x: bRows.map(r => r.dz), y: bRows.map(r => r.wheel_rate), color: C.base, dash: "4 3", w: 1.5 }]
+          : []),
+        { name: bRows ? "current" : null, x, y: rows.map(r => r.wheel_rate), color: C.s2 },
       ],
     })}
     ${chart({

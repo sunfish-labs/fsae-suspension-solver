@@ -91,9 +91,10 @@ def report_context(cfg, ev, baseline=None, delta=5.0, sens=None, adv=None, loads
             intro=f"{sc['rod_on']}-arm rod, {'direct-acting damper' if ev['spring'].direct else 'rocker'}; spring {sc['spring_rate']:g} N/mm, "
                   f"tire {sc['tire_rate']:g} N/mm, sprung corner mass {rd['_m_sprung']:.1f} kg.",
             rows=[dict(label=lab(k), value=f"{fmt(k, m[k])} {METRICS[k][1]}") for k in (
-                "motion_ratio", "mr_progression", "wheel_rate", "ride_rate", "ride_freq", "static_spring_force", "spring_for_target",
-                "damper_used", "damper_margin", "damper_static_pos", "damper_topout", "damper_bottomout", "rod_angle", "rocker_rot",
-                "trans_min") if k in m],
+                "motion_ratio", "mr_progression", "wheel_rate", "wheel_rate_bump", "bumpstop_travel", "ride_rate", "ride_freq",
+                "static_spring_force", "spring_for_target", "damper_used", "damper_margin", "damper_static_pos", "damper_topout",
+                "damper_bottomout", "rod_angle", "rocker_rot", "trans_min", "arb_twist", "arb_wheel_rate", "arb_roll", "arb_tau",
+                "arb_fos") if k in m],
             target=(f"For {sc['target_freq_hz']:g} Hz use about {m['spring_for_target']:.0f} N/mm ({m['spring_for_target'] * 5.71:.0f} lbf/in) "
                     "at this motion ratio.") if sc.get("target_freq_hz") and "spring_for_target" in m else None)
     if loads:

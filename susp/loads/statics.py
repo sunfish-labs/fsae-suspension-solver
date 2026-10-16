@@ -130,7 +130,8 @@ def wheel_rate_at_ride(cfg, susp, sp):
     xs = susp.states([-1.0, 1.0])
     L1, L2 = (sp.state(xs[d])["damper_len"] for d in (-1.0, 1.0))
     mr = abs(L1 - L2) / 2.0
-    return cfg["spring"]["spring_rate"] * mr * mr
+    from ..ride import spring_rate_at   # local import: ride imports kinematics, as statics does
+    return spring_rate_at(cfg["spring"], 0.0) * mr * mr
 
 
 def member_label(k, susp):

@@ -192,6 +192,30 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
   await setIn("#in_halfshaft_diff_output_1", ""); await settle(p);
   await p.click('#axleSeg [data-ax="car"]'); await settle(p);
 
+  console.log("\nSprings as fitted, bar linkage, tires at the limit");
+  await p.setInputFiles("#fileIn", path.join(ROOT, "designs", "example_car_bars.json")); await settle(p);
+  await p.click('#axleSeg [data-ax="car"]'); await settle(p);
+  const cb = await text(p, "#carIn") + " " + await text(p, "#carBox");
+  check("car with bar linkages: the bars come from the geometry", /from the linkage/.test(cb), cb.slice(0, 300));
+  check("tires at the limit: each axle's limit and the neutral LLTD", /Lateral limit front \/ rear axle/.test(cb) && /let go together/.test(cb) && /(understeer|oversteer) at the limit|neutral/.test(cb));
+  await p.click('#axleSeg [data-ax="front"]'); await settle(p);
+  await p.click("#tab_spring"); await settle(p);
+  const spt = await text(p, "#pn_spring");
+  check("Spring tab: wheel rate at full bump, bump stop travel and the bar's numbers", /Wheel rate at full bump/.test(spt) && /Wheel travel to the bump stop/.test(spt) && /Bar roll stiffness, this axle/.test(spt) && /Wheel rate, N\/mm/.test(spt), spt.slice(0, 300));
+  const bsT = parseFloat((spt.match(/Wheel travel to the bump stop\s*([\d.]+)/) || [])[1]);
+  await setIn("#in_spring_bumpstop_gap", "20"); await settle(p);
+  const bsT2 = parseFloat(((await text(p, "#pn_spring")).match(/Wheel travel to the bump stop\s*([\d.]+)/) || [])[1]);
+  check("a bigger bump-stop gap moves the touch point further up", bsT2 > bsT + 5, `${bsT} -> ${bsT2}`);
+  await p.click("#btnUndo"); await settle(p);
+  const lltdOf = async () => { await p.click('#axleSeg [data-ax="car"]'); await settle(p); const t = await text(p, "#carBox"); await p.click('#axleSeg [data-ax="front"]'); await settle(p); return parseFloat((t.match(/Front LLTD \(front weight[^)]*\)\s*([\d.]+)/) || [])[1]); };
+  const l0 = await lltdOf();
+  await setIn("#in_arb_bar_od", "18"); await settle(p);
+  const l1 = await lltdOf();
+  check("a thicker front bar moves load transfer forward", l1 > l0 + 0.5, `${l0} -> ${l1}`);
+  await p.$eval("#arbOn", e => e.click()); await settle(p);
+  check("turning the linkage off falls back to the typed bar number", !(await p.$eval("#arbOn", e => e.checked)) && (await p.$eval("#arbBody", e => e.hidden)));
+  await p.setInputFiles("#fileIn", path.join(ROOT, "designs", "example_car.json")); await settle(p);
+
   console.log("\nJoint misalignment");
   await p.click('#axleSeg [data-ax="front"]'); await settle(p);
   await p.click("#tab_pack"); await settle(p);

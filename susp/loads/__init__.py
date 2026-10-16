@@ -13,6 +13,7 @@ the ball-joint node).
 from __future__ import annotations
 
 from ..kinematics import SolveError, travel_range
+from ..ride import spring_nonlinear, wheel_travel_under
 from .cases import G, load_cases
 from .compliance import IMPACT_CASES, compliance, link_stiffness
 from .statics import MEMBER_LABEL, MEMBERS, _geometry, arm_reactions, member_label, solve_case, solve_FM, wheel_rate_at_ride
@@ -36,7 +37,10 @@ def run_loads(cfg, susp, sp, lltd=None):
     for name, forces, d, parts in cases:
         if name in ("bump", "pothole") and k_w > 1e-9:
             Fz = float(sum(f for f, _ in forces)[2])
-            dz = min(travel, max(0.0, (Fz - info["Fz0"]) / k_w))
+            if spring_nonlinear(cfg["spring"]):          # dual-rate spring or bump stop: integrate the rate curve
+                dz = wheel_travel_under(cfg, susp, sp, Fz - info["Fz0"], travel)
+            else:
+                dz = min(travel, max(0.0, (Fz - info["Fz0"]) / k_w))
             if dz > 0.05:
                 extra.append((f"{name} (deflected)", forces, f"{d}, solved at +{dz:.1f} mm of wheel travel"
                               + (" (full bump)" if dz >= travel else ""), parts, dz))

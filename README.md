@@ -228,6 +228,33 @@ the other way, which can put a different leg into compression. `loads car.json` 
 5. Re-run `run`, `loads` and `car`. Pick the spring from "Spring rate for target freq".
 
 
+### Springs as fitted: dual-rate springs and bump stops
+Under **Spring as fitted** (or in the JSON `spring` block): `spring_rate2` from `spring_breakpoint` mm of damper
+compression beyond ride height (a dual-rate spring), and a bump stop that touches after `bumpstop_gap` mm with a rate
+of `bumpstop_k` N/mm, made progressive with `bumpstop_k2` (force = k d + k2 d² for d mm of squash). The wheel rate
+over the travel (spring and stop rate x motion ratio²) is plotted in the Spring & damper tab, with the wheel travel to
+the bump stop and the wheel rate at full bump. The aero sag and the deflected bump / pothole load cases integrate that
+curve, so a stiffening spring or a bump stop changes where the wheel ends up under load.
+
+### Anti-roll bar linkage
+Tick **Model this axle's bar and drop link** to replace the bar number in the Car view with one worked out from the
+geometry (JSON: `arb` in the corner): the drop link's lower end (`link_outboard`, on the lower or upper wishbone,
+the upright or the rocker), its upper end (`arm_tip`, the end of the bar's arm) and a point on the bar's axis
+(`bar_pivot`, axis along Y unless `bar_axis` says otherwise), plus the tube (`bar_od`, `bar_wall`, `bar_length`
+between the arms, `bar_G`, `bar_yield`). The solver moves the drop link with the suspension, finds the bar's twist per
+mm of wheel travel (its own motion ratio) and gives the bar's rate at each wheel in roll (2 G J / L x twist-per-mm²),
+the axle's roll stiffness in Nm/deg, and the bar's shear stress and FOS at `sweep.roll_deg` of roll (a target: FOS ≥
+`members.sf_target`). `designs/example_car_bars.json` has a front bar driven from the rocker and a rear bar from the
+lower wishbone.
+
+### Tires at the limit (load sensitivity)
+With `vehicle.tire_load_sens` (k) set, a tire's friction falls with load: μ = `tire_mu` (1 − k (Fz / Fz0 − 1)). An
+axle that transfers load then has less total grip, μ (2 Fz0 − 2 k ΔFz² / Fz0), so the car balance reports where each
+axle lets go (g), how much grip load transfer costs at each end, which end lets go first (understeer or oversteer at
+the limit) and the front LLTD at which both let go together. With the same tires front and rear that neutral LLTD is
+the share Fz0 x track at the front; running LLTD a few points above it gives a margin of understeer, which is why the
+default LLTD target sits a few points above the front weight. Fit k to your tire's data (0.1–0.3 is common).
+
 ### Damping
 Add the damper's dyno slopes to the `spring` block (N per m/s at the shaft): `damper_bump_low`, `damper_bump_high`,
 `damper_rebound_low`, `damper_rebound_high`, and `damper_knee` (mm/s). The solver reports critical damping at the
@@ -299,8 +326,10 @@ Member forces: + = tension.
   heat-affected zone.
 - Clearance is center-line distance plus tube radii. The rim check is radial only. The caliper is a sphere and the
   halfshaft a straight cylinder; neither is drawn in the 3D view or the CAD export yet.
-- Springs are linear, with no bump stops, and the tire rate does not change with load. Anti-roll bars are a rate in
-  the car balance, not a modeled linkage.
+- The tire's vertical rate does not change with load. Tire load sensitivity is a straight-line fall of friction with
+  load, the same on both axles, used only for the limit balance (not for the load cases). Wheel rate is spring rate x
+  motion ratio^2 (the spring force x d(MR)/dz term is left out, as in most hand calculations). The bar's arms are
+  rigid and its drop links don't affect the ride rate (the bar only acts in roll).
 - Default targets (ride frequency 2.5-4.5 Hz, bump steer, LLTD = front weight + 5 %, 1 deg/g) are starting points,
   not rules. Check wheelbase and turning limits against the current FSAE rulebook.
 - The optimizer finds one local solution. Always re-run `run` on the result.

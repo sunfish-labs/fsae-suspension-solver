@@ -3,6 +3,18 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.3.0 - 2026-10-16
+
+- **Springs as fitted:** dual-rate springs (`spring_rate2` from `spring_breakpoint`) and progressive bump stops
+  (`bumpstop_gap`, `bumpstop_k`, `bumpstop_k2`). Wheel rate over the travel (chart), travel to the bump stop, wheel
+  rate at full bump; the aero sag and the deflected bump / pothole cases integrate the rate curve.
+- **Anti-roll bar linkage:** a drop link on the lower or upper wishbone, the upright or the rocker drives the bar's
+  arm; the bar's own motion ratio, its rate at the wheels, the axle's roll stiffness (used by the car balance in
+  place of the typed number) and its shear stress and FOS (a target).
+- **Tire load sensitivity:** each axle's lateral limit, the grip lost to load transfer, which end lets go first and
+  the front LLTD that makes both let go together.
+- New example: `designs/example_car_bars.json`. Hand-calculation checks for all three (73 in total) and parity tests.
+
 ## 1.2.0 - 2026-10-16
 
 - **Clearance to the chassis model:** the closest each link comes to the loaded frame over travel and steer, both

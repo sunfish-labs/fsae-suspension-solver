@@ -188,6 +188,17 @@
           <div class="fields" id="spFields"></div>
           <div class="sub-h" style="margin-top:8px">Damping <span class="muted" style="text-transform:none;letter-spacing:0">(optional · damper dyno slopes, N per m/s at the shaft)</span></div>
           <div class="fields" id="dampFields"></div>
+          <div class="sub-h" style="margin-top:8px">Spring as fitted <span class="muted" style="text-transform:none;letter-spacing:0">(optional · dual-rate spring, bump stop; damper mm beyond ride height)</span></div>
+          <div class="fields" id="progFields"></div>
+          <div class="sub-h" style="margin-top:8px">Anti-roll bar linkage</div>
+          <label class="check"><input type="checkbox" id="arbOn"> Model this axle's bar and drop link (replaces the bar number in the Car view)</label>
+          <div id="arbBody" hidden>
+            <div class="fields" style="margin-bottom:6px">
+              <div class="field"><label for="arb_link_on">Drop link mounted on</label>
+                <select id="arb_link_on" data-path="arb.link_on" data-type="select"><option value="lower">Lower wishbone</option><option value="upper">Upper wishbone</option><option value="upright">Upright</option><option value="rocker">The rocker</option></select></div></div>
+            <table class="pt" id="arbTable"><thead><tr><th>Point</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody></tbody></table>
+            <div class="fields" id="arbFields"></div>
+          </div>
         </div>
       </div>
     </details>

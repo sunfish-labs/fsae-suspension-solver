@@ -55,6 +55,40 @@ function checkExtras(cfg) {
     const miss = ["clock_deg", "radius", "size", "offset"].filter(k => !num((cal || {})[k]));
     if (miss.length) throw new SolveError("wheel.caliper needs numbers for " + miss.join(", "));
   }
+  const sp = cfg.spring || {};
+  if ((sp.spring_rate2 == null) !== (sp.spring_breakpoint == null))
+    throw new SolveError("A dual-rate spring needs both spring.spring_rate2 (N/mm) and spring.spring_breakpoint (mm)");
+  if (sp.spring_rate2 != null && !(num(sp.spring_rate2) && sp.spring_rate2 > 0 && num(sp.spring_breakpoint) && sp.spring_breakpoint >= 0))
+    throw new SolveError("spring.spring_rate2 must be > 0 and spring.spring_breakpoint >= 0 mm");
+  if (sp.bumpstop_gap != null) {
+    if (!num(sp.bumpstop_gap) || !(num(sp.bumpstop_k) && sp.bumpstop_k > 0))
+      throw new SolveError("A bump stop needs spring.bumpstop_gap (mm) and spring.bumpstop_k (N/mm, > 0)");
+    if (sp.bumpstop_k2 != null && !(num(sp.bumpstop_k2) && sp.bumpstop_k2 >= 0))
+      throw new SolveError("spring.bumpstop_k2 must be a number >= 0 (N/mm^2)");
+  }
+  const veh = cfg.vehicle;
+  if (veh.tire_load_sens != null && !(num(veh.tire_load_sens) && veh.tire_load_sens >= 0 && veh.tire_load_sens < 1))
+    throw new SolveError("vehicle.tire_load_sens must be between 0 and 1 (typically 0.1-0.3)");
+  if (veh.tire_mu != null && !(num(veh.tire_mu) && veh.tire_mu > 0)) throw new SolveError("vehicle.tire_mu must be > 0");
+  const arb = cfg.arb;
+  if (arb != null) {
+    if (typeof arb !== "object" || Array.isArray(arb))
+      throw new SolveError("arb must be an object (see the README: anti-roll bar linkage)");
+    if (!cfg.spring) throw new SolveError("The anti-roll bar linkage needs the spring block (it is part of the ride model)");
+    const miss = ["link_outboard", "arm_tip", "bar_pivot"].filter(k => !vec3(arb[k]));
+    if (miss.length) throw new SolveError(`arb needs ${miss.join(", ")} as [x, y, z]`);
+    if (!["lower", "upper", "upright", "rocker"].includes(arb.link_on ?? "lower"))
+      throw new SolveError("arb.link_on must be lower, upper, upright or rocker");
+    if (arb.link_on === "rocker" && cfg.spring.rocker_pivot == null)
+      throw new SolveError("arb.link_on = rocker needs a rocker in the spring block");
+    if (!(num(arb.bar_od) && arb.bar_od > 0)) throw new SolveError("arb.bar_od (mm) is needed");
+    if (arb.bar_wall != null && !(num(arb.bar_wall) && arb.bar_wall > 0 && arb.bar_wall < arb.bar_od / 2))
+      throw new SolveError("arb.bar_wall must be between 0 and half the OD (null = solid bar)");
+    for (const k of ["bar_length", "bar_G", "bar_yield"])
+      if (arb[k] != null && !(num(arb[k]) && arb[k] > 0)) throw new SolveError(`arb.${k} must be > 0`);
+    if (arb.bar_axis != null && !(vec3(arb.bar_axis) && arb.bar_axis.some(c => c)))
+      throw new SolveError("arb.bar_axis must be a direction [x, y, z]");
+  }
   const js = cfg.joints || {};
   if (typeof js !== "object" || Array.isArray(js)) throw new SolveError("joints must be an object keyed by joint");
   for (const [k, v] of Object.entries(js)) {
@@ -90,6 +124,7 @@ function defaultTargets(cfg) {
     if (sp.rocker_pivot != null) Object.assign(t, cond.rocker);
     if (sp.damper_bump_low && sp.damper_rebound_low) Object.assign(t, cond.damping);
   }
+  if (cfg.arb && cfg.spring) t.arb_fos = [+(cfg.members.sf_target || 2), null];
   if ((cfg.wheel || {}).caliper) t.caliper_rim_margin = [+((cfg.clearance || {}).caliper_margin ?? 3), null];
   const hs = cfg.axle === "rear" ? cfg.halfshaft : null;
   if (hs) {

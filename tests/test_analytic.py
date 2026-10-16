@@ -323,6 +323,64 @@ check("a straight bracket (bolt along the pivot axis) sees the leg's splay angle
       evaluate(corner(PAR, joints={"lower_inboard_front": {"bolt": "pivot", "square": False}}), steer=False)["joints"]["rows"][2]["worst"],
       math.degrees(math.asin(c9)), 1e-6, "asin(leg . pivot axis), constant over the travel")
 
+print("\n10. Springs as fitted, anti-roll bar linkage, tire load sensitivity")
+from susp.car import axle_limit  # noqa: E402
+a10, b10 = 186.0, 310.0
+MR10 = a10 / b10
+bs = dict(damper, spring_rate=50.0, bumpstop_gap=6.0, bumpstop_k=80.0, bumpstop_k2=4.0)
+e = evaluate(corner(PAR, bs), steer=False)
+check("bump stop touches at gap / MR of wheel travel, mm", e["metrics"]["bumpstop_travel"], 6.0 / MR10, 0.05,
+      "vertical damper on the parallelogram: damper moves MR x wheel travel (MR = a / b)")
+xb = MR10 * T9
+check("wheel rate at full bump with the bump stop, N/mm", e["metrics"]["wheel_rate_bump"], (50 + 80 + 2 * 4 * (xb - 6)) * MR10 ** 2, 0.005 * e["metrics"]["wheel_rate_bump"],
+      "(k + k_b + 2 k_b2 (x - gap)) MR^2, x = MR x travel")
+dr = dict(damper, spring_rate=40.0, spring_rate2=70.0, spring_breakpoint=5.0)
+e = evaluate(corner(PAR, dr), steer=False)
+check("dual-rate spring: wheel rate at full bump = rate2 x MR^2, N/mm", e["metrics"]["wheel_rate_bump"], 70.0 * MR10 ** 2, 0.005 * 70.0 * MR10 ** 2, "past the breakpoint")
+check("dual-rate spring: wheel rate at ride = rate1 x MR^2, N/mm", e["metrics"]["wheel_rate"], 40.0 * MR10 ** 2, 1e-4, "before the breakpoint")
+cfb = corner(PAR, dict(bs, bumpstop_k=600.0, bumpstop_k2=20.0))
+eb = evaluate(cfb, steer=False)
+Lb_ = run_loads(cfb, eb["susp"], eb["spring"])
+z_got = Lb_["deflect"]["bump (deflected)"]
+dF = Lb_["info"]["Fz0"] * (cfb["loads"]["bump_g"] - 1)
+k1w, kbw, zc = 50 * MR10 ** 2, 600 * MR10 ** 2, 6.0 / MR10
+def F_at(z):                                                      # wheel force above ride height with a constant MR
+    u = max(0.0, z - zc)
+    return k1w * z + kbw * u + 20 * MR10 ** 3 * u * u
+lo_, hi_ = 0.0, T9
+for _ in range(100):
+    mid_ = (lo_ + hi_) / 2
+    lo_, hi_ = (mid_, hi_) if F_at(mid_) < dF else (lo_, mid_)
+check("bump case solved where the spring + bump stop carry the load, mm", z_got, lo_, 0.1,
+      "k MR^2 z + k_b MR^2 (z - z_c) + k_b2 MR^3 (z - z_c)^2 = load - static load")
+arb10 = {"link_on": "lower", "link_outboard": [0.0, 250 + a10, 130.0], "arm_tip": [0.0, 250 + a10, 330.0],
+         "bar_pivot": [100.0, 250 + a10, 330.0], "bar_od": 16.0, "bar_wall": None, "bar_length": 600.0}
+e = evaluate(corner(PAR, damper, arb=arb10), steer=False)
+tp = (a10 / b10) / 100.0                                           # rad of bar per mm of wheel travel
+Kt = 79300.0 * math.pi / 32 * 16.0 ** 4 / 600.0
+kw10 = 2 * Kt * tp ** 2
+check("anti-roll bar twist per wheel travel, deg/mm", e["metrics"]["arb_twist"], math.degrees(tp), 1e-4 * math.degrees(tp),
+      "vertical drop link at a / b of the arm, bar arm 100 mm: (a / b) / 100 rad/mm")
+check("anti-roll bar rate at each wheel in roll, N/mm", e["metrics"]["arb_wheel_rate"], kw10, 2e-4 * kw10, "2 G J / L x twist-per-mm^2")
+check("anti-roll bar roll stiffness, Nm/deg", e["metrics"]["arb_roll"], kw10 * 1000 * 1.22 ** 2 / 2 * math.pi / 180, 2e-4 * e["metrics"]["arb_roll"],
+      "k_wheel t^2 / 2, track 1220 mm")
+mu, kk, c10, F010 = 1.6, 0.2, 300.0, 600.0
+lo_, hi_ = 0.0, mu
+for _ in range(200):
+    mid_ = (lo_ + hi_) / 2
+    grip = mu * (2 * F010 - 2 * kk * (c10 * mid_) ** 2 / F010)
+    lo_, hi_ = (mid_, hi_) if grip > 2 * F010 * mid_ else (lo_, mid_)
+check("axle lateral limit with load-sensitive tires, g", axle_limit(mu, kk, c10, F010), lo_, 1e-9,
+      "bisection on mu (2 F0 - 2 k dFz^2 / F0) = 2 F0 ay")
+fc["vehicle"]["tire_load_sens"] = 0.2
+for cc_ in (fc, rc):
+    cc_["vehicle"]["tire_load_sens"] = 0.2
+cbt = car_balance(fc, fe, rc, re_)
+F0f, F0r = fc["vehicle"]["mass"] * fc["vehicle"]["weight_front"] * 9.81 / 2, fc["vehicle"]["mass"] * (1 - fc["vehicle"]["weight_front"]) * 9.81 / 2
+tf_, tr_ = fe["susp"].track, re_["susp"].track
+check("front LLTD that saturates both axles together", cbt["lltd_neutral"], F0f * tf_ / (F0f * tf_ + F0r * tr_), 1e-9,
+      "equal load-transfer ratio dFz / Fz0 front and rear (same tires)")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)

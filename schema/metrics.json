@@ -231,6 +231,18 @@
    "decimals": 1,
    "term": "wheel_rate"
   },
+  "wheel_rate_bump": {
+   "label": "Wheel rate at full bump",
+   "unit": "N/mm",
+   "decimals": 1,
+   "help": "Spring (and bump stop) rate x motion ratio squared at full bump. Rises with a progressive motion ratio, a dual-rate spring or the bump stop."
+  },
+  "bumpstop_travel": {
+   "label": "Wheel travel to the bump stop",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "How far the wheel moves up from ride height before the bump stop touches (spring.bumpstop_gap is in damper mm)."
+  },
   "ride_rate": {
    "label": "Ride rate (with tire)",
    "unit": "N/mm",
@@ -394,6 +406,42 @@
    "unit": "mm",
    "decimals": 1,
    "help": "Tightest gap from the halfshaft to a link, minus what the tube sizes need."
+  },
+  "arb_twist": {
+   "label": "Anti-roll bar twist per wheel travel",
+   "unit": "deg/mm",
+   "decimals": 3,
+   "help": "How far the bar arm turns per mm of wheel travel, from the drop-link geometry (the bar's own motion ratio)."
+  },
+  "arb_wheel_rate": {
+   "label": "Anti-roll bar rate at each wheel",
+   "unit": "N/mm",
+   "decimals": 1,
+   "help": "Extra wheel rate the bar adds in roll: 2 x torsional stiffness x twist-per-mm squared."
+  },
+  "arb_roll": {
+   "label": "Anti-roll bar roll stiffness",
+   "unit": "Nm/deg",
+   "decimals": 0,
+   "help": "The bar's roll stiffness at the wheels for this axle, used by the car balance instead of the typed bar number."
+  },
+  "arb_tau": {
+   "label": "Anti-roll bar shear stress at max roll",
+   "unit": "MPa",
+   "decimals": 0,
+   "help": "Torsional shear stress in the bar at sweep.roll_deg of body roll."
+  },
+  "arb_fos": {
+   "label": "Anti-roll bar FOS (shear)",
+   "unit": "",
+   "decimals": 2,
+   "help": "0.577 x yield / shear stress at sweep.roll_deg of roll."
+  },
+  "arb_progression": {
+   "label": "Anti-roll bar motion-ratio change",
+   "unit": "%",
+   "decimals": 1,
+   "help": "Change of the bar's twist-per-mm from full droop to full bump, relative to ride height."
   }
  },
  "car": {

@@ -92,6 +92,134 @@ def _perp(v, k):
     return v - (v @ k) * k
 
 
+# ---- the spring as fitted: a coil (single or dual rate) plus an optional bump stop, along the damper
+def spring_rate_at(sc, x):
+    """Rate (N/mm along the damper) at x mm of damper compression beyond ride height (x < 0: extension). Dual rate:
+    spring_rate2 from spring_breakpoint mm on. Bump stop: from bumpstop_gap mm on it adds bumpstop_k + 2 bumpstop_k2
+    (x - gap), i.e. a force bumpstop_k d + bumpstop_k2 d^2 for d mm of squash."""
+    k = float(sc["spring_rate"])
+    k2, xb = sc.get("spring_rate2"), sc.get("spring_breakpoint")
+    if k2 is not None and xb is not None and x > float(xb):
+        k = float(k2)
+    g = sc.get("bumpstop_gap")
+    if g is not None and x > float(g):
+        k += float(sc.get("bumpstop_k") or 0.0) + 2.0 * float(sc.get("bumpstop_k2") or 0.0) * (x - float(g))
+    return k
+
+
+def spring_nonlinear(sc):
+    return (sc.get("spring_rate2") is not None and sc.get("spring_breakpoint") is not None) or sc.get("bumpstop_gap") is not None
+
+
+def wheel_travel_under(cfg, susp, sp, dF, zmax):
+    """Bump travel (mm) at which the wheel carries dF N more than at ride height, integrating the wheel rate
+    k(x) MR^2 along the travel in 1 mm steps (for dual-rate springs and bump stops); capped at zmax."""
+    if dF <= 0:
+        return 0.0
+    n = max(1, int(math.ceil(zmax / 1.0)))
+    zs = [zmax * i / n for i in range(n + 1)]
+    xs = susp.states(zs)
+    th, L = 0.0, []
+    for z in zs:
+        st = sp.state(xs[float(z)], th)
+        th = math.radians(st["rocker_deg"])
+        L.append(st["damper_len"])
+    F = 0.0
+    for j in range(n):
+        x0, x1 = L[0] - L[j], L[0] - L[j + 1]
+        dz = zs[j + 1] - zs[j]
+        df = spring_rate_at(cfg["spring"], (x0 + x1) / 2) * (x1 - x0) ** 2 / dz
+        if F + df >= dF:
+            return zs[j] + (dF - F) / df * dz if df > 0 else zs[j]
+        F += df
+    return zmax
+
+
+# ---- anti-roll bar driven by its own drop link
+class ArbLink:
+    """A U-bar: a drop link from the suspension (lower or upper wishbone, upright or the spring's rocker) to the
+    tip of the bar's arm, which turns about the bar axis (through bar_pivot, along bar_axis, default Y). Both sides
+    are mirror images; in roll they twist the bar against each other."""
+
+    def __init__(self, susp, sp, a):
+        self.s, self.sp, self.a = susp, sp, a
+        h = susp.h
+        self.on = a.get("link_on") or "lower"
+        self.p0 = np.array(a["link_outboard"], float)
+        self.t0 = np.array(a["arm_tip"], float)
+        self.c = np.array(a["bar_pivot"], float)
+        self.k = unit(np.array(a.get("bar_axis") or [0.0, 1.0, 0.0], float))
+        self.L = float(np.linalg.norm(self.t0 - self.p0))
+        if self.on in ("lower", "upper"):
+            self.piv = (h["lif"], h["lir"]) if self.on == "lower" else (h["uif"], h["uir"])
+            self.bj_i = 1 if self.on == "lower" else 0
+            self.bj0 = susp.P0[self.bj_i]
+
+    def link_out(self, x, st):
+        if self.on == "upright":
+            return self.s.move(x, self.p0)
+        if self.on == "rocker":
+            sp = self.sp
+            return sp.c + rodrigues(sp.k * math.radians(st["rocker_deg"])) @ (self.p0 - sp.c)
+        P, _ = self.s._unpack(x)
+        a, b = self.piv
+        u = unit(b - a)
+        v0, v1 = self.bj0 - a, P[self.bj_i] - a
+        v0, v1 = v0 - (v0 @ u) * u, v1 - (v1 @ u) * u
+        return a + rodrigues(u * math.atan2(u @ np.cross(v0, v1), v0 @ v1)) @ (self.p0 - a)
+
+    def theta(self, x, st, th0=0.0):
+        """Bar arm angle (rad) from ride height."""
+        p = self.link_out(x, st)
+        def f(th):
+            return float(np.linalg.norm(self.c + rodrigues(self.k * th) @ (self.t0 - self.c) - p)) - self.L
+        th = th0
+        for _ in range(50):
+            r = f(th)
+            if abs(r) < 1e-10:
+                return th
+            d = (f(th + 1e-7) - r) / 1e-7
+            if abs(d) < 1e-12:
+                raise SolveError("The anti-roll bar's drop link points through the bar axis (toggle). Move arm_tip.")
+            th -= max(-0.2, min(0.2, r / d))
+        if abs(f(th)) > 1e-6:
+            raise SolveError("The anti-roll bar's drop link cannot reach the bar arm here.")
+        return th
+
+
+def arb_metrics(cfg, susp, sp, rows, sts, zs, i0):
+    """Bar twist per mm of wheel travel, the wheel rate it adds per wheel in roll (2 K_t theta'^2), the axle roll
+    stiffness at the wheels (Nm/deg, like the car's arb inputs) and the bar's shear stress and FOS at sweep.roll_deg."""
+    a = cfg["arb"]
+    bar = ArbLink(susp, sp, a)
+    order = list(range(i0, len(rows))) + list(range(i0 - 1, -1, -1))
+    ths, th = [None] * len(rows), 0.0
+    for i in order:
+        if i == i0 - 1:
+            th = ths[i0]
+        th = bar.theta(rows[i]["_x"], sts[i], th)
+        ths[i] = th
+    dth = np.gradient(np.array(ths), zs, edge_order=2)          # rad per mm
+    tp = abs(float(dth[i0]))
+    od = float(a["bar_od"])
+    wall = a.get("bar_wall")
+    di = 0.0 if not wall else max(0.0, od - 2 * float(wall))
+    J = math.pi / 32 * (od ** 4 - di ** 4)
+    Lb = float(a.get("bar_length") or 2 * abs(float(a["arm_tip"][1])))
+    Gm = float(a.get("bar_G") or 79300.0)
+    Kt = Gm * J / Lb                                            # N mm per rad of twist
+    k_w = 2 * Kt * tp ** 2                                      # N/mm at each wheel in roll
+    t = susp.track
+    phi = math.radians(float(cfg["sweep"]["roll_deg"]))
+    twist = 2 * tp * (t / 2) * math.tan(phi)                    # rad of bar twist at that roll
+    tau = Gm * twist * od / 2 / Lb
+    yld = float(a.get("bar_yield") or cfg["members"]["yield"])
+    for r, v in zip(rows, ths):
+        r["arb_deg"] = math.degrees(v)
+    return dict(arb_twist=math.degrees(tp), arb_wheel_rate=k_w, arb_roll=k_w * 1000 * (t / 1000) ** 2 / 2 * math.pi / 180,
+                arb_tau=tau, arb_fos=0.577 * yld / tau if tau > 0 else float("inf"), arb_progression=float((abs(dth[-1]) - abs(dth[0])) / tp * 100) if tp > 0 else 0.0)
+
+
 def _angle_to_arm(arm, force, k):
     """Angle between a link and the rocker arm it drives, in the rocker plane (90 deg = best leverage)."""
     a, f = _perp(arm, k), _perp(force, k)
@@ -130,7 +258,11 @@ def ride_metrics(cfg, susp, sp, rows):
     for r, s, m_ in zip(rows, sts, mr):
         r["damper_len"], r["motion_ratio"], r["rocker_deg"] = s["damper_len"], float(m_), s["rocker_deg"]
     MR = float(mr[i0])
-    k_s = float(sc["spring_rate"])
+    xd = L[i0] - L                                           # damper compression beyond ride height
+    kw_rows = [spring_rate_at(sc, float(x)) * float(m_) ** 2 for x, m_ in zip(xd, mr)]
+    for r, kw_ in zip(rows, kw_rows):
+        r["wheel_rate"] = kw_
+    k_s = spring_rate_at(sc, 0.0)
     k_t = float(sc["tire_rate"])
     share = veh["weight_front"] if cfg["axle"] == "front" else 1 - veh["weight_front"]
     m_corner = veh["mass"] * share / 2
@@ -179,18 +311,31 @@ def ride_metrics(cfg, susp, sp, rows):
     if MR < 1e-6:
         raise SolveError("Motion ratio is zero - the damper does not move with the wheel. Check the spring geometry.")
     out.update(damping(sc, MR, k_w, k_r, k_t, m_s))
+    out["wheel_rate_bump"] = kw_rows[-1]
+    g = sc.get("bumpstop_gap")
+    if g is not None:
+        g = float(g)
+        if g <= 0:
+            out["bumpstop_travel"] = 0.0
+        else:
+            for j in range(i0, len(rows) - 1):
+                if xd[j + 1] >= g > xd[j]:
+                    out["bumpstop_travel"] = float(zs[j] + (g - xd[j]) / (xd[j + 1] - xd[j]) * (zs[j + 1] - zs[j]))
+                    break
     aero = veh.get("aero_front" if cfg["axle"] == "front" else "aero_rear")
     if aero:
-        out.update(aero_sag(float(aero) / 2, zs, mr, k_s, k_t, m_s, i0))
+        out.update(aero_sag(float(aero) / 2, zs, kw_rows, k_t, m_s, i0))
+    if cfg.get("arb"):
+        out.update(arb_metrics(cfg, susp, sp, rows, sts, zs, i0))
     return out
 
 
-def aero_sag(F, zs, mr, k_s, k_t, m_s, i0):
+def aero_sag(F, zs, kw_rows, k_t, m_s, i0):
     """Downforce F (N on this wheel): the wheel travel where the spring has taken F (integrating the wheel rate
-    k_s MR(z)^2 up the bump side of the sweep), the ride-height loss (that travel plus the tire's F / k_t), and the
-    ride frequency there. The mass doesn't change, so the frequency moves only with the motion ratio's progression."""
+    k(x) MR(z)^2 up the bump side of the sweep, so dual-rate springs and bump stops count), the ride-height loss
+    (that travel plus the tire's F / k_t), and the ride frequency there."""
     z_up = [float(z) for z in zs[i0:]]
-    kw = [k_s * float(m) ** 2 for m in mr[i0:]]
+    kw = [float(k) for k in kw_rows[i0:]]
     force, z_at, kw_at = 0.0, z_up[-1], kw[-1]
     for j in range(1, len(z_up)):
         df = (kw[j - 1] + kw[j]) / 2 * (z_up[j] - z_up[j - 1])

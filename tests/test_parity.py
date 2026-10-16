@@ -73,6 +73,24 @@ for i in range(a.cases):
         ro = spg["rod_outboard"]
         spg["damper_chassis"] = [ro[0], ro[1] - 60.0, ro[2] + 280.0]
         raw["spring"] = spg
+    if raw.get("spring") and i % 6 in (1, 4):
+        # dual-rate spring and/or progressive bump stop
+        spg = dict(raw["spring"])
+        if i % 6 == 1:
+            spg.update(spring_rate2=round(spg["spring_rate"] * rng.uniform(1.2, 1.8), 1), spring_breakpoint=round(rng.uniform(2, 15), 1))
+        spg.update(bumpstop_gap=round(rng.uniform(-2, 25), 1), bumpstop_k=round(rng.uniform(30, 150), 1), bumpstop_k2=round(rng.uniform(0, 10), 2))
+        raw["spring"] = spg
+    if raw.get("spring") and i % 4 == 1:
+        # an anti-roll bar on its own drop link: on the lower arm, or on the rocker when there is one
+        hp = raw["hardpoints"]
+        mid = [(a + b) / 2 for a, b in zip(hp["lower_inboard_front"], hp["lower_inboard_rear"])]
+        on_rocker = raw["spring"].get("rocker_pivot") is not None and i % 8 == 5
+        lo = ([raw["spring"]["rocker_damper"][0] + 20, raw["spring"]["rocker_damper"][1], raw["spring"]["rocker_damper"][2]] if on_rocker
+              else [m + 0.5 * (b - m) + (40 if j == 0 else 0) for j, (m, b) in enumerate(zip(mid, hp["lower_outboard"]))])
+        tip = [lo[0], lo[1] - 40, lo[2] + (-120 if on_rocker else 180)]
+        raw["arb"] = {"link_on": "rocker" if on_rocker else "lower", "link_outboard": lo, "arm_tip": tip,
+                      "bar_pivot": [tip[0] + rng.uniform(90, 140), tip[1], tip[2]], "bar_od": round(rng.uniform(8, 16), 2),
+                      "bar_wall": None if i % 3 else 1.2, "bar_length": round(rng.uniform(400, 700))}
     if i % 5 == 3:
         raw["joints"] = {"trackrod_outboard": {"bolt": "x"}, "upper_inboard_front": {"bolt": "pivot", "square": False},
                          "lower_outboard": {"bolt": [1.0, 0.2, 0.1]}, "trackrod_inboard": {"allow": 9.5}}

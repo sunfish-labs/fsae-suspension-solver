@@ -2,6 +2,13 @@
 // ---------------------------------------------------------------- whole car (mirrors ride.car_balance)
 const CAR_TARGETS = SCHEMA.targets.car;
 const CAR_LABELS = Object.fromEntries(Object.entries(SCHEMA.metrics.car).map(([k, d]) => [k, [d.label, d.unit, d.decimals]]));
+// mirrors car.axle_limit: lateral g where an axle saturates, with load-sensitive tires
+function axleLimit(mu, k, c, F0) {
+  const q = mu * k * (c / F0) ** 2;
+  let ay = q < 1e-15 ? mu : (-1 + Math.sqrt(1 + 4 * mu * q)) / (2 * q);
+  if (c * ay > F0) ay = mu * (1 - k);
+  return ay;
+}
 function carBalance(fcfg, fev, rcfg, rev, o = {}) {
   const G = 9.81,
     veh = fcfg.vehicle,
@@ -29,8 +36,11 @@ function carBalance(fcfg, fev, rcfg, rev, o = {}) {
     dg = Math.PI / 180;
   const series = (a, b) => (a > 0 && b > 0 ? 1 / (1 / a + 1 / b) : 0),
     rollK = (k, t) => ((k * 1000 * t * t) / 2) * dg;
-  const arbF = o.arbF || 0,
-    arbR = o.arbR || 0;
+  // a corner with an arb linkage block uses the bar stiffness from its geometry
+  const srcF = fr.arb_roll != null ? "geometry" : "input",
+    srcR = rr.arb_roll != null ? "geometry" : "input",
+    arbF = fr.arb_roll != null ? fr.arb_roll : o.arbF || 0,
+    arbR = rr.arb_roll != null ? rr.arb_roll : o.arbR || 0;
   const Ksf = rollK(fr.wheel_rate, tf),
     Ksr = rollK(rr.wheel_rate, tr),
     Ktf = rollK(fcfg.spring.tire_rate, tf),
@@ -57,6 +67,8 @@ function carBalance(fcfg, fev, rcfg, rev, o = {}) {
     Ktr,
     arb_in_f: arbF,
     arb_in_r: arbR,
+    arb_src_f: srcF,
+    arb_src_r: srcR,
     grad,
     lltd,
     freq_f: fr.ride_freq,
@@ -69,6 +81,28 @@ function carBalance(fcfg, fev, rcfg, rev, o = {}) {
     geo_f: (msf * G * zrf + muf * G * Rf) / tf,
     geo_r: (msr * G * zrr + mur * G * Rr) / tr,
   };
+  // tire load sensitivity (mirrors car.car_balance): each axle's lateral limit and the LLTD that equalizes them
+  const ks = veh.tire_load_sens;
+  if (ks != null) {
+    const mu = +(veh.tire_mu || 1.5),
+      F0f = (m * wf * G) / 2,
+      F0r = (m * (1 - wf) * G) / 2;
+    out.tire_mu = mu;
+    out.tire_load_sens = +ks;
+    out.ay_lim_f = axleLimit(mu, +ks, dF, F0f);
+    out.ay_lim_r = axleLimit(mu, +ks, dR, F0r);
+    out.limit_balance = out.ay_lim_r - out.ay_lim_f; // + : the front lets go first (understeer)
+    out.grip_loss_f = (1 - out.ay_lim_f / mu) * 100;
+    out.grip_loss_r = (1 - out.ay_lim_r / mu) * 100;
+    const a1 = (ms * G * d) / tf / F0f,
+      b1 = (msf * G * zrf + muf * G * Rf) / tf / F0f,
+      a2 = (-ms * G * d) / tr / F0r,
+      b2 = (ms * G * d + msr * G * zrr + mur * G * Rr) / tr / F0r;
+    if (Math.abs(a1 - a2) > 1e-12) {
+      const [dFn, dRn] = transfer((b2 - b1) / (a1 - a2));
+      out.lltd_neutral = (dFn * tf) / (dFn * tf + dRn * tr);
+    }
+  }
   const tg = o.targetGrad || 1.0,
     tl = o.targetLltd || wf + 0.05,
     K_need = (ms * G * d) / tg;
