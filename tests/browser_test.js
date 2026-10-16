@@ -8,6 +8,11 @@ const { chromium } = require("playwright");
 const XLSX = require("xlsx");
 const ROOT = path.resolve(__dirname, ".."), PAGE = "file://" + path.join(ROOT, "ui", "index.html");
 let failures = 0, passes = 0;
+// wait until the app has nothing left to do (no pending solve, file read or move search), then two frames
+async function settle(p) {
+  await p.waitForFunction(() => typeof window.__suspIdle === "function" && window.__suspIdle(), null, { timeout: 20000 });
+  await p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+}
 function check(name, ok, detail = "") {
   if (ok) { passes++; console.log("  ok   " + name); }
   else { failures++; console.log("  FAIL " + name + (detail ? "  -> " + detail : "")); }
@@ -21,7 +26,7 @@ async function newPage(browser, opts = {}) {
   p.errors = [];
   p.on("pageerror", e => p.errors.push("pageerror: " + e.message));
   p.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|net::|Failed to load resource/.test(m.text())) p.errors.push("console: " + m.text()); });
-  await p.goto(PAGE); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1500);
+  await p.goto(PAGE); await p.evaluate(() => localStorage.clear()); await p.reload(); await settle(p);
   return p;
 }
 const closeWelcome = async (p) => { if (await p.$("#welcome:not([hidden])")) await p.click("#wClose"); };
@@ -38,88 +43,88 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   check("car view is the default", (await pressed(p)) === "car");
   check("example car meets its car targets", /3\/3 car targets/.test(await text(p, "#status")), await text(p, "#status"));
   check("front and rear corners meet all targets", /Front (\d+)\/\1/.test(await text(p, "#status")) && /Rear (\d+)\/\1/.test(await text(p, "#status")), await text(p, "#status"));
-  await p.fill('[data-cpath="arb.front"]', "0"); await p.waitForTimeout(700);
+  await p.fill('[data-cpath="arb.front"]', "0"); await settle(p);
   check("removing the front bar breaks the LLTD target", /2\/3 car targets/.test(await text(p, "#status")));
-  await p.fill('[data-cpath="arb.front"]', "200"); await p.fill('[data-cpath="vehicle.mass"]', "300"); await p.waitForTimeout(700);
-  await p.click('#axleSeg [data-ax="rear"]'); await p.waitForTimeout(700);
+  await p.fill('[data-cpath="arb.front"]', "200"); await p.fill('[data-cpath="vehicle.mass"]', "300"); await settle(p);
+  await p.click('#axleSeg [data-ax="rear"]'); await settle(p);
   check("vehicle settings are shared by both corners", (await p.inputValue("#in_vehicle_mass")) === "300");
   check("rear view shows the rear corner", /rear/i.test(await p.inputValue("#in_name")));
 
   console.log("\nFront corner tools");
-  await p.click('#axleSeg [data-ax="front"]'); await p.waitForTimeout(700);
+  await p.click('#axleSeg [data-ax="front"]'); await settle(p);
   const tabs = await p.$$eval("#tabs button", bs => bs.map(b => b.textContent.trim()));
   check("six result tabs", tabs.join("|") === "Targets|Motion|Spring & damper|Loads|Packaging|Compare", tabs.join("|"));
-  await p.click("#tab_spring"); await p.waitForTimeout(300);
+  await p.click("#tab_spring"); await settle(p);
   const sp = await text(p, "#pn_spring");
   check("Spring & damper tab shows damping ratios and critical damping", /Damping ratio/.test(sp) && /Critical damping at the wheel/.test(sp) && /Damper force vs shaft speed/.test(sp));
-  await p.click("#tab_loads"); await p.waitForTimeout(300);
+  await p.click("#tab_loads"); await settle(p);
   const ld = await text(p, "#pn_loads");
   check("Loads tab has impact cases, mount bending and rod-end / bolt checks", /pothole/.test(ld) && /kerb strike/.test(ld) && /Pushrod mount bending/.test(ld) && /Rod ends and bolts/.test(ld));
   check("Loads tab shows compliance toe and camber per case", /Compliance/.test(ld) && /Toe-in change/.test(ld) && /Worst toe change/.test(ld));
-  await p.click("#tab_motion"); await p.click('#pn_heave [data-msub="roll"]'); await p.waitForTimeout(300);
+  await p.click("#tab_motion"); await p.click('#pn_heave [data-msub="roll"]'); await settle(p);
   check("Motion → Roll switch", await p.$eval("#pn_roll", e => !e.hidden));
   const labels = await p.$$eval("#hpTable .hpbtn[data-leg]", bs => bs.map(b => b.dataset.leg + ":" + b.textContent));
   check("inboard pivots named by physical position", labels.some(s => s.startsWith("front:") && /front pivot/.test(s)) && labels.some(s => s.startsWith("rear:") && /rear pivot/.test(s)), labels.join(", "));
-  await p.click('#hpTable [data-hp="hardpoints.trackrod_inboard"]'); await p.waitForTimeout(800);
+  await p.click('#hpTable [data-hp="hardpoints.trackrod_inboard"]'); await settle(p);
   check("clicking a hardpoint opens the influence panel", await p.$eval("#drawer", d => !d.hidden));
-  await p.click("#drawer [data-pv]"); await p.waitForTimeout(600);
+  await p.click("#drawer [data-pv]"); await settle(p);
   check("preview shows a summary bar", await p.$eval("#pvbar", d => !d.hidden));
-  await p.click("#pvApply"); await p.waitForTimeout(900);
+  await p.click("#pvApply"); await settle(p);
   check("apply enables undo", await p.$eval("#btnUndo", b => !b.hidden));
-  await p.click("#btnUndo"); await p.waitForTimeout(700); await p.click("#drClose");
+  await p.click("#btnUndo"); await settle(p); await p.click("#drClose");
   const shows = await p.$$eval("#showSel option", o => o.map(x => x.value).filter(Boolean));
-  for (const id of shows) { await p.selectOption("#showSel", id); await p.waitForTimeout(150); }
+  for (const id of shows) { await p.selectOption("#showSel", id); await settle(p); }
   check(`all ${shows.length} "Show me" drawings run`, shows.length >= 15 && p.errors.length === 0, p.errors.slice(0, 3).join(" | "));
   await p.selectOption("#showSel", "");
-  await p.fill("#poseZo", "12"); await p.dispatchEvent("#poseZo", "change"); await p.waitForTimeout(300);
+  await p.fill("#poseZo", "12"); await p.dispatchEvent("#poseZo", "change"); await settle(p);
   check("typed travel moves the slider", (await p.inputValue("#poseZ")) === "12");
   await p.click("#poseZ0");
-  await p.click("#btnLearn"); await p.waitForTimeout(400);
+  await p.click("#btnLearn"); await settle(p);
   check("Learn opens the glossary", (await p.$$eval("#pn_learn .term", a => a.length)) >= 40);
 
   console.log("\nUndo and redo for every edit");
   const box = "#in_hardpoints_upper_outboard_2", orig = await p.inputValue(box);
-  await p.click(box); await p.fill(box, ""); await p.type(box, "350", { delay: 40 }); await p.waitForTimeout(400);
+  await p.click(box); await p.fill(box, ""); await p.type(box, "350", { delay: 40 }); await settle(p);
   await p.click("body", { position: { x: 5, y: 700 } });
-  await p.click("#btnUndo"); await p.waitForTimeout(500);
+  await p.click("#btnUndo"); await settle(p);
   check("one Undo reverts a whole typing burst", (await p.inputValue(box)) === orig, `${await p.inputValue(box)} vs ${orig}`);
-  await p.click("#btnRedo"); await p.waitForTimeout(500);
+  await p.click("#btnRedo"); await settle(p);
   check("Redo reapplies it", (await p.inputValue(box)) === "350");
-  await p.keyboard.press(process.platform === "darwin" ? "Meta+z" : "Control+z"); await p.waitForTimeout(500);
+  await p.keyboard.press(process.platform === "darwin" ? "Meta+z" : "Control+z"); await settle(p);
   check("Ctrl/Cmd+Z undoes outside text boxes", (await p.inputValue(box)) === orig);
-  await p.click('#axleSeg [data-ax="car"]'); await p.waitForTimeout(500);
+  await p.click('#axleSeg [data-ax="car"]'); await settle(p);
   const arb0 = await p.inputValue('[data-cpath="arb.front"]');
-  await p.fill('[data-cpath="arb.front"]', "123"); await p.waitForTimeout(600); await p.click("body", { position: { x: 5, y: 700 } });
-  await p.click("#btnUndo"); await p.waitForTimeout(600);
+  await p.fill('[data-cpath="arb.front"]', "123"); await settle(p); await p.click("body", { position: { x: 5, y: 700 } });
+  await p.click("#btnUndo"); await settle(p);
   check("Undo works in the Car view (anti-roll bar edit)", (await p.inputValue('[data-cpath="arb.front"]')) === arb0, await p.inputValue('[data-cpath="arb.front"]'));
-  await p.click('#axleSeg [data-ax="front"]'); await p.waitForTimeout(500);
+  await p.click('#axleSeg [data-ax="front"]'); await settle(p);
 
   console.log("\nChallenges solved by following the hints only");
   for (const id of ["rc", "bs"]) {
-    await p.click("#btnStart"); await p.click("#wChal"); await p.click(`[data-ch="${id}"]`); await p.waitForTimeout(900);
+    await p.click("#btnStart"); await p.click("#wChal"); await p.click(`[data-ch="${id}"]`); await settle(p);
     for (let i = 0; i < 3; i++) await p.click("#chHint");
     let solved = false;
     for (let step = 0; step < 6 && !solved; step++) {
       if (await p.$("#chStepGo")) await p.click("#chStepGo");
       await p.waitForSelector("#chStep .chint", { timeout: 90000 });
       if (!(await p.$("#chStepPv:not([hidden])"))) break;
-      await p.click("#chStepPv"); await p.waitForTimeout(400); await p.click("#pvApply"); await p.waitForTimeout(1200);
+      await p.click("#chStepPv"); await settle(p); await p.click("#pvApply"); await settle(p);
       solved = /Solved/.test(await text(p, "#chDone"));
     }
     check(`challenge "${id}" solved from the hints`, solved);
-    await p.click("#chExit"); await p.waitForTimeout(700);
+    await p.click("#chExit"); await settle(p);
   }
   check("leaving a challenge returns to the previous view", ["car", "front"].includes(await pressed(p)));
 
   console.log("\nExports");
-  await p.click('#axleSeg [data-ax="car"]'); await p.waitForTimeout(600);
-  const grab = async (sel, m = "#exMenu") => { await p.click(m + " summary"); await p.waitForTimeout(150); const [d] = await Promise.all([p.waitForEvent("download"), p.click(sel)]);
+  await p.click('#axleSeg [data-ax="car"]'); await settle(p);
+  const grab = async (sel, m = "#exMenu") => { await p.click(m + " summary"); await settle(p); const [d] = await Promise.all([p.waitForEvent("download"), p.click(sel)]);
     const f = path.join(os.tmpdir(), d.suggestedFilename()); await d.saveAs(f); return f; };
   const rep = fs.readFileSync(await grab("#xReport"), "utf8");
   check("design report has the car summary and both corners", /Car target/.test(rep) && /Front:/.test(rep) && /Rear:/.test(rep));
   const wb = XLSX.readFile(await grab("#xXlsx"));
   check("Excel workbook has summary, targets, sweeps and loads", ["Summary", "Front targets", "Front heave", "Front springs & damping", "Rear loads"].every(s => wb.SheetNames.includes(s)), wb.SheetNames.join(","));
-  await p.click("#exMenu summary"); await p.click("#xCad"); await p.waitForTimeout(300);
+  await p.click("#exMenu summary"); await p.click("#xCad"); await settle(p);
   check("3D for CAD dialog opens with the car scope", !(await p.$eval("#cadDlg", d => d.hidden)) && /whole car/.test(await text(p, "#cadScope")), await text(p, "#cadScope"));
   const cadGrab = async (fmt) => { await p.selectOption("#cadFmt", fmt); const [d] = await Promise.all([p.waitForEvent("download"), p.click("#cadGo")]);
     const f = path.join(os.tmpdir(), d.suggestedFilename()); await d.saveAs(f); return fs.readFileSync(f, "utf8"); };
@@ -138,10 +143,10 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
 
   console.log("\nTeam targets file and hostile input");
   const tmpd = fs.mkdtempSync(path.join(os.tmpdir(), "susp-"));
-  await p.click('#axleSeg [data-ax="front"]'); await p.waitForTimeout(500);
+  await p.click('#axleSeg [data-ax="front"]'); await settle(p);
   fs.writeFileSync(path.join(tmpd, "team.json"), JSON.stringify({ front: { trans_min: [70, null], camberr: [-2, -1] } }));
-  await p.setInputFiles("#fileIn", path.join(tmpd, "team.json")); await p.waitForTimeout(800);
-  await p.click("#tab_checks"); await p.waitForTimeout(200);
+  await p.setInputFiles("#fileIn", path.join(tmpd, "team.json")); await settle(p);
+  await p.click("#tab_checks"); await settle(p);
   check("a team targets file applies its ranges", (await p.inputValue('#pn_checks input[data-tkey="trans_min"][data-i="0"]')) === "70");
   check("a misspelled target key is reported with a suggestion", /"camberr".*Did you mean "camber"\?/.test(await text(p, "#errBox")), await text(p, "#errBox"));
   const saved = JSON.parse(fs.readFileSync(await grab("#btnDownload", "#xmenu"), "utf8"));
@@ -156,33 +161,33 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
   hc.name = evil; hc.front.name = '"' + evil; hc.front.targets = Object.assign({}, hc.front.targets, { ['"><img src=x onerror="window.__pwn=2">']: [0, 1] });
   hc.car_targets = Object.assign({}, hc.car_targets, { [evil]: [0, 1] });
   fs.writeFileSync(path.join(tmpd, "hostile.json"), JSON.stringify(hc));
-  await p.setInputFiles("#fileIn", path.join(tmpd, "hostile.json")); await p.waitForTimeout(1200);
-  for (const v of ["car", "front"]) { await p.click(`#axleSeg [data-ax="${v}"]`); await p.waitForTimeout(600); }
-  await p.click("#tab_checks"); await p.waitForTimeout(200);
+  await p.setInputFiles("#fileIn", path.join(tmpd, "hostile.json")); await settle(p);
+  for (const v of ["car", "front"]) { await p.click(`#axleSeg [data-ax="${v}"]`); await settle(p); }
+  await p.click("#tab_checks"); await settle(p);
   check("a design file with hostile names and keys runs no script", (await p.evaluate(() => window.__pwn)) === undefined && (await p.evaluate(() => document.querySelectorAll("img[onerror]").length)) === 0);
-  await p.click('#axleSeg [data-ax="car"]'); await p.waitForTimeout(400);
+  await p.click('#axleSeg [data-ax="car"]'); await settle(p);
 
   console.log("\nTravel, caliper and halfshaft inputs");
   const setIn = (sel, v) => p.evaluate(([sel, v]) => { const el = document.querySelector(sel); el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); }, [sel, v]);
-  await p.click('#axleSeg [data-ax="front"]'); await p.waitForTimeout(400);
-  await setIn("#in_sweep_bump_travel", "35"); await setIn("#in_sweep_droop_travel", "20"); await p.waitForTimeout(900);
+  await p.click('#axleSeg [data-ax="front"]'); await settle(p);
+  await setIn("#in_sweep_bump_travel", "35"); await setIn("#in_sweep_droop_travel", "20"); await settle(p);
   check("separate bump and droop travel set the pose slider range", (await p.$eval("#poseZ", e => [e.min, e.max].join(","))) === "-20,35", await p.$eval("#poseZ", e => [e.min, e.max].join(",")));
-  await setIn("#in_wheel_caliper_size", "60"); await p.waitForTimeout(900);
-  await p.click("#tab_pack"); await p.waitForTimeout(200);
+  await setIn("#in_wheel_caliper_size", "60"); await settle(p);
+  await p.click("#tab_pack"); await settle(p);
   check("a caliper size adds the caliper check to Packaging", /Caliper: its outer edge/.test(await text(p, "#pn_pack")), (await text(p, "#pn_pack")).slice(-300));
-  await setIn("#in_wheel_caliper_size", ""); await p.waitForTimeout(900);
+  await setIn("#in_wheel_caliper_size", ""); await settle(p);
   check("clearing a caliper field removes the caliper", !/Caliper: its outer edge/.test(await text(p, "#pn_pack")));
-  await setIn("#in_sweep_bump_travel", ""); await setIn("#in_sweep_droop_travel", ""); await p.waitForTimeout(600);
-  await p.click('#axleSeg [data-ax="rear"]'); await p.waitForTimeout(600);
-  await setIn("#in_halfshaft_diff_output_1", "160"); await p.waitForTimeout(900);
-  await p.click("#tab_pack"); await p.waitForTimeout(200);
+  await setIn("#in_sweep_bump_travel", ""); await setIn("#in_sweep_droop_travel", ""); await settle(p);
+  await p.click('#axleSeg [data-ax="rear"]'); await settle(p);
+  await setIn("#in_halfshaft_diff_output_1", "160"); await settle(p);
+  await p.click("#tab_pack"); await settle(p);
   check("a diff output point adds the halfshaft check (rear)", /Halfshaft: plunge/.test(await text(p, "#pn_pack")), (await text(p, "#pn_pack")).slice(-300));
-  await setIn("#in_halfshaft_diff_output_1", ""); await p.waitForTimeout(600);
-  await p.click('#axleSeg [data-ax="car"]'); await p.waitForTimeout(400);
+  await setIn("#in_halfshaft_diff_output_1", ""); await settle(p);
+  await p.click('#axleSeg [data-ax="car"]'); await settle(p);
 
   console.log("\nTheme");
-  await p.click("#themeMenu summary"); await p.click('[data-theme-set="dark"]'); await p.waitForTimeout(300);
-  await p.reload(); await p.waitForTimeout(1200);
+  await p.click("#themeMenu summary"); await p.click('[data-theme-set="dark"]'); await settle(p);
+  await p.reload(); await settle(p);
   check("dark theme is remembered", (await p.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "dark");
   check("no script errors on the desktop pass", p.errors.length === 0, p.errors.slice(0, 5).join(" | "));
   check("the page makes no web requests (works offline)", p.netRequests.length === 0, p.netRequests.slice(0, 3).join(", "));
@@ -192,10 +197,10 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
   console.log("\nPhone width");
   p = await newPage(browser, { viewport: { width: 400, height: 850 } }); await closeWelcome(p);
   for (const v of ["car", "front"]) {
-    await p.click(`#axleSeg [data-ax="${v}"]`); await p.waitForTimeout(500);
+    await p.click(`#axleSeg [data-ax="${v}"]`); await settle(p);
     check(`no sideways scrolling on a phone (${v} view)`, (await p.evaluate(() => document.documentElement.scrollWidth)) <= 400);
   }
-  await p.click("#exMenu summary"); await p.waitForTimeout(200);
+  await p.click("#exMenu summary"); await settle(p);
   check("Export menu fits on a phone", (await p.evaluate(() => document.documentElement.scrollWidth)) <= 400);
   await p.click("#exMenu summary");
   check("no script errors on the phone pass", p.errors.length === 0, p.errors.slice(0, 5).join(" | "));

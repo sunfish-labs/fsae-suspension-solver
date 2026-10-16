@@ -238,7 +238,7 @@ function wireCompare() {
   $("#cmpFile", P).onchange = async e => {
     for (const f of e.target.files) {
       try {
-        const raw = JSON.parse(await f.text());
+        const raw = JSON.parse(await busy(f.text()));
         if (!raw.hardpoints) continue;
         S.finishConfig(JSON.parse(JSON.stringify(raw)));
         cmpAdd(raw.name || f.name.replace(/\.json$/i, ""), raw);

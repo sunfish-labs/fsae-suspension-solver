@@ -5,7 +5,9 @@ function schedule() {
   clearTimeout(timer);
   timer = setTimeout(run, 160);
 }
+window.__suspIdle = () => busyN === 0 && timer === null;
 function run() {
+  timer = null;
   const t0 = performance.now();
   syncCar();
   try {

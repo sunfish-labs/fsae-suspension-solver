@@ -65,7 +65,7 @@ $("#fileIn").addEventListener("change", async e => {
   const f = e.target.files[0];
   if (!f) return;
   try {
-    const raw = JSON.parse(await f.text());
+    const raw = JSON.parse(await busy(f.text()));
     if (isCarRaw(raw)) {
       if (chal) exitChallenge(true);
       axleView = "car";
@@ -108,7 +108,7 @@ $("#carFile").addEventListener("change", async e => {
   e.target.value = "";
   if (!f || !ax) return;
   try {
-    const raw = JSON.parse(await f.text());
+    const raw = JSON.parse(await busy(f.text()));
     if (isCarRaw(raw)) {
       loadCar(raw, f.name);
       return;

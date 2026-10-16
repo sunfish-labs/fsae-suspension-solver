@@ -66,3 +66,20 @@ function setPath(o, path, v) {
   }
   a[ks[ks.length - 1]] = v;
 }
+
+// work in flight (file reads, move searches): the browser tests wait for window.__suspIdle() instead of sleeping
+let busyN = 0;
+async function busy(p) {
+  busyN++;
+  try {
+    return await p;
+  } finally {
+    busyN--;
+  }
+}
+// a Map used as a small cache: the oldest entries go once it holds max of them
+function lruSet(map, key, val, max = 40) {
+  map.delete(key);
+  map.set(key, val);
+  while (map.size > max) map.delete(map.keys().next().value);
+}

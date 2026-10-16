@@ -570,91 +570,96 @@ function leverTable() {
 }
 const stepCache = new Map();
 async function nextStep(box) {
-  const d = chal.def,
-    sig = JSON.stringify(cfg.hardpoints) + d.id;
-  if (stepCache.has(sig)) {
-    box.innerHTML = stepCache.get(sig);
-    wireStep(box);
-    return;
-  }
-  const keys = d.goals,
-    bonusKeys = d.bonus.key ? [d.bonus.key] : [],
-    ks = [-4, -3, -2, -1, 1, 2, 3, 4],
-    L = d.levers.filter(l => !l.bonusOnly);
-  const score = (e, c) => chalViol(e, keys) + 0.25 * chalViol(e, bonusKeys) + (d.bonus.fn && !d.bonus.fn(c, chal.start) ? 1 : 0);
-  let best = null,
-    n = 0;
-  const c0 = JSON.parse(JSON.stringify(cfg));
+  busyN++;
   try {
-    const e0 = chalQuick(c0);
-    best = { s: score(e0, c0), moves: [], e: e0 };
-  } catch (x) {
-    box.innerHTML = `<p class="note">The current geometry does not solve.</p>`;
-    return;
-  }
-  const tries = [];
-  L.forEach((a, i) => {
-    ks.forEach(k => tries.push([[a, k]]));
-    L.slice(i + 1).forEach(b =>
-      ks.forEach(k =>
-        ks.forEach(j =>
-          tries.push([
-            [a, k],
-            [b, j],
-          ])
+    const d = chal.def,
+      sig = JSON.stringify(cfg.hardpoints) + d.id;
+    if (stepCache.has(sig)) {
+      box.innerHTML = stepCache.get(sig);
+      wireStep(box);
+      return;
+    }
+    const keys = d.goals,
+      bonusKeys = d.bonus.key ? [d.bonus.key] : [],
+      ks = [-4, -3, -2, -1, 1, 2, 3, 4],
+      L = d.levers.filter(l => !l.bonusOnly);
+    const score = (e, c) => chalViol(e, keys) + 0.25 * chalViol(e, bonusKeys) + (d.bonus.fn && !d.bonus.fn(c, chal.start) ? 1 : 0);
+    let best = null,
+      n = 0;
+    const c0 = JSON.parse(JSON.stringify(cfg));
+    try {
+      const e0 = chalQuick(c0);
+      best = { s: score(e0, c0), moves: [], e: e0 };
+    } catch (x) {
+      box.innerHTML = `<p class="note">The current geometry does not solve.</p>`;
+      return;
+    }
+    const tries = [];
+    L.forEach((a, i) => {
+      ks.forEach(k => tries.push([[a, k]]));
+      L.slice(i + 1).forEach(b =>
+        ks.forEach(k =>
+          ks.forEach(j =>
+            tries.push([
+              [a, k],
+              [b, j],
+            ])
+          )
         )
-      )
-    );
-  });
-  for (const t of tries) {
-    if (++n % 40 === 0) {
-      box.innerHTML = `<p class="note">Searching small combinations… ${Math.round((n / tries.length) * 100)} %</p>`;
-      await new Promise(r => setTimeout(r, 0));
-      if (!chal || chal.def !== d) return;
+      );
+    });
+    for (const t of tries) {
+      if (++n % 40 === 0) {
+        box.innerHTML = `<p class="note">Searching small combinations… ${Math.round((n / tries.length) * 100)} %</p>`;
+        await new Promise(r => setTimeout(r, 0));
+        if (!chal || chal.def !== d) return;
+      }
+      let c = c0;
+      for (const [lv, k] of t) c = leverCfg(c, lv, k * d.step);
+      let e;
+      try {
+        e = chalQuick(c);
+      } catch (x) {
+        continue;
+      }
+      const s = score(e, c) + 0.0004 * t.reduce((a, [, k]) => a + Math.abs(k), 0);
+      if (s < best.s - 1e-9) best = { s, moves: t, e, c };
     }
-    let c = c0;
-    for (const [lv, k] of t) c = leverCfg(c, lv, k * d.step);
-    let e;
-    try {
-      e = chalQuick(c);
-    } catch (x) {
-      continue;
+    if (best.c) {
+      try {
+        best.e = chalFull(best.c);
+      } catch (x) {
+        /* keep the quick result */
+      }
     }
-    const s = score(e, c) + 0.0004 * t.reduce((a, [, k]) => a + Math.abs(k), 0);
-    if (s < best.s - 1e-9) best = { s, moves: t, e, c };
-  }
-  if (best.c) {
-    try {
-      best.e = chalFull(best.c);
-    } catch (x) {
-      /* keep the quick result */
+    let html;
+    if (!best.moves.length)
+      html = `<p class="chint"><b>Hint 3.</b> No combination of two of these moves improves things from here. Try <b>Start over</b>, and change pairs of pivots together.</p>`;
+    else {
+      const txt = best.moves
+        .map(
+          ([lv, k]) =>
+            `<b>${esc(lv.name.replace(/ (up|inboard|outboard)/, m => (k > 0 ? m : { " up": " down", " inboard": " outboard", " outboard": " inboard" }[m])))} ${Math.abs(k) * d.step} mm</b>`
+        )
+        .join(" and ");
+      const res = keys
+        .map(k => {
+          const c = best.e.checks.find(r => r.key === k),
+            [lab, unit, dec] = metricLabel(k);
+          return `${esc(lab)} ${fmt(c.value, dec)} ${esc(unit)} ${c.status === "PASS" ? "✓" : "✗"}`;
+        })
+        .join(" · ");
+      html = `<div class="chint"><b>Hint 3.</b> From where you are now, try ${txt}. That gives: ${res}.
+        ${chalViol(best.e, keys) > 0 ? " Not solved yet: take the step, then look at the lever table again." : ""}
+        <div class="tact" style="margin-top:6px"><button class="btn small" type="button" id="chStepPv">Preview it</button></div></div>`;
+      stepCfg.set(sig, best.c);
     }
+    lruSet(stepCache, sig, html);
+    box.innerHTML = html;
+    wireStep(box);
+  } finally {
+    busyN--;
   }
-  let html;
-  if (!best.moves.length)
-    html = `<p class="chint"><b>Hint 3.</b> No combination of two of these moves improves things from here. Try <b>Start over</b>, and change pairs of pivots together.</p>`;
-  else {
-    const txt = best.moves
-      .map(
-        ([lv, k]) =>
-          `<b>${esc(lv.name.replace(/ (up|inboard|outboard)/, m => (k > 0 ? m : { " up": " down", " inboard": " outboard", " outboard": " inboard" }[m])))} ${Math.abs(k) * d.step} mm</b>`
-      )
-      .join(" and ");
-    const res = keys
-      .map(k => {
-        const c = best.e.checks.find(r => r.key === k),
-          [lab, unit, dec] = metricLabel(k);
-        return `${esc(lab)} ${fmt(c.value, dec)} ${esc(unit)} ${c.status === "PASS" ? "✓" : "✗"}`;
-      })
-      .join(" · ");
-    html = `<div class="chint"><b>Hint 3.</b> From where you are now, try ${txt}. That gives: ${res}.
-      ${chalViol(best.e, keys) > 0 ? " Not solved yet: take the step, then look at the lever table again." : ""}
-      <div class="tact" style="margin-top:6px"><button class="btn small" type="button" id="chStepPv">Preview it</button></div></div>`;
-    stepCfg.set(sig, best.c);
-  }
-  stepCache.set(sig, html);
-  box.innerHTML = html;
-  wireStep(box);
 }
 function wireStep(box) {
   const b = $("#chStepPv", box),
