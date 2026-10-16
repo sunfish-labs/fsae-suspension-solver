@@ -27,8 +27,8 @@ then extra features, then housekeeping. Team-specific design fixes live in `priv
    aligned somewhere other than ride height.
 10. **Loads: brackets and fatigue.** The pushrod-mount check is a bare tube (no gusset); no fatigue, weld or tab
     checks.
-11. **Housekeeping.** Move CI to `ubuntu-26.04` once a manual run passes (Playwright 1.63 supports it; jobs are
-    pinned to 24.04 meanwhile). Create the missing `v0.9.0` tag (needs a token that may push tags). Empty the
+11. **Housekeeping.** CI can move to `ubuntu-26.04` whenever you like: a manual run there passed on 1.2.0 (jobs
+    stay pinned to 24.04 until then). Create the missing `v0.9.0` tag (needs a token that may push tags). Empty the
     `_to_delete/` folder on the desktop copy.
 
 ## Done recently
