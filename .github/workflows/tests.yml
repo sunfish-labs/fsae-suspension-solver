@@ -47,5 +47,6 @@ jobs:
         run: |
           node lint_bundle.js
           npx eslint .
+          npx prettier --config ../.prettierrc.json --check "../ui/src/*.js" "../ui/solver/*.js" ../ui/cad.js
       - name: Web app end-to-end checks
         run: node tests/browser_test.js

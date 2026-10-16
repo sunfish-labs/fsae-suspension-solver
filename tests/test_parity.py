@@ -26,6 +26,7 @@ ap.add_argument("--cases", type=int, default=200)
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--move", type=float, default=15.0)
 a = ap.parse_args()
+subprocess.run([sys.executable, os.path.join(ROOT, "ui", "build.py")], check=True, stdout=subprocess.DEVNULL)   # ui/susp.js is generated
 if not shutil.which("node"):
     sys.exit("node is not installed")
 

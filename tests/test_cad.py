@@ -26,6 +26,7 @@ def gen(design, opts):
     return base, json.load(open(base + ".json"))
 
 
+subprocess.run([sys.executable, os.path.join(ROOT, "ui", "build.py")], check=True, stdout=subprocess.DEVNULL)   # ui/susp.js is generated
 car = os.path.join(ROOT, "designs", "example_car.json")
 raw = json.load(open(car))
 

@@ -258,8 +258,13 @@ and `points.json` (point names, input-table labels and importer aliases). Change
 | `output/` | `text.py` (printouts), `plots.py`, `report.py` + `templates/report.html.j2` (Jinja) |
 | `errors.py` | `SuspError` and its subclasses; the command line prints them as one line |
 
-The web app's solver (`ui/susp.js`) mirrors the Python one function for function; `tests/test_parity.py` keeps them
-in step.
+The web app's solver lives in `ui/solver/` and mirrors the Python modules one to one (`10_config.js` = config and
+validate, `20_kinematics.js`, `30_ride.js`, `40_loads.js`, `50_car.js`); `tests/test_parity.py` keeps the two in step.
+`ui/build.py` joins those files into one closure (also written to `ui/susp.js`, generated) the same way it joins the
+app modules in `ui/src/`: `00_state`, `05_inputs`, `06_run`, `08_charts`, `10_viewer`, `12_overlays`, `15_history`,
+`18_results`, `20_panels_*` (one per results tab), `22_learn`, `25_fix`, `26_influence`, `30_challenges`,
+`40_compare`, `50_car`, `60_export`, `65_cad`, `70_main`. There is no bundler. JavaScript is formatted with Prettier
+(`.prettierrc.json`); CI checks it.
 
 ## Updating the web app
 The page is built from small files and assembled into one self-contained `ui/index.html`:
@@ -268,16 +273,17 @@ The page is built from small files and assembled into one self-contained `ui/ind
 |---|---|
 | `ui/app.html` | the page skeleton (header, panels, placeholders) |
 | `ui/src/style.css` | all styles, colors and light/dark themes |
-| `ui/src/00_core.js` | shared helpers, inputs, solve loop, charts, result tabs |
-| `ui/src/10_viewer.js` | 3D view, "Show me" drawings, labels |
-| `ui/src/20_learn.js` | Learn tab, "What moves this?", preview / apply / undo, influence panel |
+| `ui/src/00_state.js` … `08_charts.js` | shared helpers and state, input forms, the solve loop, SVG charts |
+| `ui/src/10_viewer.js`, `12_overlays.js` | 3D view and labels; "Show me" construction drawings |
+| `ui/src/18_results.js`, `20_panels_*.js` | the result tabs, one file per tab |
+| `ui/src/22_learn.js`, `25_fix.js`, `26_influence.js` | Learn tab; "What moves this?"; influence panel, preview / apply |
 | `ui/src/30_challenges.js` | challenges and their hints |
 | `ui/src/40_compare.js` | Compare tab |
 | `ui/src/50_car.js` | Front / Rear / Car and the whole-car balance |
 | `ui/src/60_export.js` | design report and Excel export |
 | `ui/src/65_cad.js` | the 3D for CAD dialog |
 | `ui/src/70_main.js` | toolbar menus and start-up |
-| `ui/susp.js`, `ui/glossary.js` | the solver (port of the Python) and the glossary text |
+| `ui/solver/*.js`, `ui/glossary.js` | the solver (port of the Python, built into `ui/susp.js`) and the glossary text |
 | `ui/cad.js` | CAD export: IGES, STEP, CSV and STL writers (no DOM, also runs in Node for tests) |
 
 The JS modules run in file-name order inside one closure, so they share helpers such as `$`, `fmt`, `cfg` and `ev`.

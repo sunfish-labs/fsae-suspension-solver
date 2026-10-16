@@ -18,6 +18,7 @@ from susp.config import finish_config, deep_merge, DEFAULTS  # noqa: E402
 from susp.kinematics import evaluate  # noqa: E402
 from susp.loads import run_loads  # noqa: E402
 
+subprocess.run([sys.executable, os.path.join(here, "build.py")], check=True, stdout=subprocess.DEVNULL)   # ui/susp.js is generated
 if not shutil.which("node"):
     sys.exit("node is not installed - skip (the UI itself does not need node)")
 files = sorted(glob.glob(os.path.join(root, "designs", "*.json")) + glob.glob(os.path.join(root, "designs", "case_study", "*.json")) + glob.glob(os.path.join(root, "private", "*.json")))

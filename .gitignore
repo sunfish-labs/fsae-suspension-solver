@@ -14,3 +14,4 @@ __pycache__/
 tests/node_modules/
 tests/.lint/
 *.egg-info/
+ui/susp.js
