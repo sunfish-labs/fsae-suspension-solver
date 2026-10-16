@@ -1,0 +1,80 @@
+{
+ "_doc": "Candidate moves for advice ('What moves this?' in the app, 'run' advice and 'sens' on the command line). Each single point is tried along X, Y and Z; each group moves its points together by the same amount. Spring-side metrics (motion ratio, damper, rocker, ride frequency) are moved with the spring points.",
+ "hardpoints": [
+  "upper_inboard_front",
+  "upper_inboard_rear",
+  "lower_inboard_front",
+  "lower_inboard_rear",
+  "trackrod_inboard",
+  "trackrod_outboard",
+  "upper_outboard",
+  "lower_outboard"
+ ],
+ "spring_points": [
+  "rod_outboard",
+  "rocker_rod",
+  "rocker_damper",
+  "damper_chassis",
+  "rocker_pivot"
+ ],
+ "spring_metrics": [
+  "motion_ratio",
+  "mr_progression",
+  "damper_margin",
+  "damper_topout",
+  "damper_bottomout",
+  "damper_static_pos",
+  "trans_min",
+  "rod_angle",
+  "rocker_rot",
+  "ride_freq",
+  "damper_used"
+ ],
+ "groups": [
+  {
+   "id": "grp_lower_z",
+   "points": [
+    "lower_inboard_front",
+    "lower_inboard_rear"
+   ],
+   "axis": "z",
+   "name": "both lower inboard pivots"
+  },
+  {
+   "id": "grp_upper_z",
+   "points": [
+    "upper_inboard_front",
+    "upper_inboard_rear"
+   ],
+   "axis": "z",
+   "name": "both upper inboard pivots"
+  },
+  {
+   "id": "grp_lower_y",
+   "points": [
+    "lower_inboard_front",
+    "lower_inboard_rear"
+   ],
+   "axis": "y",
+   "name": "both lower inboard pivots"
+  },
+  {
+   "id": "grp_upper_y",
+   "points": [
+    "upper_inboard_front",
+    "upper_inboard_rear"
+   ],
+   "axis": "y",
+   "name": "both upper inboard pivots"
+  },
+  {
+   "id": "grp_tierod_z",
+   "points": [
+    "trackrod_inboard",
+    "trackrod_outboard"
+   ],
+   "axis": "z",
+   "name": "the whole tie rod"
+  }
+ ]
+}

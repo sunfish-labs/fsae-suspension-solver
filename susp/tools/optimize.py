@@ -38,7 +38,8 @@ def parse_vary(cfg, spec):
             p, ax = ".".join(parts[:2]), (parts[2] if len(parts) > 2 else "")
         else:
             p, _, ax = item.partition(".")
-        point_ref(cfg, p)
+        for q in p.split("+"):               # "a+b.z" moves points a and b together (a paired move)
+            point_ref(cfg, q)
         for a in (ax or "xyz"):
             if a not in "xyz":
                 raise GoalError(f"bad axis in '{item}'")
@@ -65,7 +66,8 @@ def optimize(cfg, vary_spec, goal_specs, bound=40.0, reg=0.005, min_clearance=No
     def apply(d):
         c = copy.deepcopy(base_cfg)
         for (p, a), dv in zip(vary, d):
-            point_ref(c, p)["xyz".index(a)] += float(dv)
+            for q in p.split("+"):
+                point_ref(c, q)["xyz".index(a)] += float(dv)
         return c
 
     def resid(d):
@@ -96,13 +98,14 @@ def optimize(cfg, vary_spec, goal_specs, bound=40.0, reg=0.005, min_clearance=No
     new = apply(sol.x)
     for (p, a), dv in zip(vary, sol.x):
         i = "xyz".index(a)
-        point_ref(new, p)[i] = round(point_ref(new, p)[i], 1)
+        for q in p.split("+"):
+            point_ref(new, q)[i] = round(point_ref(new, q)[i], 1)
     new["name"] = f"{cfg['name']} (optimized)"
     ev0 = evaluate(cfg, steer=need_steer, pack=need_pack)
     ev1 = evaluate(new, steer=need_steer, pack=need_pack)
     print("\nMoves (mm):")
     def was(c, p, a):
-        return point_ref(c, p)["xyz".index(a)]
+        return point_ref(c, p.split("+")[0])["xyz".index(a)]
     table(["coordinate", "was", "now", "change"],
           [[f"{p}.{a}", f"{was(cfg, p, a):.2f}", f"{was(new, p, a):.1f}", f"{was(new, p, a) - was(cfg, p, a):+.1f}"]
            for p, a in vary])

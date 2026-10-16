@@ -246,7 +246,7 @@ def main():
     p.set_defaults(fn=cmd_compare)
     p = sub.add_parser("optimize", help="tune coordinates to hit goals")
     p.add_argument("config")
-    p.add_argument("--vary", required=True, help="e.g. lower_inboard_front.z,trackrod_inboard or spring.rocker_damper.y")
+    p.add_argument("--vary", required=True, help="e.g. lower_inboard_front.z,trackrod_inboard or spring.rocker_damper.y; a+b.z moves points a and b together")
     p.add_argument("--goal", action="append", required=True,
                    help="metric=target[:tol], metric>=limit[:tol] or metric<=limit[:tol]; repeatable")
     p.add_argument("--bound", type=float, default=40.0, help="max move per coordinate, mm")

@@ -7,6 +7,7 @@ from ..config import HP, METRICS, SPRING_POINTS
 from ..errors import ConfigError, GoalError
 from ..kinematics import SolveError
 from ..output import f_num, table
+from ..schema import MOVES_FILE
 from .common import point_ref, quick
 
 
@@ -28,7 +29,7 @@ def spring_cols(cfg):
     return cols
 
 
-def compute_sens(cfg, delta=5.0, points=None, spring=False):
+def compute_sens(cfg, delta=5.0, points=None, spring=False, pairs=True):
     base = quick(cfg)
     if spring:
         if not cfg.get("spring"):
@@ -50,6 +51,19 @@ def compute_sens(cfg, delta=5.0, points=None, spring=False):
             except SolveError:
                 continue
             rows.append((f"{p}.{ax}", [mp.get(k, float("nan")) - base.get(k, float("nan")) for k in cols]))
+    if not spring and pairs:
+        # the paired moves the advice also tries (schema/moves.json): both points of a wishbone, the whole tie rod
+        for g in MOVES_FILE["groups"]:
+            if points and not any(s in p for p in g["points"] for s in points.split(",")):
+                continue
+            c = copy.deepcopy(cfg)
+            for p in g["points"]:
+                point_ref(c, p)["xyz".index(g["axis"])] += delta
+            try:
+                mp = quick(c)
+            except SolveError:
+                continue
+            rows.append((f"{'+'.join(g['points'])}.{g['axis']}", [mp.get(k, float("nan")) - base.get(k, float("nan")) for k in cols]))
     return cols, rows, base
 
 

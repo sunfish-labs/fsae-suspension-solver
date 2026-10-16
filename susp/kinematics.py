@@ -464,7 +464,7 @@ def evaluate(cfg, full=True, steer=True, pack=True, ride=True):
     """Everything in one dict: metrics, heave rows, roll rows, steer rows, packaging, spring/ride."""
     from .ride import Spring, ride_metrics   # local import: ride depends on kinematics
     s = Suspension(cfg)
-    rows = s.heave_sweep(None if full else 3)
+    rows = s.heave_sweep(None if full else 9)       # quick: 9 points so the toe curve's bend shows
     roll = s.roll_sweep(steps=None if full else 3)
     out = dict(susp=s, rows=rows, roll=roll, metrics=summarize(rows, roll, cfg), steer=None, pack=None,
                spring=None, ride=None)

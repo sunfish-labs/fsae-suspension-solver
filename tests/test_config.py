@@ -90,6 +90,21 @@ terms = {t for t in (d.get("term") for d in schema_metrics.values()) if t}
 gl = open(os.path.join(ROOT, "ui", "glossary.js")).read()
 check("every metric's glossary term exists", all(f'id: "{t}"' in gl for t in terms), [t for t in terms if f'id: "{t}"' not in gl])
 
+print("\n4. Advice: single and paired moves, checked with a full evaluation")
+from susp.tools.advise import advise, apply_move, candidate_moves  # noqa: E402
+tight = make_config(dict(front, targets=dict(front.get("targets", {}), roll_center=[45, 60])))
+ev_t = _ev(tight)
+labels = [lab for lab, _ in candidate_moves(tight, "roll_center")]
+check("the candidate list includes the paired moves from schema/moves.json", any("+" in lab for lab in labels) and len(labels) == 8 * 3 + 5)
+adv = advise(tight, ev_t)
+row = [a for a in adv if a[0] == "roll_center"]
+ok = bool(row and row[0][4])
+for c in (row[0][4] if ok else []):
+    coords = [(p, "xyz".index(c["coord"].split(" ")[0].rsplit(".", 1)[1])) for p in c["coord"].split(" ")[0].rsplit(".", 1)[0].split("+")]
+    v = _ev(apply_move(tight, coords, c["move"]))["metrics"]["roll_center"]
+    ok = ok and 45 - 1e-6 <= v <= 60 + 1e-6
+check("every suggested move really fixes the roll center in a full evaluation", ok, row)
+
 bad = results.count(False)
 print(f"\n{len(results) - bad} of {len(results)} input-handling checks passed")
 sys.exit(1 if bad else 0)

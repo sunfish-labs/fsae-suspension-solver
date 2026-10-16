@@ -1,63 +1,14 @@
 // 25_fix.js - "What moves this?": candidate moves for a failing target, ranked by a quick re-solve.
 // ------------------------------------------------------------------ "What moves this?"
-const SPRING_KEYS = new Set([
-  "motion_ratio",
-  "mr_progression",
-  "damper_margin",
-  "damper_topout",
-  "damper_bottomout",
-  "damper_static_pos",
-  "trans_min",
-  "rod_angle",
-  "rocker_rot",
-  "ride_freq",
-  "damper_used",
-]);
-const GROUPS = [
-  {
-    id: "grp_lower_z",
-    pts: ["hardpoints.lower_inboard_front", "hardpoints.lower_inboard_rear"],
-    axis: 2,
-    name: "both lower inboard pivots",
-  },
-  {
-    id: "grp_upper_z",
-    pts: ["hardpoints.upper_inboard_front", "hardpoints.upper_inboard_rear"],
-    axis: 2,
-    name: "both upper inboard pivots",
-  },
-  {
-    id: "grp_lower_y",
-    pts: ["hardpoints.lower_inboard_front", "hardpoints.lower_inboard_rear"],
-    axis: 1,
-    name: "both lower inboard pivots",
-  },
-  {
-    id: "grp_upper_y",
-    pts: ["hardpoints.upper_inboard_front", "hardpoints.upper_inboard_rear"],
-    axis: 1,
-    name: "both upper inboard pivots",
-  },
-  { id: "grp_tierod_z", pts: ["hardpoints.trackrod_inboard", "hardpoints.trackrod_outboard"], axis: 2, name: "the whole tie rod" },
-];
+// the candidate moves come from schema/moves.json, shared with the command line's advice
+const MOVES = S.SCHEMA.moves;
+const SPRING_KEYS = new Set(MOVES.spring_metrics);
+const GROUPS = MOVES.groups.map(g => ({ id: g.id, pts: g.points.map(k => "hardpoints." + k), axis: "xyz".indexOf(g.axis), name: g.name }));
 function candidateMoves(key) {
   const out = [],
     add = (path, axis) => out.push({ id: `${path}.${axis}`, pts: [path], axis, name: pointName(path) });
-  const hp = [
-    "upper_inboard_front",
-    "upper_inboard_rear",
-    "lower_inboard_front",
-    "lower_inboard_rear",
-    "trackrod_inboard",
-    "trackrod_outboard",
-    "upper_outboard",
-    "lower_outboard",
-  ].map(k => "hardpoints." + k);
-  const spr = cfg.spring
-    ? ["rod_outboard", "rocker_rod", "rocker_damper", "damper_chassis", "rocker_pivot"]
-        .filter(k => cfg.spring[k] != null)
-        .map(k => "spring." + k)
-    : [];
+  const hp = MOVES.hardpoints.map(k => "hardpoints." + k);
+  const spr = cfg.spring ? MOVES.spring_points.filter(k => cfg.spring[k] != null).map(k => "spring." + k) : [];
   const springSide = SPRING_KEYS.has(key),
     clearance = key === "link_clearance";
   const pts = springSide ? spr : clearance ? hp.concat(spr) : hp;

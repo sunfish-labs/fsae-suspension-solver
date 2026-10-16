@@ -88,8 +88,11 @@ It needs no install, server or internet: three.js, the Excel writer and the font
 ## Team workflow (one coordinate at a time)
 1. `import pts.csv --axle front --map "z,x,y" -o front.json` from SolidWorks points (or start from `template`).
    Every command first checks the inputs: swapped axes, contact patch not at Z=0, ball joints swapped, and so on.
-2. `run front.json --advise --log history.csv --note "baseline"`: see what fails and the single moves that fix it.
-3. `sens front.json --metric roll_camber --top 8`: which hardpoint moves the metric you care about.
+2. `run front.json --advise --log history.csv --note "baseline"`: see what fails and the moves that fix it, single
+   coordinates and paired ones (both pivots of a wishbone, the whole tie rod). The best few are re-checked with a
+   full evaluation before they are shown. The app's "What moves this?" uses the same list (`schema/moves.json`).
+3. `sens front.json --metric roll_camber --top 8`: which hardpoint (or pair, e.g. `lower_inboard_front+lower_inboard_rear.z`)
+   moves the metric you care about. `optimize --vary a+b.z` moves a pair together.
 4. Change ONE coordinate, then `run ... --log history.csv --note "LIF z +5"`. The log shows what changed.
 5. Once the kinematics are close, set up the `spring` block (pushrod, rocker, damper) and pick the spring from
    "Spring rate for target freq". Then run `loads` to size tubes and rod ends.
@@ -246,8 +249,9 @@ See `ACTION_PLAN.md` for how the tool was planned and what each feature is for.
 
 ## Code layout
 Both solvers read the same **`schema/`** files: `defaults.json` (every default value, with notes), `metrics.json`
-(label, unit, decimals, help text and Learn-tab term for each metric), `targets.json` (the built-in target ranges)
-and `points.json` (point names, input-table labels and importer aliases). Change a label or a default there once.
+(label, unit, decimals, help text and Learn-tab term for each metric), `targets.json` (the built-in target ranges),
+`points.json` (point names, input-table labels and importer aliases) and `moves.json` (the candidate moves the advice
+tries). Change a label or a default there once.
 
 | Python (`susp/`) | What it does |
 |---|---|

@@ -421,7 +421,7 @@ function evaluate(rawCfg, opts = {}) {
   const cfg = finishConfig(rawCfg);
   const full = opts.full !== false;
   const s = new Suspension(cfg);
-  const rows = s.heaveSweep(full ? undefined : 3);
+  const rows = s.heaveSweep(full ? undefined : 9); // quick: 9 points so the toe curve's bend shows
   const roll = s.rollSweep(undefined, full ? undefined : 3);
   const out = { cfg, susp: s, rows, roll, metrics: summarize(rows, roll), steer: null, pack: null, spring: null, ride: null };
   const m = out.metrics;

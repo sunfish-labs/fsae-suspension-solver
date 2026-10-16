@@ -6,7 +6,7 @@ const SCHEMA =
   (() => {
     const path = require("path"),
       dir = path.join(__dirname, "..", "schema");
-    return Object.fromEntries(["defaults", "metrics", "targets", "points"].map(n => [n, require(path.join(dir, n + ".json"))]));
+    return Object.fromEntries(["defaults", "metrics", "targets", "points", "moves"].map(n => [n, require(path.join(dir, n + ".json"))]));
   })();
 const HP = Object.fromEntries(SCHEMA.points.hardpoints.map(p => [p.key, p.short]));
 const HP_ORDER = Object.keys(HP);

@@ -1,10 +1,13 @@
-"""Advice: single coordinate moves that fix a failing target without breaking others."""
+"""Advice: single and paired coordinate moves that fix a failing target without breaking others."""
 from __future__ import annotations
 
-from ..config import HP, METRICS
+import copy
+
+from ..config import METRICS
 from ..kinematics import SolveError, evaluate
 from ..output import f_num
-from .common import _fails, quick, set_coord
+from ..schema import MOVES_FILE
+from .common import _fails, point_ref, quick
 
 
 def _aim(v, lo, hi):
@@ -19,10 +22,34 @@ def _inside(v, lo, hi):
     return v == v and (lo is None or v >= lo) and (hi is None or v <= hi)
 
 
-def advise(cfg, ev, delta=4.0, reach=40.0, top=3):
-    """For every failing hardpoint-driven target find the single-coordinate moves that fix it with the fewest
-    side effects. Each candidate is re-solved for real and re-checked against every other target, including
-    link clearance. Returns [(metric, value, lo, hi, [candidates])]."""
+def candidate_moves(cfg, key):
+    """The moves worth trying for a failing metric (schema/moves.json, the same list the web app uses): each point
+    along X, Y and Z, plus the paired moves. Spring-side metrics use the spring points. Each move is
+    (label, [(point ref, axis index)]) - every listed coordinate moves by the same amount."""
+    spring_side = key in MOVES_FILE["spring_metrics"]
+    if spring_side:
+        pts = [f"spring.{k}" for k in MOVES_FILE["spring_points"] if (cfg.get("spring") or {}).get(k) is not None]
+    else:
+        pts = list(MOVES_FILE["hardpoints"])
+    out = [(f"{p}.{ax}", [(p, i)]) for p in pts for i, ax in enumerate("xyz")]
+    if not spring_side:
+        out += [(f"{'+'.join(g['points'])}.{g['axis']} ({g['name']})", [(p, "xyz".index(g["axis"])) for p in g["points"]])
+                for g in MOVES_FILE["groups"]]
+    return out
+
+
+def apply_move(cfg, coords, mm):
+    c = copy.deepcopy(cfg)
+    for p, i in coords:
+        point_ref(c, p)[i] += mm
+    return c
+
+
+def advise(cfg, ev, delta=4.0, reach=40.0, top=3, shortlist=8):
+    """For every failing target find the moves (single coordinates and the paired moves) that fix it with the
+    fewest side effects. Each candidate is re-solved with a quick evaluation, then the best few are re-checked with
+    a full evaluation (every target and link clearance), as the web app does. Returns [(metric, value, lo, hi,
+    [candidates])]."""
     m0 = ev["metrics"]
     fails = [f for f in _fails(cfg, m0) if f[0] not in ("camber", "toe", "ride_freq", "damper_margin")]
     if not fails:
@@ -30,33 +57,32 @@ def advise(cfg, ev, delta=4.0, reach=40.0, top=3):
     need_steer = any(f[0] == "ackermann" for f in fails)
     base = quick(cfg, steer=need_steer)
     base_fail = {f[0] for f in _fails(cfg, base)}
+    full_fail = {f[0] for f in _fails(cfg, m0)}
     pk0 = ev.get("pack")
-    pts = [p for p in HP if p != "contact_patch"]
     slopes = {}
-    for p in pts:
-        for i, ax in enumerate("xyz"):
-            try:
-                mp = quick(set_coord(cfg, p, ax, cfg["hardpoints"][p][i] + delta), steer=need_steer)
-            except SolveError:
-                continue
-            slopes[(p, ax, i)] = mp
     out = []
     for k, v, lo, hi in fails:
         aim = _aim(v, lo, hi)
         cands = []
-        for (p, ax, i), mp in slopes.items():
-            if k not in mp or k not in base:
+        for label, coords in candidate_moves(cfg, k):
+            if label not in slopes:
+                try:
+                    slopes[label] = quick(apply_move(cfg, coords, delta), steer=need_steer)
+                except SolveError:
+                    slopes[label] = None
+            mp = slopes[label]
+            if mp is None or k not in mp or k not in base:
                 continue
-            s = (mp[k] - base[k]) / delta
-            if abs(s) < 1e-9:
+            sl = (mp[k] - base[k]) / delta
+            if abs(sl) < 1e-9:
                 continue
-            mv = (aim - v) / s
+            mv = (aim - v) / sl
             if abs(mv) > reach:
                 continue
             res = None
             x0, y0 = 0.0, v
             for _ in range(4):  # secant refinement: the response is nonlinear for big moves
-                c2 = set_coord(cfg, p, ax, cfg["hardpoints"][p][i] + mv)
+                c2 = apply_move(cfg, coords, mv)
                 try:
                     m2 = quick(c2, steer=need_steer)
                 except SolveError:
@@ -75,16 +101,27 @@ def advise(cfg, ev, delta=4.0, reach=40.0, top=3):
             if res is None:
                 continue
             c2, m2 = res
-            broken = sorted({f[0] for f in _fails(cfg, m2)} - base_fail)
-            if pk0 is not None and pk0["ok"]:
-                try:
-                    if not evaluate(c2, full=False, steer=False, pack=True, ride=False)["pack"]["ok"]:
-                        broken.append("link_clearance")
-                except SolveError:
-                    broken.append("link_clearance")
-            cands.append(dict(coord=f"{p}.{ax}", move=mv, new=m2[k], broken=broken))
+            cands.append(dict(coord=label, move=mv, new=m2[k], cfg=c2,
+                              broken=sorted({f[0] for f in _fails(cfg, m2)} - base_fail)))
         cands.sort(key=lambda c: (len(c["broken"]), abs(c["move"])))
-        out.append((k, v, lo, hi, cands[:top]))
+        # full re-check of the shortlist: the quick evaluation can miss a target that only fails mid-travel
+        checked = []
+        for c in cands[:shortlist]:
+            try:
+                e2 = evaluate(c["cfg"], steer=need_steer or cfg["axle"] == "front", pack=pk0 is not None)
+            except SolveError:
+                continue
+            m2 = e2["metrics"]
+            if not _inside(m2.get(k, float("nan")), lo, hi):
+                continue
+            broken = sorted({f[0] for f in _fails(cfg, m2)} - full_fail)
+            if pk0 is not None and pk0["ok"] and not e2["pack"]["ok"]:
+                broken.append("link_clearance")
+            checked.append(dict(coord=c["coord"], move=c["move"], new=m2[k], broken=broken))
+            if len([x for x in checked if not x["broken"]]) >= top:
+                break
+        checked.sort(key=lambda c: (len(c["broken"]), abs(c["move"])))
+        out.append((k, v, lo, hi, checked[:top]))
     return out
 
 
@@ -93,7 +130,7 @@ def print_advice(adv, cfg, ev):
     if not adv and not (pk and not pk["ok"]):
         print("\nAdvice: every hardpoint-driven target passes.")
         return
-    print("\nAdvice - single-coordinate moves that fix a failing target (each re-solved and re-checked)")
+    print("\nAdvice - single and paired coordinate moves that fix a failing target (each re-solved, the best re-checked in full)")
     for k, v, lo, hi, cands in adv:
         rng = f"{'-inf' if lo is None else f'{lo:g}'} .. {'inf' if hi is None else f'{hi:g}'}"
         print(f"\n  {METRICS[k][0]} = {f_num(v, METRICS[k][2])} (target {rng})")
