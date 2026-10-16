@@ -80,6 +80,9 @@ check("a bad bolt direction -> ConfigError", raises(ConfigError, lambda: load_co
 check("a rod end can't be a bearing -> ConfigError", raises(ConfigError, lambda: load_config(write("j.json", dict(front, joints={"trackrod_outboard": {"type": "bearing"}})))))
 check("an unknown tube surface -> ConfigError", raises(ConfigError, lambda: load_config(write("o.json", dict(front, members={"surface": "polished"})))))
 check("a tab with zero thickness -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"tab": {"thickness": 0}})))))
+check("a gusset with no height -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"thickness": 3, "length_in": 50}})))))
+check("a gusset of an unknown type -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"type": "plate"}})))))
+check("a bracket into the node needs no sizes", not raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"type": "to_node"}})))))
 check("negative fatigue cycles -> ConfigError", raises(ConfigError, lambda: load_config(write("q.json", dict(front, loads={"fatigue_cycles": -5})))))
 check("every library error is a SuspError", all(issubclass(e, SuspError) for e in (ConfigError, GoalError, SolveError, UnknownPointError)))
 from susp import tools as T  # noqa: E402

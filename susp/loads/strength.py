@@ -77,21 +77,85 @@ def rod_leg(susp, sp):
     return best
 
 
+def section(od, wall, t_g=0.0, h=0.0):
+    """The leg's cross-section with a gusset plate welded along it: the tube plus a t_g x h rectangle standing on the
+    tube's surface in the plane of the load. Returns (area, I about the combined neutral axis, distance from that
+    axis to the farther extreme fiber). h = 0 is the bare tube."""
+    A_t, I_t = tube_props(od, wall)
+    r = od / 2
+    if h <= 1e-9 or t_g <= 0:
+        return A_t, I_t, r
+    A_p, y_p = t_g * h, r + h / 2                       # plate area and its centroid's distance from the tube axis
+    A = A_t + A_p
+    yb = A_p * y_p / A                                  # neutral axis, measured from the tube axis toward the plate
+    Imom = I_t + A_t * yb ** 2 + t_g * h ** 3 / 12 + A_p * (y_p - yb) ** 2
+    return A, Imom, max(r + yb, r + h - yb)
+
+
+def gusset_of(cfg):
+    """members.gusset, how the pushrod mount is reinforced, or None for a bare tube:
+      {"type": "along_leg" (default), thickness, height (at the mount), length_in (toward the pivot), length_out
+       (toward the ball joint)}: a triangular plate welded along the leg under the mount;
+      {"type": "to_node"}: a bracket that carries the pushrod's push straight into the ball-joint node, so the leg
+       is not bent (check the bracket itself in CAD with the exported part loads)."""
+    g = (cfg.get("members") or {}).get("gusset")
+    if not g:
+        return None
+    if g.get("type") == "to_node":
+        return dict(type="to_node")
+    return dict(type="along_leg", thickness=float(g["thickness"]), height=float(g["height"]),
+                length_in=float(g.get("length_in") or 0.0), length_out=float(g.get("length_out") or 0.0),
+                fat=float(g["fat"]) if g.get("fat") else None)
+
+
 def leg_stress(cfg, leg, r, geom):
-    """Peak fiber stress (bending + |axial|) in that leg for member forces r at geometry geom."""
+    """Peak fiber stress (bending + |axial|) in that leg for member forces r at geometry geom. The leg is a beam pinned
+    at the pivot and the ball joint with the pushrod's push across it at the mount; with a gusset (members.gusset,
+    a triangle from its full height at the mount down to nothing at each end) the section along it is the tube plus
+    the plate, so the stress is searched along the whole leg. end_stress: the bare tube's stress at the gusset's ends,
+    where its weld stops (the fatigue hot spot)."""
     gp, gi, go, _ = geom
     od, wall = cfg["members"]["wishbone"]
-    A, Imom = tube_props(od, wall)
     p0, p1 = gi[leg], go[leg]
     uu, Lc = unit(p1 - p0), float(np.linalg.norm(p1 - p0))
     ac = float(np.clip((gp["rod_out"] - p0) @ uu, 0.0, Lc))
     F = r["pushrod"] * unit(gp["rod_in"] - gp["rod_out"])         # the pushrod's pull on the arm at the mount
     P_perp = float(np.linalg.norm(F - (F @ uu) * uu))
     M = P_perp * ac * (Lc - ac) / Lc
-    n_pivot = r[leg]                                               # tension between the pivot and the mount
-    n_node = n_pivot - F @ uu                                      # tension between the mount and the ball joint
-    sig = M * (od / 2) / Imom + max(abs(n_pivot), abs(n_node)) / A
-    return dict(P_perp=P_perp, moment=M, stress=sig, n_pivot=float(n_pivot), n_node=float(n_node))
+    n_pivot = float(r[leg])                                        # tension between the pivot and the mount
+    n_node = float(n_pivot - F @ uu)                               # tension between the mount and the ball joint
+    g = gusset_of(cfg)
+    if g is not None and g["type"] == "to_node":                   # the bracket takes the push into the node
+        A, _ = tube_props(od, wall)
+        return dict(P_perp=P_perp, moment=0.0, stress=max(abs(n_pivot), abs(n_node)) / A, n_pivot=n_pivot,
+                    n_node=n_node, x=ac, where="carried to the ball-joint node by the bracket", end_stress=None)
+    if g is None:
+        A, Imom = tube_props(od, wall)
+        sig = M * (od / 2) / Imom + max(abs(n_pivot), abs(n_node)) / A
+        return dict(P_perp=P_perp, moment=M, stress=sig, n_pivot=n_pivot, n_node=n_node, x=ac, where="at the mount",
+                    end_stress=None)
+    x_in, x_out = max(0.0, ac - g["length_in"]), min(Lc, ac + g["length_out"])
+
+    def h_at(x):
+        if x < x_in or x > x_out:
+            return 0.0
+        side = ac - x_in if x <= ac else x_out - ac
+        return g["height"] * (1 - abs(x - ac) / side) if side > 1e-9 else (g["height"] if abs(x - ac) < 1e-9 else 0.0)
+
+    def stress_at(x, h=None):
+        h = h_at(x) if h is None else h
+        A, Imom, c = section(od, wall, g["thickness"], h)
+        Mx = P_perp * x * (Lc - ac) / Lc if x <= ac else P_perp * ac * (Lc - x) / Lc
+        return Mx * c / Imom + abs(n_pivot if x <= ac else n_node) / A
+
+    xs = sorted(set([Lc * i / 400 for i in range(401)] + [x_in, x_out, ac]))
+    best = max((stress_at(x), x) for x in xs)
+    ends = [stress_at(x, 0.0) for x in (x_in, x_out) if 0.0 < x < Lc]      # gusset ends on the tube (not at a pivot)
+    x = best[1]
+    where = ("gusset end" if min(abs(x - x_in), abs(x - x_out)) < Lc / 400 + 1e-9 and x != ac
+             else "in the gusset" if x_in < x < x_out else "bare tube")
+    return dict(P_perp=P_perp, moment=M, stress=best[0], n_pivot=n_pivot, n_node=n_node, x=x, where=where,
+                end_stress=max(ends) if ends else None)
 
 
 def bending_check(cfg, susp, sp, results, deflect=None):
@@ -113,4 +177,5 @@ def bending_check(cfg, susp, sp, results, deflect=None):
         if worst is None or s["stress"] > worst["stress"]:
             worst = dict(case=name, **s)
     sy = cfg["members"]["yield"]
-    return dict(leg=leg, length=Lg, a=a, offset=off, od=od, wall=wall, sf=sy / worst["stress"] if worst["stress"] > 1e-9 else float("inf"), **worst)
+    return dict(leg=leg, length=Lg, a=a, offset=off, od=od, wall=wall, gusset=gusset_of(cfg),
+                sf=sy / worst["stress"] if worst["stress"] > 1e-9 else float("inf"), **worst)

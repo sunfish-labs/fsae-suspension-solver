@@ -174,6 +174,20 @@ function buildForm() {
       ],
     }),
   ].join("");
+  $("#gusFields").innerHTML = [
+    field("Reinforcement", "", "members.gusset.type", {
+      options: [
+        ["none", "Bare tube"],
+        ["along_leg", "Gusset plate along the leg"],
+        ["to_node", "Bracket into the ball-joint node"],
+      ],
+    }),
+    field("Gusset thickness", "mm", "members.gusset.thickness", { step: 0.1 }),
+    field("Gusset height at the mount", "mm", "members.gusset.height", { step: 1 }),
+    field("Gusset length toward the pivot", "mm", "members.gusset.length_in", { step: 5 }),
+    field("Gusset length toward the ball joint", "mm", "members.gusset.length_out", { step: 5 }),
+    field("Gusset-end weld class (blank = by length)", "MPa", "members.gusset.fat", { step: 1, opt: 1 }),
+  ].join("");
   $("#tabFields").innerHTML = [
     field("Tab thickness", "mm", "members.tab.thickness", { step: 0.1 }),
     field("Tab width", "mm", "members.tab.width", { step: 0.5 }),
@@ -262,6 +276,12 @@ function fillForm() {
       el.value = v == null ? "" : v;
       return;
     }
+    if (path.startsWith("members.gusset.")) {
+      const g = cfg.members.gusset;
+      el.value =
+        path === "members.gusset.type" ? (g ? g.type || "along_leg" : "none") : g && g[path.slice(15)] != null ? g[path.slice(15)] : "";
+      return;
+    }
     let v = getPath(cfg, path);
     if (v == null) v = getPath(S.DEFAULTS, path);
     if (el.dataset.scale && v != null) v = +(v * +el.dataset.scale).toFixed(6);
@@ -274,9 +294,20 @@ function fillForm() {
   $("#springBody").hidden = !cfg.spring;
   $("#rockerOn").value = cfg.spring && cfg.spring.rocker_pivot == null ? "0" : "1";
   syncRockerRows();
+  syncGusset();
   syncAxle();
   syncLegLabels();
 }
+// gusset dimensions only for a gusset along the leg; the whole block only when the rod sits on a wishbone
+function syncGusset() {
+  const g = cfg.members.gusset,
+    along = g && (g.type || "along_leg") === "along_leg",
+    onArm = cfg.spring && (cfg.spring.rod_on === "lower" || cfg.spring.rod_on === "upper");
+  $$('[data-path^="members.gusset."]').forEach(el => {
+    el.closest(".field").hidden = !onArm || (el.dataset.path !== "members.gusset.type" && !along);
+  });
+}
+const GUSSET_START = { type: "along_leg", thickness: 3.0, height: 30.0, length_in: 60.0, length_out: 40.0 };
 function syncRockerRows() {
   const direct = cfg.spring && cfg.spring.rocker_pivot == null;
   ["rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper"].forEach(k => {
@@ -317,6 +348,19 @@ function onInput(e) {
   }
   if (path.startsWith("spring.") && !cfg.spring) return;
   if (path.startsWith("arb.") && !cfg.arb) return;
+  if (path.startsWith("members.gusset.")) {
+    const k = path.slice(15);
+    if (k === "type") cfg.members.gusset = v === "none" ? null : v === "to_node" ? { type: "to_node" } : { ...GUSSET_START };
+    else {
+      const g = cfg.members.gusset && cfg.members.gusset.type !== "to_node" ? { ...cfg.members.gusset } : { ...GUSSET_START };
+      if (v == null) delete g[k];
+      else g[k] = v;
+      cfg.members.gusset = g;
+    }
+    fillForm();
+    schedule();
+    return;
+  }
   const blk = path.startsWith("wheel.caliper.") ? "caliper" : path.startsWith("halfshaft.") ? "halfshaft" : null;
   if (blk && v == null && !path.endsWith("plunge_max")) {
     if (blk === "caliper") cfg.wheel.caliper = null;
@@ -334,6 +378,7 @@ function onInput(e) {
   setPath(cfg, path, v);
   if (blk) fillForm();
   if (path === "axle") syncAxle();
+  if (path === "spring.rod_on") syncGusset();
   schedule();
 }
 

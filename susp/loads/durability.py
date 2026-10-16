@@ -34,7 +34,7 @@ import numpy as np
 
 from ..errors import ConfigError
 from .statics import MEMBERS, _geometry, solve_case
-from .strength import leg_stress, rod_leg, tube_props
+from .strength import gusset_of, leg_stress, rod_leg, tube_props
 
 SURFACE = {"ground": (1.58, -0.085), "machined": (4.51, -0.265), "cold-drawn": (4.51, -0.265),
            "hot-rolled": (57.7, -0.718), "as-forged": (272.0, -0.995)}
@@ -43,6 +43,15 @@ IMPACT = ("pothole", "kerb strike")
 CAFL = (2e6 / 1e7) ** (1 / 3)          # IIW: constant-amplitude fatigue limit at 1e7 cycles, as a fraction of FAT
 SIZE = {"upper_front": "wishbone", "upper_rear": "wishbone", "lower_front": "wishbone", "lower_rear": "wishbone",
         "tie_rod": "tie_rod", "pushrod": "pushrod"}
+
+
+def gusset_fat(g):
+    """IIW fatigue class of the weld where a gusset welded along a member ends (longitudinal attachment), by the
+    gusset's length along the member: 80 up to 50 mm, 71 to 150, 63 to 300, 50 beyond; members.gusset.fat overrides."""
+    if g.get("fat"):
+        return float(g["fat"])
+    L = g["length_in"] + g["length_out"]
+    return 80.0 if L <= 50 else 71.0 if L <= 150 else 63.0 if L <= 300 else 50.0
 
 
 def tab_of(mem):
@@ -207,6 +216,16 @@ def durability(cfg, susp, sp, results, info, deflect=None):
             g = _geometry(susp, sp, deflect[c]) if deflect.get(c) else geom0
             return leg_stress(cfg, leg, results[c], g)["stress"]
         worst(f"leg:{leg}", "tube", se_b, per_leg)
+        g = gusset_of(cfg)
+        if g is not None and g["type"] == "along_leg":
+            # the weld toe where the gusset stops on the tube: the bare tube's stress there, IIW longitudinal attachment
+            def per_end(c):
+                if c == REST:
+                    return leg_stress(cfg, leg, static, geom0)["end_stress"] or 0.0
+                gg = _geometry(susp, sp, deflect[c]) if deflect.get(c) else geom0
+                return leg_stress(cfg, leg, results[c], gg)["end_stress"] or 0.0
+            if leg_stress(cfg, leg, static, geom0)["end_stress"] is not None:
+                worst(f"gusset:{leg}", "weld", gusset_fat(g), per_end)
     sf_fat = float(mem.get("fatigue_sf") or 1.5)
     for r in rows:
         r["ok"] = r["n"] >= sf_fat

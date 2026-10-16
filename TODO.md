@@ -3,21 +3,28 @@
 Ordered by importance: things that could mislead a student or block the team first, then accuracy of the model,
 then extra features, then housekeeping. Team-specific design fixes live in `private/` (never published).
 
-1. **Measure the car (validation/MEASURING.md).** Every model is now cross-checked by an independent one; what
-   is left is reality. The bump sweep and the twist test on corner scales are the cheapest and check the most
-   (kinematics, motion ratio, springs and bars). Put the results in `private/validation/`. A bench wheel-rate test
-   also settles whether `wheel_rate` or `wheel_rate_preload` matches your car.
-2. **Pushrod mount with a gusset or bracket.** The bending and fatigue checks treat the leg as a bare tube, and
-   both examples fail there (as most designs with the mount off the node will). Let the user describe the gusset
-   or bracket (plate size, weld length) so the check can say whether it is enough.
-3. **Fatigue from logged loads.** Once the car logs damper or strain data, count the cycles (rainflow) and add up
-   the damage (Miner) instead of the stated-cycle screen.
-4. **Housekeeping.** Create the missing `v0.9.0` tag on GitHub (Releases -> Draft a new release -> tag `v0.9.0`,
+1. **Rocker strength.** The rocker is drawn and its pin forces are in the part loads, but nothing checks the plate
+   itself: add the pin bores (bearing, tear-out, like the tabs) and the plate's bending between the pins, with its
+   thickness and material as inputs. Until then, check it in FEA with the part loads.
+2. **Housekeeping.** Create the missing `v0.9.0` tag on GitHub (Releases -> Draft a new release -> tag `v0.9.0`,
    target commit `e3fee2a`): the tag workflow's token may not tag a commit whose workflow files differ from today's.
-   Empty the `_to_delete/` folder on the desktop copy.
+   Empty the `_to_delete/` folder on the desktop copy (old sync bundles only).
+
+## When there is a car (or a test corner)
+
+- **Measure it (validation/MEASURING.md).** Every model is cross-checked by an independent one; what is left is
+  reality. The bump sweep and the twist test on corner scales are the cheapest and check the most. A single corner
+  built from plywood or 3D-printed parts on a bench works for the bump sweep and the motion ratio.
+- **Wheel rate with or without the preload term:** a bench wheel-rate test settles whether `wheel_rate` or
+  `wheel_rate_preload` matches.
+- **Fatigue from logged loads:** once the car logs damper or strain data, count the cycles (rainflow) and add up the
+  damage (Miner) instead of the stated-cycle screen.
 
 ## Done recently
 
+- Pushrod mount reinforcement: a gusset plate along the leg (built-up section searched along the leg, plus the
+  weld where it ends in the fatigue screen) or a bracket into the ball-joint node; part loads for FEA (every force
+  on the upright, wishbones and rocker, per case, in the CAD axes) from the app and the command line (1.7.0)
 - Pickup tabs (bearing, tear-out, net section, weld throat) and a fatigue screen at stated cycle counts (tubes by
   Goodman on the S-N line, welds by IIW class); the wheel rate with the preload term reported beside the usual one;
   CI on Ubuntu 26.04 (1.6.0)

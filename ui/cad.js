@@ -166,6 +166,35 @@
     return out;
   }
 
+  /* Part loads for FEA as CSV: every force on the upright, wishbones and rocker of each right-hand corner, per load
+     case (Susp.partLoads), in the same axes, origin and units as the geometry export so the points land on the CAD
+     model built from it. corners: [{ e, L }] with L = Susp.runLoads(...). Forces in N, rotated into the frame. */
+  function toFEACSV(corners, opts = {}) {
+    const fr = FRAMES[opts.frame || "sw"],
+      k = opts.units === "in" ? 1 / 25.4 : 1,
+      u = opts.units === "in" ? "in" : "mm";
+    const front = corners.find(c => c.e.cfg.axle !== "rear") || corners[0];
+    const x0 = opts.origin === "solver" ? 0 : front.e.susp.h.cp[0];
+    const rows = [`axle,case,part,point,x_${u},y_${u},z_${u},Fx_N,Fy_N,Fz_N`];
+    for (const c of corners) {
+      if (!c.L || !c.e.spring) continue;
+      const e = c.e,
+        rear = e.cfg.axle === "rear",
+        dx = rear && corners.length > 1 ? front.e.susp.h.cp[0] - (opts.wheelbase || e.cfg.vehicle.wheelbase) - e.susp.h.cp[0] : 0;
+      const P = q => fr.f([q[0] + dx - x0, q[1], q[2]]).map(v => v * k);
+      for (const [cs, parts] of Object.entries(S.partLoads(e.cfg, e.susp, e.spring, c.L)))
+        for (const [part, items] of Object.entries(parts))
+          for (const [nm, p, F] of items)
+            rows.push(
+              [rear ? "rear" : "front", csvq(cs), part, nm]
+                .concat(P(p).map(v => v.toFixed(4)))
+                .concat(fr.f(F).map(v => v.toFixed(2)))
+                .join(",")
+            );
+    }
+    return rows.join("\n") + "\n";
+  }
+
   // solid bodies at ride height for the STEP-solids export: every link as a tube (its real OD, or a 12 mm rod for the
   // upright and rocker lines), a ball at every joint, and the tire as a cylinder. Each is {name, layer, shape, ...}.
   function rideBodies(out, g, tag, layer, T, k, cfg, tube) {
@@ -519,5 +548,5 @@
     return out.join("\n") + "\n";
   }
 
-  root.SuspCAD = { FRAMES, POSES, geometry, toCSV, toIGES, toSTEP, toSTEPSolid, toSTL };
+  root.SuspCAD = { FRAMES, POSES, geometry, toCSV, toIGES, toSTEP, toSTEPSolid, toSTL, toFEACSV };
 })(typeof window !== "undefined" ? window : globalThis);

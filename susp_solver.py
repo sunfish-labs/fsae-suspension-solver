@@ -90,12 +90,35 @@ def cmd_loads(a):
         if fe.get("spring") and re_.get("spring"):
             lltd = car_balance(f, fe, r, re_, None, None, info["arb_f"], info["arb_r"], info["car_targets"])["lltd"]
             print(f"Front LLTD from the car's roll balance: {lltd * 100:.1f} %")
+        fea = []
         for cfg, ev in ((f, fe), (r, re_)):
-            O.print_loads(cfg, ev, _loads(cfg, ev, lltd))
+            L = _loads(cfg, ev, lltd)
+            O.print_loads(cfg, ev, L)
+            fea.append((cfg, ev, L))
+        _write_fea(a, fea)
         return
     cfg = load(a.config)
     ev = evaluate(cfg, steer=False, pack=False)
-    O.print_loads(cfg, ev, _loads(cfg, ev))
+    L = _loads(cfg, ev)
+    O.print_loads(cfg, ev, L)
+    _write_fea(a, [(cfg, ev, L)])
+
+
+def _write_fea(a, corners):
+    """--fea FILE: every force on the upright, wishbones and rocker for each case, for FEA in CAD (solver frame, mm, N)."""
+    if not a.fea:
+        return
+    from susp.loads.parts import part_loads, to_csv
+    text = ""
+    for cfg, ev, L in corners:
+        csv = to_csv(part_loads(cfg, ev["susp"], ev["spring"], L))
+        lines = csv.splitlines()
+        if len(corners) > 1:                                   # a car: say which axle each row is
+            lines = (["axle," + lines[0]] if not text else []) + [f"{cfg['axle']},{ln}" for ln in lines[1:]]
+        text += "\n".join(lines) + "\n"
+    with open(a.fea, "w") as fh:
+        fh.write(text)
+    print(f"\nPart loads for FEA written to {a.fea} (right-hand corner, solver frame: X forward, Y right, Z up; mm and N)")
 
 
 def cmd_car(a):
@@ -218,6 +241,7 @@ def main():
     p.set_defaults(fn=cmd_run)
     p = sub.add_parser("loads", help="member forces and safety factors for standard load cases (a design or a car file)")
     p.add_argument("config")
+    p.add_argument("--fea", metavar="FILE.csv", help="also write every force on the upright, wishbones and rocker, per case, for FEA in CAD")
     p.set_defaults(fn=cmd_loads)
     p = sub.add_parser("car", help="whole-car roll balance from a car file, or a front and a rear config")
     p.add_argument("front", help="car file, or the front config")

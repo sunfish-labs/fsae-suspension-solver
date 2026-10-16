@@ -206,7 +206,23 @@ the other way, which can put a different leg into compression. `loads car.json` 
    simply supported beam between its pivot and the ball joint, with the pushrod's push across it at the mount:
    M = P⊥ × a × (L − a) / L and σ = M·c/I + max |N| / A, where N is the leg force either side of the mount (it steps by
    the pushrod's push along the leg there). A low FOS here means the mount needs a gusset or bracket into the
-   node, not a bigger tube.
+   node, not a bigger tube. Describe the reinforcement under `members.gusset` (inputs → Loads & materials →
+   Pushrod mount on the wishbone):
+   - `{"thickness", "height", "length_in", "length_out"}` (mm): a triangular plate welded along the leg under the
+     mount, full height at the mount and nothing at each end, `length_in` toward the pivot and `length_out` toward
+     the ball joint. The section is the tube plus the plate (standing on the tube in the plane of the load), and the
+     stress is searched along the whole leg: it often peaks where the gusset ends, so a longer gusset helps more
+     than a taller one. The fatigue screen adds the weld where the gusset ends, with the IIW class for a
+     longitudinal attachment by its length (80 MPa up to 50 mm, 71 to 150, 63 to 300, 50 beyond; `fat` overrides).
+   - `{"type": "to_node"}`: a bracket that carries the push straight into the ball-joint node, so the leg isn't
+     bent. The bracket itself isn't checked: model it in CAD and check it with FEA using the part loads below.
+   - Anything else (a cross tube between the legs, a machined mount): model it in CAD and use the part loads.
+
+   **Part loads for FEA** (Export ▾ → Part loads for FEA…, or `loads design.json --fea loads.csv`): every force on
+   the upright, each wishbone and the rocker of the right-hand corner, for each load case, with the point it acts
+   at, in the same axes, origin and units as the 3D-for-CAD export (so the points land on a model built from it).
+   Each part's forces and moments balance (the rocker's about its axis), so a fixed support in FEA should carry close
+   to nothing: a check that the loads went in right.
 8. **Rod ends and bolts:** each member's worst force is checked against `members.rod_end_rating` (N, from your rod end's
    catalog; leave blank to skip) and a bolt in shear: capacity = planes × π/4 × d² × 0.6 × UTS (`bolt_dia` mm,
    `bolt_grade` 8.8 / 10.9 / 12.9 / SAE 5 / SAE 8, `bolt_shear_planes` 1 or 2).
@@ -355,8 +371,9 @@ Member forces: + = tension.
   simplified lug (no hole stress concentration) and the fatigue check is a screen at stated cycle counts and the
   design g levels, not a life prediction; weld fatigue classes depend on the weld detail. Inserts and rod-end
   threads are not checked.
-- The pushrod-mount bending check is a simple beam: it ignores the gusset or bracket you add and any weld
-  heat-affected zone.
+- The pushrod-mount bending check is a simple beam (with a gusset, the tube plus a plate): no stress concentration
+  at the mount's own weld, no weld heat-affected zone, and a bracket into the node isn't checked (use the part loads
+  in FEA).
 - Clearance is center-line distance plus tube radii. The rim check is radial only. The caliper is a sphere and the
   halfshaft a straight cylinder; both are drawn that way in the 3D view and the CAD export.
 - The tire's vertical rate does not change with load. Tire load sensitivity is a straight-line fall of friction with

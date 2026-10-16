@@ -428,6 +428,63 @@ check("pushrod weld: the smallest allowed / applied range over every swing", tw[
       "range = (F_a - F_b) / A, allowed = FAT (2e6 / N)^(1/3)")
 check("weld under its constant-amplitude limit never cracks", 1.0 if weld_life(45.0, CAFL * 45.0 * 0.99) == float("inf") else 0.0, 1.0, 0, "")
 
+print("\n11b. Pushrod mount with a gusset plate or a bracket into the node")
+from susp.loads.strength import leg_stress, rod_leg, section  # noqa: E402
+from susp.loads.statics import _geometry  # noqa: E402
+od_, w_, tg_, hg_ = 25.4, 1.65, 3.0, 30.0
+ys = np.linspace(-od_ / 2, od_ / 2 + hg_, 200001)                 # strips across the section, 1e-4 mm-ish
+dy = ys[1] - ys[0]
+ri = od_ / 2 - w_
+width = (2 * np.sqrt(np.clip((od_ / 2) ** 2 - ys ** 2, 0, None)) - 2 * np.sqrt(np.clip(ri ** 2 - ys ** 2, 0, None))
+         + np.where((ys >= od_ / 2) & (ys <= od_ / 2 + hg_), tg_, 0.0))
+A_n = float(np.sum(width) * dy)
+yb_n = float(np.sum(width * ys) * dy / A_n)
+I_n = float(np.sum(width * (ys - yb_n) ** 2) * dy)
+A_s, I_s, c_s = section(od_, w_, tg_, hg_)
+check("gusset section area, mm^2", A_s, A_n, 1e-3 * A_n, "strip integration of tube + plate")
+check("gusset section I about its neutral axis, mm^4", I_s, I_n, 1e-3 * I_n, "strip integration")
+check("gusset section extreme fiber, mm", c_s, max(yb_n + od_ / 2, od_ / 2 + hg_ - yb_n), 1e-3, "plate tip or the tube's far side")
+import json as _json  # noqa: E402
+raw11 = _json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "designs", "example_front.json")))
+raw11["members"]["gusset"] = {"thickness": 3.0, "height": 30.0, "length_in": 120.0, "length_out": 20.0}
+c11 = make_config(raw11)
+e11b = evaluate(c11, steer=False, pack=False)
+L11 = run_loads(c11, e11b["susp"], e11b["spring"])
+s11, sp11 = e11b["susp"], e11b["spring"]
+leg11, Lg11, a11, _ = rod_leg(s11, sp11)
+r11b = L11["results"]["bump"]
+ls = leg_stress(c11, leg11, r11b, _geometry(s11, sp11))
+xe = a11 - 120.0
+A_t, I_t = tube_props(*c11["members"]["wishbone"])
+want_end = ls["P_perp"] * xe * (Lg11 - a11) / Lg11 * c11["members"]["wishbone"][0] / 2 / I_t + abs(ls["n_pivot"]) / A_t
+check("bare tube's stress where the gusset ends (toward the pivot), MPa", ls["end_stress"], want_end, 1e-6 * want_end,
+      "M = P x (L - a) / L at x = a - length_in, stress = M r / I + |N| / A")
+raw11["members"]["gusset"] = {"type": "to_node"}
+c11n = make_config(raw11)
+e11n = evaluate(c11n, steer=False, pack=False)
+ln = leg_stress(c11n, leg11, r11b, _geometry(e11n["susp"], e11n["spring"]))
+check("bracket into the node: the leg carries only its axial force, MPa", ln["stress"], max(abs(ln["n_pivot"]), abs(ln["n_node"])) / A_t, 1e-9,
+      "no bending: the push goes straight into the ball-joint node")
+gfat = [r for r in L11["durability"]["fatigue"] if r["item"].startswith("gusset:")]
+check("gusset-end weld class by length (140 mm: IIW 71 MPa)", gfat[0]["allow"] if gfat else 0, 71.0 * (2e6 / 1e5) ** (1 / 3), 1e-9,
+      "longitudinal attachment 50-150 mm long: FAT 71, at 100,000 cycles")
+
+print("\n11c. Part loads for FEA: every part's forces balance (forces and moments)")
+from susp.loads.parts import part_loads  # noqa: E402
+imb = 0.0
+for c_ in (c11, c11n, cfg6):
+    ev_ = evaluate(c_, steer=False, pack=False)
+    run_ = run_loads(c_, ev_["susp"], ev_["spring"])
+    for case_, parts_ in part_loads(c_, ev_["susp"], ev_["spring"], run_).items():
+        for part_, items_ in parts_.items():
+            Fs = sum(f for _, _, f in items_)
+            Ms = sum(np.cross(p, f) for _, p, f in items_)
+            if part_ == "rocker":
+                Ms = np.array([Ms @ ev_["spring"].k])                # the rocker's bearing takes the other couples
+            sc = max(np.linalg.norm(f) for _, _, f in items_)
+            imb = max(imb, np.linalg.norm(Fs) / sc, np.linalg.norm(Ms) / (sc * 1000))
+check("worst imbalance on any part in any case (force / largest force, moment / (largest force x 1 m))", imb, 0.0, 1e-9,
+      "upright, both wishbones and the rocker, three corners, every case")
 print("\n12. Wheel rate with the preload term, from the spring's energy")
 from susp.config import load_config  # noqa: E402
 c12 = load_config(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "designs", "example_front.json"))

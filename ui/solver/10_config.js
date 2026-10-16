@@ -65,6 +65,18 @@ function checkExtras(cfg) {
         : ["tab"];
     if (bad.length) throw new SolveError(`members.tab needs positive numbers for ${bad.join(", ")}`);
   }
+  const gus = mem.gusset;
+  if (gus != null) {
+    if (typeof gus !== "object" || Array.isArray(gus))
+      throw new SolveError("members.gusset must be {thickness, height, length_in, length_out} (mm) or null");
+    if (![undefined, null, "along_leg", "to_node"].includes(gus.type))
+      throw new SolveError("members.gusset.type must be along_leg or to_node");
+    const node = gus.type === "to_node",
+      bad = node ? [] : ["thickness", "height"].filter(k => !(num(gus[k]) && gus[k] > 0));
+    bad.push(...["length_in", "length_out", "fat"].filter(k => gus[k] != null && !(num(gus[k]) && gus[k] >= 0)));
+    if (!bad.length && !node && !((gus.length_in || 0) + (gus.length_out || 0) > 0)) bad.push("length_in or length_out");
+    if (bad.length) throw new SolveError(`members.gusset needs positive numbers for ${bad.join(", ")}`);
+  }
   for (const k of ["fatigue_cycles", "fatigue_bump_cycles"])
     if (lo[k] != null && !(num(lo[k]) && lo[k] >= 1)) throw new SolveError(`loads.${k} must be a number of cycles (1 or more)`);
   const cal = cfg.wheel.caliper;

@@ -83,6 +83,20 @@ def _check_extras(cfg, where):
                 and not (isinstance(v, (int, float)) and v > 0)] if isinstance(tab, dict) else ["tab"]
         if bad_:
             raise ConfigError(f"{where}: members.tab needs positive numbers for {', '.join(bad_)}")
+    gus = mem.get("gusset")
+    if gus is not None:
+        if not isinstance(gus, dict):
+            raise ConfigError(f"{where}: members.gusset must be {{thickness, height, length_in, length_out}} (mm) or null")
+        if gus.get("type") not in (None, "along_leg", "to_node"):
+            raise ConfigError(f"{where}: members.gusset.type must be along_leg or to_node")
+        bad_ = [] if gus.get("type") == "to_node" else [k for k in ("thickness", "height")
+                                                         if not (isinstance(gus.get(k), (int, float)) and gus[k] > 0)]
+        bad_ += [k for k in ("length_in", "length_out", "fat") if gus.get(k) is not None
+                 and not (isinstance(gus[k], (int, float)) and gus[k] >= 0)]
+        if not bad_ and gus.get("type") != "to_node" and not (gus.get("length_in") or 0) + (gus.get("length_out") or 0) > 0:
+            bad_.append("length_in or length_out")
+        if bad_:
+            raise ConfigError(f"{where}: members.gusset needs positive numbers for {', '.join(bad_)}")
     for k in ("fatigue_cycles", "fatigue_bump_cycles"):
         v = lo_.get(k)
         if v is not None and not (isinstance(v, (int, float)) and v >= 1):

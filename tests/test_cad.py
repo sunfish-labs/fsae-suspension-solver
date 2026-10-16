@@ -152,6 +152,29 @@ else:
         check(f"solids ({units}): each body has the right volume and sits within 0.001 mm of where the solver puts it", worst < 1e-3, worst)
         check(f"solids ({units}): one named part per body (e.g. FR_tie_rod, FR_tire)", all(b["name"] in names for b in bodies) and "FR_tire" in names)
 
+print("\n4b. Part loads for FEA: on the CAD model's joints, in its axes and units, and balanced")
+import csv as _csv  # noqa: E402
+for units in ("mm", "in"):
+    base_f, gf_ = gen(car, {"frame": "sw", "origin": "axle", "units": units})
+    rows_f = list(_csv.DictReader(open(base_f + "_fea.csv")))
+    Pf = {p["name"]: p["p"] for p in gf_["points"]}
+    u_ = units
+    pt = lambda r: [float(r[f"x_{u_}"]), float(r[f"y_{u_}"]), float(r[f"z_{u_}"])]  # noqa: E731
+    bjr = next(r for r in rows_f if r["axle"] == "front" and r["case"] == "bump" and r["part"] == "upright" and r["point"] == "upper ball joint")
+    rbj = next(r for r in rows_f if r["axle"] == "rear" and r["case"] == "bump" and r["part"] == "lower wishbone" and r["point"] == "ball joint")
+    check(f"FEA points sit on the exported joints ({units}): front upper and rear lower ball joints",
+          math.dist(pt(bjr), Pf["FR_UCA_ball_joint"]) < 1e-3 and math.dist(pt(rbj), Pf["RR_LCA_ball_joint"]) < 1e-3,
+          (pt(bjr), Pf["FR_UCA_ball_joint"], pt(rbj), Pf["RR_LCA_ball_joint"]))
+    groups = {}
+    for r in rows_f:
+        groups.setdefault((r["axle"], r["case"], r["part"]), []).append(r)
+    worst_f = 0.0
+    for key, rs in groups.items():
+        F = [sum(float(r[c]) for r in rs) for c in ("Fx_N", "Fy_N", "Fz_N")]
+        big = max(math.hypot(float(r["Fx_N"]), float(r["Fy_N"]), float(r["Fz_N"])) for r in rs)
+        worst_f = max(worst_f, math.hypot(*F) / big)
+    check(f"FEA forces on each part add up to zero in the CAD frame ({units}), {len(groups)} part-cases", worst_f < 1e-4, worst_f)
+
 print("\n5. Brake caliper envelope and rear halfshaft")
 import numpy as np  # noqa: E402
 from susp.config import load_car  # noqa: E402

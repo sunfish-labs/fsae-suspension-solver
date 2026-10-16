@@ -17,6 +17,7 @@ sys.path.insert(0, root)
 from susp.config import finish_config, deep_merge, DEFAULTS  # noqa: E402
 from susp.kinematics import evaluate  # noqa: E402
 from susp.loads import run_loads  # noqa: E402
+from susp.loads.parts import part_loads  # noqa: E402
 
 subprocess.run([sys.executable, os.path.join(here, "build.py")], check=True, stdout=subprocess.DEVNULL)   # ui/susp.js is generated
 if not shutil.which("node"):
@@ -27,6 +28,11 @@ for f in files:
     raw = json.load(open(f))
     if isinstance(raw, dict) and "hardpoints" in raw:
         cfgs[os.path.relpath(f, root)] = raw
+# the pushrod mount reinforced both ways
+for tag, g in (("gusset", {"thickness": 3.0, "height": 30.0, "length_in": 120.0, "length_out": 30.0}), ("bracket", {"type": "to_node"})):
+    raw = json.load(open(os.path.join(root, "designs", "example_front.json")))
+    raw["members"]["gusset"] = g
+    cfgs[f"example_front + {tag}"] = raw
 def fin(v):
     return float(v) if math.isfinite(v) else None       # JSON has no Infinity
 
@@ -41,7 +47,9 @@ for n, raw in cfgs.items():
              "bend": {k: float(v) for k, v in (L["bending_check"] or {}).items() if isinstance(v, (int, float, np.floating)) and math.isfinite(v)} if L else None,
              "comp": [[x["camber"], x["toe"], x["cp_y"]] for x in L["compliance"]["cases"]] if L else None,
              "parts": [float(r["sf_bolt"]) for r in L["parts"] if r["sf_bolt"] is not None and math.isfinite(r["sf_bolt"])] if L else None,
-             "dur": [[fin(r["sf"]) for r in L["durability"]["tabs"]], [[fin(r["n"]), r["s_a"], r["allow"]] for r in L["durability"]["fatigue"]]] if L else None}
+             "dur": [[fin(r["sf"]) for r in L["durability"]["tabs"]], [[fin(r["n"]), r["s_a"], r["allow"]] for r in L["durability"]["fatigue"]]] if L else None,
+             "fea": [[cs, part, nm, *map(float, pt), *map(float, F)] for cs, parts in part_loads(c, e["susp"], e["spring"], L).items()
+                     for part, items in parts.items() for nm, pt, F in items] if L else None}
 # whole-car balance from car files (front + rear + shared vehicle + anti-roll bars)
 from susp.config import load_car  # noqa: E402
 from susp.car import car_balance  # noqa: E402
@@ -69,6 +77,11 @@ for (const [n, raw] of Object.entries(d.cfgs)) {
     row.forEach((v, q) => { const r = Math.abs(j[q] - v); worst = Math.max(worst, r); if (r > 1e-7) bad.push(`${n} compliance ${c.case} ${q}: py ${v} js ${j[q]}`); }); });
   if (p.dur) { const D = L.durability, ck = (a, b, w) => { if (a === null && !isFinite(b)) return; const r = Math.abs(a - b) / Math.max(1, Math.abs(a)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} ${w}: py ${a} js ${b}`); };
     p.dur[0].forEach((v, i) => ck(v, D.tabs[i].sf, `tab ${i}`)); p.dur[1].forEach((row, i) => row.forEach((v, q) => ck(v, [D.fatigue[i].n, D.fatigue[i].s_a, D.fatigue[i].allow][q], `fatigue ${D.fatigue[i].item} ${q}`))); }
+  if (p.fea) { const F = Susp.partLoads(e.cfg, e.susp, e.spring, L), rows = [];
+    for (const [c, parts] of Object.entries(F)) for (const [part, items] of Object.entries(parts)) for (const [nm, pt, f] of items) rows.push([c, part, nm, ...pt, ...f]);
+    if (rows.length !== p.fea.length) bad.push(`${n} FEA rows: py ${p.fea.length} js ${rows.length}`);
+    else p.fea.forEach((row, i) => row.forEach((v, q) => { if (q < 3) { if (rows[i][q] !== v) bad.push(`${n} FEA row ${i} ${q}: ${v} vs ${rows[i][q]}`); return; }
+      const r = Math.abs(rows[i][q] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} FEA ${row.slice(0, 3).join(" / ")} ${q}: py ${v} js ${rows[i][q]}`); })); }
   if (p.parts) { const js = L.parts.map(q => q.sf_bolt).filter(v => v != null && isFinite(v)); p.parts.forEach((v, i) => { const r = Math.abs(js[i] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} bolt ${i}`); }); }
 }
 for (const [n, c] of Object.entries(d.cars || {})) {

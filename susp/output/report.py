@@ -117,6 +117,8 @@ def report_context(cfg, ev, baseline=None, delta=5.0, sens=None, adv=None, loads
                     return f"Tab weld, {(end.get(it[4:]) or member_label(it[4:], s)).lower()}"
                 if it.startswith("leg:"):
                     return f"{member_label(it[4:], s)} with the pushrod mount (bending)"
+                if it.startswith("gusset:"):
+                    return f"{member_label(it[7:], s)}, weld where the gusset ends"
                 return f"{member_label(it, s)}, {'tube' if r['kind'] == 'tube' else 'end weld'}"
             ctx["loads"]["tabs"] = [dict(end=end.get(r["member"]) or member_label(r["member"], s), force=f"{r['force']:.0f} N",
                                          fos=[f_num(r["fos"][k], 1) for k in ("bearing", "tearout", "net", "weld")], ok=r["sf"] >= mem["sf_target"])

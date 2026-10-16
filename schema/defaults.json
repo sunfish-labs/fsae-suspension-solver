@@ -59,6 +59,7 @@
   "members.weld_fat_tab": "MPa, fatigue class of the fillet weld holding each tab, judged on its throat (IIW about 36 for load-carrying fillet welds)",
   "members.tab": "mm, the pickup tabs (a pair per link end, double shear): thickness, width, edge (hole center to the tab's end), weld_leg, weld_length (per tab), count; defaults are a typical 1/8 in tab, change them to yours",
   "members.tab_yield": "MPa, the tab material's yield (null = members.yield)",
+  "members.gusset": "how the pushrod mount is reinforced (null = bare tube): {thickness, height, length_in, length_out} mm for a triangular plate along the leg (height at the mount; fat = its end weld's IIW class, default by length), or {type: to_node} for a bracket into the ball-joint node (check the bracket in FEA)",
   "loads.fatigue_cycles": "how many times each driving case (cornering, braking, acceleration) repeats in the fatigue screen; about 10,000 hard events per season, default 100,000 (three seasons with margin)",
   "loads.fatigue_bump_cycles": "how many times the bump case repeats in the fatigue screen (default 10,000)"
  },
@@ -174,7 +175,8 @@
     "weld_length": 50.0,
     "count": 2
    },
-   "tab_yield": null
+   "tab_yield": null,
+   "gusset": null
   },
   "halfshaft": null,
   "arb": null,

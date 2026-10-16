@@ -295,11 +295,15 @@ def print_loads(cfg, ev, L):
         ok = b["sf"] >= mem["sf_target"]
         print(f"\nPushrod mount bending: the {member_label(b['leg'], s).lower()} as a beam pinned at both ends ({b['length']:.0f} mm long), "
               f"mount {b['a']:.0f} mm from the pivot and {b['offset']:.0f} mm off the leg's centerline.")
+        g = b.get("gusset")
+        print("  reinforcement: " + ("bare tube" if not g else "bracket into the ball-joint node (check the bracket itself in CAD/FEA: "
+                                     "loads --fea)" if g["type"] == "to_node" else
+                                     f"gusset {g['thickness']:g} x {g['height']:g} mm, {g['length_in']:g} + {g['length_out']:g} mm long"))
         print(f"  worst case {b['case']}: {b['P_perp']:.0f} N across the leg, {b['moment'] / 1000:.1f} N m, stress {b['stress']:.0f} MPa "
-              f"(bending + axial) -> FOS {b['sf']:.2f} {'OK' if ok else 'BELOW FOS'}")
+              f"(bending + axial, {b['where']}, {b['x']:.0f} mm from the pivot) -> FOS {b['sf']:.2f} {'OK' if ok else 'BELOW FOS'}")
         if not ok:
-            print("  A bare tube is overloaded here: mount the pushrod on a gusset or bracket at the ball-joint node, move it closer to\n"
-                  "  the ball joint, or use a stiffer leg. This beam check is conservative if a gusset carries the load.")
+            print("  Overloaded here: describe a gusset (members.gusset) or a bracket into the ball-joint node, move the mount closer\n"
+                  "  to the ball joint, or use a stiffer leg. Check a bracket with FEA: loads design.json --fea loads.csv.")
         if b["offset"] > 5:
             print(f"  The mount is {b['offset']:.0f} mm off the leg's centerline: the bracket also twists the leg (not modeled).")
     c = L.get("compliance")
@@ -341,6 +345,8 @@ def print_loads(cfg, ev, L):
                 return f"tab weld, {(names_.get(k) or member_label(k, s)).lower()}"
             if it.startswith("leg:"):
                 return f"{member_label(it[4:], s)} with the pushrod mount (bending)"
+            if it.startswith("gusset:"):
+                return f"{member_label(it[7:], s)}, weld where the gusset ends"
             return f"{member_label(it, s)}, {'tube' if r['kind'] == 'tube' else 'end weld'}"
         table(["part", "worst cycle", "applied MPa", "mean MPa", "allowed MPa", "margin", "life, cycles", ""],
               [[item(r), f"{r['case']} x {r['cycles']:,.0f}", f"{r['s_a'] * (2 if r['kind'] == 'weld' else 1):.1f}",

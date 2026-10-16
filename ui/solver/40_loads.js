@@ -474,10 +474,34 @@ function rodLeg(susp, sp) {
   return best;
 }
 // mirrors strength.leg_stress: peak fiber stress (bending + |axial|) in that leg
+// the leg's section with a gusset plate standing on the tube in the load plane (mirrors strength.section)
+function legSection(od, wall, tg = 0, h = 0) {
+  const [At, It] = tubeProps(od, wall),
+    r = od / 2;
+  if (h <= 1e-9 || tg <= 0) return [At, It, r];
+  const Ap = tg * h,
+    yp = r + h / 2,
+    A = At + Ap,
+    yb = (Ap * yp) / A,
+    I = It + At * yb ** 2 + (tg * h ** 3) / 12 + Ap * (yp - yb) ** 2;
+  return [A, I, Math.max(r + yb, r + h - yb)];
+}
+function gussetOf(cfg) {
+  const g = (cfg.members || {}).gusset;
+  if (!g) return null;
+  if (g.type === "to_node") return { type: "to_node" };
+  return {
+    type: "along_leg",
+    thickness: +g.thickness,
+    height: +g.height,
+    length_in: +(g.length_in || 0),
+    length_out: +(g.length_out || 0),
+    fat: g.fat ? +g.fat : null,
+  };
+}
 function legStress(cfg, leg, r, geom) {
   const [gp, gi, go] = geom,
-    [od, wall] = cfg.members.wishbone,
-    [A, I] = tubeProps(od, wall);
+    [od, wall] = cfg.members.wishbone;
   const p0 = gi[leg],
     p1 = go[leg],
     uu = unit(sub(p1, p0)),
@@ -489,8 +513,50 @@ function legStress(cfg, leg, r, geom) {
     M = (Pp * ac * (Lc - ac)) / Lc;
   const nPivot = r[leg],
     nNode = nPivot - Fu; // leg tension either side of the mount
-  const sig = (M * (od / 2)) / I + Math.max(Math.abs(nPivot), Math.abs(nNode)) / A;
-  return { P_perp: Pp, moment: M, stress: sig, n_pivot: nPivot, n_node: nNode };
+  const g = gussetOf(cfg),
+    base = { P_perp: Pp, moment: M, n_pivot: nPivot, n_node: nNode };
+  if (g && g.type === "to_node") {
+    const [A] = tubeProps(od, wall);
+    return Object.assign(base, {
+      moment: 0,
+      stress: Math.max(Math.abs(nPivot), Math.abs(nNode)) / A,
+      x: ac,
+      where: "carried to the ball-joint node by the bracket",
+      end_stress: null,
+    });
+  }
+  if (!g) {
+    const [A, I] = tubeProps(od, wall);
+    const sig = (M * (od / 2)) / I + Math.max(Math.abs(nPivot), Math.abs(nNode)) / A;
+    return Object.assign(base, { stress: sig, x: ac, where: "at the mount", end_stress: null });
+  }
+  const xIn = Math.max(0, ac - g.length_in),
+    xOut = Math.min(Lc, ac + g.length_out);
+  const hAt = x => {
+    if (x < xIn || x > xOut) return 0;
+    const side = x <= ac ? ac - xIn : xOut - ac;
+    return side > 1e-9 ? g.height * (1 - Math.abs(x - ac) / side) : Math.abs(x - ac) < 1e-9 ? g.height : 0;
+  };
+  const stressAt = (x, h = null) => {
+    const [A, I, c] = legSection(od, wall, g.thickness, h == null ? hAt(x) : h),
+      Mx = x <= ac ? (Pp * x * (Lc - ac)) / Lc : (Pp * ac * (Lc - x)) / Lc;
+    return (Mx * c) / I + Math.abs(x <= ac ? nPivot : nNode) / A;
+  };
+  const xs = [...new Set(Array.from({ length: 401 }, (_, i) => (Lc * i) / 400).concat([xIn, xOut, ac]))].sort((a, b) => a - b);
+  let best = [-Infinity, 0];
+  for (const x of xs) {
+    const s = stressAt(x);
+    if (s > best[0] || (s === best[0] && x > best[1])) best = [s, x];
+  }
+  const ends = [xIn, xOut].filter(x => x > 0 && x < Lc).map(x => stressAt(x, 0)),
+    x = best[1];
+  const where =
+    Math.min(Math.abs(x - xIn), Math.abs(x - xOut)) < Lc / 400 + 1e-9 && x !== ac
+      ? "gusset end"
+      : x > xIn && x < xOut
+        ? "in the gusset"
+        : "bare tube";
+  return Object.assign(base, { stress: best[0], x, where, end_stress: ends.length ? Math.max(...ends) : null });
 }
 function bendingCheck(cfg, susp, sp, results, deflect = {}) {
   if (sp.on !== "lower" && sp.on !== "upper") return null;
@@ -503,9 +569,81 @@ function bendingCheck(cfg, susp, sp, results, deflect = {}) {
     if (!worst || s.stress > worst.stress) worst = Object.assign({ case: name }, s);
   }
   return Object.assign(
-    { leg, length: Lg, a, offset: off, od, wall, sf: worst.stress > 1e-9 ? cfg.members.yield / worst.stress : Infinity },
+    {
+      leg,
+      length: Lg,
+      a,
+      offset: off,
+      od,
+      wall,
+      gusset: gussetOf(cfg),
+      sf: worst.stress > 1e-9 ? cfg.members.yield / worst.stress : Infinity,
+    },
     worst
   );
+}
+// ---------------------------------------------------------------- part loads for FEA (mirrors loads/parts.py)
+// every force on the upright, each wishbone and the rocker of the right-hand corner, per case: [name, point, force]
+const TIRE_PT = { cp: "contact patch", c: "wheel center" };
+function partLoads(cfg, susp, sp, run) {
+  const [cases] = loadCases(cfg, susp, run.info.lltd),
+    forces = Object.fromEntries(cases.map(([n, f]) => [n, f])),
+    out = {};
+  for (const [name, r] of Object.entries(run.results)) {
+    const dz = run.deflect[name] || 0,
+      [pts, inb, outb, st] = dz ? loadGeometry(susp, sp, dz) : loadGeometry(susp, sp),
+      e = Object.fromEntries(Object.keys(inb).map(k => [k, unit(sub(inb[k], outb[k]))]));
+    const T = k => +r[k],
+      up = forces[name.replace(" (deflected)", "")].map(([F, p]) => [`tire force at the ${TIRE_PT[p]}`, pts[p], F.slice()]);
+    up.push(["tie rod outboard", pts.tro, mul(e.tie_rod, T("tie_rod"))]);
+    const fRod = mul(unit(sub(pts.rod_in, pts.rod_out)), T("pushrod")),
+      parts = {},
+      arms = { upper: ["ubj", "upper_front", "upper_rear"], lower: ["lbj", "lower_front", "lower_rear"] };
+    for (const [arm, [bj, kf, kr]] of Object.entries(arms)) {
+      if (arm === sp.on) continue;
+      const onUp = add(mul(e[kf], T(kf)), mul(e[kr], T(kr))),
+        ff = inb[kf][0] >= inb[kr][0];
+      up.push([`${arm} ball joint`, pts[bj], onUp]);
+      parts[`${arm} wishbone`] = [
+        ["ball joint", pts[bj], mul(onUp, -1)],
+        [ff ? "front pivot" : "rear pivot", inb[kf], mul(e[kf], T(kf))],
+        [ff ? "rear pivot" : "front pivot", inb[kr], mul(e[kr], T(kr))],
+      ];
+    }
+    if (sp.on === "upright") up.push(["pushrod mount", pts.rod_out, fRod]);
+    else {
+      const [bj, kf, kr] = arms[sp.on],
+        Fb = mul(
+          up.reduce((s, [, , F]) => add(s, F), [0, 0, 0]),
+          -1
+        ),
+        p1 = inb[kf],
+        p2 = inb[kr],
+        ff = p1[0] >= p2[0];
+      up.push([`${sp.on} ball joint`, pts[bj], Fb]);
+      const Mext = add(cross(sub(pts[bj], p1), mul(Fb, -1)), cross(sub(pts.rod_out, p1), fRod)),
+        [R1, R2] = armReactions(p1, p2, e[kf], e[kr], add(mul(Fb, -1), fRod), Mext);
+      parts[`${sp.on} wishbone`] = [
+        ["ball joint", pts[bj], mul(Fb, -1)],
+        ["pushrod mount", pts.rod_out, fRod],
+        [ff ? "front pivot" : "rear pivot", p1, R1],
+        [ff ? "rear pivot" : "front pivot", p2, R2],
+      ];
+    }
+    const ordered = { upright: up };
+    for (const k of Object.keys(parts).sort().reverse()) ordered[k] = parts[k];
+    if (!sp.direct) {
+      const push = mul(unit(sub(pts.rod_out, pts.rod_in)), T("pushrod")),
+        dmp = mul(unit(sub(sp.dch, st.damper_out)), +r.damper);
+      ordered.rocker = [
+        ["pushrod end", pts.rod_in, push],
+        ["damper end", st.damper_out, dmp],
+        ["pivot", sp.c, mul(add(push, dmp), -1)],
+      ];
+    }
+    out[name] = ordered;
+  }
+  return out;
 }
 // ---------------------------------------------------------------- brackets and fatigue (mirrors loads/durability.py)
 const SURFACE = {
@@ -654,6 +792,17 @@ function durability(cfg, susp, sp, results, info, deflect = {}) {
     worst(`leg:${leg}`, "tube", seB, c =>
       c === REST ? sRest : legStress(cfg, leg, results[c], deflect[c] ? loadGeometry(susp, sp, deflect[c]) : geom0).stress
     );
+    const g = gussetOf(cfg);
+    if (g && g.type === "along_leg" && legStress(cfg, leg, stat, geom0).end_stress != null) {
+      // the weld toe where the gusset stops on the tube: IIW longitudinal attachment, class by the gusset's length
+      const Lg2 = g.length_in + g.length_out,
+        fatG = g.fat || (Lg2 <= 50 ? 80 : Lg2 <= 150 ? 71 : Lg2 <= 300 ? 63 : 50);
+      worst(`gusset:${leg}`, "weld", fatG, c =>
+        c === REST
+          ? legStress(cfg, leg, stat, geom0).end_stress || 0
+          : legStress(cfg, leg, results[c], deflect[c] ? loadGeometry(susp, sp, deflect[c]) : geom0).end_stress || 0
+      );
+    }
   }
   const sfFat = +(mem.fatigue_sf || 1.5);
   for (const r of rows) r.ok = r.n >= sfFat;

@@ -73,6 +73,11 @@ function panelLoads() {
   <p class="note">Buckling load = π²EI/L² with pinned ends. Yield force = yield stress × tube area. Tabs, welds and fatigue: below. Inserts and rod-end threads are not checked.</p>
   ${partsHtml(L, label, mem)}`;
 }
+function gussetTxt(g) {
+  if (!g) return "bare tube";
+  if (g.type === "to_node") return "bracket into the ball-joint node";
+  return `gusset ${fmt(g.thickness, 1)} × ${fmt(g.height, 0)} mm, ${fmt(g.length_in, 0)} + ${fmt(g.length_out, 0)} mm long`;
+}
 function partsHtml(L, label, mem) {
   let h = "";
   const b = L.bending_check;
@@ -83,10 +88,13 @@ function partsHtml(L, label, mem) {
     <div class="kv"><div><span>Leg carrying the mount</span><b style="font-size:15px">${esc(label(b.leg))}</b></div>
       <div><span>Mount position along the leg</span><b>${fmt(b.a, 0)} <small>of ${fmt(b.length, 0)} mm</small></b></div>
       <div><span>Mount offset from the leg's centerline</span><b>${fmt(b.offset, 0)} <small>mm</small></b></div>
+      <div><span>Reinforcement</span><b style="font-size:15px">${esc(gussetTxt(b.gusset))}</b></div>
       <div><span>Worst case (${esc(b.case)})</span><b>${fmt(b.moment / 1000, 1)} <small>N m</small> · ${fmt(b.stress, 0)} <small>MPa</small></b></div>
+      <div><span>Where</span><b style="font-size:15px">${esc(b.where)}${b.gusset && b.gusset.type === "to_node" ? "" : `, ${fmt(b.x, 0)} mm from the pivot`}</b></div>
       <div><span>FOS (bending + axial vs yield)</span><b class="${attr(ok ? "ok-t" : "bad-t")}">${fmt(b.sf, 2)}</b></div></div>
-    <p class="note">The ${esc(legName)} treated as a beam pinned at its inboard pivot and the ball joint, loaded across by the pushrod at the mount: M = P·a·(L−a)/L, stress = M·c/I + axial/A.
-    ${ok ? "" : `<b>A bare tube is overloaded here.</b> Mount the pushrod on a gusset or bracket at the ball-joint node, move it closer to the ball joint, or use a stiffer leg; this check is conservative if a gusset carries the load. `}
+    <p class="note">The ${esc(legName)} treated as a beam pinned at its inboard pivot and the ball joint, loaded across by the pushrod at the mount: M = P·a·(L−a)/L, stress = M·c/I + axial/A${b.gusset && b.gusset.type === "along_leg" ? "; with the gusset the section is the tube plus the plate (a triangle from its full height at the mount to nothing at each end), searched along the whole leg" : ""}.
+    ${b.gusset && b.gusset.type === "to_node" ? `<b>The bracket itself is not checked here:</b> model it in CAD and check it with FEA using <b>Export ▾ → Part loads for FEA</b>. ` : ""}
+    ${ok ? "" : `<b>Overloaded here.</b> ${b.gusset && b.gusset.type === "along_leg" ? (b.where === "gusset end" ? "The gusset moves the peak to where it ends: a longer gusset, or a bracket into the ball-joint node, works better than a taller one. " : "Make the gusset taller or thicker, or carry the load into the ball-joint node with a bracket. ") : "Add a gusset (inputs → Loads & materials → Pushrod mount), carry the load into the ball-joint node with a bracket, move the mount closer to the ball joint, or use a stiffer leg. "}`}
     ${b.offset > 5 ? `The mount sits ${fmt(b.offset, 0)} mm off the leg's centerline, so its bracket also twists the leg (not modeled).` : ""}</p>`;
   }
   const P = L.parts || [];
@@ -127,6 +135,7 @@ function durItem(r, label) {
     return `Tab weld, ${(DUR_END[k] || label(k)).toLowerCase()}`;
   }
   if (r.item.startsWith("leg:")) return `${label(r.item.slice(4))} with the pushrod mount (bending)`;
+  if (r.item.startsWith("gusset:")) return `${label(r.item.slice(7))}, weld where the gusset ends`;
   return `${label(r.item)}, ${r.kind === "tube" ? "tube" : "end weld"}`;
 }
 const durLife = v => (Number.isFinite(v) ? (v >= 1e4 ? v.toExponential(1).replace("e+", "e") : fmt(v, 0)) : "no limit");

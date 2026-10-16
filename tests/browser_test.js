@@ -74,6 +74,19 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   check("a thinner tab lowers its bearing FOS in proportion (3.175 -> 1.5 mm)", Math.abs(fos1 / fos0 - 1.5 / 3.175) < 0.02, `${fos0} -> ${fos1}`);
   await p.click("#btnUndo"); await settle(p);
   check("Undo restores the tab", Math.abs(parseFloat(await tabFos()) - fos0) < 0.05);
+  // pushrod mount: a gusset along the leg, then a bracket into the node
+  const bendFos = async () => p.evaluate(() => [...document.querySelectorAll("#pn_loads .kv div")].find(d => /FOS \(bending/.test(d.textContent)).querySelector("b").textContent);
+  const bare = parseFloat(await bendFos());
+  const pickMount = v => p.evaluate(v => { const s = document.querySelector("#in_members_gusset_type"); s.value = v; s.dispatchEvent(new Event("input", { bubbles: true })); s.dispatchEvent(new Event("change", { bubbles: true })); }, v);
+  await pickMount("along_leg"); await settle(p);
+  const gus = parseFloat(await bendFos()), gtxt = await text(p, "#pn_loads");
+  check("a gusset along the leg raises the mount's bending FOS and says where the peak moved", gus > bare && /gusset 3(\.0)? × 30 mm/.test(gtxt) && /weld where the gusset ends/.test(gtxt)
+    && !(await p.$eval("#in_members_gusset_height", el => el.closest(".field").hidden)), `${bare} -> ${gus}`);
+  await pickMount("to_node"); await settle(p);
+  check("a bracket into the node: no bending, and it points to the FEA export", parseFloat(await bendFos()) > gus && /Part loads for FEA/.test(await text(p, "#pn_loads"))
+    && (await p.$eval("#in_members_gusset_height", el => el.closest(".field").hidden)));
+  await p.click("#btnUndo"); await settle(p); // both picks in one burst on the same box: one Undo
+  check("Undo goes back to the bare tube", Math.abs(parseFloat(await bendFos()) - bare) < 0.005 && (await p.inputValue("#in_members_gusset_type")) === "none");
   await p.click("#tab_spring"); await settle(p);
   check("Spring tab shows the wheel rate with the preload term", /Wheel rate with the preload term/.test(await text(p, "#pn_spring")));
   await p.click("#tab_loads"); await settle(p);
@@ -152,6 +165,9 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   const igs = await cadGrab("igs");
   check("CAD IGES file has all five sections", /S      1\n/.test(igs) && /G      1\n/.test(igs) && /D      1\n/.test(igs) && /P      1\n/.test(igs) && /T      1\n$/.test(igs));
   check("CAD STEP file is ISO-10303-21", /^ISO-10303-21;/.test(await cadGrab("step")));
+  const fea = await cadGrab("fea"), feaRows = fea.trim().split("\n");
+  check("Part loads for FEA: a row per force, both axles, upright, wishbones and rocker, every case", /^axle,case,part,point,x_mm/.test(feaRows[0]) && feaRows.length > 200
+    && ["upright", "upper wishbone", "lower wishbone", "rocker"].every(s => fea.includes("," + s + ",")) && /^rear,/m.test(fea) && /,pothole,/.test(fea), feaRows.length);
   const sol = await cadGrab("solid");
   check("CAD STEP solids: closed solids and a named part per body", /MANIFOLD_SOLID_BREP/.test(sol) && /PRODUCT\('FR_tie_rod'/.test(sol) && /PRODUCT\('RL_tire'/.test(sol));
   await p.click("#cadClose");

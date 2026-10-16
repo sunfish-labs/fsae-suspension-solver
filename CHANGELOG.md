@@ -3,6 +3,18 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.7.0 - 2026-10-16
+
+- **Pushrod mount reinforcement** (`members.gusset`, inputs → Loads & materials → Pushrod mount on the wishbone): a
+  triangular gusset plate along the leg (thickness, height at the mount, length toward the pivot and the ball joint)
+  checked as the tube plus the plate along the whole leg, with the weld where the gusset ends added to the fatigue
+  screen (IIW longitudinal attachment class by length); or a bracket into the ball-joint node (no leg bending; the
+  bracket goes to FEA).
+- **Part loads for FEA** (Export ▾ → Part loads for FEA…, `loads design.json --fea loads.csv`): every force on the
+  upright, each wishbone and the rocker, per load case, at its point, in the CAD export's axes, origin and units.
+  Each part's forces and moments balance (tested).
+- TODO: what needs a car is grouped on its own.
+
 ## 1.6.0 - 2026-10-16
 
 - **Pickup tabs:** a pair per link end (sizes in `members.tab`), checked for bearing, tear-out, net section and the

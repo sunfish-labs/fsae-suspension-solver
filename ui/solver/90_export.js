@@ -22,6 +22,7 @@ root.Susp = {
   Spring,
   evaluate,
   runLoads,
+  partLoads,
   rackForAngle,
   MEMBERS,
   checkTargets,

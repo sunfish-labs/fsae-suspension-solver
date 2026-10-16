@@ -10,4 +10,5 @@ fs.writeFileSync(out+'.igs',SuspCAD.toIGES(g,{name:'car'}));fs.writeFileSync(out
 fs.writeFileSync(out+'_solid.step',SuspCAD.toSTEPSolid(g,{name:'car'}));
 fs.writeFileSync(out+'.csv',SuspCAD.toCSV(g));fs.writeFileSync(out+'.stl',SuspCAD.toSTL(g,{name:'car'}));
 fs.writeFileSync(out+'.json',JSON.stringify(g));
+fs.writeFileSync(out+'_fea.csv',SuspCAD.toFEACSV(corners.map(c=>({e:c.e,L:c.e.spring?Susp.runLoads(c.e.cfg,c.e.susp,c.e.spring):null})),Object.assign({wheelbase:(raw.vehicle||{}).wheelbase},opts)));
 console.log('points',g.points.length,'lines',g.lines.length,'layers',g.layers.length);

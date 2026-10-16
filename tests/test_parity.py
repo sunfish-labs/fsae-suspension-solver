@@ -95,6 +95,11 @@ for i in range(a.cases):
         raw.setdefault("members", {}).update({"uts": round(rng.uniform(550, 900)), "surface": ["ground", "machined", "hot-rolled"][i % 3],
                                               "weld_fat_tube": 50.0, "tab": {"thickness": 2.5, "edge": 10.0, "count": 2}})
         raw.setdefault("loads", {}).update({"fatigue_cycles": 2e4 if i % 8 == 1 else 3e7, "fatigue_bump_cycles": 5e3})
+    if i % 6 == 2:
+        raw.setdefault("members", {})["gusset"] = {"thickness": round(rng.uniform(2, 4), 2), "height": round(rng.uniform(15, 50)),
+                                                   "length_in": round(rng.uniform(0, 200)), "length_out": round(rng.uniform(10, 120))}
+    elif i % 6 == 5:
+        raw.setdefault("members", {})["gusset"] = {"type": "to_node"}
     if i % 5 == 3:
         raw["joints"] = {"trackrod_outboard": {"bolt": "x"}, "upper_inboard_front": {"bolt": "pivot", "square": False},
                          "lower_outboard": {"bolt": [1.0, 0.2, 0.1]}, "trackrod_inboard": {"allow": 9.5},
