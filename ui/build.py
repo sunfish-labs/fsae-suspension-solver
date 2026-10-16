@@ -41,6 +41,23 @@ with open(os.path.join(here, "susp.js"), "w") as f:
     f.write(solver)
 js = "window.SUSP_SCHEMA = " + json.dumps(schema, ensure_ascii=False, separators=(",", ":")) + ";\n" + solver
 html = html.replace("/*SUSP_JS*/", js).replace("/*CAD_JS*/", cad).replace("/*GLOSSARY_JS*/", glossary).replace("/*PRESETS*/", json.dumps(presets))
+# third-party code and fonts, built in so the page works offline (from a USB stick): ui/vendor/ (see its README)
+import base64  # noqa: E402
+vend = os.path.join(here, "vendor")
+FONTS = [("Barlow Condensed", w, f"barlow-condensed-latin-{w}-normal.woff2") for w in (500, 600, 700)] + \
+        [("IBM Plex Mono", w, f"ibm-plex-mono-latin-{w}-normal.woff2") for w in (400, 500)] + \
+        [("IBM Plex Sans", w, f"ibm-plex-sans-latin-{w}-normal.woff2") for w in (400, 500, 600)]
+fonts_css = "".join(
+    f"@font-face{{font-family:'{fam}';font-style:normal;font-weight:{w};font-display:swap;"
+    f"src:url(data:font/woff2;base64,{base64.b64encode(open(os.path.join(vend, 'fonts', fn), 'rb').read()).decode()}) format('woff2')}}\n"
+    for fam, w, fn in FONTS)
+
+
+def lib(name):
+    return open(os.path.join(vend, name), encoding="utf-8").read().replace("</script", "<\\/script")
+
+
+html = html.replace("/*FONTS_CSS*/", fonts_css.rstrip("\n"), 1).replace("/*THREE_JS*/", lib("three.min.js"), 1).replace("/*XLSX_JS*/", lib("xlsx.full.min.js"), 1)
 SITE = "https://sunfish-labs.github.io/fsae-suspension-solver/ui/"
 local_html = html.replace("/*GUIDE_URL*/", "guide.html")
 html = html.replace("/*GUIDE_URL*/", SITE + "guide.html")   # the hosted Claude page links to the public guide

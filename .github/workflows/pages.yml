@@ -1,0 +1,42 @@
+# Builds the web app (ui/build.py) and publishes the site with GitHub Pages.
+# To use it: repo Settings -> Pages -> Source: "GitHub Actions" (one time). Until then the site is still published
+# from the committed ui/index.html, so this workflow only runs when started by hand (Actions -> pages -> Run workflow).
+# Once the setting is switched, add "push: branches: [main]" below and stop committing ui/index.html.
+name: pages
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - name: Build the page (solver, schema, three.js, SheetJS and fonts built in)
+        run: python3 ui/build.py
+      - name: Assemble the site
+        run: |
+          mkdir -p _site/ui
+          cp index.html _site/
+          cp ui/index.html ui/guide.html _site/ui/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

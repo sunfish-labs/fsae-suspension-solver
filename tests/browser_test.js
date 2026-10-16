@@ -2,12 +2,11 @@
 //     python3 ui/build.py && node tests/browser_test.js
 // Needs `npm ci` in tests/ (playwright, three, xlsx) and a Chromium that Playwright can find
 // (`npx playwright install chromium` once, or PLAYWRIGHT_BROWSERS_PATH pointing at one).
-// Exits non-zero if any check fails. Network is not needed: three.js and SheetJS are served from node_modules.
+// Exits non-zero if any check fails. Network is blocked: the page must work offline.
 const path = require("path"), fs = require("fs"), os = require("os");
 const { chromium } = require("playwright");
 const XLSX = require("xlsx");
 const ROOT = path.resolve(__dirname, ".."), PAGE = "file://" + path.join(ROOT, "ui", "index.html");
-const NM = path.join(__dirname, "node_modules");
 let failures = 0, passes = 0;
 function check(name, ok, detail = "") {
   if (ok) { passes++; console.log("  ok   " + name); }
@@ -16,9 +15,9 @@ function check(name, ok, detail = "") {
 async function newPage(browser, opts = {}) {
   const ctx = await browser.newContext({ viewport: opts.viewport || { width: 1366, height: 768 }, colorScheme: opts.scheme || "light", acceptDownloads: true });
   const p = await ctx.newPage();
-  await p.route("**/three.min.js", r => r.fulfill({ path: path.join(NM, "three/build/three.min.js"), contentType: "application/javascript" }));
-  await p.route("**/xlsx.full.min.js", r => r.fulfill({ path: path.join(NM, "xlsx/dist/xlsx.full.min.js"), contentType: "application/javascript" }));
-  await p.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
+  // the page must work offline: three.js, SheetJS and the fonts are built in, so block (and count) every web request
+  p.netRequests = [];
+  await p.route(/^https?:/, r => { p.netRequests.push(r.request().url()); r.abort(); });
   p.errors = [];
   p.on("pageerror", e => p.errors.push("pageerror: " + e.message));
   p.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|net::|Failed to load resource/.test(m.text())) p.errors.push("console: " + m.text()); });
@@ -168,6 +167,8 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
   await p.reload(); await p.waitForTimeout(1200);
   check("dark theme is remembered", (await p.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "dark");
   check("no script errors on the desktop pass", p.errors.length === 0, p.errors.slice(0, 5).join(" | "));
+  check("the page makes no web requests (works offline)", p.netRequests.length === 0, p.netRequests.slice(0, 3).join(", "));
+  check("the 3D view runs with the built-in three.js", await p.evaluate(() => typeof THREE !== "undefined" && !!document.querySelector("canvas")));
   await p.context().close();
 
   console.log("\nPhone width");

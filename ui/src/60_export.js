@@ -1,6 +1,6 @@
 // ------------------------------------------------------------------ export: design report (HTML) and Excel workbook
 // Works for one corner (Front / Rear view) or the whole car (Car view). Everything is built in the browser; the
-// Excel writer (SheetJS) is loaded from cdnjs only when Excel export is first used.
+// Excel writer: SheetJS, built into the page.
 function exportScope() {
   const isCar = !!(car && axleView === "car" && !chal),
     r = isCar ? carRes || evalCar() : null;
@@ -232,21 +232,9 @@ function reportHtml() {
 }
 
 // ---------------------------------------------------------------- Excel workbook
-let xlsxLoading = null;
+// SheetJS is built into the page (ui/vendor/xlsx.full.min.js), so Excel export works offline
 function loadXlsx() {
-  if (window.XLSX) return Promise.resolve(window.XLSX);
-  if (!xlsxLoading)
-    xlsxLoading = new Promise((res, rej) => {
-      const s = document.createElement("script");
-      s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-      s.onload = () => res(window.XLSX);
-      s.onerror = () => {
-        xlsxLoading = null;
-        rej(new Error("could not load the Excel writer (no internet?)"));
-      };
-      document.head.appendChild(s);
-    });
-  return xlsxLoading;
+  return window.XLSX ? Promise.resolve(window.XLSX) : Promise.reject(new Error("the Excel writer is missing from this page"));
 }
 async function exportXlsx() {
   const XL = await loadXlsx(),
