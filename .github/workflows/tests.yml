@@ -4,13 +4,19 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      runner:
+        description: "Machine image to test on (e.g. ubuntu-26.04 to try the next image before it becomes the default)"
+        required: false
+        default: ubuntu-24.04
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # pinned: ubuntu-latest moves to a new Ubuntu without warning; try the next one with a manual run first
+    runs-on: ${{ inputs.runner || 'ubuntu-24.04' }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -29,9 +35,9 @@ jobs:
           python3 validation/tools/planar_fourbar.py | diff - validation/planar_fourbar.json
           python3 validation/tools/handcalc_loads.py | diff - validation/loads_handcalc.json
           python3 tests/test_reference.py
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: tests/package-lock.json
       - name: Build the web page (and check the committed copy is up to date)
