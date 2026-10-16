@@ -426,3 +426,12 @@ body { border-top: 4px solid var(--gold); }
 .subh { font-size: 15px; margin: 18px 0 6px; }
 .jbolt { font-size: 12px; padding: 2px 4px; max-width: 150px; }
 .jtab td:nth-child(2) { min-width: 250px; } .jtab td:first-child { min-width: 170px; }
+
+/* Car view: each corner's checks */
+.ccards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+.ccard { border: 1px solid var(--line); border-left: 4px solid var(--ok, #276b43); border-radius: 8px; padding: 10px 12px; background: var(--panel); }
+.ccard.bad { border-left-color: var(--bad, #b3261e); }
+.cchead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+.cfails { margin: 4px 0 6px; padding-left: 18px; font-size: 13px; }
+.cfails li { margin: 2px 0; }
+.ctabs { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; font-size: 12.5px; }

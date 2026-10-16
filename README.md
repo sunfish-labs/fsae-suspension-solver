@@ -154,8 +154,13 @@ lines up with no adjustment. Otherwise **Move and rotate** it: X / Y / Z offsets
 own center (typed, or − / + in steps of 1, 10 or 100 mm and 0.5, 5 or 90°), **Center on the centerline** and
 **Lowest point at … mm**. Hover over the model to read the X Y Z of any point on it and line up a known point (a
 pickup tab, the front bulkhead) with the hardpoint it should meet. The model is read in your browser, never
-uploaded, and kept in this browser (IndexedDB) with its position for the next visit. It is for looking only: no
-clearance numbers are computed against it yet.
+uploaded, and kept in this browser (IndexedDB) with its position for the next visit.
+
+**Clearance to the model.** **Check clearance** in the chassis panel finds how close each link (the four wishbone
+legs, tie rod / toe link, pushrod and damper, at their tube ODs) comes to the model's surface over the whole travel
+and steering range, on both sides of both axles. The table lists the closest links against `clearance.margin`;
+click one to jump to that pose and mark the two closest points in red. Gaps over 150 mm are not listed. A link that
+crosses the model shows "touches". It checks surfaces, so a link entirely inside a closed shape isn't caught.
 
 **Axes in the 3D view.** The triad in the corner shows the solver's axes as the view turns: X forward (red),
 Y right (green), Z up (blue); ground at Z = 0, car centerline at Y = 0, in mm. Hover over any joint to read its
@@ -300,7 +305,7 @@ Member forces: + = tension.
   not rules. Check wheelbase and turning limits against the current FSAE rulebook.
 - The optimizer finds one local solution. Always re-run `run` on the result.
 
-See `ACTION_PLAN.md` for how the tool was planned and what each feature is for.
+See `ACTION_PLAN.md` for how the tool was planned and `TODO.md` for what is next.
 
 ## Code layout
 Both solvers read the same **`schema/`** files: `defaults.json` (every default value, with notes), `metrics.json`

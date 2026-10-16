@@ -92,6 +92,10 @@
       <input class="num" id="fmGap" type="number" step="1" value="40" style="width:70px" aria-label="Height of the lowest point above the ground, mm"><span class="note">mm</span>
       <button class="btn small" type="button" id="fmZero">Reset move</button></div>
     <div class="field"><label for="fmOp">See-through</label><input type="range" id="fmOp" min="0.08" max="1" step="0.02"></div>
+    <h3 class="fmh">Clearance to the model</h3>
+    <p class="note">The closest each link (wishbone legs, tie rod, pushrod, damper; both sides, both axles) comes to the model over the whole travel and steering range.</p>
+    <div class="fmbtns"><button class="btn primary small" type="button" id="fmCheck">Check clearance</button><span class="note" id="fmClearNote"></span></div>
+    <div id="fmClear"></div>
     <div class="fmbtns"><button class="btn small" type="button" id="fmRemove">Remove the model</button></div>
     <details class="cadhelp"><summary>How to get the file</summary>
       <ul>

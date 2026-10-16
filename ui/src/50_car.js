@@ -265,6 +265,40 @@ function renderCarIn() {
 let carSlotPending = null;
 
 // ---------------------------------------------------------------- car results
+// the Car view hides the result tabs, so each corner's checks are summarized here with a way into the details
+const CORNER_TABS = [
+  ["checks", "Targets"],
+  ["motion", "Motion"],
+  ["spring", "Spring & damper"],
+  ["loads", "Loads"],
+  ["pack", "Packaging & joints"],
+];
+function cornerChecksHtml(F, R) {
+  const card = (ax, e) => {
+    const rows = checkRows(e),
+      bad = rows.filter(c => c.status !== "PASS");
+    const list = bad.length
+      ? `<ul class="cfails">${bad.map(c => `<li><b>${esc(c.lab)}</b> ${fmt(c.value, c.dec)} ${esc(c.unit || "")} <span class="muted">(allowed ${rngTxt(c.lo, c.hi, c.dec)})</span></li>`).join("")}</ul>`
+      : `<p class="muted">Every target is met.</p>`;
+    return `<div class="ccard ${bad.length ? "bad" : "ok"}"><div class="cchead"><b>${ax === "front" ? "Front" : "Rear"} corner</b><span class="pill ${bad.length ? "bad" : "ok"}">${rows.length - bad.length}/${rows.length} targets</span></div>${list}
+      <div class="ctabs"><span class="muted">Open the ${ax} details:</span>${CORNER_TABS.map(([t, lab]) => `<button class="btn small" type="button" data-goto="${attr(ax)}" data-tab-to="${attr(t)}">${lab}</button>`).join("")}</div></div>`;
+  };
+  return `<h3 class="sub-h">Corner checks</h3><div class="ccards">${card("front", F)}${card("rear", R)}</div>
+    <p class="note">Curves, loads, packaging, joint misalignment and the influence tools are in the <b>Front</b> and <b>Rear</b> views (top right, or the buttons above).</p>`;
+}
+function wireCornerChecks(box) {
+  $$("[data-goto]", box).forEach(b =>
+    b.addEventListener("click", () => {
+      const tab = b.dataset.tabTo;
+      setView(b.dataset.goto);
+      const t = $(`#tab_${cssq(tab)}`);
+      if (t) {
+        t.click();
+        t.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+      }
+    })
+  );
+}
 function renderCarBox() {
   const box = $("#carBox");
   if (!box || !car) return;
@@ -293,7 +327,7 @@ function renderCarBox() {
       `<tr><td>${lab}</td><td class="n">${fmt(f, dec)}</td><td class="n">${fmt(rr, dec)}</td><td class="muted">${unit}</td></tr>`;
   const mF = F.metrics,
     mR = R.metrics;
-  let html = "";
+  let html = cornerChecksHtml(F, R);
   if (B)
     html += `<div class="tbl-wrap"><table class="data"><thead><tr><th>Car target</th><th class="n">Value</th><th>Allowed range</th><th>Status</th></tr></thead><tbody>
     ${B.checks
@@ -429,6 +463,7 @@ function renderCarBox() {
     }
   </div>`;
   box.innerHTML = html;
+  wireCornerChecks(box);
   $$("[data-edit]", box).forEach(b => b.addEventListener("click", () => setView(b.dataset.edit)));
 }
 

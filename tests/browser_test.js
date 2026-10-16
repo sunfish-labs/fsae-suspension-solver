@@ -34,7 +34,8 @@ const text = async (p, sel) => (await p.textContent(sel)).replace(/\s+/g, " ").t
 const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.dataset.ax);
 
 (async () => {
-  const browser = await chromium.launch({ args: ["--use-gl=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist", "--enable-unsafe-swiftshader"] });
+  // PW_CHROMIUM: use a Chromium already on the machine instead of the one Playwright downloads
+  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || undefined, args: ["--use-gl=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist", "--enable-unsafe-swiftshader"] });
 
   console.log("\nStart and car view");
   let p = await newPage(browser);
@@ -43,6 +44,10 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   check("car view is the default", (await pressed(p)) === "car");
   check("example car meets its car targets", /3\/3 car targets/.test(await text(p, "#status")), await text(p, "#status"));
   check("front and rear corners meet all targets", /Front (\d+)\/\1/.test(await text(p, "#status")) && /Rear (\d+)\/\1/.test(await text(p, "#status")), await text(p, "#status"));
+  check("the Car view summarizes each corner's checks", (await p.$$("#carBox .ccard")).length === 2 && /Every target is met/.test(await text(p, "#carBox")), await text(p, "#carBox"));
+  await p.click('#carBox [data-goto="rear"][data-tab-to="pack"]'); await settle(p);
+  check("a corner button opens that corner on the chosen tab", (await pressed(p)) === "rear" && (await p.getAttribute("#tab_pack", "aria-selected")) === "true" && /misalignment/.test(await text(p, "#pn_pack")));
+  await p.click('#axleSeg [data-ax="car"]'); await settle(p);
   await p.fill('[data-cpath="arb.front"]', "0"); await settle(p);
   check("removing the front bar breaks the LLTD target", /2\/3 car targets/.test(await text(p, "#status")));
   await p.fill('[data-cpath="arb.front"]', "200"); await p.fill('[data-cpath="vehicle.mass"]', "300"); await settle(p);
@@ -279,6 +284,34 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
   const want = [0, 1, 2].map(j => [Math.min(...ends.map(e => e[j])), Math.max(...ends.map(e => e[j]))]);
   const off = Math.max(...[0, 1, 2].flatMap(j => [Math.abs(bb[0][j] - want[j][0]), Math.abs(bb[1][j] - want[j][1])]));
   check("round trip: the tube STL saved in SolidWorks axes loads back onto the links (no swapped axes, no shift)", off < 30, JSON.stringify({ bb, want }));
+  // clearance: a vertical plate at Y = +100 mm (solver frame) beside the right-hand links
+  {
+    const tri = [[[-3000, 100, -500], [1000, 100, -500], [1000, 100, 1500]], [[-3000, 100, -500], [1000, 100, 1500], [-3000, 100, 1500]]];
+    const buf = Buffer.alloc(84 + tri.length * 50); buf.writeUInt32LE(tri.length, 80);
+    tri.forEach((t, i) => t.forEach((v, j) => v.forEach((x, k) => buf.writeFloatLE(x, 84 + i * 50 + 12 + j * 12 + k * 4))));
+    fs.writeFileSync(path.join(tmpd, "plate.stl"), buf);
+  }
+  await p.selectOption("#fmFrame", "solver"); await p.selectOption("#fmOrigin", "solver"); await p.selectOption("#fmUnits", "mm");
+  await p.setInputFiles("#fmFile", path.join(tmpd, "plate.stl")); await settle(p);
+  await p.click("#fmCheck"); await settle(p);
+  const gaps = await p.evaluate(() => Object.fromEntries(window.__suspChassis().chassis.clear.rows.map(r => [r.key, r.gap])));
+  // the tie rod's inner end is 193 mm out, 158 mm at full rack inward; tubes 16 and 25.4 mm OD
+  check("clearance to a plate: tie rod = 193 - 35 - 100 - 8 mm (worst at full rack)", Math.abs(gaps["FR tie rod"] - 50) < 1e-6, gaps["FR tie rod"]);
+  check("clearance to a plate: lower leg = pivot Y - 100 - 12.7 mm", Math.abs(gaps["FR lower leg to pivot X=230"] - (166.1 - 100 - 12.7)) < 1e-6, gaps["FR lower leg to pivot X=230"]);
+  check("clearance table lists the closest links with a status", /Too close|Clear/.test(await text(p, "#fmClear")) && /FR tie rod/.test(await text(p, "#fmClear")));
+  await p.click('#fmClear [data-chhit="0"]'); await settle(p);
+  check("clicking a row shows that pose and marks the closest points", await p.evaluate(() => { const v = window.__suspView(); return !!(v.three.chHit && v.three.chHit.visible); }));
+  await p.click("#fmClose");
+  await p.click("#openMenu summary"); await p.click("#omChassis"); await settle(p);
+  // the grid search must find exactly what checking every triangle finds
+  await p.setInputFiles("#fmFile", path.join(tmpd, "frame.stl")); await settle(p);
+  await p.selectOption("#fmFrame", "sw"); await p.selectOption("#fmOrigin", "axle"); await settle(p);
+  const cmpBrute = await p.evaluate(async () => {
+    const C = window.__suspChassis(), a = await C.clearance(), b = await C.clearance({ brute: true });
+    const B = Object.fromEntries(b.rows.map(r => [r.key, r.gap]));
+    return [a.rows.length, Math.max(...a.rows.map(r => (Number.isFinite(r.gap) || Number.isFinite(B[r.key]) ? Math.abs(r.gap - B[r.key]) : 0)))];
+  });
+  check("the fast search finds the same gaps as checking every triangle", cmpBrute[0] > 20 && cmpBrute[1] < 1e-9, cmpBrute);
   await p.click("#fmRemove"); await settle(p);
   check("Remove takes it out of the view", await p.evaluate(() => !window.__suspView().three.scene.getObjectByName("chassis")));
   await p.click("#fmClose");

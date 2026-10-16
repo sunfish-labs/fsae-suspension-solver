@@ -171,6 +171,16 @@ function placeChassis() {
   chassis.mesh.position.set(c[0] + o[0] + dx, c[2] + o[2], c[1] + o[1]);
   chassis.mesh.rotation.set(-r[0], -r[2], -r[1], "YZX");
   chassis.mesh.userData.dx = dx;
+  if (chassis.clear) chStale();
+  if (three.chHit) {
+    const h = chassis.hit,
+      at =
+        h &&
+        Math.abs(pose.dz - h.hz) < 1e-6 &&
+        (h.corner[0] === "R" || Math.abs(pose.rack - h.rk) < 1e-6 || Math.abs(pose.rack + h.rk) < 1e-6);
+    three.chHit.position.x = dx;
+    three.chHit.visible = !!at && chassis.opts.show;
+  }
   chassis.mesh.visible = chassis.opts.show;
   chassis.mesh.material.opacity = chassis.opts.opacity;
   $("#tgChassis").hidden = false;
@@ -187,12 +197,19 @@ function chDB() {
     r.onerror = () => rej(r.error);
   });
 }
-async function chSave() {
+// the file is stored once when it is loaded (withFile); every move after that only rewrites the small settings record
+async function chSave(withFile = false) {
   try {
     const db = await chDB(),
-      tx = db.transaction("m", "readwrite");
-    if (chassis.buf) tx.objectStore("m").put({ buf: chassis.buf, name: chassis.name, ext: chassis.ext, opts: chassis.opts }, "model");
-    else tx.objectStore("m").delete("model");
+      tx = db.transaction("m", "readwrite"),
+      st = tx.objectStore("m");
+    if (!chassis.buf) {
+      st.delete("model");
+      st.delete("opts");
+    } else {
+      if (withFile) st.put({ buf: chassis.buf, name: chassis.name, ext: chassis.ext }, "model");
+      st.put(chassis.opts, "opts");
+    }
   } catch (e) {
     /* private window or storage off: the model just isn't remembered */
   }
@@ -200,14 +217,17 @@ async function chSave() {
 async function chLoadSaved() {
   try {
     const db = await chDB(),
-      v = await new Promise(res => {
-        const r = db.transaction("m").objectStore("m").get("model");
-        r.onsuccess = () => res(r.result);
-        r.onerror = () => res(null);
-      });
+      get = k =>
+        new Promise(res => {
+          const r = db.transaction("m").objectStore("m").get(k);
+          r.onsuccess = () => res(r.result);
+          r.onerror = () => res(null);
+        }),
+      v = await get("model"),
+      o = await get("opts");
     if (v && v.buf) {
       Object.assign(chassis, { buf: v.buf, name: v.name, ext: v.ext });
-      Object.assign(chassis.opts, v.opts || {});
+      Object.assign(chassis.opts, o || v.opts || {});
       if (!Array.isArray(chassis.opts.off)) chassis.opts.off = [0, 0, 0];
       if (!Array.isArray(chassis.opts.rot)) chassis.opts.rot = [0, 0, 0];
       buildChassisMesh();
@@ -250,9 +270,18 @@ function chMoveFields() {
     ).join("");
   for (const [k, i] of CH_MOVE) $(`#fmm_${k}${i}`).value = +chassis.opts[k][i].toFixed(3);
 }
+function chStale() {
+  if (chassis.clear && $("#fmClearNote"))
+    $("#fmClearNote").textContent =
+      chassis.clear.sig === chSignature() ? "" : "The design or the model moved since this check: run it again.";
+}
+let chInfoRaf = 0;
 function chApplyMove() {
+  chStale();
   placeChassis();
-  if (chassis.base) $("#fmInfo").textContent = chassisInfo(chMoved());
+  // the size readout moves every vertex: once per frame at most
+  cancelAnimationFrame(chInfoRaf);
+  chInfoRaf = requestAnimationFrame(() => chassis.base && ($("#fmInfo").textContent = chassisInfo(chMoved())));
   chSave();
 }
 function openChassis() {
@@ -284,8 +313,11 @@ function wireChassis() {
       chassis.opts.show = true;
       chassis.opts.off = [0, 0, 0];
       chassis.opts.rot = [0, 0, 0];
+      chassis.clear = null;
+      chDrawHit(null);
+      chRenderClear(null);
       buildChassisMesh();
-      chSave();
+      chSave(true);
       chSync();
       if (!three) $("#fmInfo").textContent = "Loaded, but the 3D view is not available in this browser.";
     } catch (er) {
@@ -348,7 +380,25 @@ function wireChassis() {
     placeChassis();
     chSave();
   });
+  $("#fmCheck").addEventListener("click", async () => {
+    if (!chassis.base) return;
+    const b = $("#fmCheck");
+    b.disabled = true;
+    $("#fmClearNote").textContent = "Checking…";
+    try {
+      chassis.clear = await busy(chClearance());
+      chRenderClear(chassis.clear);
+      $("#fmClearNote").textContent = "";
+    } catch (er) {
+      $("#fmClearNote").textContent = "The check failed: " + er.message;
+    }
+    b.disabled = false;
+  });
   $("#fmRemove").addEventListener("click", () => {
+    chassis.clear = null;
+    chDrawHit(null);
+    chRenderClear(null);
+    $("#fmClearNote").textContent = "";
     chassis.buf = null;
     buildChassisMesh();
     chSave();
@@ -362,4 +412,288 @@ function wireChassis() {
   });
   chLoadSaved();
 }
-window.__suspChassis = () => ({ chassis, moved: chMoved }); // used by the browser tests
+window.__suspChassis = () => ({ chassis, moved: chMoved, clearance: chClearance }); // used by the browser tests
+
+// ---- clearance from every link to the chassis model, over the travel and rack range, both sides, both axles
+// closest points between segments p1-q1 and p2-q2 (Ericson, Real-Time Collision Detection 5.1.9)
+function chSegSeg(p1, q1, p2, q2) {
+  const d1 = V.sub(q1, p1),
+    d2 = V.sub(q2, p2),
+    r = V.sub(p1, p2),
+    a = V.dot(d1, d1),
+    e = V.dot(d2, d2),
+    f = V.dot(d2, r),
+    cl = v => Math.min(1, Math.max(0, v));
+  let s, t;
+  if (a < 1e-12 && e < 1e-12) [s, t] = [0, 0];
+  else if (a < 1e-12) [s, t] = [0, cl(f / e)];
+  else {
+    const c = V.dot(d1, r);
+    if (e < 1e-12) [s, t] = [cl(-c / a), 0];
+    else {
+      const b = V.dot(d1, d2),
+        den = a * e - b * b;
+      s = den > 1e-12 ? cl((b * f - c * e) / den) : 0;
+      t = (b * s + f) / e;
+      if (t < 0) [t, s] = [0, cl(-c / a)];
+      else if (t > 1) [t, s] = [1, cl((b - c) / a)];
+    }
+  }
+  return [V.add(p1, V.mul(d1, s)), V.add(p2, V.mul(d2, t))];
+}
+// closest point on triangle abc to p (Ericson 5.1.5)
+function chPtTri(p, a, b, c) {
+  const ab = V.sub(b, a),
+    ac = V.sub(c, a),
+    ap = V.sub(p, a),
+    d1 = V.dot(ab, ap),
+    d2 = V.dot(ac, ap);
+  if (d1 <= 0 && d2 <= 0) return a;
+  const bp = V.sub(p, b),
+    d3 = V.dot(ab, bp),
+    d4 = V.dot(ac, bp);
+  if (d3 >= 0 && d4 <= d3) return b;
+  const vc = d1 * d4 - d3 * d2;
+  if (vc <= 0 && d1 >= 0 && d3 <= 0) return V.add(a, V.mul(ab, d1 / (d1 - d3)));
+  const cp = V.sub(p, c),
+    d5 = V.dot(ab, cp),
+    d6 = V.dot(ac, cp);
+  if (d6 >= 0 && d5 <= d6) return c;
+  const vb = d5 * d2 - d1 * d6;
+  if (vb <= 0 && d2 >= 0 && d6 <= 0) return V.add(a, V.mul(ac, d2 / (d2 - d6)));
+  const va = d3 * d6 - d5 * d4;
+  if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) return V.add(b, V.mul(V.sub(c, b), (d4 - d3) / (d4 - d3 + (d5 - d6))));
+  const den = 1 / (va + vb + vc);
+  return V.add(a, V.add(V.mul(ab, vb * den), V.mul(ac, vc * den)));
+}
+// closest points between segment p-q and triangle abc: [distance, point on segment, point on triangle]
+function chSegTri(p, q, a, b, c) {
+  // the segment crossing the triangle (Moller-Trumbore, t in [0, 1])
+  const d = V.sub(q, p),
+    e1 = V.sub(b, a),
+    e2 = V.sub(c, a),
+    h = V.cross(d, e2),
+    det = V.dot(e1, h);
+  if (Math.abs(det) > 1e-12) {
+    const f = 1 / det,
+      s = V.sub(p, a),
+      u = f * V.dot(s, h),
+      qq = V.cross(s, e1),
+      v = f * V.dot(d, qq),
+      t = f * V.dot(e2, qq);
+    if (u >= 0 && v >= 0 && u + v <= 1 && t >= 0 && t <= 1) {
+      const x = V.add(p, V.mul(d, t));
+      return [0, x, x];
+    }
+  }
+  let best = null;
+  const take = (x, y) => {
+    const dd = V.norm(V.sub(x, y));
+    if (!best || dd < best[0]) best = [dd, x, y];
+  };
+  take(p, chPtTri(p, a, b, c));
+  take(q, chPtTri(q, a, b, c));
+  for (const [u0, u1] of [
+    [a, b],
+    [b, c],
+    [c, a],
+  ]) {
+    const [x, y] = chSegSeg(p, q, u0, u1);
+    take(x, y);
+  }
+  return best;
+}
+// triangles of the moved model bucketed in a uniform grid, so each link only looks at the triangles near it
+function chBuildGrid(P, cell) {
+  const map = new Map(),
+    key = (i, j, k) => (i * 73856093) ^ (j * 19349663) ^ (k * 83492791);
+  for (let t = 0; t < P.length / 9; t++) {
+    const o = t * 9,
+      lo = [0, 1, 2].map(j => Math.floor(Math.min(P[o + j], P[o + 3 + j], P[o + 6 + j]) / cell)),
+      hi = [0, 1, 2].map(j => Math.floor(Math.max(P[o + j], P[o + 3 + j], P[o + 6 + j]) / cell));
+    for (let i = lo[0]; i <= hi[0]; i++)
+      for (let j = lo[1]; j <= hi[1]; j++)
+        for (let k = lo[2]; k <= hi[2]; k++) {
+          const kk = key(i, j, k);
+          let l = map.get(kk);
+          if (!l) map.set(kk, (l = []));
+          l.push(t);
+        }
+  }
+  // a bounding sphere per triangle: most triangles near a link are skipped without the exact test
+  const n = P.length / 9,
+    C = new Float64Array(n * 3),
+    R = new Float64Array(n);
+  for (let t = 0; t < n; t++) {
+    const o = t * 9;
+    for (let j = 0; j < 3; j++) C[t * 3 + j] = (P[o + j] + P[o + 3 + j] + P[o + 6 + j]) / 3;
+    for (let v = 0; v < 3; v++)
+      R[t] = Math.max(R[t], Math.hypot(P[o + v * 3] - C[t * 3], P[o + v * 3 + 1] - C[t * 3 + 1], P[o + v * 3 + 2] - C[t * 3 + 2]));
+  }
+  return { map, cell, key, stamp: new Uint32Array(n), gen: 0, C, R };
+}
+// closest approach of segment p-q to the model within `reach` mm (null if farther); brute = check every triangle
+function chNearest(P, G, p, q, reach, brute = false) {
+  let best = null;
+  const d = V.sub(q, p),
+    dd = V.dot(d, d);
+  const test = t => {
+    if (!brute && G && G.C) {
+      // distance from the segment to the triangle's bounding sphere: skip it if it can't beat what we have
+      const c = [G.C[t * 3], G.C[t * 3 + 1], G.C[t * 3 + 2]],
+        u = dd > 1e-12 ? Math.min(1, Math.max(0, V.dot(V.sub(c, p), d) / dd)) : 0,
+        lb = V.norm(V.sub(c, V.add(p, V.mul(d, u)))) - G.R[t];
+      if (lb > reach || (best && lb >= best[0])) return;
+    }
+    const o = t * 9,
+      r = chSegTri(p, q, [P[o], P[o + 1], P[o + 2]], [P[o + 3], P[o + 4], P[o + 5]], [P[o + 6], P[o + 7], P[o + 8]]);
+    if (r[0] <= reach && (!best || r[0] < best[0])) best = r;
+  };
+  if (brute) {
+    for (let t = 0; t < P.length / 9; t++) test(t);
+    return best;
+  }
+  const c = G.cell,
+    lo = [0, 1, 2].map(j => Math.floor((Math.min(p[j], q[j]) - reach) / c)),
+    hi = [0, 1, 2].map(j => Math.floor((Math.max(p[j], q[j]) + reach) / c)),
+    gen = ++G.gen;
+  for (let i = lo[0]; i <= hi[0]; i++)
+    for (let j = lo[1]; j <= hi[1]; j++)
+      for (let k = lo[2]; k <= hi[2]; k++) {
+        const l = G.map.get(G.key(i, j, k));
+        if (l)
+          for (const t of l)
+            if (G.stamp[t] !== gen) {
+              G.stamp[t] = gen;
+              test(t);
+            }
+      }
+  return best;
+}
+const CH_REACH = 150; // gaps larger than this are reported as "more than 150 mm"
+// the links of one corner at one pose (right-hand side, that corner's own frame): [name, a, b, radius]
+function chLinks(e, x, hz, rk) {
+  const s = e.susp,
+    h = s.h,
+    cl = e.cfg.clearance,
+    p = s.observe(x, hz, rk)._pts,
+    rod = e.cfg.axle === "rear" ? "toe link" : "tie rod",
+    wr = (cl.wishbone_tube_od || 15.9) / 2;
+  const L = [
+    [`lower leg to pivot X=${h.lif[0].toFixed(0)}`, h.lif, p.lb, wr],
+    [`lower leg to pivot X=${h.lir[0].toFixed(0)}`, h.lir, p.lb, wr],
+    [`upper leg to pivot X=${h.uif[0].toFixed(0)}`, h.uif, p.ub, wr],
+    [`upper leg to pivot X=${h.uir[0].toFixed(0)}`, h.uir, p.ub, wr],
+    [rod, p.tri, p.tro, (cl.tie_rod_od || 15.9) / 2],
+  ];
+  if (e.spring) {
+    const st = e.spring.state(x);
+    if (!e.spring.direct) L.push(["pushrod", st.rod_out, st.rod_in, (cl.pushrod_od || 15.9) / 2]);
+    L.push(["damper", st.damper_out, e.spring.dch, (cl.damper_od || 50) / 2]);
+  }
+  return L;
+}
+function chCorners() {
+  const list = car
+    ? [
+        ["F", carEvalCorner(car.front).ev],
+        ["R", carEvalCorner(car.rear).ev],
+      ]
+    : [[cfg.axle === "rear" ? "R" : "F", ev]];
+  const wb = ((car && car.vehicle) || cfg.vehicle).wheelbase || 1550;
+  return list.filter(([, e]) => e).map(([ax, e]) => ({ ax, e, dx: ax === "R" ? -wb : 0 })); // dx: corner frame -> car frame
+}
+function chSignature() {
+  return JSON.stringify([chCorners().map(c => c.e.cfg), chassis.name, chassis.tris, chassis.opts]);
+}
+async function chClearance({ brute = false } = {}) {
+  if (!chassis.base) return null;
+  const P = chMoved(),
+    G = chBuildGrid(P, 60),
+    rows = new Map();
+  let n = 0;
+  for (const { ax, e, dx } of chCorners()) {
+    const sw = e.cfg.sweep,
+      [D, B] = S.travelRange(e.cfg),
+      heaves = S.heavePoints(D, B, +(sw.pack_heave_steps || 9)),
+      racks = ax === "F" ? S.heavePoints(sw.rack_travel, sw.rack_travel, +(sw.pack_rack_steps || 7)) : [0];
+    for (const [hz, rk, x] of e.susp.grid(heaves, racks))
+      for (const [name, a0, b0, r] of chLinks(e, x, hz, rk))
+        for (const side of ["R", "L"]) {
+          // the left corner is the mirror image of the right one at the opposite rack position
+          const m = v => [v[0] + dx, side === "R" ? v[1] : -v[1], v[2]],
+            hit = chNearest(P, G, m(a0), m(b0), CH_REACH + r, brute),
+            key = `${ax}${side} ${name}`,
+            gap = hit ? hit[0] - r : Infinity,
+            cur = rows.get(key);
+          if (!cur || gap < cur.gap)
+            rows.set(key, { key, corner: ax + side, name, gap, hz, rk: side === "R" ? rk : -rk, a: hit && hit[1], b: hit && hit[2], r });
+          if (++n % 200 === 0) await new Promise(res => setTimeout(res, 0)); // keep the page responsive
+        }
+  }
+  const need = (chCorners()[0] || {}).e?.cfg.clearance.margin ?? 5;
+  const out = [...rows.values()].sort((u, v) => u.gap - v.gap);
+  return { rows: out, need, sig: chSignature(), worst: out[0] || null };
+}
+// the closest pair drawn in the 3D view while the pose is the one it was found at
+function chDrawHit(hit) {
+  if (!three) return;
+  const T = three.T;
+  if (three.chHit) {
+    three.scene.remove(three.chHit);
+    three.chHit.traverse(n => n.geometry && n.geometry.dispose());
+    three.chHit = null;
+  }
+  chassis.hit = hit;
+  if (!hit || !hit.a) return void (three.need = true);
+  const g = new T.Group(),
+    mat = new T.MeshBasicMaterial({ color: 0xd1342f, depthTest: false }),
+    toW = v => new T.Vector3(v[0], v[2], v[1]); // car frame -> three.js, as toT
+  for (const v of [hit.a, hit.b]) {
+    const s = new T.Mesh(new T.SphereGeometry(6, 14, 10), mat);
+    s.position.copy(toW(v));
+    g.add(s);
+  }
+  g.add(
+    new T.Line(
+      new T.BufferGeometry().setFromPoints([toW(hit.a), toW(hit.b)]),
+      new T.LineBasicMaterial({ color: 0xd1342f, depthTest: false })
+    )
+  );
+  g.renderOrder = 10;
+  three.chHit = g;
+  three.scene.add(g);
+  placeChassis();
+}
+function chRenderClear(res) {
+  const box = $("#fmClear");
+  if (!res) return void (box.innerHTML = "");
+  const fr = res.rows.some(r => r.corner[0] === "F"),
+    near = res.rows.filter(r => r.gap < CH_REACH),
+    far = res.rows.length - near.length;
+  box.innerHTML =
+    (res.worst
+      ? `<p class="note">Closest: <b class="${res.worst.gap >= res.need ? "ok" : "bad"}">${esc(res.worst.key)}, ${Number.isFinite(res.worst.gap) ? fmt(res.worst.gap, 1) + " mm" : `more than ${CH_REACH} mm`}</b> (needs ${fmt(res.need, 0)} mm, the clearance margin). Gap = tube surface to the model's surface.</p>`
+      : "") +
+    (near.length
+      ? `<div class="tbl-wrap"><table class="data"><thead><tr><th>Link</th><th class="n">Gap, mm</th><th>At travel${fr ? " / rack" : ""}</th><th></th></tr></thead><tbody>${near
+          .map(
+            (r, i) =>
+              `<tr><td><button class="lnk" type="button" data-chhit="${i}" title="Show this pose and the closest points">${esc(r.key)}</button></td><td class="n">${r.gap <= -r.r + 1e-9 ? "touches" : fmt(r.gap, 1)}</td><td>${fmt(r.hz, 0)} mm${r.corner[0] === "F" ? `, rack ${fmt(r.rk, 0)} mm` : ""}</td><td>${r.gap >= res.need ? `<span class="pill ok">Clear</span>` : `<span class="pill bad">Too close</span>`}</td></tr>`
+          )
+          .join("")}</tbody></table></div>`
+      : "") +
+    (far ? `<p class="note">${far} more link${far > 1 ? "s" : ""} stay more than ${CH_REACH} mm from the model.</p>` : "");
+  $$("[data-chhit]", box).forEach(b =>
+    b.addEventListener("click", () => {
+      const r = near[+b.dataset.chhit];
+      const ax = r.corner[0] === "F" ? "front" : "rear";
+      if (car && axleView !== "car" && axleView !== ax) setView(ax, { keepCam: true });
+      setTravel(r.hz);
+      if (r.corner[0] === "F") setRack(r.rk);
+      else if (!(car && axleView === "car")) setRack(0);
+      chDrawHit(r);
+      updateScene();
+    })
+  );
+}

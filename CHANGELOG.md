@@ -3,6 +3,16 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.2.0 - 2026-10-16
+
+- **Clearance to the chassis model:** the closest each link comes to the loaded frame over travel and steer, both
+  sides, both axles; click a row to see the pose and the two closest points.
+- **Car view:** each corner's checks (failing targets listed) with buttons into the Front / Rear tabs, which the
+  Car view hides.
+- **CI:** GitHub Actions moved off Node 20; jobs pinned to Ubuntu 24.04 ahead of the Ubuntu 26.04 switch; Playwright
+  1.63 (supports 26.04); a manual run can pick the machine image.
+- `TODO.md`: what is next, by importance.
+
 ## 1.1.0 - 2026-10-16
 
 - **Rod-end and bearing misalignment:** every rod end, ball joint, pushrod end and damper eye over the whole travel
