@@ -403,3 +403,22 @@ body { border-top: 4px solid var(--gold); }
 /* phones: toolbar menus open full-width under the toolbar instead of under their button */
 @media (max-width: 520px) { .toolbar:not(.tb-right) { position: relative; } .toolbar:not(.tb-right) > .xmenu { position: static; }
   .toolbar:not(.tb-right) .xpop.xleft { left: 0; right: 0; width: auto; max-width: none; } }
+
+/* XYZ triad caption and the hover coordinate readout */
+.vaxkey { position: absolute; left: 10px; top: 160px; font: 10.5px/1.2 var(--f-mono); color: var(--muted); background: color-mix(in srgb, var(--viewer) 75%, transparent); padding: 2px 5px; border-radius: 5px; cursor: help; }
+.vtip { position: absolute; z-index: 7; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; box-shadow: 0 6px 20px rgba(0,0,0,.18); font: 12px/1.35 var(--f-mono); display: flex; flex-direction: column; min-width: 150px; }
+.vtip b { font: 600 12.5px/1.3 var(--f-sans, inherit); margin-bottom: 2px; }
+.vtip small { color: var(--muted); font-size: 10.5px; margin-top: 2px; }
+.vtip .ax { font-style: normal; font-weight: 700; display: inline-block; width: 14px; }
+.vtip .ax.x { color: #d1342f; } .vtip .ax.y { color: #2e9e44; } .vtip .ax.z { color: #2f6fd6; }
+/* the chassis panel floats beside the 3D view, so the model stays visible while it is moved */
+.fmwrap { position: fixed; top: 72px; right: 16px; z-index: 45; width: min(350px, calc(100vw - 32px)); pointer-events: none; }
+.fmwrap .wcard { pointer-events: auto; width: 100%; max-height: calc(100vh - 96px); padding: 16px 18px; gap: 8px; }
+.fmwrap .wcard h2 { font-size: 22px; }
+.fmh { font-size: 14px; margin: 6px 0 0; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.fmmove { display: grid; grid-template-columns: auto auto 1fr auto auto; gap: 4px 6px; align-items: center; }
+.fmmove label { font-size: 13px; white-space: nowrap; }
+.fmmove input { width: 100%; min-width: 0; }
+.fmmove .u { font-size: 12px; color: var(--muted); }
+.fmbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 520px) { .fmwrap { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; } .fmwrap .wcard { max-height: 55vh; } .vaxkey { display: none; } }

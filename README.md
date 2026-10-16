@@ -129,8 +129,17 @@ as reference geometry for the chassis designer:
 seat or driver model from CAD and draws it see-through around the suspension, so you can watch the links move
 inside it. Pick the axes, origin and units the model was saved in; the dialog reports its size and where it sits so
 you can tell if a setting is wrong. A frame built around the **3D for CAD** export, saved with the same settings,
-lines up with no adjustment. The model is read in your browser, never uploaded, and kept in this browser
-(IndexedDB) for the next visit. It is for looking only: no clearance numbers are computed against it yet.
+lines up with no adjustment. Otherwise **Move and rotate** it: X / Y / Z offsets and roll / pitch / yaw about its
+own center (typed, or − / + in steps of 1, 10 or 100 mm and 0.5, 5 or 90°), **Center on the centerline** and
+**Lowest point at … mm**. Hover over the model to read the X Y Z of any point on it and line up a known point (a
+pickup tab, the front bulkhead) with the hardpoint it should meet. The model is read in your browser, never
+uploaded, and kept in this browser (IndexedDB) with its position for the next visit. It is for looking only: no
+clearance numbers are computed against it yet.
+
+**Axes in the 3D view.** The triad in the corner shows the solver's axes as the view turns: X forward (red),
+Y right (green), Z up (blue); ground at Z = 0, car centerline at Y = 0, in mm. Hover over any joint to read its
+coordinates. That frame is left-handed, so it is drawn as a mirror of three.js's own axes; the right-hand corner is
+drawn on the car's right.
 
 ## How loads are calculated (`loads`)
 One config covers both corners of its axle, because the car is symmetric. The solved wheel is the **outer** wheel

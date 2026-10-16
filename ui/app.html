@@ -62,32 +62,43 @@
   </div>
 </div>
 
-<div class="welcome" id="chDlg" hidden>
-  <div class="wcard cadcard" role="dialog" aria-modal="true" aria-labelledby="chTitle">
-    <button class="btn small wclose" type="button" id="chClose" aria-label="Close">✕</button>
-    <h2 id="chTitle">Chassis model</h2>
-    <p class="note">Show your frame (or body, seat, driver, anything) from CAD in the 3D view, see-through, with the suspension moving inside it. STL or OBJ. It is read in your browser, never uploaded, and kept in this browser for next time.</p>
-    <div class="cadgo"><button class="btn primary" type="button" id="chPick">Choose an STL or OBJ file…</button>
-      <input id="chFile" type="file" accept=".stl,.obj,model/stl" hidden></div>
-    <div id="chLoaded" hidden><p class="note"><b id="chName"></b></p></div>
+<div class="fmwrap" id="fmDlg" hidden>
+  <div class="wcard cadcard" role="dialog" aria-labelledby="fmTitle">
+    <button class="btn small wclose" type="button" id="fmClose" aria-label="Close">✕</button>
+    <h2 id="fmTitle">Chassis model</h2>
+    <p class="note">Your frame (or body, seat, driver) from CAD, see-through, with the suspension moving inside it. STL or OBJ, read in your browser, never uploaded, kept in this browser for next time.</p>
+    <div class="fmbtns"><button class="btn primary" type="button" id="fmPick">Choose an STL or OBJ file…</button>
+      <input id="fmFile" type="file" accept=".stl,.obj,model/stl" hidden>
+      <label class="small-check"><input type="checkbox" id="fmShow" checked> Show</label></div>
+    <p class="note" id="fmName"></p>
+    <p class="note" id="fmInfo"></p>
+    <h3 class="fmh">How it was drawn</h3>
     <div class="fields cadf">
-      <div class="field"><label for="chFrame">Axes the model was drawn in</label><select id="chFrame"></select></div>
-      <div class="field"><label for="chOrigin">Origin of the model</label><select id="chOrigin">
+      <div class="field"><label for="fmFrame">Axes</label><select id="fmFrame"></select></div>
+      <div class="field"><label for="fmOrigin">Origin</label><select id="fmOrigin">
         <option value="axle">Front axle centerline on the ground (same as 3D for CAD)</option>
         <option value="solver">The solver's own frame</option></select></div>
-      <div class="field"><label for="chUnits">Units the STL was saved in</label><select id="chUnits"><option value="mm">mm</option><option value="in">inch</option><option value="m">m</option></select></div>
-      <div class="field"><label for="chOp">See-through</label><input type="range" id="chOp" min="0.08" max="1" step="0.02"></div>
+      <div class="field"><label for="fmUnits">Units</label><select id="fmUnits"><option value="mm">mm</option><option value="in">inch</option><option value="m">m</option></select></div>
     </div>
-    <label class="small-check"><input type="checkbox" id="chShow" checked> Show in the 3D view</label>
-    <p class="note" id="chInfo"></p>
-    <div class="cadgo"><button class="btn" type="button" id="chRemove">Remove the model</button></div>
+    <h3 class="fmh">Move and rotate</h3>
+    <p class="note">In the car's axes: X forward, Y right, Z up (the triad in the 3D view). Rotations turn the model about its own center. Hover over the model to read any point's coordinates.</p>
+    <div class="field"><label for="fmStep">Step for − / +</label><select id="fmStep">
+      <option value="1">1 mm / 0.5°</option><option value="10" selected>10 mm / 5°</option><option value="100">100 mm / 90°</option></select></div>
+    <div class="fmmove" id="fmMove"></div>
+    <div class="fmbtns">
+      <button class="btn small" type="button" id="fmCenter" title="Move sideways so the model is centered on Y = 0">Center on the centerline</button>
+      <button class="btn small" type="button" id="fmGround" title="Move up or down so the lowest point is this far above the ground">Lowest point at</button>
+      <input class="num" id="fmGap" type="number" step="1" value="40" style="width:70px" aria-label="Height of the lowest point above the ground, mm"><span class="note">mm</span>
+      <button class="btn small" type="button" id="fmZero">Reset move</button></div>
+    <div class="field"><label for="fmOp">See-through</label><input type="range" id="fmOp" min="0.08" max="1" step="0.02"></div>
+    <div class="fmbtns"><button class="btn small" type="button" id="fmRemove">Remove the model</button></div>
     <details class="cadhelp"><summary>How to get the file</summary>
       <ul>
-        <li>Easiest: build the frame around the <b>3D for CAD</b> export, then export the frame with the same axes and origin. It lines up with no adjustment.</li>
+        <li>Easiest: build the frame around the <b>3D for CAD</b> export, then save the frame with the same axes and origin. It lines up with no moving.</li>
         <li><b>SolidWorks:</b> File → Save As → STL. Under Options pick the units and a coarse resolution to keep the file small.</li>
         <li><b>Onshape:</b> right-click the part or Part Studio → Export → STL, units mm, resolution coarse or medium.</li>
         <li><b>Fusion:</b> right-click the body → Save as Mesh → STL (binary).</li>
-        <li>If it comes in sideways or backwards, change <i>Axes</i>; if it is tiny or huge, change <i>Units</i>. The numbers below say how big it is and where it sits.</li>
+        <li>Sideways or backwards: change <i>Axes</i>, or turn it 90° with the 100 mm / 90° step. Tiny or huge: change <i>Units</i>. Then line up a known point (a pickup tab, the front bulkhead) by hovering over it and moving until its X Y Z match.</li>
       </ul>
     </details>
   </div>
@@ -234,6 +245,8 @@
         <div class="pvbar" id="pvbar" hidden></div>
         <div class="vhint" id="vhint" hidden>Tip: click any joint to see what moving it does</div>
         <div class="hud" id="hud"></div>
+        <div class="vtip" id="vtip" hidden></div>
+        <div class="vaxkey" title="The solver's axes: X forward, Y to the right (outboard on the right wheels), Z up, ground at Z = 0, car centerline at Y = 0, all in mm. Hover over any joint or the chassis to read its coordinates.">X forward · Y right · Z up</div>
         <div class="v-msg" id="vmsg" hidden></div>
       </div>
       <aside class="drawer" id="drawer" hidden aria-label="What moving this point does"></aside>

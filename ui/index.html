@@ -425,6 +425,25 @@ body { border-top: 4px solid var(--gold); }
 /* phones: toolbar menus open full-width under the toolbar instead of under their button */
 @media (max-width: 520px) { .toolbar:not(.tb-right) { position: relative; } .toolbar:not(.tb-right) > .xmenu { position: static; }
   .toolbar:not(.tb-right) .xpop.xleft { left: 0; right: 0; width: auto; max-width: none; } }
+
+/* XYZ triad caption and the hover coordinate readout */
+.vaxkey { position: absolute; left: 10px; top: 160px; font: 10.5px/1.2 var(--f-mono); color: var(--muted); background: color-mix(in srgb, var(--viewer) 75%, transparent); padding: 2px 5px; border-radius: 5px; cursor: help; }
+.vtip { position: absolute; z-index: 7; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; box-shadow: 0 6px 20px rgba(0,0,0,.18); font: 12px/1.35 var(--f-mono); display: flex; flex-direction: column; min-width: 150px; }
+.vtip b { font: 600 12.5px/1.3 var(--f-sans, inherit); margin-bottom: 2px; }
+.vtip small { color: var(--muted); font-size: 10.5px; margin-top: 2px; }
+.vtip .ax { font-style: normal; font-weight: 700; display: inline-block; width: 14px; }
+.vtip .ax.x { color: #d1342f; } .vtip .ax.y { color: #2e9e44; } .vtip .ax.z { color: #2f6fd6; }
+/* the chassis panel floats beside the 3D view, so the model stays visible while it is moved */
+.fmwrap { position: fixed; top: 72px; right: 16px; z-index: 45; width: min(350px, calc(100vw - 32px)); pointer-events: none; }
+.fmwrap .wcard { pointer-events: auto; width: 100%; max-height: calc(100vh - 96px); padding: 16px 18px; gap: 8px; }
+.fmwrap .wcard h2 { font-size: 22px; }
+.fmh { font-size: 14px; margin: 6px 0 0; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.fmmove { display: grid; grid-template-columns: auto auto 1fr auto auto; gap: 4px 6px; align-items: center; }
+.fmmove label { font-size: 13px; white-space: nowrap; }
+.fmmove input { width: 100%; min-width: 0; }
+.fmmove .u { font-size: 12px; color: var(--muted); }
+.fmbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 520px) { .fmwrap { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; } .fmwrap .wcard { max-height: 55vh; } .vaxkey { display: none; } }
 </style>
 
 <header class="top">
@@ -481,32 +500,43 @@ body { border-top: 4px solid var(--gold); }
   </div>
 </div>
 
-<div class="welcome" id="chDlg" hidden>
-  <div class="wcard cadcard" role="dialog" aria-modal="true" aria-labelledby="chTitle">
-    <button class="btn small wclose" type="button" id="chClose" aria-label="Close">✕</button>
-    <h2 id="chTitle">Chassis model</h2>
-    <p class="note">Show your frame (or body, seat, driver, anything) from CAD in the 3D view, see-through, with the suspension moving inside it. STL or OBJ. It is read in your browser, never uploaded, and kept in this browser for next time.</p>
-    <div class="cadgo"><button class="btn primary" type="button" id="chPick">Choose an STL or OBJ file…</button>
-      <input id="chFile" type="file" accept=".stl,.obj,model/stl" hidden></div>
-    <div id="chLoaded" hidden><p class="note"><b id="chName"></b></p></div>
+<div class="fmwrap" id="fmDlg" hidden>
+  <div class="wcard cadcard" role="dialog" aria-labelledby="fmTitle">
+    <button class="btn small wclose" type="button" id="fmClose" aria-label="Close">✕</button>
+    <h2 id="fmTitle">Chassis model</h2>
+    <p class="note">Your frame (or body, seat, driver) from CAD, see-through, with the suspension moving inside it. STL or OBJ, read in your browser, never uploaded, kept in this browser for next time.</p>
+    <div class="fmbtns"><button class="btn primary" type="button" id="fmPick">Choose an STL or OBJ file…</button>
+      <input id="fmFile" type="file" accept=".stl,.obj,model/stl" hidden>
+      <label class="small-check"><input type="checkbox" id="fmShow" checked> Show</label></div>
+    <p class="note" id="fmName"></p>
+    <p class="note" id="fmInfo"></p>
+    <h3 class="fmh">How it was drawn</h3>
     <div class="fields cadf">
-      <div class="field"><label for="chFrame">Axes the model was drawn in</label><select id="chFrame"></select></div>
-      <div class="field"><label for="chOrigin">Origin of the model</label><select id="chOrigin">
+      <div class="field"><label for="fmFrame">Axes</label><select id="fmFrame"></select></div>
+      <div class="field"><label for="fmOrigin">Origin</label><select id="fmOrigin">
         <option value="axle">Front axle centerline on the ground (same as 3D for CAD)</option>
         <option value="solver">The solver's own frame</option></select></div>
-      <div class="field"><label for="chUnits">Units the STL was saved in</label><select id="chUnits"><option value="mm">mm</option><option value="in">inch</option><option value="m">m</option></select></div>
-      <div class="field"><label for="chOp">See-through</label><input type="range" id="chOp" min="0.08" max="1" step="0.02"></div>
+      <div class="field"><label for="fmUnits">Units</label><select id="fmUnits"><option value="mm">mm</option><option value="in">inch</option><option value="m">m</option></select></div>
     </div>
-    <label class="small-check"><input type="checkbox" id="chShow" checked> Show in the 3D view</label>
-    <p class="note" id="chInfo"></p>
-    <div class="cadgo"><button class="btn" type="button" id="chRemove">Remove the model</button></div>
+    <h3 class="fmh">Move and rotate</h3>
+    <p class="note">In the car's axes: X forward, Y right, Z up (the triad in the 3D view). Rotations turn the model about its own center. Hover over the model to read any point's coordinates.</p>
+    <div class="field"><label for="fmStep">Step for − / +</label><select id="fmStep">
+      <option value="1">1 mm / 0.5°</option><option value="10" selected>10 mm / 5°</option><option value="100">100 mm / 90°</option></select></div>
+    <div class="fmmove" id="fmMove"></div>
+    <div class="fmbtns">
+      <button class="btn small" type="button" id="fmCenter" title="Move sideways so the model is centered on Y = 0">Center on the centerline</button>
+      <button class="btn small" type="button" id="fmGround" title="Move up or down so the lowest point is this far above the ground">Lowest point at</button>
+      <input class="num" id="fmGap" type="number" step="1" value="40" style="width:70px" aria-label="Height of the lowest point above the ground, mm"><span class="note">mm</span>
+      <button class="btn small" type="button" id="fmZero">Reset move</button></div>
+    <div class="field"><label for="fmOp">See-through</label><input type="range" id="fmOp" min="0.08" max="1" step="0.02"></div>
+    <div class="fmbtns"><button class="btn small" type="button" id="fmRemove">Remove the model</button></div>
     <details class="cadhelp"><summary>How to get the file</summary>
       <ul>
-        <li>Easiest: build the frame around the <b>3D for CAD</b> export, then export the frame with the same axes and origin. It lines up with no adjustment.</li>
+        <li>Easiest: build the frame around the <b>3D for CAD</b> export, then save the frame with the same axes and origin. It lines up with no moving.</li>
         <li><b>SolidWorks:</b> File → Save As → STL. Under Options pick the units and a coarse resolution to keep the file small.</li>
         <li><b>Onshape:</b> right-click the part or Part Studio → Export → STL, units mm, resolution coarse or medium.</li>
         <li><b>Fusion:</b> right-click the body → Save as Mesh → STL (binary).</li>
-        <li>If it comes in sideways or backwards, change <i>Axes</i>; if it is tiny or huge, change <i>Units</i>. The numbers below say how big it is and where it sits.</li>
+        <li>Sideways or backwards: change <i>Axes</i>, or turn it 90° with the 100 mm / 90° step. Tiny or huge: change <i>Units</i>. Then line up a known point (a pickup tab, the front bulkhead) by hovering over it and moving until its X Y Z match.</li>
       </ul>
     </details>
   </div>
@@ -653,6 +683,8 @@ body { border-top: 4px solid var(--gold); }
         <div class="pvbar" id="pvbar" hidden></div>
         <div class="vhint" id="vhint" hidden>Tip: click any joint to see what moving it does</div>
         <div class="hud" id="hud"></div>
+        <div class="vtip" id="vtip" hidden></div>
+        <div class="vaxkey" title="The solver's axes: X forward, Y to the right (outboard on the right wheels), Z up, ground at Z = 0, car centerline at Y = 0, all in mm. Hover over any joint or the chassis to read its coordinates.">X forward · Y right · Z up</div>
         <div class="v-msg" id="vmsg" hidden></div>
       </div>
       <aside class="drawer" id="drawer" hidden aria-label="What moving this point does"></aside>
@@ -3660,7 +3692,18 @@ function interp(xs, ys, x) {
   return NaN;
 }
 // ------------------------------------------------------------------ 3D viewer
-const view = { theta: 0.95, phi: 1.12, r: 1550, target: null, mode: "iso", rc: true, mirror: false, overlay: null, hl: null, anim: null };
+const view = {
+  theta: Math.PI - 0.95,
+  phi: 1.12,
+  r: 1550,
+  target: null,
+  mode: "iso",
+  rc: true,
+  mirror: false,
+  overlay: null,
+  hl: null,
+  anim: null,
+};
 let three = null,
   preview = null;
 const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -3757,16 +3800,133 @@ function initThree() {
     },
     { passive: false }
   );
+  // hover: name and X Y Z of the joint (or the chassis surface) under the pointer
+  let hoverAt = null;
+  cv.addEventListener("pointermove", e => {
+    if (ptrs.size) return void ($("#vtip").hidden = true);
+    if (!hoverAt) requestAnimationFrame(() => hoverPick(hoverAt) || (hoverAt = null));
+    hoverAt = e;
+  });
+  cv.addEventListener("pointerleave", () => ($("#vtip").hidden = true));
+  makeTriad();
   (function loop(now) {
     requestAnimationFrame(loop);
     if (view.anim) stepAnim(now);
     if (three.need && view.target) {
       placeCam();
       renderer.render(scene, cam);
+      renderTriad();
       three.need = false;
       layoutLabels();
     }
   })();
+}
+// the XYZ triad in the corner: the solver's axes, turning with the view
+function makeTriad() {
+  const T = three.T,
+    sc = new T.Scene(),
+    cam = new T.PerspectiveCamera(30, 1, 0.1, 100);
+  const sprite = (txt, color) => {
+    const c = document.createElement("canvas");
+    c.width = 128;
+    c.height = 64;
+    const g = c.getContext("2d");
+    g.font = "700 46px 'IBM Plex Sans', system-ui, sans-serif";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.lineWidth = 8;
+    g.strokeStyle = "rgba(255,255,255,.85)";
+    g.strokeText(txt, 64, 32);
+    g.fillStyle = color;
+    g.fillText(txt, 64, 32);
+    const s = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(c), depthTest: false, transparent: true }));
+    s.scale.set(1.5, 0.75, 1);
+    return s;
+  };
+  // vehicle X forward = three +X, vehicle Y right = three +Z, vehicle Z up = three +Y (as in toT)
+  for (const [d, color, name] of [
+    [[1, 0, 0], "#d1342f", "X"],
+    [[0, 0, 1], "#2e9e44", "Y"],
+    [[0, 1, 0], "#2f6fd6", "Z"],
+  ]) {
+    const v = new T.Vector3(...d),
+      mat = new T.MeshBasicMaterial({ color: new T.Color(color) }),
+      arrow = new T.Group(),
+      shaft = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 0.75, 12), mat),
+      head = new T.Mesh(new T.ConeGeometry(0.13, 0.3, 16), mat);
+    shaft.position.y = 0.375;
+    head.position.y = 0.85;
+    arrow.add(shaft, head);
+    arrow.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), v); // the arrow is built along +Y, then turned onto its axis
+    sc.add(arrow);
+    const s = sprite(name, color);
+    s.position.copy(v.clone().multiplyScalar(1.32));
+    sc.add(s);
+  }
+  sc.add(new T.Mesh(new T.SphereGeometry(0.08, 12, 8), new T.MeshBasicMaterial({ color: 0x8a8f96 })));
+  three.triad = { sc, cam };
+}
+function renderTriad() {
+  const { renderer, cam, triad, cv } = three;
+  if (!triad) return;
+  const size = 112,
+    w = cv.clientWidth,
+    h = cv.clientHeight,
+    top = 52;
+  const dir = new three.T.Vector3().subVectors(cam.position, view.target).normalize();
+  triad.cam.position.copy(dir.multiplyScalar(6));
+  triad.cam.up.copy(cam.up);
+  triad.cam.lookAt(0, 0, 0);
+  renderer.autoClear = false;
+  renderer.clearDepth();
+  renderer.setScissorTest(true);
+  renderer.setScissor(4, h - top - size, size, size);
+  renderer.setViewport(4, h - top - size, size, size);
+  renderer.render(triad.sc, triad.cam);
+  renderer.setScissorTest(false);
+  renderer.setViewport(0, 0, w, h);
+  renderer.autoClear = true;
+}
+// world (three) point -> vehicle coordinates of the frame on screen
+const fromT = v => [v.x, v.z, v.y];
+function hoverPick(e) {
+  const tip = $("#vtip");
+  if (!three || !e) return void (tip.hidden = true);
+  const T = three.T,
+    rect = three.cv.getBoundingClientRect();
+  const ndc = new T.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+  const rc = new T.Raycaster();
+  rc.setFromCamera(ndc, three.cam);
+  let name = null,
+    p = null;
+  const hits = rc.intersectObjects(three.pickables, false);
+  if (hits.length) {
+    const o = hits[0].object,
+      w = o.getWorldPosition(new T.Vector3());
+    p = fromT(w);
+    name = o.userData.hp ? pointName(o.userData.hp) : "Joint";
+    if (o.userData.axle) name = (o.userData.axle === "rear" ? "Rear: " : "Front: ") + name;
+  } else if (typeof chassis !== "undefined" && chassis.mesh && chassis.mesh.visible) {
+    const ch = rc.intersectObject(chassis.mesh, false);
+    if (ch.length) {
+      const q = ch[0].point.clone();
+      q.x -= chassis.mesh.userData.dx || 0; // back to the car frame
+      p = fromT(q);
+      name = "Chassis surface";
+    }
+  }
+  if (!p) return void (tip.hidden = true);
+  const frame = car && axleView === "car" && !chal ? "car frame (front corner's X)" : `${cfg.axle} corner's frame`;
+  tip.innerHTML = `<b>${esc(name)}</b><span><i class="ax x">X</i> ${fmt(p[0], 1)}</span><span><i class="ax y">Y</i> ${fmt(p[1], 1)}</span><span><i class="ax z">Z</i> ${fmt(p[2], 1)}</span><small>mm, ${esc(frame)}</small>`;
+  const vr = $("#viewer").getBoundingClientRect();
+  tip.hidden = false;
+  const tw = tip.offsetWidth,
+    th = tip.offsetHeight,
+    x = e.clientX - vr.left,
+    y = e.clientY - vr.top;
+  // beside the pointer, flipped to the other side near the edges so it is never cut off
+  tip.style.left = (x + 14 + tw > vr.width ? Math.max(4, x - 14 - tw) : x + 14) + "px";
+  tip.style.top = Math.max(4, Math.min(y - 10, vr.height - th - 4)) + "px";
 }
 window.__suspView = () => ({ three, toT, view }); // used by the browser tests
 // screen-space hardpoint labels: two columns either side of the corner, nudged apart so none overlap
@@ -3838,7 +3998,9 @@ function pick(e) {
   }
   openInfluence(ud.hp);
 }
-const toT = p => new three.T.Vector3(p[0], p[2], -p[1]);
+// vehicle (X forward, Y right, Z up) -> three.js (x, y up, z). The vehicle frame is left-handed and three.js is
+// right-handed, so the map is a reflection (Y -> +z): the right wheel is drawn on the car's right, not mirrored.
+const toT = p => new three.T.Vector3(p[0], p[2], p[1]);
 function placeCam() {
   const { cam } = three,
     t = view.target;
@@ -3854,8 +4016,9 @@ function setMode(mode) {
   view.mode = mode;
   $$(".seg [data-view]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === mode)));
   if (!mode || !three) return;
-  // theta measured from +Z(three) = -Y(vehicle) toward +X(three) = +X(vehicle)
-  const presets = { iso: [0.95, 1.12], front: [Math.PI / 2, Math.PI / 2], side: [Math.PI, Math.PI / 2], top: [Math.PI / 2, 0.02] };
+  // theta measured from +Z(three) = +Y(vehicle, right) toward +X(three) = +X(vehicle, forward). 3D: from in front and
+  // inboard of the right corner; Side: from the right of the car; Top: forward up the screen, right on the right
+  const presets = { iso: [Math.PI - 0.95, 1.12], front: [Math.PI / 2, Math.PI / 2], side: [0, Math.PI / 2], top: [-Math.PI / 2, 0.02] };
   [view.theta, view.phi] = presets[mode];
   three.need = true;
 }
@@ -8417,7 +8580,9 @@ const chassis = {
   ext: "stl",
   tris: 0,
   mesh: null,
-  opts: { frame: "sw", units: "mm", origin: "axle", opacity: 0.3, show: true },
+  base: null, // the model in the car frame before the move / rotate (mm), and its bounding-box center
+  c0: [0, 0, 0],
+  opts: { frame: "sw", units: "mm", origin: "axle", opacity: 0.3, show: true, off: [0, 0, 0], rot: [0, 0, 0] },
 };
 const CH_UNITS = { mm: 1, in: 25.4, m: 1000 };
 
@@ -8481,14 +8646,8 @@ function chassisSolverPoints() {
   return out;
 }
 function chassisInfo(P) {
-  let lo = [Infinity, Infinity, Infinity],
-    hi = [-Infinity, -Infinity, -Infinity];
-  for (let i = 0; i < P.length; i += 3)
-    for (let j = 0; j < 3; j++) {
-      lo[j] = Math.min(lo[j], P[i + j]);
-      hi[j] = Math.max(hi[j], P[i + j]);
-    }
-  const L = hi[0] - lo[0],
+  const [lo, hi] = bbox(P),
+    L = hi[0] - lo[0],
     W = hi[1] - lo[1],
     H = hi[2] - lo[2],
     mid = (hi[1] + lo[1]) / 2;
@@ -8497,6 +8656,40 @@ function chassisInfo(P) {
   else if (Math.max(L, W, H) > 8000) note += " That is very large: check the units.";
   else if (W > L * 1.3 || H > L) note += " It looks rotated: try another axes setting.";
   return note;
+}
+// the move: R = Rz(yaw) Ry(pitch) Rx(roll) about the model's center c0, then the offset (car frame, mm / deg)
+function chRot() {
+  const [a, b, c] = chassis.opts.rot.map(d => (d * Math.PI) / 180),
+    [ca, sa, cb, sb, cc, sc] = [Math.cos(a), Math.sin(a), Math.cos(b), Math.sin(b), Math.cos(c), Math.sin(c)];
+  return [
+    [cc * cb, cc * sb * sa - sc * ca, cc * sb * ca + sc * sa],
+    [sc * cb, sc * sb * sa + cc * ca, sc * sb * ca - cc * sa],
+    [-sb, cb * sa, cb * ca],
+  ];
+}
+function chMoved() {
+  const P = chassis.base,
+    R = chRot(),
+    c = chassis.c0,
+    o = chassis.opts.off,
+    out = new Float32Array(P.length);
+  for (let i = 0; i < P.length; i += 3) {
+    const x = P[i] - c[0],
+      y = P[i + 1] - c[1],
+      z = P[i + 2] - c[2];
+    for (let j = 0; j < 3; j++) out[i + j] = R[j][0] * x + R[j][1] * y + R[j][2] * z + c[j] + o[j];
+  }
+  return out;
+}
+function bbox(P) {
+  const lo = [Infinity, Infinity, Infinity],
+    hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < P.length; i += 3)
+    for (let j = 0; j < 3; j++) {
+      lo[j] = Math.min(lo[j], P[i + j]);
+      hi[j] = Math.max(hi[j], P[i + j]);
+    }
+  return [lo, hi];
 }
 function buildChassisMesh() {
   if (!three) return;
@@ -8508,12 +8701,15 @@ function buildChassisMesh() {
   }
   if (!chassis.buf) return;
   const T = three.T,
-    P = chassisSolverPoints(),
+    P = (chassis.base = chassisSolverPoints()),
+    [lo, hi] = bbox(P),
+    c = (chassis.c0 = lo.map((v, j) => (v + hi[j]) / 2)),
     pos = new Float32Array(P.length);
   for (let i = 0; i < P.length; i += 3) {
-    pos[i] = P[i];
-    pos[i + 1] = P[i + 2];
-    pos[i + 2] = -P[i + 1]; // same mapping as toT
+    // centered on the model's middle so rotations turn it in place; same axis mapping as toT
+    pos[i] = P[i] - c[0];
+    pos[i + 1] = P[i + 2] - c[2];
+    pos[i + 2] = P[i + 1] - c[1];
   }
   const g = new T.BufferGeometry();
   g.setAttribute("position", new T.BufferAttribute(pos, 3));
@@ -8531,7 +8727,6 @@ function buildChassisMesh() {
   chassis.mesh.renderOrder = -1;
   chassis.mesh.name = "chassis";
   chassis.tris = P.length / 9;
-  chassis.info = chassisInfo(P);
   three.scene.add(chassis.mesh);
   placeChassis();
 }
@@ -8541,7 +8736,15 @@ function placeChassis() {
   const carView = car && axleView === "car" && !chal,
     rearView = !carView && cfg && cfg.axle === "rear",
     wb = ((car && car.vehicle) || (cfg && cfg.vehicle) || {}).wheelbase || 1550;
-  chassis.mesh.position.x = rearView ? wb : 0;
+  const c = chassis.c0,
+    o = chassis.opts.off,
+    r = chassis.opts.rot.map(d => (d * Math.PI) / 180),
+    dx = rearView ? wb : 0;
+  // vehicle (x, y, z) -> three (x, z, y), a reflection, so each rotation turns the other way in three.js:
+  // vehicle Rz(yaw) Ry(pitch) Rx(roll) -> three Ry(-yaw) Rz(-pitch) Rx(-roll), Euler order YZX
+  chassis.mesh.position.set(c[0] + o[0] + dx, c[2] + o[2], c[1] + o[1]);
+  chassis.mesh.rotation.set(-r[0], -r[2], -r[1], "YZX");
+  chassis.mesh.userData.dx = dx;
   chassis.mesh.visible = chassis.opts.show;
   chassis.mesh.material.opacity = chassis.opts.opacity;
   $("#tgChassis").hidden = false;
@@ -8579,6 +8782,8 @@ async function chLoadSaved() {
     if (v && v.buf) {
       Object.assign(chassis, { buf: v.buf, name: v.name, ext: v.ext });
       Object.assign(chassis.opts, v.opts || {});
+      if (!Array.isArray(chassis.opts.off)) chassis.opts.off = [0, 0, 0];
+      if (!Array.isArray(chassis.opts.rot)) chassis.opts.rot = [0, 0, 0];
       buildChassisMesh();
     }
   } catch (e) {
@@ -8589,37 +8794,59 @@ async function chLoadSaved() {
 // ---- the dialog
 function chSync() {
   const has = !!chassis.buf;
-  $("#chLoaded").hidden = !has;
-  $("#chName").textContent = has ? `${chassis.name} · ${chassis.tris.toLocaleString()} triangles` : "";
-  $("#chInfo").textContent = has ? chassis.info || "" : "No model loaded.";
+  $("#fmName").textContent = has ? `${chassis.name} · ${chassis.tris.toLocaleString()} triangles` : "";
+  chMoveFields();
+  $("#fmInfo").textContent = has && chassis.base ? chassisInfo(chMoved()) : has ? "" : "No model loaded.";
   for (const [k, id] of [
-    ["frame", "#chFrame"],
-    ["units", "#chUnits"],
-    ["origin", "#chOrigin"],
+    ["frame", "#fmFrame"],
+    ["units", "#fmUnits"],
+    ["origin", "#fmOrigin"],
   ])
     $(id).value = chassis.opts[k];
-  $("#chOp").value = chassis.opts.opacity;
-  $("#chShow").checked = chassis.opts.show;
+  $("#fmOp").value = chassis.opts.opacity;
+  $("#fmShow").checked = chassis.opts.show;
   $("#tgChassis").hidden = !has;
 }
+const CH_MOVE = [
+  ["off", 0, "X", "mm", "forward"],
+  ["off", 1, "Y", "mm", "right"],
+  ["off", 2, "Z", "mm", "up"],
+  ["rot", 0, "Roll", "°", "about X"],
+  ["rot", 1, "Pitch", "°", "about Y"],
+  ["rot", 2, "Yaw", "°", "about Z"],
+];
+function chMoveFields() {
+  const box = $("#fmMove");
+  if (!box.children.length)
+    box.innerHTML = CH_MOVE.map(
+      ([k, i, lab, u, hint]) =>
+        `<label for="fmm_${k}${i}" title="${attr(hint)}">${lab}</label><button class="btn small icon" type="button" data-chn="${k}${i}" data-sg="-1" aria-label="${attr(lab)} minus">−</button><input class="num" id="fmm_${k}${i}" type="number" step="any" data-chm="${k}${i}"><button class="btn small icon" type="button" data-chn="${k}${i}" data-sg="1" aria-label="${attr(lab)} plus">+</button><span class="u">${u} ${hint}</span>`
+    ).join("");
+  for (const [k, i] of CH_MOVE) $(`#fmm_${k}${i}`).value = +chassis.opts[k][i].toFixed(3);
+}
+function chApplyMove() {
+  placeChassis();
+  if (chassis.base) $("#fmInfo").textContent = chassisInfo(chMoved());
+  chSave();
+}
 function openChassis() {
-  $("#chFrame").innerHTML = Object.entries(window.SuspCAD.FRAMES)
+  $("#fmFrame").innerHTML = Object.entries(window.SuspCAD.FRAMES)
     .map(([k, f]) => `<option value="${attr(k)}">${esc(f.label)}</option>`)
     .join("");
   chSync();
-  $("#chDlg").hidden = false;
-  setTimeout(() => $("#chPick").focus(), 0);
+  $("#fmDlg").hidden = false;
+  setTimeout(() => $("#fmPick").focus(), 0);
 }
 function wireChassis() {
-  $("#chClose").addEventListener("click", () => ($("#chDlg").hidden = true));
-  $("#chDlg").addEventListener("click", e => {
-    if (e.target.id === "chDlg") $("#chDlg").hidden = true;
+  $("#fmClose").addEventListener("click", () => ($("#fmDlg").hidden = true));
+  $("#fmDlg").addEventListener("click", e => {
+    if (e.target.id === "fmDlg") $("#fmDlg").hidden = true;
   });
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && !$("#chDlg").hidden) $("#chDlg").hidden = true;
+    if (e.key === "Escape" && !$("#fmDlg").hidden) $("#fmDlg").hidden = true;
   });
-  $("#chPick").addEventListener("click", () => $("#chFile").click());
-  $("#chFile").addEventListener("change", async e => {
+  $("#fmPick").addEventListener("click", () => $("#fmFile").click());
+  $("#fmFile").addEventListener("change", async e => {
     const f = e.target.files[0];
     e.target.value = "";
     if (!f) return;
@@ -8629,34 +8856,73 @@ function wireChassis() {
       (ext === "obj" ? parseOBJ : parseSTL)(buf); // check it reads before replacing the current model
       Object.assign(chassis, { buf, name: f.name, ext });
       chassis.opts.show = true;
+      chassis.opts.off = [0, 0, 0];
+      chassis.opts.rot = [0, 0, 0];
       buildChassisMesh();
       chSave();
       chSync();
-      if (!three) $("#chInfo").textContent = "Loaded, but the 3D view is not available in this browser.";
+      if (!three) $("#fmInfo").textContent = "Loaded, but the 3D view is not available in this browser.";
     } catch (er) {
-      $("#chInfo").textContent = "That file did not load: " + er.message;
+      $("#fmInfo").textContent = "That file did not load: " + er.message;
     }
   });
   const change = () => {
-    chassis.opts.frame = $("#chFrame").value;
-    chassis.opts.units = $("#chUnits").value;
-    chassis.opts.origin = $("#chOrigin").value;
+    chassis.opts.frame = $("#fmFrame").value;
+    chassis.opts.units = $("#fmUnits").value;
+    chassis.opts.origin = $("#fmOrigin").value;
     buildChassisMesh();
     chSave();
     chSync();
   };
-  ["#chFrame", "#chUnits", "#chOrigin"].forEach(id => $(id).addEventListener("change", change));
-  $("#chOp").addEventListener("input", () => {
-    chassis.opts.opacity = +$("#chOp").value;
+  ["#fmFrame", "#fmUnits", "#fmOrigin"].forEach(id => $(id).addEventListener("change", change));
+  $("#fmMove").addEventListener("input", e => {
+    const m = e.target.dataset.chm;
+    if (!m || e.target.value === "" || !Number.isFinite(+e.target.value)) return;
+    chassis.opts[m.slice(0, 3)][+m[3]] = +e.target.value;
+    chApplyMove();
+  });
+  $("#fmMove").addEventListener("click", e => {
+    const b = e.target.closest("[data-chn]");
+    if (!b) return;
+    const k = b.dataset.chn.slice(0, 3),
+      i = +b.dataset.chn[3],
+      st = +$("#fmStep").value,
+      d = k === "off" ? st : { 1: 0.5, 10: 5, 100: 90 }[st];
+    chassis.opts[k][i] = +(chassis.opts[k][i] + +b.dataset.sg * d).toFixed(3);
+    chMoveFields();
+    chApplyMove();
+  });
+  $("#fmCenter").addEventListener("click", () => {
+    if (!chassis.base) return;
+    const [lo, hi] = bbox(chMoved());
+    chassis.opts.off[1] = +(chassis.opts.off[1] - (lo[1] + hi[1]) / 2).toFixed(3);
+    chMoveFields();
+    chApplyMove();
+  });
+  $("#fmGround").addEventListener("click", () => {
+    if (!chassis.base) return;
+    const [lo] = bbox(chMoved());
+    chassis.opts.off[2] = +(chassis.opts.off[2] + (+$("#fmGap").value || 0) - lo[2]).toFixed(3);
+    chMoveFields();
+    chApplyMove();
+  });
+  $("#fmZero").addEventListener("click", () => {
+    chassis.opts.off = [0, 0, 0];
+    chassis.opts.rot = [0, 0, 0];
+    chMoveFields();
+    chApplyMove();
+  });
+  $("#fmOp").addEventListener("input", () => {
+    chassis.opts.opacity = +$("#fmOp").value;
     placeChassis();
     chSave();
   });
-  $("#chShow").addEventListener("change", () => {
-    chassis.opts.show = $("#chShow").checked;
+  $("#fmShow").addEventListener("change", () => {
+    chassis.opts.show = $("#fmShow").checked;
     placeChassis();
     chSave();
   });
-  $("#chRemove").addEventListener("click", () => {
+  $("#fmRemove").addEventListener("click", () => {
     chassis.buf = null;
     buildChassisMesh();
     chSave();
@@ -8670,6 +8936,7 @@ function wireChassis() {
   });
   chLoadSaved();
 }
+window.__suspChassis = () => ({ chassis, moved: chMoved }); // used by the browser tests
 // ------------------------------------------------------------------ toolbar
 function loadCfg(raw, name, opts = {}) {
   pushHistory();

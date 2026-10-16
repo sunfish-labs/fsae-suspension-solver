@@ -1,5 +1,16 @@
 // ------------------------------------------------------------------ 3D viewer
-const view = { theta: 0.95, phi: 1.12, r: 1550, target: null, mode: "iso", rc: true, mirror: false, overlay: null, hl: null, anim: null };
+const view = {
+  theta: Math.PI - 0.95,
+  phi: 1.12,
+  r: 1550,
+  target: null,
+  mode: "iso",
+  rc: true,
+  mirror: false,
+  overlay: null,
+  hl: null,
+  anim: null,
+};
 let three = null,
   preview = null;
 const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -96,16 +107,133 @@ function initThree() {
     },
     { passive: false }
   );
+  // hover: name and X Y Z of the joint (or the chassis surface) under the pointer
+  let hoverAt = null;
+  cv.addEventListener("pointermove", e => {
+    if (ptrs.size) return void ($("#vtip").hidden = true);
+    if (!hoverAt) requestAnimationFrame(() => hoverPick(hoverAt) || (hoverAt = null));
+    hoverAt = e;
+  });
+  cv.addEventListener("pointerleave", () => ($("#vtip").hidden = true));
+  makeTriad();
   (function loop(now) {
     requestAnimationFrame(loop);
     if (view.anim) stepAnim(now);
     if (three.need && view.target) {
       placeCam();
       renderer.render(scene, cam);
+      renderTriad();
       three.need = false;
       layoutLabels();
     }
   })();
+}
+// the XYZ triad in the corner: the solver's axes, turning with the view
+function makeTriad() {
+  const T = three.T,
+    sc = new T.Scene(),
+    cam = new T.PerspectiveCamera(30, 1, 0.1, 100);
+  const sprite = (txt, color) => {
+    const c = document.createElement("canvas");
+    c.width = 128;
+    c.height = 64;
+    const g = c.getContext("2d");
+    g.font = "700 46px 'IBM Plex Sans', system-ui, sans-serif";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.lineWidth = 8;
+    g.strokeStyle = "rgba(255,255,255,.85)";
+    g.strokeText(txt, 64, 32);
+    g.fillStyle = color;
+    g.fillText(txt, 64, 32);
+    const s = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(c), depthTest: false, transparent: true }));
+    s.scale.set(1.5, 0.75, 1);
+    return s;
+  };
+  // vehicle X forward = three +X, vehicle Y right = three +Z, vehicle Z up = three +Y (as in toT)
+  for (const [d, color, name] of [
+    [[1, 0, 0], "#d1342f", "X"],
+    [[0, 0, 1], "#2e9e44", "Y"],
+    [[0, 1, 0], "#2f6fd6", "Z"],
+  ]) {
+    const v = new T.Vector3(...d),
+      mat = new T.MeshBasicMaterial({ color: new T.Color(color) }),
+      arrow = new T.Group(),
+      shaft = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 0.75, 12), mat),
+      head = new T.Mesh(new T.ConeGeometry(0.13, 0.3, 16), mat);
+    shaft.position.y = 0.375;
+    head.position.y = 0.85;
+    arrow.add(shaft, head);
+    arrow.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), v); // the arrow is built along +Y, then turned onto its axis
+    sc.add(arrow);
+    const s = sprite(name, color);
+    s.position.copy(v.clone().multiplyScalar(1.32));
+    sc.add(s);
+  }
+  sc.add(new T.Mesh(new T.SphereGeometry(0.08, 12, 8), new T.MeshBasicMaterial({ color: 0x8a8f96 })));
+  three.triad = { sc, cam };
+}
+function renderTriad() {
+  const { renderer, cam, triad, cv } = three;
+  if (!triad) return;
+  const size = 112,
+    w = cv.clientWidth,
+    h = cv.clientHeight,
+    top = 52;
+  const dir = new three.T.Vector3().subVectors(cam.position, view.target).normalize();
+  triad.cam.position.copy(dir.multiplyScalar(6));
+  triad.cam.up.copy(cam.up);
+  triad.cam.lookAt(0, 0, 0);
+  renderer.autoClear = false;
+  renderer.clearDepth();
+  renderer.setScissorTest(true);
+  renderer.setScissor(4, h - top - size, size, size);
+  renderer.setViewport(4, h - top - size, size, size);
+  renderer.render(triad.sc, triad.cam);
+  renderer.setScissorTest(false);
+  renderer.setViewport(0, 0, w, h);
+  renderer.autoClear = true;
+}
+// world (three) point -> vehicle coordinates of the frame on screen
+const fromT = v => [v.x, v.z, v.y];
+function hoverPick(e) {
+  const tip = $("#vtip");
+  if (!three || !e) return void (tip.hidden = true);
+  const T = three.T,
+    rect = three.cv.getBoundingClientRect();
+  const ndc = new T.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+  const rc = new T.Raycaster();
+  rc.setFromCamera(ndc, three.cam);
+  let name = null,
+    p = null;
+  const hits = rc.intersectObjects(three.pickables, false);
+  if (hits.length) {
+    const o = hits[0].object,
+      w = o.getWorldPosition(new T.Vector3());
+    p = fromT(w);
+    name = o.userData.hp ? pointName(o.userData.hp) : "Joint";
+    if (o.userData.axle) name = (o.userData.axle === "rear" ? "Rear: " : "Front: ") + name;
+  } else if (typeof chassis !== "undefined" && chassis.mesh && chassis.mesh.visible) {
+    const ch = rc.intersectObject(chassis.mesh, false);
+    if (ch.length) {
+      const q = ch[0].point.clone();
+      q.x -= chassis.mesh.userData.dx || 0; // back to the car frame
+      p = fromT(q);
+      name = "Chassis surface";
+    }
+  }
+  if (!p) return void (tip.hidden = true);
+  const frame = car && axleView === "car" && !chal ? "car frame (front corner's X)" : `${cfg.axle} corner's frame`;
+  tip.innerHTML = `<b>${esc(name)}</b><span><i class="ax x">X</i> ${fmt(p[0], 1)}</span><span><i class="ax y">Y</i> ${fmt(p[1], 1)}</span><span><i class="ax z">Z</i> ${fmt(p[2], 1)}</span><small>mm, ${esc(frame)}</small>`;
+  const vr = $("#viewer").getBoundingClientRect();
+  tip.hidden = false;
+  const tw = tip.offsetWidth,
+    th = tip.offsetHeight,
+    x = e.clientX - vr.left,
+    y = e.clientY - vr.top;
+  // beside the pointer, flipped to the other side near the edges so it is never cut off
+  tip.style.left = (x + 14 + tw > vr.width ? Math.max(4, x - 14 - tw) : x + 14) + "px";
+  tip.style.top = Math.max(4, Math.min(y - 10, vr.height - th - 4)) + "px";
 }
 window.__suspView = () => ({ three, toT, view }); // used by the browser tests
 // screen-space hardpoint labels: two columns either side of the corner, nudged apart so none overlap
@@ -177,7 +305,9 @@ function pick(e) {
   }
   openInfluence(ud.hp);
 }
-const toT = p => new three.T.Vector3(p[0], p[2], -p[1]);
+// vehicle (X forward, Y right, Z up) -> three.js (x, y up, z). The vehicle frame is left-handed and three.js is
+// right-handed, so the map is a reflection (Y -> +z): the right wheel is drawn on the car's right, not mirrored.
+const toT = p => new three.T.Vector3(p[0], p[2], p[1]);
 function placeCam() {
   const { cam } = three,
     t = view.target;
@@ -193,8 +323,9 @@ function setMode(mode) {
   view.mode = mode;
   $$(".seg [data-view]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === mode)));
   if (!mode || !three) return;
-  // theta measured from +Z(three) = -Y(vehicle) toward +X(three) = +X(vehicle)
-  const presets = { iso: [0.95, 1.12], front: [Math.PI / 2, Math.PI / 2], side: [Math.PI, Math.PI / 2], top: [Math.PI / 2, 0.02] };
+  // theta measured from +Z(three) = +Y(vehicle, right) toward +X(three) = +X(vehicle, forward). 3D: from in front and
+  // inboard of the right corner; Side: from the right of the car; Top: forward up the screen, right on the right
+  const presets = { iso: [Math.PI - 0.95, 1.12], front: [Math.PI / 2, Math.PI / 2], side: [0, Math.PI / 2], top: [-Math.PI / 2, 0.02] };
   [view.theta, view.phi] = presets[mode];
   three.need = true;
 }

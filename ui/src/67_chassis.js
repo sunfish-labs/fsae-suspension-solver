@@ -6,7 +6,9 @@ const chassis = {
   ext: "stl",
   tris: 0,
   mesh: null,
-  opts: { frame: "sw", units: "mm", origin: "axle", opacity: 0.3, show: true },
+  base: null, // the model in the car frame before the move / rotate (mm), and its bounding-box center
+  c0: [0, 0, 0],
+  opts: { frame: "sw", units: "mm", origin: "axle", opacity: 0.3, show: true, off: [0, 0, 0], rot: [0, 0, 0] },
 };
 const CH_UNITS = { mm: 1, in: 25.4, m: 1000 };
 
@@ -70,14 +72,8 @@ function chassisSolverPoints() {
   return out;
 }
 function chassisInfo(P) {
-  let lo = [Infinity, Infinity, Infinity],
-    hi = [-Infinity, -Infinity, -Infinity];
-  for (let i = 0; i < P.length; i += 3)
-    for (let j = 0; j < 3; j++) {
-      lo[j] = Math.min(lo[j], P[i + j]);
-      hi[j] = Math.max(hi[j], P[i + j]);
-    }
-  const L = hi[0] - lo[0],
+  const [lo, hi] = bbox(P),
+    L = hi[0] - lo[0],
     W = hi[1] - lo[1],
     H = hi[2] - lo[2],
     mid = (hi[1] + lo[1]) / 2;
@@ -86,6 +82,40 @@ function chassisInfo(P) {
   else if (Math.max(L, W, H) > 8000) note += " That is very large: check the units.";
   else if (W > L * 1.3 || H > L) note += " It looks rotated: try another axes setting.";
   return note;
+}
+// the move: R = Rz(yaw) Ry(pitch) Rx(roll) about the model's center c0, then the offset (car frame, mm / deg)
+function chRot() {
+  const [a, b, c] = chassis.opts.rot.map(d => (d * Math.PI) / 180),
+    [ca, sa, cb, sb, cc, sc] = [Math.cos(a), Math.sin(a), Math.cos(b), Math.sin(b), Math.cos(c), Math.sin(c)];
+  return [
+    [cc * cb, cc * sb * sa - sc * ca, cc * sb * ca + sc * sa],
+    [sc * cb, sc * sb * sa + cc * ca, sc * sb * ca - cc * sa],
+    [-sb, cb * sa, cb * ca],
+  ];
+}
+function chMoved() {
+  const P = chassis.base,
+    R = chRot(),
+    c = chassis.c0,
+    o = chassis.opts.off,
+    out = new Float32Array(P.length);
+  for (let i = 0; i < P.length; i += 3) {
+    const x = P[i] - c[0],
+      y = P[i + 1] - c[1],
+      z = P[i + 2] - c[2];
+    for (let j = 0; j < 3; j++) out[i + j] = R[j][0] * x + R[j][1] * y + R[j][2] * z + c[j] + o[j];
+  }
+  return out;
+}
+function bbox(P) {
+  const lo = [Infinity, Infinity, Infinity],
+    hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < P.length; i += 3)
+    for (let j = 0; j < 3; j++) {
+      lo[j] = Math.min(lo[j], P[i + j]);
+      hi[j] = Math.max(hi[j], P[i + j]);
+    }
+  return [lo, hi];
 }
 function buildChassisMesh() {
   if (!three) return;
@@ -97,12 +127,15 @@ function buildChassisMesh() {
   }
   if (!chassis.buf) return;
   const T = three.T,
-    P = chassisSolverPoints(),
+    P = (chassis.base = chassisSolverPoints()),
+    [lo, hi] = bbox(P),
+    c = (chassis.c0 = lo.map((v, j) => (v + hi[j]) / 2)),
     pos = new Float32Array(P.length);
   for (let i = 0; i < P.length; i += 3) {
-    pos[i] = P[i];
-    pos[i + 1] = P[i + 2];
-    pos[i + 2] = -P[i + 1]; // same mapping as toT
+    // centered on the model's middle so rotations turn it in place; same axis mapping as toT
+    pos[i] = P[i] - c[0];
+    pos[i + 1] = P[i + 2] - c[2];
+    pos[i + 2] = P[i + 1] - c[1];
   }
   const g = new T.BufferGeometry();
   g.setAttribute("position", new T.BufferAttribute(pos, 3));
@@ -120,7 +153,6 @@ function buildChassisMesh() {
   chassis.mesh.renderOrder = -1;
   chassis.mesh.name = "chassis";
   chassis.tris = P.length / 9;
-  chassis.info = chassisInfo(P);
   three.scene.add(chassis.mesh);
   placeChassis();
 }
@@ -130,7 +162,15 @@ function placeChassis() {
   const carView = car && axleView === "car" && !chal,
     rearView = !carView && cfg && cfg.axle === "rear",
     wb = ((car && car.vehicle) || (cfg && cfg.vehicle) || {}).wheelbase || 1550;
-  chassis.mesh.position.x = rearView ? wb : 0;
+  const c = chassis.c0,
+    o = chassis.opts.off,
+    r = chassis.opts.rot.map(d => (d * Math.PI) / 180),
+    dx = rearView ? wb : 0;
+  // vehicle (x, y, z) -> three (x, z, y), a reflection, so each rotation turns the other way in three.js:
+  // vehicle Rz(yaw) Ry(pitch) Rx(roll) -> three Ry(-yaw) Rz(-pitch) Rx(-roll), Euler order YZX
+  chassis.mesh.position.set(c[0] + o[0] + dx, c[2] + o[2], c[1] + o[1]);
+  chassis.mesh.rotation.set(-r[0], -r[2], -r[1], "YZX");
+  chassis.mesh.userData.dx = dx;
   chassis.mesh.visible = chassis.opts.show;
   chassis.mesh.material.opacity = chassis.opts.opacity;
   $("#tgChassis").hidden = false;
@@ -168,6 +208,8 @@ async function chLoadSaved() {
     if (v && v.buf) {
       Object.assign(chassis, { buf: v.buf, name: v.name, ext: v.ext });
       Object.assign(chassis.opts, v.opts || {});
+      if (!Array.isArray(chassis.opts.off)) chassis.opts.off = [0, 0, 0];
+      if (!Array.isArray(chassis.opts.rot)) chassis.opts.rot = [0, 0, 0];
       buildChassisMesh();
     }
   } catch (e) {
@@ -178,37 +220,59 @@ async function chLoadSaved() {
 // ---- the dialog
 function chSync() {
   const has = !!chassis.buf;
-  $("#chLoaded").hidden = !has;
-  $("#chName").textContent = has ? `${chassis.name} · ${chassis.tris.toLocaleString()} triangles` : "";
-  $("#chInfo").textContent = has ? chassis.info || "" : "No model loaded.";
+  $("#fmName").textContent = has ? `${chassis.name} · ${chassis.tris.toLocaleString()} triangles` : "";
+  chMoveFields();
+  $("#fmInfo").textContent = has && chassis.base ? chassisInfo(chMoved()) : has ? "" : "No model loaded.";
   for (const [k, id] of [
-    ["frame", "#chFrame"],
-    ["units", "#chUnits"],
-    ["origin", "#chOrigin"],
+    ["frame", "#fmFrame"],
+    ["units", "#fmUnits"],
+    ["origin", "#fmOrigin"],
   ])
     $(id).value = chassis.opts[k];
-  $("#chOp").value = chassis.opts.opacity;
-  $("#chShow").checked = chassis.opts.show;
+  $("#fmOp").value = chassis.opts.opacity;
+  $("#fmShow").checked = chassis.opts.show;
   $("#tgChassis").hidden = !has;
 }
+const CH_MOVE = [
+  ["off", 0, "X", "mm", "forward"],
+  ["off", 1, "Y", "mm", "right"],
+  ["off", 2, "Z", "mm", "up"],
+  ["rot", 0, "Roll", "°", "about X"],
+  ["rot", 1, "Pitch", "°", "about Y"],
+  ["rot", 2, "Yaw", "°", "about Z"],
+];
+function chMoveFields() {
+  const box = $("#fmMove");
+  if (!box.children.length)
+    box.innerHTML = CH_MOVE.map(
+      ([k, i, lab, u, hint]) =>
+        `<label for="fmm_${k}${i}" title="${attr(hint)}">${lab}</label><button class="btn small icon" type="button" data-chn="${k}${i}" data-sg="-1" aria-label="${attr(lab)} minus">−</button><input class="num" id="fmm_${k}${i}" type="number" step="any" data-chm="${k}${i}"><button class="btn small icon" type="button" data-chn="${k}${i}" data-sg="1" aria-label="${attr(lab)} plus">+</button><span class="u">${u} ${hint}</span>`
+    ).join("");
+  for (const [k, i] of CH_MOVE) $(`#fmm_${k}${i}`).value = +chassis.opts[k][i].toFixed(3);
+}
+function chApplyMove() {
+  placeChassis();
+  if (chassis.base) $("#fmInfo").textContent = chassisInfo(chMoved());
+  chSave();
+}
 function openChassis() {
-  $("#chFrame").innerHTML = Object.entries(window.SuspCAD.FRAMES)
+  $("#fmFrame").innerHTML = Object.entries(window.SuspCAD.FRAMES)
     .map(([k, f]) => `<option value="${attr(k)}">${esc(f.label)}</option>`)
     .join("");
   chSync();
-  $("#chDlg").hidden = false;
-  setTimeout(() => $("#chPick").focus(), 0);
+  $("#fmDlg").hidden = false;
+  setTimeout(() => $("#fmPick").focus(), 0);
 }
 function wireChassis() {
-  $("#chClose").addEventListener("click", () => ($("#chDlg").hidden = true));
-  $("#chDlg").addEventListener("click", e => {
-    if (e.target.id === "chDlg") $("#chDlg").hidden = true;
+  $("#fmClose").addEventListener("click", () => ($("#fmDlg").hidden = true));
+  $("#fmDlg").addEventListener("click", e => {
+    if (e.target.id === "fmDlg") $("#fmDlg").hidden = true;
   });
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && !$("#chDlg").hidden) $("#chDlg").hidden = true;
+    if (e.key === "Escape" && !$("#fmDlg").hidden) $("#fmDlg").hidden = true;
   });
-  $("#chPick").addEventListener("click", () => $("#chFile").click());
-  $("#chFile").addEventListener("change", async e => {
+  $("#fmPick").addEventListener("click", () => $("#fmFile").click());
+  $("#fmFile").addEventListener("change", async e => {
     const f = e.target.files[0];
     e.target.value = "";
     if (!f) return;
@@ -218,34 +282,73 @@ function wireChassis() {
       (ext === "obj" ? parseOBJ : parseSTL)(buf); // check it reads before replacing the current model
       Object.assign(chassis, { buf, name: f.name, ext });
       chassis.opts.show = true;
+      chassis.opts.off = [0, 0, 0];
+      chassis.opts.rot = [0, 0, 0];
       buildChassisMesh();
       chSave();
       chSync();
-      if (!three) $("#chInfo").textContent = "Loaded, but the 3D view is not available in this browser.";
+      if (!three) $("#fmInfo").textContent = "Loaded, but the 3D view is not available in this browser.";
     } catch (er) {
-      $("#chInfo").textContent = "That file did not load: " + er.message;
+      $("#fmInfo").textContent = "That file did not load: " + er.message;
     }
   });
   const change = () => {
-    chassis.opts.frame = $("#chFrame").value;
-    chassis.opts.units = $("#chUnits").value;
-    chassis.opts.origin = $("#chOrigin").value;
+    chassis.opts.frame = $("#fmFrame").value;
+    chassis.opts.units = $("#fmUnits").value;
+    chassis.opts.origin = $("#fmOrigin").value;
     buildChassisMesh();
     chSave();
     chSync();
   };
-  ["#chFrame", "#chUnits", "#chOrigin"].forEach(id => $(id).addEventListener("change", change));
-  $("#chOp").addEventListener("input", () => {
-    chassis.opts.opacity = +$("#chOp").value;
+  ["#fmFrame", "#fmUnits", "#fmOrigin"].forEach(id => $(id).addEventListener("change", change));
+  $("#fmMove").addEventListener("input", e => {
+    const m = e.target.dataset.chm;
+    if (!m || e.target.value === "" || !Number.isFinite(+e.target.value)) return;
+    chassis.opts[m.slice(0, 3)][+m[3]] = +e.target.value;
+    chApplyMove();
+  });
+  $("#fmMove").addEventListener("click", e => {
+    const b = e.target.closest("[data-chn]");
+    if (!b) return;
+    const k = b.dataset.chn.slice(0, 3),
+      i = +b.dataset.chn[3],
+      st = +$("#fmStep").value,
+      d = k === "off" ? st : { 1: 0.5, 10: 5, 100: 90 }[st];
+    chassis.opts[k][i] = +(chassis.opts[k][i] + +b.dataset.sg * d).toFixed(3);
+    chMoveFields();
+    chApplyMove();
+  });
+  $("#fmCenter").addEventListener("click", () => {
+    if (!chassis.base) return;
+    const [lo, hi] = bbox(chMoved());
+    chassis.opts.off[1] = +(chassis.opts.off[1] - (lo[1] + hi[1]) / 2).toFixed(3);
+    chMoveFields();
+    chApplyMove();
+  });
+  $("#fmGround").addEventListener("click", () => {
+    if (!chassis.base) return;
+    const [lo] = bbox(chMoved());
+    chassis.opts.off[2] = +(chassis.opts.off[2] + (+$("#fmGap").value || 0) - lo[2]).toFixed(3);
+    chMoveFields();
+    chApplyMove();
+  });
+  $("#fmZero").addEventListener("click", () => {
+    chassis.opts.off = [0, 0, 0];
+    chassis.opts.rot = [0, 0, 0];
+    chMoveFields();
+    chApplyMove();
+  });
+  $("#fmOp").addEventListener("input", () => {
+    chassis.opts.opacity = +$("#fmOp").value;
     placeChassis();
     chSave();
   });
-  $("#chShow").addEventListener("change", () => {
-    chassis.opts.show = $("#chShow").checked;
+  $("#fmShow").addEventListener("change", () => {
+    chassis.opts.show = $("#fmShow").checked;
     placeChassis();
     chSave();
   });
-  $("#chRemove").addEventListener("click", () => {
+  $("#fmRemove").addEventListener("click", () => {
     chassis.buf = null;
     buildChassisMesh();
     chSave();
@@ -259,3 +362,4 @@ function wireChassis() {
   });
   chLoadSaved();
 }
+window.__suspChassis = () => ({ chassis, moved: chMoved }); // used by the browser tests

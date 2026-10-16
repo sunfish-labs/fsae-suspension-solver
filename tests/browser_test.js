@@ -202,21 +202,78 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
     fs.writeFileSync(path.join(tmpd, "frame.stl"), buf);
   }
   await p.click("#openMenu summary"); await p.click("#omChassis"); await settle(p);
-  await p.selectOption("#chFrame", "sw"); await p.selectOption("#chUnits", "mm"); await p.selectOption("#chOrigin", "axle");
-  await p.setInputFiles("#chFile", path.join(tmpd, "frame.stl")); await settle(p);
-  const chInfo = await text(p, "#chInfo");
-  check("a binary STL chassis loads and reads back at its real size and place", /2000 mm long, 600 mm wide, 400 mm tall; lowest point 50 mm/.test(chInfo) && /centered 0 mm/.test(chInfo), chInfo);
+  await p.selectOption("#fmFrame", "sw"); await p.selectOption("#fmUnits", "mm"); await p.selectOption("#fmOrigin", "axle");
+  await p.setInputFiles("#fmFile", path.join(tmpd, "frame.stl")); await settle(p);
+  const fmInfo = await text(p, "#fmInfo");
+  check("a binary STL chassis loads and reads back at its real size and place", /2000 mm long, 600 mm wide, 400 mm tall; lowest point 50 mm/.test(fmInfo) && /centered 0 mm/.test(fmInfo), fmInfo);
   check("the chassis is drawn in the 3D view", await p.evaluate(() => { const v = window.__suspView(); return !!v.three.scene.getObjectByName("chassis"); }));
-  await p.selectOption("#chUnits", "in"); await settle(p);
-  check("changing the units rescales it (and warns when the size looks wrong)", /very large/.test(await text(p, "#chInfo")), await text(p, "#chInfo"));
-  await p.selectOption("#chUnits", "mm"); await settle(p);
+  await p.selectOption("#fmUnits", "in"); await settle(p);
+  check("changing the units rescales it (and warns when the size looks wrong)", /very large/.test(await text(p, "#fmInfo")), await text(p, "#fmInfo"));
+  await p.selectOption("#fmUnits", "mm"); await settle(p);
+  await p.selectOption("#fmStep", "100"); await p.click('[data-chn="off0"][data-sg="1"]'); await settle(p);
+  await p.fill("#fmm_off1", "25"); await settle(p);
+  const moved = await text(p, "#fmInfo");
+  check("move: +100 mm in X and 25 mm in Y move the model (its numbers follow)", /centered 25 mm right/.test(moved) && (await p.$eval("#fmm_off0", e => e.value)) === "100", moved);
+  await p.click("#fmCenter"); await p.fill("#fmGap", "30"); await p.click("#fmGround"); await settle(p);
+  const placed = await text(p, "#fmInfo");
+  check("Center and Lowest point put it on the centerline and 30 mm off the ground", /lowest point 30 mm/.test(placed) && /centered 0 mm/.test(placed), placed);
+  await p.click('[data-chn="rot2"][data-sg="1"]'); await settle(p);
+  check("yaw 90 deg swaps its length and width", /600 mm long, 2000 mm wide/.test(await text(p, "#fmInfo")), await text(p, "#fmInfo"));
+  const mpos = await p.evaluate(() => { const m = window.__suspView().three.scene.getObjectByName("chassis"); return [m.rotation.y, m.rotation.order]; });
+  check("the drawn model turns with it (about the vertical axis)", Math.abs(mpos[0] + Math.PI / 2) < 1e-9 && mpos[1] === "YZX", mpos);
+  await p.fill("#fmm_rot0", "17"); await p.fill("#fmm_rot1", "-23"); await p.fill("#fmm_rot2", "41"); await settle(p);
+  const drawErr = await p.evaluate(() => {
+    // every drawn vertex (three.js world) must sit where the move puts it in the car frame
+    const m = window.__suspView().three.scene.getObjectByName("chassis"), T = window.THREE, P = window.__suspChassis().moved(), pos = m.geometry.attributes.position;
+    m.updateMatrixWorld(true);
+    let worst = 0;
+    for (let i = 0; i < pos.count; i++) {
+      const w = new T.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(m.matrixWorld);
+      worst = Math.max(worst, Math.hypot(w.x - m.userData.dx - P[3 * i], w.z - P[3 * i + 1], w.y - P[3 * i + 2]));
+    }
+    return worst;
+  });
+  check("roll, pitch and yaw together: the drawn model matches the moved coordinates", drawErr < 1e-3, drawErr);
+  await p.click("#fmZero"); await settle(p);
+  check("Reset move puts it back", /2000 mm long, 600 mm wide/.test(await text(p, "#fmInfo")));
   await p.reload(); await settle(p); await p.waitForFunction(() => { const v = window.__suspView && window.__suspView(); return v && v.three && v.three.scene.getObjectByName("chassis"); }, null, { timeout: 5000 }).catch(() => null);
   check("the chassis model is remembered after a reload", await p.evaluate(() => !!window.__suspView().three.scene.getObjectByName("chassis")));
   await closeWelcome(p);
   await p.click("#openMenu summary"); await p.click("#omChassis"); await settle(p);
-  await p.click("#chRemove"); await settle(p);
+  // round trip: the app's own STL tube export, saved in SolidWorks axes, loaded back as the chassis, must land on the links
+  await p.click('#axleSeg [data-ax="car"]'); await settle(p); await p.click("#fmClose");
+  await p.click("#exMenu summary"); await p.click("#xCad"); await settle(p);
+  await p.selectOption("#cadFrame", "sw"); await p.selectOption("#cadOrigin", "axle"); await p.selectOption("#cadUnits", "mm");
+  const stlText = await cadGrab("stl");
+  await p.selectOption("#cadFrame", "solver"); await p.selectOption("#cadOrigin", "solver");
+  const ptsCsv = await cadGrab("csv"); await p.click("#cadClose");
+  fs.writeFileSync(path.join(tmpd, "tubes.stl"), stlText);
+  await p.click("#openMenu summary"); await p.click("#omChassis"); await settle(p);
+  await p.selectOption("#fmFrame", "sw"); await p.selectOption("#fmOrigin", "axle"); await p.selectOption("#fmUnits", "mm");
+  await p.setInputFiles("#fmFile", path.join(tmpd, "tubes.stl")); await settle(p);
+  const ends = ptsCsv.split("\n").slice(ptsCsv.split("\n").indexOf("") + 2).filter(Boolean).map(r => r.split(",")).filter(r => r.length >= 8 && /(leg|tie_rod|toe_link|pushrod|damper)$/.test(r[0]))
+    .flatMap(r => [r.slice(2, 5).map(Number), r.slice(5, 8).map(Number)]);
+  const bb = await p.evaluate(() => { const P = window.__suspChassis().chassis.base, lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+    for (let i = 0; i < P.length; i += 3) for (let j = 0; j < 3; j++) { lo[j] = Math.min(lo[j], P[i + j]); hi[j] = Math.max(hi[j], P[i + j]); } return [lo, hi]; });
+  const want = [0, 1, 2].map(j => [Math.min(...ends.map(e => e[j])), Math.max(...ends.map(e => e[j]))]);
+  const off = Math.max(...[0, 1, 2].flatMap(j => [Math.abs(bb[0][j] - want[j][0]), Math.abs(bb[1][j] - want[j][1])]));
+  check("round trip: the tube STL saved in SolidWorks axes loads back onto the links (no swapped axes, no shift)", off < 30, JSON.stringify({ bb, want }));
+  await p.click("#fmRemove"); await settle(p);
   check("Remove takes it out of the view", await p.evaluate(() => !window.__suspView().three.scene.getObjectByName("chassis")));
-  await p.click("#chClose");
+  await p.click("#fmClose");
+
+  console.log("\nAxes and coordinates");
+  await p.click('#axleSeg [data-ax="front"]'); await settle(p);
+  check("an XYZ triad is drawn in the 3D view", await p.evaluate(() => !!window.__suspView().three.triad));
+  const at = await p.evaluate(() => {
+    const v = window.__suspView(), o = v.three.pickables[0], w = o.getWorldPosition(new v.three.T.Vector3()), q = w.clone().project(v.three.cam), r = v.three.cv.getBoundingClientRect();
+    return [r.left + (q.x + 1) / 2 * r.width, r.top + (1 - q.y) / 2 * r.height, w.x, w.z, w.y];
+  });
+  await p.mouse.move(at[0] + 40, at[1] + 40); await p.mouse.move(at[0], at[1]); await settle(p);
+  const tip = await text(p, "#vtip");
+  const nums = (tip.replace(/\u2212/g, "-").match(/-?\d+\.\d/g) || []).map(Number);
+  check("hovering a joint shows its name and X Y Z", !(await p.$eval("#vtip", e => e.hidden)) && nums.length >= 3 && nums.slice(0, 3).every((v, i) => Math.abs(v - at[2 + i]) < 0.06), tip);
+  await p.mouse.move(5, 5);
 
   console.log("\nTheme");
   await p.click("#themeMenu summary"); await p.click('[data-theme-set="dark"]'); await settle(p);
