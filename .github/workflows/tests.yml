@@ -22,8 +22,11 @@ jobs:
         run: python3 tests/test_analytic.py
       - name: Input handling (typed errors, misspelled targets)
         run: python3 tests/test_config.py
-      - name: Reference cases (validation/)
-        run: python3 tests/test_reference.py
+      - name: Reference cases (validation/) - hand statics, 2D four-bar curves every 5 mm
+        run: |
+          python3 validation/tools/planar_fourbar.py | diff - validation/planar_fourbar.json
+          python3 validation/tools/handcalc_loads.py | diff - validation/loads_handcalc.json
+          python3 tests/test_reference.py
       - uses: actions/setup-node@v4
         with:
           node-version: "20"

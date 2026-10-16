@@ -9,7 +9,8 @@ a design and the numbers another source produced for it. Files starting with "_"
       "name": "...", "source": "where the numbers come from (tool, version, paper, rig test)",
       "design": "designs/example_front.json"   or   "config": { ...full design JSON... },
       "at_ride_height": {"camber_gain": [0.44, 0.02], "roll_center": [34.9, 1.0]},     metric: [value, tolerance]
-      "curves": {"camber": [[-25, -2.6], [0, -1.5], [25, -0.6]]},  "curve_tol": {"camber": 0.05}
+      "curves": {"camber": [[-25, -2.6], [0, -1.5], [25, -0.6]]},  "curve_tol": {"camber": 0.05},
+      "loads": {"bump": {"pushrod": [-1901.9, 0.5]}}          case: {member: [force N (+ tension), tolerance]}
     }
 
 "at_ride_height" keys are solver metric names (see S.METRICS in ui/susp.js: camber_gain, roll_center, caster,
@@ -27,6 +28,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from susp.config import load_config, make_config  # noqa: E402
 from susp.kinematics import evaluate  # noqa: E402
+from susp.loads import run_loads  # noqa: E402
 
 files = sorted(f for d in ("validation", os.path.join("private", "validation")) for f in glob.glob(os.path.join(ROOT, d, "*.json"))
                if not os.path.basename(f).startswith("_"))
@@ -55,5 +57,17 @@ for f in files:
         total += 1
         fails += not ok
         print(f"  {'ok  ' if ok else 'FAIL'} {k} curve: largest difference {worst:.4g} over {len(pts)} points (tol {tol})")
+    if case.get("loads"):
+        res = run_loads(cfg, e["susp"], e["spring"])["results"]
+        for cname, mem in case["loads"].items():
+            worst, wk = 0.0, None
+            for k, (want, tol) in mem.items():
+                d = abs(float(res[cname][k]) - want) / tol
+                if d >= worst:
+                    worst, wk = d, k
+            ok = worst <= 1.0
+            total += 1
+            fails += not ok
+            print(f"  {'ok  ' if ok else 'FAIL'} {cname}: {len(mem)} member forces, worst {wk} at {worst:.3g} x its tolerance")
 print(f"\n{total - fails} of {total} reference comparisons passed")
 sys.exit(1 if fails else 0)

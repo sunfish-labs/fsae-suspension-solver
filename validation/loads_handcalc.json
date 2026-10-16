@@ -1,0 +1,223 @@
+{
+ "name": "Planar corner, member forces by hand",
+ "source": "hand statics (validation/tools/handcalc_loads.py), not the solver",
+ "config": {
+  "axle": "front",
+  "hardpoints": {
+   "upper_inboard_front": [
+    -200.0,
+    250.0,
+    330.0
+   ],
+   "upper_inboard_rear": [
+    200.0,
+    250.0,
+    330.0
+   ],
+   "lower_inboard_front": [
+    -200.0,
+    250.0,
+    130.0
+   ],
+   "lower_inboard_rear": [
+    200.0,
+    250.0,
+    130.0
+   ],
+   "upper_outboard": [
+    0,
+    560.0,
+    330.0
+   ],
+   "lower_outboard": [
+    0,
+    560.0,
+    130.0
+   ],
+   "trackrod_inboard": [
+    -70,
+    250.0,
+    230
+   ],
+   "trackrod_outboard": [
+    -70,
+    560.0,
+    230
+   ],
+   "contact_patch": [
+    0,
+    610.0,
+    0.0
+   ]
+  },
+  "wheel": {
+   "camber_deg": 0.0,
+   "toe_deg": 0.0
+  },
+  "vehicle": {
+   "mass": 280.0,
+   "weight_front": 0.46,
+   "cg_height": 290.0,
+   "wheelbase": 1550.0
+  },
+  "loads": {
+   "bump_g": 3.0,
+   "corner_g": 1.5,
+   "pothole_g": 5.0,
+   "kerb_g": 1.5,
+   "lltd_front": 0.46
+  },
+  "spring": {
+   "rod_on": "upright",
+   "rod_outboard": [
+    0,
+    540.0,
+    140.0
+   ],
+   "damper_chassis": [
+    0,
+    540.0,
+    450.0
+   ],
+   "rocker_pivot": null,
+   "rocker_axis": null,
+   "rocker_rod": null,
+   "rocker_damper": null,
+   "spring_rate": 30.0,
+   "unsprung_mass": 10.0,
+   "tire_rate": 150.0
+  }
+ },
+ "loads": {
+  "bump": {
+   "upper_front": [
+    -394.713106,
+    0.00039471310602144384
+   ],
+   "upper_rear": [
+    -394.713106,
+    0.00039471310602144384
+   ],
+   "lower_front": [
+    394.713106,
+    0.00039471310602144384
+   ],
+   "lower_rear": [
+    394.713106,
+    0.00039471310602144384
+   ],
+   "tie_rod": [
+    0.0,
+    1e-06
+   ],
+   "pushrod": [
+    -1895.292,
+    0.0018952920000000002
+   ]
+  },
+  "corner outer": {
+   "upper_front": [
+    402.49336,
+    0.0004024933604531702
+   ],
+   "upper_rear": [
+    402.49336,
+    0.0004024933604531702
+   ],
+   "lower_front": [
+    -1368.477426,
+    0.0013684774255407785
+   ],
+   "lower_rear": [
+    -1368.477426,
+    0.0013684774255407785
+   ],
+   "tie_rod": [
+    0.0,
+    1e-06
+   ],
+   "pushrod": [
+    -1082.28423,
+    0.0010822842295081967
+   ]
+  },
+  "corner inner": {
+   "upper_front": [
+    -142.894772,
+    0.00014289477198863753
+   ],
+   "upper_rear": [
+    -142.894772,
+    0.00014289477198863753
+   ],
+   "lower_front": [
+    304.662438,
+    0.0003046624383908687
+   ],
+   "lower_rear": [
+    304.662438,
+    0.0003046624383908687
+   ],
+   "tie_rod": [
+    0.0,
+    1e-06
+   ],
+   "pushrod": [
+    -181.24377,
+    0.00018124377049180337
+   ]
+  },
+  "pothole": {
+   "upper_front": [
+    -657.855177,
+    0.0006578551767024064
+   ],
+   "upper_rear": [
+    -657.855177,
+    0.0006578551767024064
+   ],
+   "lower_front": [
+    657.855177,
+    0.0006578551767024064
+   ],
+   "lower_rear": [
+    657.855177,
+    0.0006578551767024064
+   ],
+   "tie_rod": [
+    0.0,
+    1e-06
+   ],
+   "pushrod": [
+    -3158.82,
+    0.0031588200000000006
+   ]
+  },
+  "kerb strike": {
+   "upper_front": [
+    234.948277,
+    0.00023494827739371657
+   ],
+   "upper_rear": [
+    234.948277,
+    0.00023494827739371657
+   ],
+   "lower_front": [
+    -798.824143,
+    0.0007988241431386362
+   ],
+   "lower_rear": [
+    -798.824143,
+    0.0007988241431386362
+   ],
+   "tie_rod": [
+    0.0,
+    1e-06
+   ],
+   "pushrod": [
+    -631.764,
+    0.000631764
+   ]
+  }
+ }
+}
