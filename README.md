@@ -19,8 +19,9 @@ Design files do not go in this repository.
 - Before every commit, check that `git status` lists no design files outside `designs/`.
 
 ## Command-line tool
-One command, a small `susp/` package next to it. Needs `python3` (3.8+), `numpy`, `scipy`, and `matplotlib` for plots.
-`pip install numpy scipy matplotlib`
+One command, a small `susp/` package next to it. Needs Python 3.11+. Install the pinned dependencies (numpy, scipy,
+jinja2; matplotlib for plots) with `pip install -e ".[plots]"`, or `pip install -e ".[plots,dev]"` to also get the
+linter and the CAD-kernel test tools.
 
 It covers the four suspension decisions a team makes before it has a car:
 
@@ -241,6 +242,24 @@ Member forces: + = tension.
 - The optimizer finds one local solution. Always re-run `run` on the result.
 
 See `ACTION_PLAN.md` for how the tool was planned and what each feature is for.
+
+## Code layout
+Both solvers read the same **`schema/`** files: `defaults.json` (every default value, with notes), `metrics.json`
+(label, unit, decimals, help text and Learn-tab term for each metric), `targets.json` (the built-in target ranges)
+and `points.json` (point names, input-table labels and importer aliases). Change a label or a default there once.
+
+| Python (`susp/`) | What it does |
+|---|---|
+| `schema.py`, `config.py`, `validate.py` | reads `schema/`; `normalize()` turns any design or car file into a config; input checks |
+| `kinematics.py` | the rigid-link solver: heave, roll and steering sweeps, all geometry metrics |
+| `ride.py`, `car.py` | pushrod/rocker/damper, motion ratio, ride and damping; whole-car roll balance |
+| `loads/` | `cases.py`, `statics.py` (incl. the rigid pushrod arm), `strength.py`, `compliance.py` |
+| `tools/` | `sens.py`, `advise.py`, `optimize.py`, `history.py`, `importer.py` |
+| `output/` | `text.py` (printouts), `plots.py`, `report.py` + `templates/report.html.j2` (Jinja) |
+| `errors.py` | `SuspError` and its subclasses; the command line prints them as one line |
+
+The web app's solver (`ui/susp.js`) mirrors the Python one function for function; `tests/test_parity.py` keeps them
+in step.
 
 ## Updating the web app
 The page is built from small files and assembled into one self-contained `ui/index.html`:

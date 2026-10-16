@@ -11,7 +11,7 @@ from .config import SHORT2LONG, TEMPLATE_FRONT, TEMPLATE_REAR, make_config
 from .kinematics import Suspension, evaluate
 from .loads import solve_case
 from .output import table
-from .ride import G, car_balance
+from .car import G, car_balance
 
 
 def _hp(**kw):

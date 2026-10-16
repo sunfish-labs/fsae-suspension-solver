@@ -83,7 +83,7 @@ def _loads(cfg, ev, lltd=None):
 def cmd_loads(a):
     if C.is_car_file(a.config):
         # a car file: both corners, with the lateral load transfer split from the car's own roll balance
-        from susp.ride import car_balance
+        from susp.car import car_balance
         f, r, info = C.load_car(a.config)
         fe, re_ = evaluate(f, steer=False, pack=False), evaluate(r, steer=False, pack=False)
         lltd = None
@@ -99,13 +99,13 @@ def cmd_loads(a):
 
 
 def cmd_car(a):
-    from susp.ride import car_balance
+    from susp.car import car_balance
     info = {"arb_f": 0.0, "arb_r": 0.0, "car_targets": {}}
     if a.rear is None:
         if not C.is_car_file(a.front):
             sys.exit("give a car file (with 'front' and 'rear'), or a front config and a rear config")
         f, r, info = C.load_car(a.front)
-        from susp.ride import CAR_TARGETS
+        from susp.car import CAR_TARGETS
         for m in C.unknown_car_target_keys(info["car_targets"], CAR_TARGETS):
             print("WARNING: " + m)
     else:
@@ -279,6 +279,9 @@ def main():
         rc = a.fn(a)
     except SuspError as e:                      # bad input or an unreachable position: one clear line, no traceback
         sys.exit(f"\nERROR: {e}")
+    except BrokenPipeError:                     # output piped into head, less, ...: stop quietly
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        sys.exit(0)
     sys.exit(rc or 0)
 
 

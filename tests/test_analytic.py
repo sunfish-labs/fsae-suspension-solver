@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from susp.config import TEMPLATE_FRONT, make_config  # noqa: E402
 from susp.kinematics import evaluate  # noqa: E402
 from susp.loads import run_loads, tube_props  # noqa: E402
-from susp.ride import car_balance  # noqa: E402
+from susp.car import car_balance  # noqa: E402
 
 results = []
 

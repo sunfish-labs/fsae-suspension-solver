@@ -1,0 +1,109 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ name }} - suspension report</title>
+<style>
+:root{--bg:#fff;--fg:#1c2128;--mut:#667;--line:#d8dde3;--card:#f6f8fa;--ok:#1a7f37;--bad:#cf222e;--okbg:#dafbe1;--badbg:#ffebe9;--warnbg:#fff8c5;--warn:#7d4e00;--acc:#0969da}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mut:#8b949e;--line:#30363d;--card:#161b22;--ok:#3fb950;--bad:#f85149;--okbg:#12261a;--badbg:#2d1214;--warnbg:#2b2111;--warn:#d29922;--acc:#58a6ff}}
+body{font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);max-width:1100px;margin:0 auto;padding:16px}
+h1{margin:.2em 0}h2{margin:1.6em 0 .4em;border-bottom:1px solid var(--line);padding-bottom:4px}
+.sub{color:var(--mut)}table{border-collapse:collapse;width:100%;font-size:14px;margin:.4em 0}
+th,td{border-bottom:1px solid var(--line);padding:4px 8px;text-align:right}th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:600}.pass{color:var(--ok);font-weight:700}.fail{color:var(--bad);font-weight:700}
+.banner{padding:10px 14px;border-radius:8px;font-weight:600;margin:10px 0}.banner.ok{background:var(--okbg);color:var(--ok)}.banner.bad{background:var(--badbg);color:var(--bad)}
+.warnbox{background:var(--warnbg);color:var(--warn);border-radius:8px;padding:8px 14px;margin:8px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:8px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.tile{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.tile b{display:block;font-size:20px}.tile span{color:var(--mut);font-size:12px}img{max-width:100%;border:1px solid var(--line);border-radius:6px;background:#fff}
+.scroll{overflow-x:auto}.small{font-size:12.5px;color:var(--mut)}code{background:var(--card);padding:1px 4px;border-radius:4px}
+.left{text-align:left}
+@media print{body{max-width:none}}
+</style>
+<h1>{{ name }}</h1>
+<div class="sub">{{ axle }} axle · {{ sub }} · generated {{ generated }} · rigid-link kinematics</div>
+{% if issues %}
+<div class="warnbox"><b>Input checks</b><ul>{% for lv, msg in issues %}<li>{% if lv == "error" %}ERROR: {% endif %}{{ msg }}</li>{% endfor %}</ul></div>
+{% endif %}
+<div class="banner {{ 'ok' if npass == ntot else 'bad' }}">{{ npass }} of {{ ntot }} checks pass{% if npass != ntot %} - see the fixes below{% endif %}</div>
+<div class="grid">{% for t in tiles %}<div class="tile"><span>{{ t.label }}</span><b>{{ t.value }} <small>{{ t.unit }}</small></b></div>{% endfor %}</div>
+
+<h2>Checks</h2>
+<div class="scroll"><table><tr><th>Check<th>Value<th>Allowed range{% if baseline %}<th>Baseline<th>Change{% endif %}<th>Status</tr>
+{% for c in checks %}
+<tr><td>{{ c.label }}<td>{{ c.value }}<td>{{ c.range }}{% if baseline %}<td>{{ c.base }}<td>{{ c.change }}{% endif %}<td class="{{ 'pass' if c.ok else 'fail' }}">{{ c.status }}</tr>
+{% endfor %}
+</table></div>
+<p class="small">Ranges come from the team table (edit <code>targets</code> in the config). Bump-steer, ride-frequency and clearance limits are suggestions.</p>
+
+{% if advice is defined %}
+<h2>What to change</h2>
+{% if advice_all_clear %}<div class="card">Nothing is failing. Use the sensitivity table below before moving anything, and change one coordinate at a time.</div>{% endif %}
+{% for a in advice %}
+<div class="card"><b>{{ a.label }}</b> is {{ a.value }} (allowed {{ a.range }})<br>
+{% if not a.moves %}No single move within 40 mm fixes this. Change two coordinates, or run <code>optimize</code>.
+{% else %}<table><tr><th>Move<th>By<th>Result<th>Side effects</tr>
+{% for mv in a.moves %}<tr><td><code>{{ mv.coord }}</code><td>{{ mv.move }}<td>{{ mv.new }}<td>{{ mv.side }}</tr>{% endfor %}
+</table>{% endif %}
+</div>
+{% endfor %}
+{% if advice_clearance %}<div class="card"><b>Clearance</b>: {{ advice_clearance.pair }} is {{ advice_clearance.d }} mm apart, needs {{ advice_clearance.need }} mm. Move the closer link away, then restore bump steer with the optimizer on the tie-rod heights.</div>{% endif %}
+{% endif %}
+
+{% if img %}<h2>Plots and geometry</h2><img alt="kinematic plots" src="data:image/png;base64,{{ img }}">{% endif %}
+{% if rocker_img %}<h2>Rocker and damper</h2><img alt="rocker plots" src="data:image/png;base64,{{ rocker_img }}">{% endif %}
+
+{% if roll %}
+<h2>Roll</h2><p class="small">Body roll with equal and opposite wheel travel. Camber relative to the ground. Roll camber {{ roll.roll_camber }} deg/deg (1.0 = wheel leans with the body). Roll center moves {{ roll.rc_lat }} mm sideways per degree.</p>
+<div class="scroll"><table><tr><th>Roll (°)<th>Outer camber<th>Inner camber<th>Outer toe<th>RC height<th>RC lateral</tr>
+{% for r in roll.rows %}<tr>{% for v in r %}<td>{{ v }}{% endfor %}</tr>{% endfor %}
+</table></div>
+{% endif %}
+
+{% if steer %}
+<h2>Steering</h2><div class="scroll"><table><tr><th>Rack (mm)<th>Inner (°)<th>Outer (°)<th>Ackermann (%)<th>Inner camber<th>Outer camber</tr>
+{% for r in steer.rows %}<tr>{% for v in r %}<td>{{ v }}{% endfor %}</tr>{% endfor %}
+</table></div>
+<p class="small">Rack travel for 25° on the inner wheel: {{ steer.rack25 }}. Ackermann measured at {{ steer.ack_at }}° outer. {% if steer.turn %}Turning radius (outer front wheel, full rack): {{ steer.turn }} m. {% endif %}Steering arm: {{ steer.arm }} mm.</p>
+{% endif %}
+
+{% if ride %}
+<h2>Spring and damper</h2><p class="small">{{ ride.intro }}</p>
+<table>{% for r in ride.rows %}<tr><td>{{ r.label }}<td>{{ r.value }}</tr>{% endfor %}</table>
+{% if ride.target %}<p class="small">{{ ride.target }}</p>{% endif %}
+{% endif %}
+
+{% if loads %}
+<h2>Member loads</h2><p class="small">Quasi-static, + = tension. Change the g levels under <code>loads</code> and tube sizes under <code>members</code>.</p>
+<div class="scroll"><table><tr><th>Member{% for n in loads.cases %}<th>{{ n }}{% endfor %}</tr>
+{% for r in loads.rows %}<tr>{% for v in r %}<td>{{ v }}{% endfor %}</tr>{% endfor %}
+</table></div>
+<p class="small">{{ loads.material }} Buckling FOS = Euler load π²EI/L² ÷ worst compression. Yield FOS = (yield stress × tube area) ÷ worst axial force.</p>
+<div class="scroll"><table><tr><th>Member<th>Tube (mm)<th>Worst compression<th>Buckling load<th>FOS buckling<th>Worst |force|<th>Yield force<th>FOS yield<th></tr>
+{% for r in loads.checks %}<tr><td>{{ r.member }}<td>{{ r.tube }}<td>{{ r.comp }}<td>{{ r.pcr }}<td>{{ r.sfb }}<td>{{ r.peak }}<td>{{ r.py }}<td>{{ r.sfy }}<td class="{{ 'pass' if r.ok else 'fail' }}">{{ 'OK' if r.ok else 'BELOW FOS' }}</tr>{% endfor %}
+</table></div>
+{% endif %}
+
+{% if pack %}
+<h2>Packaging</h2><div class="scroll"><table><tr><th>Link pair<th>Min distance (mm)<th>Needs<th>at heave<th>at rack</tr>
+{% for r in pack.rows %}<tr><td>{{ r.pair }}<td class="{{ 'pass' if r.ok else 'fail' }}">{{ r.d }}<td>{{ r.need }}<td>{{ r.hz }}<td>{{ r.rk }}</tr>{% endfor %}
+</table></div><p class="small">Rim radial margin: {{ pack.rim }} mm.</p>
+{% endif %}
+
+<h2>Hardpoints</h2><div class="scroll"><table><tr><th>Point<th>X<th>Y<th>Z{% if has_baseline_points %}<th>Δ vs baseline{% endif %}</tr>
+{% for h in hardpoints %}<tr><td>{{ h.name }}{% for v in h.xyz %}<td>{{ v }}{% endfor %}{% if has_baseline_points %}<td>{{ h.delta }}{% endif %}</tr>{% endfor %}
+</table></div>
+
+{% if sens %}
+<h2>Sensitivity: +{{ sens.delta }} mm on one coordinate</h2><p class="small">Change in each metric. Darker = bigger effect relative to that column's largest. Pick the hardpoint that moves what you want, then move only that one.</p>
+<div class="scroll"><table><tr><th>Coordinate{% for c in sens.cols %}<th>Δ {{ c }}{% endfor %}</tr>
+{% for r in sens.rows %}<tr><td><code>{{ r.name }}</code>{% for c in r.cells %}<td style="background:rgba({{ c.rgb }},{{ c.a }})">{{ c.text }}{% endfor %}</tr>{% endfor %}
+</table></div><p class="small">Red = metric decreases, blue = increases.</p>
+{% endif %}
+
+<h2>What each number means</h2><div class="scroll"><table><tr><th>Metric<th class="left">Meaning / how to move it</tr>
+{% for h in help %}<tr><td>{{ h.label }}<td class="left">{{ h.text }}</tr>{% endfor %}
+</table></div>
+<h2>Limits of this model</h2><ul class="small">
+<li>Rigid-link kinematics, no tire model; one corner (the other side is its mirror). Compliance (link and tab stretch) is a separate linear check in <code>loads</code>.</li>
+<li>Roll is modeled as equal and opposite wheel travel; the force-based roll center will differ once the tires are loaded unevenly.</li>
+<li>Loads are quasi-static; impacts are fixed g factors; no fatigue or tab/weld checks.</li>
+<li>Clearance is center-line to center-line plus tube radii; rim check is radial only.</li>
+<li>Always confirm the final design in CAD.</li></ul>

@@ -9,7 +9,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from susp.config import load_car, load_config, make_config, unknown_car_target_keys, validate  # noqa: E402
 from susp.errors import ConfigError, GoalError, SolveError, SuspError, UnknownPointError  # noqa: E402
-from susp.ride import CAR_TARGETS  # noqa: E402
+from susp.car import CAR_TARGETS  # noqa: E402
 
 results = []
 

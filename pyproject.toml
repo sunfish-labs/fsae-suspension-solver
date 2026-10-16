@@ -4,7 +4,7 @@ version = "0.9.0"
 description = "Double-wishbone kinematics, ride, loads and whole-car balance for Formula SAE teams"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["numpy==2.5.3", "scipy==1.18.1"]
+dependencies = ["numpy==2.5.3", "scipy==1.18.1", "jinja2==3.1.6"]
 
 [project.optional-dependencies]
 plots = ["matplotlib==3.11.2"]
@@ -24,5 +24,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["susp"]
+packages = ["susp", "susp.loads", "susp.tools", "susp.output"]
 py-modules = ["susp_solver"]
+
+[tool.setuptools.package-data]
+"susp.output" = ["templates/*.j2"]

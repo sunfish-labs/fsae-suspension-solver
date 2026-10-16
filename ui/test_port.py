@@ -38,7 +38,7 @@ for n, raw in cfgs.items():
              "parts": [float(r["sf_bolt"]) for r in L["parts"] if r["sf_bolt"] is not None and math.isfinite(r["sf_bolt"])] if L else None}
 # whole-car balance from car files (front + rear + shared vehicle + anti-roll bars)
 from susp.config import load_car  # noqa: E402
-from susp.ride import car_balance  # noqa: E402
+from susp.car import car_balance  # noqa: E402
 cars = {}
 for f in files:
     raw = json.load(open(f))

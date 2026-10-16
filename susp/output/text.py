@@ -1,0 +1,340 @@
+"""Text output: tables, the run / ride / loads / car printouts, and CSV export."""
+from __future__ import annotations
+
+import csv
+import math
+
+
+from ..config import METRICS, validate
+from ..schema import METRICS_FILE
+from ..kinematics import check_targets, rack_for_angle
+from ..loads import MEMBERS, member_label
+
+
+def f_num(v, dec):
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return "-"
+    if isinstance(v, float) and math.isinf(v):
+        return "inf"
+    return f"{v:.{dec}f}"
+
+
+def table(headers, rows, left=1):
+    cols = list(zip(*([headers] + rows)))
+    w = [max(len(str(c)) for c in col) for col in cols]
+
+    def line(r):
+        return "  ".join(str(c).ljust(w[i]) if i < left else str(c).rjust(w[i]) for i, c in enumerate(r))
+    print(line(headers))
+    print("  ".join("-" * x for x in w))
+    for r in rows:
+        print(line(r))
+
+
+def mrow(m, k):
+    return [METRICS[k][0], f_num(m.get(k), METRICS[k][2]), METRICS[k][1]]
+
+
+def print_warnings(cfg):
+    issues = validate(cfg)
+    if issues:
+        print("\nInput checks")
+        for lvl, msg in issues:
+            print(f"  {'ERROR' if lvl == 'error' else 'warning'}: {msg}")
+    return issues
+
+
+def all_checks(cfg, ev):
+    """Target checks plus packaging checks: [(label, value_str, range_str, status)]."""
+    m = ev["metrics"]
+    out = []
+    for k, v, lo, hi, st in check_targets(cfg, m):
+        if st == "not computed":
+            continue
+        rng = f"{'' if lo is None else f_num(float(lo), 2)} .. {'' if hi is None else f_num(float(hi), 2)}"
+        out.append((k, METRICS[k][0] if k in METRICS else k, f_num(v, METRICS.get(k, ("", "", 2))[2]),
+                    rng.strip(), st))
+    pk = ev.get("pack")
+    if pk:
+        nm, (d, hz, rk, need) = pk["min_pair"]
+        out.append(("link_clearance", f"Link clearance ({nm})", f_num(d, 1), f">= {need:.1f}",
+                    "PASS" if pk["ok"] else "FAIL"))
+        out.append(("rim_margin", "Rim radial margin", f_num(pk["rim_margin"], 1), ">= 5.0",
+                    "PASS" if pk["rim_margin"] >= 5 else "FAIL"))
+    return out
+
+
+def print_report(cfg, ev):
+    m = ev["metrics"]
+    s = ev["susp"]
+    print(f"\n=== {cfg['name']}  ({cfg['axle']} axle) ===")
+    print(f"wheelbase {s.WB:.0f}  track {s.track:.0f}  CG {s.CG:.0f}  mass {cfg['vehicle']['mass']:.0f} kg  "
+          f"tire R {s.R:.0f}  rim {cfg['wheel']['rim_diameter_in']:.0f} in")
+    keys = ["camber", "toe", "caster", "kpi", "scrub", "trail", "roll_center", "fvsa",
+            "antidive", "antisquat", "antilift"]
+    print("\nAt ride height")
+    table(["metric", "value", "unit"], [mrow(m, k) for k in keys if k in m])
+    T = cfg["sweep"]["travel"]
+    print(f"\nOver +/-{T:.0f} mm of heave")
+    rowsx = [mrow(m, k) for k in ("camber_gain", "bump_steer", "bump_steer_curve", "bump_steer_max", "track_change")]
+    rowsx.append(["Roll center range (ground-relative)", f"{m['rc_min']:.1f} .. {m['rc_max']:.1f}", "mm"])
+    table(["metric", "value", "unit"], rowsx)
+
+    if ev.get("roll"):
+        R = ev["roll"]
+        print(f"\nRoll (+/-{m['roll_max_deg']:.1f} deg body roll, equal and opposite wheel travel; "
+              "camber relative to the ground)")
+        table(["metric", "value", "unit"],
+              [mrow(m, k) for k in ("roll_camber", "roll_camber_max", "roll_steer", "rc_lat", "rc_height_roll")])
+        sel = [R[i] for i in range(len(R) // 2, len(R))]
+        table(["roll deg", "outer camber", "inner camber", "RC height", "RC lateral"],
+              [[f"{r['roll']:.1f}", f"{r['camber_outer']:.2f}", f"{r['camber_inner']:.2f}",
+                f_num(r["rc_height"], 1), f_num(r["rc_lateral"], 1)] for r in sel], left=0)
+        print("  roll camber 1.0 = the wheel leans with the body; lower = more camber recovery.")
+
+    if ev.get("steer"):
+        st = ev["steer"]
+        print(f"\nSteering (rack +/-{cfg['sweep']['rack_travel']:.0f} mm, track {s.track:.0f}, wheelbase {s.WB:.0f})")
+        sel = [st[i] for i in range(0, len(st), max(1, len(st) // 7))]
+        if st[-1] not in sel:
+            sel.append(st[-1])
+        table(["rack mm", "inner deg", "outer deg", "Ackermann %", "inner camber", "outer camber"],
+              [[f"{r['rack']:.1f}", f"{r['inner']:.2f}", f"{r['outer']:.2f}", f_num(r["ackermann"], 0),
+                f"{r['camber_inner']:.2f}", f"{r['camber_outer']:.2f}"] for r in sel], left=0)
+        lock = cfg["sweep"]["ackermann_at_outer_deg"]
+        note = "" if ev.get("ack_reached", True) else "  (outer wheel never reached that angle - last row used)"
+        print(f"Ackermann at {lock:.0f} deg outer wheel: {f_num(m['ackermann'], 0)} %{note}")
+        for key in ("inner", "outer"):
+            r25 = rack_for_angle(st, key, 25.0)
+            print(f"rack needed for 25 deg on the {key} wheel: "
+                  f"{f'{r25:.1f} mm' if r25 is not None else 'more than the range tested'}")
+        if "turn_radius" in m:
+            print(f"turning radius of the outer front wheel at full rack: {m['turn_radius']:.2f} m "
+                  f"(diameter {2 * m['turn_radius']:.2f} m - compare with the tightest hairpin in the current rules)")
+        print(f"steering arm (tie-rod joint to kingpin axis): {m['steer_arm']:.1f} mm")
+        cf = cfg["vehicle"].get("rack_c_factor")
+        if cf:
+            print(f"steering wheel lock-to-center: {cfg['sweep']['rack_travel'] / cf * 360:.0f} deg "
+                  f"(c-factor {cf:g} mm/rev)")
+
+    if ev.get("ride"):
+        print_ride(cfg, ev)
+
+    if ev.get("pack"):
+        p = ev["pack"]
+        print(f"\nPackaging (heave +/-{T:.0f}"
+              + (f", rack +/-{cfg['sweep']['rack_travel']:.0f}" if s.axle == "front" else "")
+              + "; center-line distances)")
+        fr = s.axle == "front"
+        table(["link pair", "min mm", "needs", "at heave"] + (["at rack"] if fr else []) + [""],
+              [[n, f"{d:.1f}", f"{need:.1f}", f"{hz:+.0f}"] + ([f"{rk:+.0f}"] if fr else [])
+               + ["OK" if d >= need else "TOO CLOSE"]
+               for n, (d, hz, rk, need) in sorted(p["pairs"].items(), key=lambda kv: kv[1][0] - kv[1][3])])
+        cl = cfg["clearance"]
+        print(f"needs = (OD a + OD b)/2 + margin {cl['margin']:g} mm; ODs: wishbone {cl['wishbone_tube_od']:g}, "
+              f"tie rod {cl['tie_rod_od']:g}, pushrod {cl.get('pushrod_od', 15.9):g}")
+        nm, hz, rk = p["rim_where"]
+        print(f"rim: farthest of UBJ/LBJ/TRO from the wheel axis is {p['rim_max']:.1f} mm "
+              f"({nm} at heave {hz:+.0f}); rim radius {p['rim_radius']:.1f} mm -> margin {p['rim_margin']:.1f} mm "
+              "(radial check only)")
+
+    print("\nTarget checks")
+    table(["target", "value", "range", "status"], [list(c[1:]) for c in all_checks(cfg, ev)])
+
+
+def print_ride(cfg, ev):
+    m, rd = ev["metrics"], ev["ride"]
+    sc = cfg["spring"]
+    kind = "direct-acting damper" if ev["spring"].direct else "rocker"
+    print(f"\nSpring and damper ({sc['rod_on']}-arm rod, {kind}; spring {sc['spring_rate']:g} N/mm, "
+          f"tire {sc['tire_rate']:g} N/mm, sprung corner {rd['_m_sprung']:.1f} kg)")
+    keys = ["motion_ratio", "mr_progression", "wheel_rate", "ride_rate", "ride_freq", "static_spring_force",
+            "spring_for_target", "damper_used", "damper_margin", "damper_static_pos", "damper_topout",
+            "damper_bottomout", "rod_angle", "rocker_rot", "trans_min"]
+    table(["metric", "value", "unit"], [mrow(m, k) for k in keys if k in m])
+    lo, mid, hi = rd["_damper_len_range"]
+    e2e = sc.get("damper_eye_to_eye")
+    print(f"  damper length: {hi:.1f} (full droop) / {mid:.1f} (ride height) / {lo:.1f} mm (full bump)"
+          + (f"; damper is {e2e:g} extended, {e2e - sc['damper_stroke']:g} closed" if e2e and sc.get("damper_stroke")
+             else " - add damper_eye_to_eye to check top-out/bottom-out"))
+    if "_arm_rod" in rd:
+        print(f"  rocker arms: rod side {rd['_arm_rod']:.1f} mm, damper side {rd['_arm_damper']:.1f} mm "
+              f"(ratio {rd['_arm_damper'] / rd['_arm_rod']:.2f}); transmission angles over travel: rod "
+              f"{rd['_trans_rod'][0]:.0f}-{rd['_trans_rod'][1]:.0f} deg, damper "
+              f"{rd['_trans_damper'][0]:.0f}-{rd['_trans_damper'][1]:.0f} deg (90 = best)")
+    if sc.get("target_freq_hz") and "spring_for_target" in m:
+        print(f"  -> for {sc['target_freq_hz']:g} Hz use about {m['spring_for_target']:.0f} N/mm "
+              f"({m['spring_for_target'] * 5.71:.0f} lbf/in) at this motion ratio.")
+    if rd.get("_wheel_travel_per_stroke"):
+        print(f"  damper stroke {sc['damper_stroke']:g} mm allows about {rd['_wheel_travel_per_stroke']:.0f} mm "
+              "of total wheel travel at this motion ratio.")
+    print(f"  wheel-hop frequency ~{rd['hop_freq']:.1f} Hz (unsprung mass on spring + tire).")
+    print(f"\nDamping (critical damping at the wheel: body {rd['c_crit']:.0f} N s/m, wheel hop {rd['c_crit_hop']:.0f} N s/m)")
+    zrows = [[lab, f"{rd[k]:.2f}"] for k, lab in (("zeta_bump_low", "bump, low-speed"), ("zeta_rebound_low", "rebound, low-speed"),
+             ("zeta_bump_high", "bump, high-speed"), ("zeta_rebound_high", "rebound, high-speed"), ("zeta_hop", "wheel hop (bump high-speed)")) if k in rd]
+    if zrows:
+        table(["damping ratio", "value"], zrows)
+    else:
+        print("  add damper_bump_low / _high and damper_rebound_low / _high (N per m/s at the shaft) to get damping ratios.")
+    zl, zh = sc.get("target_zeta_low") or 0.7, sc.get("target_zeta_high") or 0.35
+    print(f"  -> damper rates for damping ratio {zl:g} (low-speed, body control) and {zh:g} (high-speed, bumps): "
+          f"about {rd['damper_c_low_target']:.0f} and {rd['damper_c_high_target']:.0f} N s/m at the shaft.")
+
+
+def write_csv(prefix, ev):
+    keys = ["dz", "camber", "toe", "caster", "kpi", "scrub", "trail", "roll_center",
+            "roll_center_chassis", "fvsa", "cp_x", "cp_y", "cp_z", "antidive", "antisquat", "antilift",
+            "motion_ratio", "damper_len", "rocker_deg"]
+    keys = [k for k in keys if k in ev["rows"][0]]
+    files = []
+    with open(f"{prefix}_heave.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(keys)
+        for r in ev["rows"]:
+            w.writerow([r[k] for k in keys])
+    files.append(f"{prefix}_heave.csv")
+    for name, rows in (("roll", ev.get("roll")), ("steer", ev.get("steer"))):
+        if rows:
+            with open(f"{prefix}_{name}.csv", "w", newline="") as f:
+                w = csv.writer(f)
+                k2 = list(rows[0].keys())
+                w.writerow(k2)
+                for r in rows:
+                    w.writerow([r[k] for k in k2])
+            files.append(f"{prefix}_{name}.csv")
+    print("wrote " + ", ".join(files))
+
+
+# --------------------------------------------------------------------------- #
+#  Loads and whole-car output
+# --------------------------------------------------------------------------- #
+def print_loads(cfg, ev, L):
+    s = ev["susp"]
+    veh, info, mem = cfg["vehicle"], L["info"], cfg["members"]
+    print(f"\n=== Loads: {cfg['name']} ({cfg['axle']} axle) ===")
+    print("One config = both corners of this axle (the car is symmetric). The solved corner is the outer wheel in a\n"
+          "left turn and the inner wheel in a right turn, so both are checked.")
+    print("\nHow the wheel loads are built (quasi-static, rigid car):")
+    print(f"  car weight W = {veh['mass']:g} kg x 9.81 = {info['W']:.0f} N; this axle carries "
+          f"{info['share'] * 100:.0f} % -> static wheel load {info['Fz0']:.0f} N")
+    print(f"  longitudinal transfer per wheel per g = W x CG height / wheelbase / 2 = {info['W']:.0f} x "
+          f"{info['h']:g} / {info['WB']:g} / 2 = {info['long_per_g']:.0f} N")
+    src = "loads.lltd_front" if cfg["loads"].get("lltd_front") else ("the car's roll balance" if info.get("lltd_from_car") else "front weight share")
+    print(f"  lateral transfer per wheel per g = W x CG height / track x this axle's share of it ({info['lat_share'] * 100:.0f} %, "
+          f"front LLTD {info['lltd'] * 100:.0f} % from {src}) = {info['lat_per_g']:.0f} N")
+    print("  tire side force = g level x that wheel's vertical load; "
+          + (f"brake force = g x W x brake share ({info['brake_share'] * 100:.0f} % on this axle) / 2"
+             if info["brake_split"] == "bias" else "brake force = g level x that wheel's vertical load (loads.brake_split = grip)")
+          + ("; brake force at the wheel center (inboard brakes)" if veh["brakes"] == "inboard" else ""))
+    if L.get("deflect"):
+        print(f"  bump and pothole are also solved where the wheel actually is under that load: raised by (load - static) / "
+              f"wheel rate ({info['wheel_rate']:.1f} N/mm), capped at full bump")
+    names = list(L["results"])
+    print("\nTire force on the wheel (N)")
+    table(["case", "Fx", "Fy", "Fz", "Fz built from", "description"],
+          [[n, f"{L['tire'][n][0]:.0f}", f"{L['tire'][n][1]:.0f}", f"{L['tire'][n][2]:.0f}", L["fz_parts"][n],
+            L["desc"][n]] for n in names], left=1)
+    print("\nMember axial forces (N, + = tension, - = compression)")
+    rows = []
+    for k in MEMBERS:
+        rows.append([member_label(k, s)] + [f"{L['results'][n][k]:+.0f}" for n in names])
+    rows.append(["Damper/spring"] + [f"{L['results'][n]['damper']:+.0f}" for n in names])
+    if not ev["spring"].direct:
+        rows.append(["Rocker pivot (resultant)"] + [f"{L['results'][n]['rocker_pivot']:.0f}" for n in names])
+    if ev["spring"].on != "upright":
+        rows.append([f"{ev['spring'].on.capitalize()}-arm bending load"] +
+                    [f"{L['results'][n]['bending']:.0f}" for n in names])
+    table(["member"] + names, rows)
+    print(f"\nStrength check - material: {mem.get('material', 'steel')}; E = {mem['E']:g} MPa, "
+          f"yield = {mem['yield']:g} MPa; required FOS = {mem['sf_target']:g}")
+    print("  Buckling (compression only): critical load Pcr = pi^2 E I / L^2 (pin-ended), FOS = Pcr / worst compression")
+    print("  Yield (tension or compression): yield force = yield stress x tube area, FOS = yield force / worst |force|")
+    trows = []
+    for r in L["checks"]:
+        fos = min(r["sf_buckle"], r["sf_yield"])
+        ok = fos >= mem["sf_target"]
+        trows.append([member_label(r["member"], s), f"{r['od']:g} x {r['wall']:g}", f"{r['length']:.0f}",
+                      f"{r['compression']:.0f}" + (f" ({r['c_case']})" if r["compression"] else ""),
+                      f"{r['Pcr']:.0f}", f_num(r["sf_buckle"], 1),
+                      f"{r['peak']:.0f} ({r['p_case']})", f"{r['Py']:.0f}", f_num(r["sf_yield"], 1),
+                      "OK" if ok else "BELOW FOS"])
+    table(["member", "tube OD x wall", "length", "worst compression N", "buckling load Pcr N", "FOS buckle",
+           "worst |force| N", "yield force N", "FOS yield", ""], trows)
+    pr = L.get("parts") or []
+    if pr:
+        cap = pr[0]["bolt_capacity"]
+        print(f"\nRod ends and bolts ({mem.get('bolt_dia')} mm grade {mem.get('bolt_grade')} bolt, {mem.get('bolt_shear_planes')} shear plane(s)"
+              + (f": shear capacity {cap:.0f} N" if cap else ": set bolt_dia / bolt_grade to check") + ")")
+        table(["member", "worst |force| N", "bolt FOS", "rod-end FOS"],
+              [[member_label(r["member"], s), f"{r['peak']:.0f} ({r['p_case']})", f_num(r["sf_bolt"], 1) if r["sf_bolt"] is not None else "-",
+                f_num(r["sf_rod_end"], 1) if r["sf_rod_end"] is not None else "enter rod_end_rating"] for r in pr])
+    b = L.get("bending_check")
+    if b:
+        ok = b["sf"] >= mem["sf_target"]
+        print(f"\nPushrod mount bending: the {member_label(b['leg'], s).lower()} as a beam pinned at both ends ({b['length']:.0f} mm long), "
+              f"mount {b['a']:.0f} mm from the pivot and {b['offset']:.0f} mm off the leg's centerline.")
+        print(f"  worst case {b['case']}: {b['P_perp']:.0f} N across the leg, {b['moment'] / 1000:.1f} N m, stress {b['stress']:.0f} MPa "
+              f"(bending + axial) -> FOS {b['sf']:.2f} {'OK' if ok else 'BELOW FOS'}")
+        if not ok:
+            print("  A bare tube is overloaded here: mount the pushrod on a gusset or bracket at the ball-joint node, move it closer to\n"
+                  "  the ball joint, or use a stiffer leg. This beam check is conservative if a gusset carries the load.")
+        if b["offset"] > 5:
+            print(f"  The mount is {b['offset']:.0f} mm off the leg's centerline: the bracket also twists the leg (not modeled).")
+    c = L.get("compliance")
+    if c:
+        print(f"\nCompliance: toe and camber change from the links stretching (estimated stiffness: rod ends "
+              f"{mem.get('rod_end_k') or 0:.0f} N/mm each, chassis mounts {mem.get('mount_k') or 0:.0f} N/mm, plus the tube).")
+        print("  Link stiffness N/mm: " + ", ".join(f"{member_label(k, s).lower()} {v:.0f}" for k, v in c["stiffness"].items()))
+        table(["case", "camber change deg", "toe-in change deg", "contact patch moves Y mm", "largest link stretch mm"],
+              [[x["case"] + ("" if x["driving"] else " *"), f"{x['camber']:+.3f}", f"{x['toe']:+.3f}", f"{x['cp_y']:+.2f}",
+                f"{x['worst_stretch']:.2f}"] for x in c["cases"]])
+        for key, lim, ok, w in (("toe", c["toe_limit"], c["toe_ok"], c["worst_toe"]), ("camber", c["camber_limit"], c["camber_ok"], c["worst_camber"])):
+            if lim is not None:
+                print(f"  Worst {key} change in a driving case: {w[key]:+.3f} deg ({w['case']}), limit {lim:g} -> {'OK' if ok else 'TOO SOFT'}")
+        print("  * bump and impact cases: shown, not held to the limits. Toe-in + / camber - = top in. The stiffnesses are\n"
+              "    estimates: rod_end_k and mount_k under 'members' (stiffer tabs and rod ends help most).")
+    print("\nNot checked here: tabs, welds, inserts, rod-end threads and fatigue. Change g levels under 'loads' (pothole_g and\n"
+          "kerb_g are the impact cases), tubes, material, bolts and rod-end rating under 'members'.")
+
+
+CAR_LABELS = {k: (d["label"], d["unit"], d["decimals"]) for k, d in METRICS_FILE["car"].items()}
+
+
+def print_car(cfg_f, cfg_r, out):
+    print(f"\n=== Car balance: {cfg_f['name']} + {cfg_r['name']} ===")
+    print(f"sprung mass {out['ms']:.0f} kg, sprung CG {out['hs']:.0f} mm, roll axis at the CG {out['z_ra']:.0f} mm, "
+          f"roll moment arm {out['arm']:.0f} mm")
+    rows = [["Ride frequency", f"{out['freq_f']:.2f}", f"{out['freq_r']:.2f}", "Hz"],
+            ["Roll center height", f"{out['rc_f']:.0f}", f"{out['rc_r']:.0f}", "mm"],
+            ["Roll stiffness: springs", f"{out['Ksf']:.0f}", f"{out['Ksr']:.0f}", "Nm/deg"],
+            ["  anti-roll bar (input)", f"{out['arb_in_f']:.0f}", f"{out['arb_in_r']:.0f}", "Nm/deg"],
+            ["  axle total, with tires", f"{out['Kf']:.0f}", f"{out['Kr']:.0f}", "Nm/deg"],
+            ["Load transfer per wheel per g", f"{out['dFz_f']:.0f}", f"{out['dFz_r']:.0f}", "N/g"],
+            ["  of which geometric (through links)", f"{out['geo_f']:.0f}", f"{out['geo_r']:.0f}", "N/g"]]
+    table(["", "front", "rear", "unit"], rows)
+    print(f"\nrear/front frequency ratio {out['freq_r'] / out['freq_f']:.2f} (many teams run the rear 5-20 % higher)")
+    print(f"roll gradient: {out['grad']:.2f} deg/g")
+    print(f"LLTD front: {out['lltd'] * 100:.1f} %  (front weight {out['wf'] * 100:.0f} %; front LLTD a few % above "
+          "front weight is a common starting point for mild understeer)")
+    print("\nCar targets:")
+    table(["target", "value", "range", "status"], [[CAR_LABELS[c["key"]][0], f"{c['value']:.{CAR_LABELS[c['key']][2]}f} {CAR_LABELS[c['key']][1]}",
+          f"{c['lo']} to {c['hi']}", c["status"]] for c in out["checks"]])
+    print(f"\nTo reach {out['target_grad']:g} deg/g with LLTD {out['target_lltd'] * 100:.0f} %:")
+    print(f"  total roll stiffness needed {out['K_need']:.0f} Nm/deg; front share {out['lam_c'] * 100:.0f} %"
+          + ("" if abs(out['lam'] - out['lam_c']) < 1e-9 else " (LLTD target out of reach with roll stiffness alone)"))
+    for nm, v in (("front", out["arb_f"]), ("rear", out["arb_r"])):
+        if v == float("inf"):
+            print(f"  {nm}: not reachable, the tires alone are softer than that")
+        elif v > 0:
+            print(f"  {nm} anti-roll bar: about {v:.0f} Nm/deg at the wheels")
+        else:
+            print(f"  {nm} anti-roll bar: none needed (springs already give {-v:.0f} Nm/deg more than required)")
+    if out["arb_f"] <= 0 and out["arb_r"] <= 0:
+        print(f"  -> the springs alone already make the car stiffer in roll than {out['target_grad']:g} deg/g.")
+    if "lltd_fix" in out:
+        ax_, k_ = out["lltd_fix"]
+        other = "rear" if ax_ == "front" else "front"
+        print(f"  balance only: to reach the LLTD target keep the {other} as is and change the {ax_} bar by about "
+              f"{k_:+.0f} Nm/deg, or change the {other} springs.")
+    print("\nAssumes a rigid chassis, steady state, roll centers at ride height. Set targets with --grad and --lltd.")
+
