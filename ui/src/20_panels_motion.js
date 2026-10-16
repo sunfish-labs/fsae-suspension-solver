@@ -4,7 +4,8 @@ function panelHeave() {
   const rows = ev.rows,
     br = base ? base.rows : null,
     m = ev.metrics,
-    T = ev.cfg.sweep.travel;
+    [Td, Tb] = S.travelRange(ev.cfg),
+    T = Td === Tb ? `±${Td}` : `-${Td} / +${Tb}`;
   const r0 = rs => rs.reduce((a, r) => (Math.abs(r.dz) < Math.abs(a.dz) ? r : a));
   const toe0 = r0(rows).toe,
     cpy0 = r0(rows).cp_y,
@@ -46,7 +47,7 @@ function panelHeave() {
     ${mk("Camber, deg", `gain ${fmt(m.camber_gain, 3)} deg/in`, r => r.camber)}
     ${mk(
       "Toe change, deg (+ in)",
-      `max ${fmt(m.bump_steer_max, 3)} deg over ±${T} mm`,
+      `max ${fmt(m.bump_steer_max, 3)} deg over ${T} mm`,
       r => r.toe - toe0,
       r => r.toe - btoe0
     )}

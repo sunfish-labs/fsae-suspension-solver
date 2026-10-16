@@ -12,7 +12,7 @@ the ball-joint node).
     compliance.py  toe and camber change from link stretch"""
 from __future__ import annotations
 
-from ..kinematics import SolveError
+from ..kinematics import SolveError, travel_range
 from .cases import G, load_cases
 from .compliance import IMPACT_CASES, compliance, link_stiffness
 from .statics import MEMBER_LABEL, MEMBERS, _geometry, arm_reactions, member_label, solve_case, solve_FM, wheel_rate_at_ride
@@ -31,7 +31,7 @@ def run_loads(cfg, susp, sp, lltd=None):
     res, desc, tire, fz, deflect = {}, {}, {}, {}, {}
     geom0 = _geometry(susp, sp)
     k_w = wheel_rate_at_ride(cfg, susp, sp)
-    travel = float(cfg["sweep"]["travel"])
+    travel = travel_range(cfg)[1]                       # full bump
     extra = []
     for name, forces, d, parts in cases:
         if name in ("bump", "pothole") and k_w > 1e-9:

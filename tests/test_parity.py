@@ -52,6 +52,21 @@ for i in range(a.cases):
             if raw["spring"].get(k):
                 raw["spring"][k] = [round(v + rng.uniform(-a.move / 3, a.move / 3), 3) for v in raw["spring"][k]]
     raw["hardpoints"]["contact_patch"][2] = 0.0                   # keep the tire on the ground
+    # exercise the optional features on some of the cases
+    cp = raw["hardpoints"]["contact_patch"]
+    R = (raw.get("wheel") or {}).get("tire_radius", 254.0)
+    if i % 3 == 1:
+        raw["sweep"] = dict(raw.get("sweep") or {}, droop_travel=round(rng.uniform(18, 30), 1), bump_travel=round(rng.uniform(22, 35), 1))
+    if i % 4 == 2:
+        raw["wheel"] = dict(raw.get("wheel") or {}, caliper={"clock_deg": rng.uniform(0, 180), "radius": rng.uniform(90, 120),
+                                                             "size": rng.uniform(40, 70), "offset": rng.uniform(-30, 0)},
+                            rim_inner_radius=rng.uniform(140, 155))
+        raw["vehicle"] = dict(raw.get("vehicle") or {}, aero_front=rng.uniform(200, 800), aero_rear=rng.uniform(200, 800),
+                              rack_c_factor=rng.uniform(70, 110))
+        raw["members"] = dict(raw.get("members") or {}, rack_k=rng.uniform(8000, 20000), column_k=rng.uniform(5, 20))
+    if raw.get("axle") == "rear" and i % 2 == 0:
+        raw["halfshaft"] = {"diff_output": [cp[0] + rng.uniform(-10, 10), rng.uniform(120, 180), R - rng.uniform(0, 30)],
+                            "cv_outboard": [cp[0], cp[1] - rng.uniform(50, 80), R], "plunge_max": 20}
     cases.append(raw)
 
 

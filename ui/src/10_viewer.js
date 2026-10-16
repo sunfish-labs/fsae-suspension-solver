@@ -718,7 +718,10 @@ function stepAnim(now) {
   if (t >= 1) {
     view.anim = null;
     pose.dz = 0;
-  } else pose.dz = +(a.T * Math.sin(2 * Math.PI * t)).toFixed(1);
+  } else {
+    const sn = Math.sin(2 * Math.PI * t); // a.T = [droop, bump]
+    pose.dz = +((sn >= 0 ? a.T[1] : a.T[0]) * sn).toFixed(1);
+  }
   $("#poseZ").value = pose.dz;
   $("#poseZo").value = (+pose.dz).toFixed(1);
   updateScene();
@@ -773,9 +776,9 @@ $("#poseR0").addEventListener("click", () => {
 });
 $("#posePlay").addEventListener("click", () => {
   stopAnim();
-  if (!reduceMotion) view.anim = { t0: null, T: cfg.sweep.travel };
+  if (!reduceMotion) view.anim = { t0: null, T: S.travelRange(cfg) };
   else {
-    $("#poseZ").value = cfg.sweep.travel;
+    $("#poseZ").value = S.travelRange(cfg)[1];
     onPose();
   }
 });

@@ -40,7 +40,24 @@ function finishConfig(raw) {
     for (const k of ["rod_outboard", "damper_chassis"]) if (sp[k] == null) throw new SolveError("Spring block is missing " + k);
     cfg.spring = sp;
   }
+  checkExtras(cfg);
   return cfg;
+}
+// mirrors config._check_extras: asymmetric travel, caliper envelope and rear halfshaft
+function checkExtras(cfg) {
+  const sw = cfg.sweep,
+    num = v => typeof v === "number" && isFinite(v),
+    vec3 = v => Array.isArray(v) && v.length === 3 && v.every(num);
+  for (const k of ["travel", "droop_travel", "bump_travel"])
+    if (sw[k] != null && !(+sw[k] > 0)) throw new SolveError(`sweep.${k} must be a positive distance in mm`);
+  const cal = cfg.wheel.caliper;
+  if (cal != null) {
+    const miss = ["clock_deg", "radius", "size", "offset"].filter(k => !num((cal || {})[k]));
+    if (miss.length) throw new SolveError("wheel.caliper needs numbers for " + miss.join(", "));
+  }
+  const hs = cfg.halfshaft;
+  if (hs != null && !(vec3(hs.diff_output) && vec3(hs.cv_outboard)))
+    throw new SolveError("halfshaft needs diff_output and cv_outboard as [x, y, z]");
 }
 
 // Broad starting ranges that suit most FSAE cars; narrow them per design ("targets") or with a team targets file.
@@ -57,6 +74,17 @@ function defaultTargets(cfg) {
     }
     if (sp.rocker_pivot != null) Object.assign(t, cond.rocker);
     if (sp.damper_bump_low && sp.damper_rebound_low) Object.assign(t, cond.damping);
+  }
+  if ((cfg.wheel || {}).caliper) t.caliper_rim_margin = [+((cfg.clearance || {}).caliper_margin ?? 3), null];
+  const hs = cfg.axle === "rear" ? cfg.halfshaft : null;
+  if (hs) {
+    Object.assign(t, cond.halfshaft);
+    for (const [key, metric] of [
+      ["cv_angle_max_in", "hs_cv_in_max"],
+      ["cv_angle_max_out", "hs_cv_out_max"],
+      ["plunge_max", "hs_plunge"],
+    ])
+      if (hs[key] != null) t[metric] = [null, +hs[key]];
   }
   Object.assign(t, cfg._team_targets || {}, cfg.targets || {}); // general, then the team file, then the design's own
   for (const k of Object.keys(t)) if (t[k] == null) delete t[k];

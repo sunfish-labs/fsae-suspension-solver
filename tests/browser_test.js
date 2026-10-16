@@ -162,6 +162,24 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
   check("a design file with hostile names and keys runs no script", (await p.evaluate(() => window.__pwn)) === undefined && (await p.evaluate(() => document.querySelectorAll("img[onerror]").length)) === 0);
   await p.click('#axleSeg [data-ax="car"]'); await p.waitForTimeout(400);
 
+  console.log("\nTravel, caliper and halfshaft inputs");
+  const setIn = (sel, v) => p.evaluate(([sel, v]) => { const el = document.querySelector(sel); el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); }, [sel, v]);
+  await p.click('#axleSeg [data-ax="front"]'); await p.waitForTimeout(400);
+  await setIn("#in_sweep_bump_travel", "35"); await setIn("#in_sweep_droop_travel", "20"); await p.waitForTimeout(900);
+  check("separate bump and droop travel set the pose slider range", (await p.$eval("#poseZ", e => [e.min, e.max].join(","))) === "-20,35", await p.$eval("#poseZ", e => [e.min, e.max].join(",")));
+  await setIn("#in_wheel_caliper_size", "60"); await p.waitForTimeout(900);
+  await p.click("#tab_pack"); await p.waitForTimeout(200);
+  check("a caliper size adds the caliper check to Packaging", /Caliper: its outer edge/.test(await text(p, "#pn_pack")), (await text(p, "#pn_pack")).slice(-300));
+  await setIn("#in_wheel_caliper_size", ""); await p.waitForTimeout(900);
+  check("clearing a caliper field removes the caliper", !/Caliper: its outer edge/.test(await text(p, "#pn_pack")));
+  await setIn("#in_sweep_bump_travel", ""); await setIn("#in_sweep_droop_travel", ""); await p.waitForTimeout(600);
+  await p.click('#axleSeg [data-ax="rear"]'); await p.waitForTimeout(600);
+  await setIn("#in_halfshaft_diff_output_1", "160"); await p.waitForTimeout(900);
+  await p.click("#tab_pack"); await p.waitForTimeout(200);
+  check("a diff output point adds the halfshaft check (rear)", /Halfshaft: plunge/.test(await text(p, "#pn_pack")), (await text(p, "#pn_pack")).slice(-300));
+  await setIn("#in_halfshaft_diff_output_1", ""); await p.waitForTimeout(600);
+  await p.click('#axleSeg [data-ax="car"]'); await p.waitForTimeout(400);
+
   console.log("\nTheme");
   await p.click("#themeMenu summary"); await p.click('[data-theme-set="dark"]'); await p.waitForTimeout(300);
   await p.reload(); await p.waitForTimeout(1200);

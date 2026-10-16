@@ -23,15 +23,15 @@ function run() {
     carRes = axleView === "car" ? evalCar() : null;
   }
   $("#jsonBox").value = JSON.stringify(exportCfg(), null, 2);
-  const T = cfg.sweep?.travel ?? 30,
+  const [Dt, Bt] = cfg.sweep ? S.travelRange(cfg) : [30, 30],
     Rk = cfg.sweep?.rack_travel ?? 35;
   const pz = $("#poseZ"),
     pr = $("#poseR");
-  pz.min = -T;
-  pz.max = T;
+  pz.min = -Dt;
+  pz.max = Bt;
   pr.min = -Rk;
   pr.max = Rk;
-  pose.dz = Math.max(-T, Math.min(T, pose.dz));
+  pose.dz = Math.max(-Dt, Math.min(Bt, pose.dz));
   pose.rack = cfg.axle === "rear" ? 0 : Math.max(-Rk, Math.min(Rk, pose.rack));
   pz.value = pose.dz;
   pr.value = pose.rack;

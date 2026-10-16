@@ -55,7 +55,30 @@ def finish_config(cfg, where="config"):
         if miss:
             raise ConfigError(f"{where}: spring block is missing {', '.join(miss)}")
         cfg["spring"] = sp
+    _check_extras(cfg, where)
     return cfg
+
+
+def _vec3(v):
+    return isinstance(v, (list, tuple)) and len(v) == 3 and all(isinstance(c, (int, float)) and not isinstance(c, bool) for c in v)
+
+
+def _check_extras(cfg, where):
+    """The optional blocks: asymmetric travel, caliper envelope and rear halfshaft."""
+    sw = cfg["sweep"]
+    for k in ("travel", "droop_travel", "bump_travel"):
+        if sw.get(k) is not None and not float(sw[k]) > 0:
+            raise ConfigError(f"{where}: sweep.{k} must be a positive distance in mm")
+    cal = cfg["wheel"].get("caliper")
+    if cal is not None:
+        miss = [k for k in ("clock_deg", "radius", "size", "offset") if not isinstance(cal.get(k) if isinstance(cal, dict) else None, (int, float))]
+        if miss:
+            raise ConfigError(f"{where}: wheel.caliper needs numbers for {', '.join(miss)} "
+                              "(clock_deg, radius and size in mm, offset along the spin axis in mm)")
+    hs = cfg.get("halfshaft")
+    if hs is not None:
+        if not isinstance(hs, dict) or not (_vec3(hs.get("diff_output")) and _vec3(hs.get("cv_outboard"))):
+            raise ConfigError(f"{where}: halfshaft needs diff_output and cv_outboard as [x, y, z]")
 
 
 def _read_json(path):
@@ -145,6 +168,14 @@ def default_targets(cfg):
             t.update(cond["rocker"])
         if sp_.get("damper_bump_low") and sp_.get("damper_rebound_low"):     # body control (low-speed)
             t.update(cond["damping"])
+    if (cfg.get("wheel") or {}).get("caliper"):
+        t["caliper_rim_margin"] = [float((cfg.get("clearance") or {}).get("caliper_margin", 3.0)), None]
+    hs = cfg.get("halfshaft") if cfg["axle"] == "rear" else None
+    if hs:
+        t.update(cond["halfshaft"])
+        for key, metric in (("cv_angle_max_in", "hs_cv_in_max"), ("cv_angle_max_out", "hs_cv_out_max"), ("plunge_max", "hs_plunge")):
+            if hs.get(key) is not None:
+                t[metric] = [None, float(hs[key])]
     t.update(cfg.get("_team_targets") or {})
     t.update({k: v for k, v in (cfg.get("targets") or {}).items()})
     return {k: v for k, v in t.items() if v is not None}

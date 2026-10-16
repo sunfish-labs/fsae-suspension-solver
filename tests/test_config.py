@@ -68,6 +68,9 @@ check("missing hardpoints -> ConfigError", raises(ConfigError, lambda: load_conf
 check("not JSON -> ConfigError", raises(ConfigError, lambda: load_config(write("b.json", "{nope"))))
 check("missing team targets file -> ConfigError", raises(ConfigError, lambda: load_config(write("c.json", dict(front, targets_file="missing.json")))))
 check("car file without a rear -> ConfigError", raises(ConfigError, lambda: load_car(write("d.json", {"type": "car", "front": front}))))
+check("negative bump travel -> ConfigError", raises(ConfigError, lambda: load_config(write("e.json", dict(front, sweep={"bump_travel": -5})))))
+check("caliper missing its size -> ConfigError", raises(ConfigError, lambda: load_config(write("f.json", dict(front, wheel={"caliper": {"clock_deg": 0, "radius": 100, "offset": 0}})))))
+check("halfshaft with a 2D point -> ConfigError", raises(ConfigError, lambda: load_config(write("g.json", dict(front, axle="rear", halfshaft={"diff_output": [0, 150], "cv_outboard": [0, 500, 250]})))))
 check("every library error is a SuspError", all(issubclass(e, SuspError) for e in (ConfigError, GoalError, SolveError, UnknownPointError)))
 from susp import tools as T  # noqa: E402
 cfg = make_config(front)

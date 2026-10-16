@@ -256,6 +256,56 @@ cb = car_balance(fc, fe, rc, re_)
 K = cb["Kf"] + cb["Kr"]
 check("roll gradient, deg/g", cb["grad"], cb["ms"] * 9.81 * cb["arm"] / 1000 / K, 1e-9, "sprung weight x roll moment arm / total roll stiffness")
 
+print("\n8. Travel, halfshaft, caliper, aero and steering stiffness")
+from susp.kinematics import heave_points, rim_inner_radius  # noqa: E402
+from susp.loads.compliance import link_stiffness  # noqa: E402
+hp9 = heave_points(20.0, 30.0, 9)
+check("heave points, droop 20 / bump 30, largest spacing error, mm", max(abs(a - b) for a, b in zip(hp9, [-20, -15, -10, -5, 0, 7.5, 15, 22.5, 30])), 0.0, 1e-12,
+      "half the points on each side, evenly spaced, 0 included")
+e = evaluate(corner(PAR, sweep=dict(TEMPLATE_FRONT.get("sweep") or {}, droop_travel=20.0, bump_travel=30.0)))
+check("asymmetric sweep: droop end, mm", e["rows"][0]["dz"], -20.0, 1e-9, "sweep.droop_travel")
+check("asymmetric sweep: bump end, mm", e["rows"][-1]["dz"], 30.0, 1e-9, "sweep.bump_travel")
+i0 = [r["dz"] for r in e["rows"]].index(0.0)
+check("asymmetric sweep: contact patch moves out at full bump, mm", e["rows"][i0]["cp_y"] - e["rows"][-1]["cp_y"], L - math.sqrt(L * L - 900), 1e-6,
+      "arc of a 310 mm arm at 30 mm bump: L - sqrt(L^2 - 30^2)")
+
+# halfshaft on the parallelogram: the upright translates on an arc, so the CV moves by (sqrt(L^2 - z^2) - L, z)
+cv, dif = [0.0, 520.0, 230.0], [0.0, 150.0, 230.0]
+rr = corner(PAR, axle="rear", halfshaft={"diff_output": dif, "cv_outboard": cv})
+e = evaluate(rr, steer=False)
+lens, angs = [], []
+for r in e["rows"]:
+    z = r["dz"]
+    dy = cv[1] - dif[1] + math.sqrt(L * L - z * z) - L
+    lens.append(math.hypot(dy, z))
+    angs.append(math.degrees(math.atan2(abs(z), dy)))
+check("halfshaft plunge, mm", e["metrics"]["hs_plunge"], max(lens) - min(lens), 1e-6, "length change of the shaft over the travel")
+check("inboard CV angle, deg", e["metrics"]["hs_cv_in_max"], max(angs), 1e-6, "atan(rise / lateral length) at the worst end")
+a0 = e["rows"][0]["_pts"]["a"]                                    # spin axis: static camber, constant (no rotation)
+tilt = math.degrees(math.atan2(a0[2], a0[1]))
+rise = [math.degrees(math.atan2(r["dz"], cv[1] - dif[1] + math.sqrt(L * L - r["dz"] ** 2) - L)) for r in e["rows"]]
+check("outboard CV angle, deg", e["metrics"]["hs_cv_out_max"], max(abs(x - tilt) for x in rise), 1e-6,
+      "shaft rise angle minus the spin axis tilt (camber), worst end")
+
+cal = {"clock_deg": 90.0, "radius": 110.0, "size": 50.0, "offset": -20.0}
+cc = corner(PAR, wheel=dict(TEMPLATE_FRONT["wheel"], caliper=cal, rim_inner_radius=150.0))
+e = evaluate(cc)
+check("caliper to rim barrel, mm", e["metrics"]["caliper_rim_margin"], 150.0 - (110.0 + 25.0), 1e-9, "barrel radius - (caliper radius + size / 2)")
+check("default barrel radius, mm", rim_inner_radius(corner(PAR)), TEMPLATE_FRONT["wheel"]["rim_diameter_in"] * 25.4 / 2 - 15.0, 1e-9, "rim radius - 15 mm when not given")
+
+aero = 600.0
+ea = evaluate(corner(PAR, damper, vehicle=dict(TEMPLATE_FRONT["vehicle"], aero_front=aero)))
+kw = 50.0 * (a / b) ** 2
+check("aero sag at 600 N per axle, mm", ea["metrics"]["aero_sag"], aero / 2 / kw + aero / 2 / 150.0, 2e-3, "F / k_wheel + F / k_tire (constant motion ratio)")
+check("ride frequency with aero, Hz", ea["metrics"]["ride_freq_aero"], ea["metrics"]["ride_freq"], 1e-3, "same mass, nearly constant motion ratio: unchanged")
+
+cs = corner(PAR, vehicle=dict(TEMPLATE_FRONT["vehicle"], rack_c_factor=90.0))
+k0 = link_stiffness(cs, "tie_rod", 310.0)
+cs["members"] = dict(cs["members"], rack_k=15000.0, column_k=10.0)
+k1 = link_stiffness(cs, "tie_rod", 310.0)
+k_col = 10.0 * 2 * math.pi * 360.0 * 1000.0 / 90.0 ** 2
+check("tie rod with rack and column, N/mm", 1 / k1, 1 / k0 + 1 / 15000.0 + 1 / k_col, 1e-12, "springs in series; column 2 pi 360 1000 k_col / c^2")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)

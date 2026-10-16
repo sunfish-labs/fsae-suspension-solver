@@ -105,8 +105,8 @@ function showMe(id) {
       }, 1600);
     }, 1600);
   }
-  if (ov.anim && !reduceMotion) view.anim = { t0: null, T: cfg.sweep.travel };
-  else if (ov.anim) setTravel(cfg.sweep.travel);
+  if (ov.anim && !reduceMotion) view.anim = { t0: null, T: S.travelRange(cfg) };
+  else if (ov.anim) setTravel(S.travelRange(cfg)[1]);
   else if (pose.dz) setTravel(0);
   $("#ovcap").hidden = false;
   updateScene();

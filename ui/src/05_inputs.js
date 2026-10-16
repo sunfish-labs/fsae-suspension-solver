@@ -38,6 +38,11 @@ function buildForm() {
     field("Rim diameter", "in", "wheel.rim_diameter_in"),
     field("Tire width", "mm", "wheel.tire_width"),
     field("Tire radius", "mm", "wheel.tire_radius"),
+    field("Rim barrel inner radius", "mm", "wheel.rim_inner_radius", { step: 0.5, opt: 1 }),
+    field("Caliper clock angle (0 = front, 90 = top)", "deg", "wheel.caliper.clock_deg", { step: 5, opt: 1 }),
+    field("Caliper center radius from axle", "mm", "wheel.caliper.radius", { step: 1, opt: 1 }),
+    field("Caliper envelope size", "mm", "wheel.caliper.size", { step: 1, opt: 1 }),
+    field("Caliper offset along axle (+ out)", "mm", "wheel.caliper.offset", { step: 1, opt: 1 }),
   ].join("");
   $("#vehFields").innerHTML = [
     field("Axle", "", "axle", {
@@ -63,9 +68,21 @@ function buildForm() {
         ["outboard", "Outboard (hub motor)"],
       ],
     }),
+    field("Steering ratio (rack per wheel turn)", "mm/rev", "vehicle.rack_c_factor", { step: 1, opt: 1 }),
+    field("Aero downforce, front axle", "N", "vehicle.aero_front", { step: 50, opt: 1 }),
+    field("Aero downforce, rear axle", "N", "vehicle.aero_rear", { step: 50, opt: 1 }),
+    field("Diff output X", "mm", "halfshaft.diff_output.0", { step: 1, opt: 1 }),
+    field("Diff output Y", "mm", "halfshaft.diff_output.1", { step: 1, opt: 1 }),
+    field("Diff output Z", "mm", "halfshaft.diff_output.2", { step: 1, opt: 1 }),
+    field("Outboard CV X", "mm", "halfshaft.cv_outboard.0", { step: 1, opt: 1 }),
+    field("Outboard CV Y", "mm", "halfshaft.cv_outboard.1", { step: 1, opt: 1 }),
+    field("Outboard CV Z", "mm", "halfshaft.cv_outboard.2", { step: 1, opt: 1 }),
+    field("Plunge limit", "mm", "halfshaft.plunge_max", { step: 1, opt: 1 }),
   ].join("");
   $("#simFields").innerHTML = [
     field("Vertical travel ±", "mm", "sweep.travel", { step: 1 }),
+    field("Bump travel (if different)", "mm", "sweep.bump_travel", { step: 1, opt: 1 }),
+    field("Droop travel (if different)", "mm", "sweep.droop_travel", { step: 1, opt: 1 }),
     field("Rack travel ±", "mm", "sweep.rack_travel", { step: 1 }),
     field("Body roll ±", "deg", "sweep.roll_deg", { step: 0.25 }),
     field("Ackermann at outer wheel", "deg", "sweep.ackermann_at_outer_deg", { step: 1 }),
@@ -140,6 +157,8 @@ function buildForm() {
     field("Chassis tab / bracket stiffness", "N/mm", "members.mount_k", { step: 1000, opt: 1 }),
     field("Toe change limit", "deg", "members.toe_comp_limit", { step: 0.01, opt: 1 }),
     field("Camber change limit", "deg", "members.camber_comp_limit", { step: 0.01, opt: 1 }),
+    field("Rack + mounts stiffness", "N/mm", "members.rack_k", { step: 1000, opt: 1 }),
+    field("Steering column torsion", "N m/deg", "members.column_k", { step: 1, opt: 1 }),
   ].join("");
   $("#clrFields").innerHTML = [
     field("Wishbone tube OD", "mm", "clearance.wishbone_tube_od"),
@@ -147,6 +166,8 @@ function buildForm() {
     field("Pushrod OD", "mm", "clearance.pushrod_od"),
     field("Damper body OD", "mm", "clearance.damper_od"),
     field("Extra margin", "mm", "clearance.margin"),
+    field("Halfshaft OD", "mm", "clearance.halfshaft_od"),
+    field("Caliper margin to links / rim", "mm", "clearance.caliper_margin"),
   ].join("");
   $$("[data-path]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", onInput));
   $("#in_axle").closest(".field").hidden = true; // the axle is set by the Front / Rear slot
@@ -218,6 +239,10 @@ function syncAxle() {
   $("#in_sweep_rack_travel").closest(".field").hidden = rear;
   $("#in_sweep_ackermann_at_outer_deg").closest(".field").hidden = rear;
   $("#in_loads_accel_g").closest(".field").hidden = !rear;
+  for (const id of ["vehicle_rack_c_factor", "vehicle_aero_front", "members_rack_k", "members_column_k"])
+    $("#in_" + id).closest(".field").hidden = rear;
+  $("#in_vehicle_aero_rear").closest(".field").hidden = !rear;
+  $$('[data-path^="halfshaft."]').forEach(el => (el.closest(".field").hidden = !rear));
   $("#springHint").textContent = cfg.spring ? (cfg.spring.rocker_pivot == null ? "direct-acting" : "rocker") : "off";
 }
 
@@ -237,7 +262,22 @@ function onInput(e) {
     }
   }
   if (path.startsWith("spring.") && !cfg.spring) return;
+  const blk = path.startsWith("wheel.caliper.") ? "caliper" : path.startsWith("halfshaft.") ? "halfshaft" : null;
+  if (blk && v == null && !path.endsWith("plunge_max")) {
+    if (blk === "caliper") cfg.wheel.caliper = null;
+    else cfg.halfshaft = null;
+    fillForm();
+    schedule();
+    return;
+  }
+  if (blk === "caliper" && !cfg.wheel.caliper) cfg.wheel.caliper = { clock_deg: 135, radius: 100, size: 55, offset: -15 };
+  if (blk === "halfshaft" && !cfg.halfshaft) {
+    const cp = cfg.hardpoints.contact_patch,
+      R = cfg.wheel.tire_radius;
+    cfg.halfshaft = { diff_output: [cp[0], 150, R], cv_outboard: [cp[0], cp[1] - 60, R] };
+  }
   setPath(cfg, path, v);
+  if (blk) fillForm();
   if (path === "axle") syncAxle();
   schedule();
 }

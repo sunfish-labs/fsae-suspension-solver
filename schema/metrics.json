@@ -135,6 +135,12 @@
    "decimals": 1,
    "help": "Gap between the farthest hardpoint and the rim radius (radial only)."
   },
+  "caliper_rim_margin": {
+   "label": "Caliper to rim barrel",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Gap from the brake caliper's outer edge to the inside of the rim barrel."
+  },
   "roll_camber": {
    "label": "Roll camber (outer, to ground)",
    "unit": "deg/deg",
@@ -225,6 +231,18 @@
    "decimals": 2,
    "help": "Natural frequency of the sprung corner on its springs and tire. Sets how stiff the car feels; FSAE cars often run 2.5-4.5 Hz.",
    "term": "ride_freq"
+  },
+  "aero_sag": {
+   "label": "Sag under downforce",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "How far the corner sinks under the aero load at your design speed."
+  },
+  "ride_freq_aero": {
+   "label": "Ride frequency under downforce",
+   "unit": "Hz",
+   "decimals": 2,
+   "help": "Ride frequency at the sagged position: it changes only through the motion ratio's progression."
   },
   "spring_for_target": {
    "label": "Spring rate for target freq",
@@ -340,6 +358,30 @@
    "unit": "mm",
    "decimals": 1,
    "help": "Tightest center-line gap between moving links over travel and steer, against tube radii plus margin."
+  },
+  "hs_plunge": {
+   "label": "Halfshaft plunge over travel",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "How much the halfshaft length changes between the CV centers over bump, droop and roll. The inboard joint must slide this much."
+  },
+  "hs_cv_in_max": {
+   "label": "Inboard CV angle, worst",
+   "unit": "deg",
+   "decimals": 1,
+   "help": "Largest angle between the halfshaft and the diff output axis over the travel."
+  },
+  "hs_cv_out_max": {
+   "label": "Outboard CV angle, worst",
+   "unit": "deg",
+   "decimals": 1,
+   "help": "Largest angle between the halfshaft and the wheel's spin axis over the travel."
+  },
+  "hs_clearance_margin": {
+   "label": "Halfshaft clearance margin",
+   "unit": "mm",
+   "decimals": 1,
+   "help": "Tightest gap from the halfshaft to a link, minus what the tube sizes need."
   }
  },
  "car": {

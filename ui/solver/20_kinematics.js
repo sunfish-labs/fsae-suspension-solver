@@ -196,13 +196,11 @@ class Suspension {
     o._x = x;
     return o;
   }
+  // rows from full droop to full bump (mirrors heave_sweep); droop and bump can differ
   heaveSweep(steps, travel) {
     const sw = this.cfg.sweep,
-      T = +(travel ?? sw.travel);
-    let n = +(steps ?? sw.steps);
-    if (n % 2 === 0) n++;
-    const zs = Array.from({ length: n }, (_, i) => -T + (2 * T * i) / (n - 1));
-    zs[(n - 1) / 2] = 0;
+      [D, B] = travel != null ? [+travel, +travel] : travelRange(this.cfg);
+    const zs = heavePoints(D, B, +(steps ?? sw.steps));
     const xs = this.states(zs);
     return zs.map(z => this.observe(xs.get(z), z));
   }
@@ -297,15 +295,18 @@ class Suspension {
       k = unit(sub(h.ubj, h.lbj));
     return norm(perp(sub(h.tro, h.lbj), k));
   }
+  // mirrors packaging: links, rim barrel, caliper and halfshaft over the whole travel (and rack range at the front)
   packaging(spring) {
     const sw = this.cfg.sweep,
-      T = sw.travel,
+      [D, B] = travelRange(this.cfg),
       Rk = sw.rack_travel;
-    const heaves = [-T, 0, T],
-      racks = this.axle === "front" ? [-Rk, 0, Rk] : [0];
+    const heaves = heavePoints(D, B, +(sw.pack_heave_steps || 9)),
+      racks = this.axle === "front" ? heavePoints(Rk, Rk, +(sw.pack_rack_steps || 7)) : [0];
     const h = this.h,
-      rimR = (this.cfg.wheel.rim_diameter_in * 25.4) / 2,
-      cl = this.cfg.clearance;
+      rimR = rimInnerRadius(this.cfg),
+      cl = this.cfg.clearance,
+      cal = this.cfg.wheel.caliper,
+      hs = this.axle === "rear" ? this.cfg.halfshaft : null;
     const od = { "tie rod": cl.tie_rod_od, pushrod: cl.pushrod_od ?? 15.9, arm: cl.wishbone_tube_od };
     const res = { rim_radius: rimR, pairs: {}, rim_max: 0, rim_where: null };
     const rod = this.axle === "rear" ? "toe link" : "tie rod";
@@ -319,9 +320,11 @@ class Suspension {
         [`upper arm leg to pivot X=${h.uir[0].toFixed(0)}`, "upper", h.uir, p.ub],
       ];
       const checks = legs.map(([n, , s0, s1]) => [`${rod} – ${n}`, [p.tri, p.tro], [s0, s1], need("tie rod", "arm")]);
+      const links = [[rod, [p.tri, p.tro], cl.tie_rod_od]].concat(legs.map(([n, , s0, s1]) => [n, [s0, s1], cl.wishbone_tube_od]));
       if (spring) {
         const st = spring.state(x),
           pr = [st.rod_out, st.rod_in];
+        links.push(["pushrod", pr, cl.pushrod_od ?? 15.9]);
         for (const [n, arm, s0, s1] of legs) if (arm !== spring.on) checks.push([`pushrod – ${n}`, pr, [s0, s1], need("pushrod", "arm")]);
         checks.push([`pushrod – ${rod}`, pr, [p.tri, p.tro], need("pushrod", "tie rod")]);
         const mir = q => [q[0], -q[1], q[2]];
@@ -331,6 +334,22 @@ class Suspension {
           [mir(st.damper_out), mir(spring.dch)],
           (cl.damper_od ?? 55) + cl.margin,
         ]);
+      }
+      if (cal) {
+        // the caliper as a sphere fixed to the upright: clock angle in the wheel plane, radius from the axle
+        const ax = p.a,
+          up = unit(perp(sub(p.ub, p.lb), ax)),
+          fwd = cross(ax, up),
+          th = rad(+(cal.clock_deg ?? 90));
+        const cc = add(add(p.c, mul(ax, +(cal.offset || 0))), mul(add(mul(fwd, Math.cos(th)), mul(up, Math.sin(th))), +cal.radius));
+        for (const [n, seg, odv] of links)
+          checks.push([`caliper – ${n}`, [cc, cc], seg, +cal.size / 2 + odv / 2 + (cl.caliper_margin ?? 3)]);
+      }
+      if (hs) {
+        const dIn = hs.diff_output,
+          dOut = this.move(x, hs.cv_outboard);
+        for (const [n, seg, odv] of links)
+          checks.push([`halfshaft – ${n}`, [dIn, dOut], seg, ((cl.halfshaft_od ?? 25) + odv) / 2 + cl.margin]);
       }
       for (const [name, [a0, a1], [b0, b1], req] of checks) {
         const dist = segDist(a0, a1, b0, b1),
@@ -351,8 +370,51 @@ class Suspension {
     res.min_pair = wd;
     res.ok = wd[1][0] >= wd[1][3];
     res.rim_margin = rimR - res.rim_max;
+    if (cal) res.caliper_rim_margin = rimR - (+cal.radius + cal.size / 2);
+    if (hs) {
+      const hp = Object.entries(res.pairs).filter(([k]) => k.startsWith("halfshaft – "));
+      res.hs_clearance_margin = hp.length ? Math.min(...hp.map(([, v]) => v[0] - v[3])) : NaN;
+    }
     return res;
   }
+  // mirrors Suspension.halfshaft: plunge and worst CV angles over the heave rows
+  halfshaft(rows) {
+    const hs = this.cfg.halfshaft,
+      dIn = hs.diff_output,
+      Ls = [],
+      aIn = [],
+      aOut = [];
+    for (const r of rows) {
+      const v = sub(this.move(r._x, hs.cv_outboard), dIn),
+        L = norm(v),
+        u = mul(v, 1 / L);
+      Ls.push(L);
+      aIn.push(deg(Math.acos(Math.min(1, Math.abs(u[1])))));
+      aOut.push(deg(Math.acos(Math.min(1, Math.abs(dot(u, r._pts.a))))));
+    }
+    return { hs_plunge: Math.max(...Ls) - Math.min(...Ls), hs_cv_in_max: Math.max(...aIn), hs_cv_out_max: Math.max(...aOut) };
+  }
+}
+// (droop, bump) in mm: sweep.droop_travel / bump_travel, each defaulting to sweep.travel (mirrors travel_range)
+function travelRange(cfg) {
+  const sw = cfg.sweep,
+    T = +sw.travel;
+  return [sw.droop_travel != null ? +sw.droop_travel : T, sw.bump_travel != null ? +sw.bump_travel : T];
+}
+// n points (odd) from -droop to +bump, half on each side, 0 included (mirrors heave_points)
+function heavePoints(droop, bump, n) {
+  n = Math.round(n);
+  if (n % 2 === 0) n++;
+  const k = (n - 1) / 2,
+    zs = [];
+  for (let i = 0; i < k; i++) zs.push(-droop + (droop * i) / k);
+  zs.push(0);
+  for (let i = 1; i <= k; i++) zs.push((bump * i) / k);
+  return zs;
+}
+function rimInnerRadius(cfg) {
+  const w = cfg.wheel;
+  return w.rim_inner_radius != null ? +w.rim_inner_radius : (w.rim_diameter_in * 25.4) / 2 - 15;
 }
 
 function summarize(rows, roll) {
@@ -445,7 +507,9 @@ function evaluate(rawCfg, opts = {}) {
     m.clearance_min = out.pack.min_clearance;
     m.clearance_margin = out.pack.min_clearance - out.pack.required;
     m.rim_margin = out.pack.rim_margin;
+    for (const k of ["caliper_rim_margin", "hs_clearance_margin"]) if (k in out.pack) m[k] = out.pack[k];
   }
+  if (cfg.axle === "rear" && cfg.halfshaft) Object.assign(m, s.halfshaft(rows));
   out.checks = checkTargets(cfg, m, out.pack);
   return out;
 }

@@ -67,10 +67,10 @@ function segDist(p1, q1, p2, q2) {
   let t = (b * s + f) / e;
   if (t < 0) {
     t = 0;
-    s = clamp(-c / a);
+    s = a > 1e-12 ? clamp(-c / a) : 0;
   } else if (t > 1) {
     t = 1;
-    s = clamp((b - c) / a);
+    s = a > 1e-12 ? clamp((b - c) / a) : 0;
   }
   return norm(sub(add(p1, mul(d1, s)), add(p2, mul(d2, t))));
 }

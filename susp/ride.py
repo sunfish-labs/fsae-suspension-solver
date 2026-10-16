@@ -179,7 +179,29 @@ def ride_metrics(cfg, susp, sp, rows):
     if MR < 1e-6:
         raise SolveError("Motion ratio is zero - the damper does not move with the wheel. Check the spring geometry.")
     out.update(damping(sc, MR, k_w, k_r, k_t, m_s))
+    aero = veh.get("aero_front" if cfg["axle"] == "front" else "aero_rear")
+    if aero:
+        out.update(aero_sag(float(aero) / 2, zs, mr, k_s, k_t, m_s, i0))
     return out
+
+
+def aero_sag(F, zs, mr, k_s, k_t, m_s, i0):
+    """Downforce F (N on this wheel): the wheel travel where the spring has taken F (integrating the wheel rate
+    k_s MR(z)^2 up the bump side of the sweep), the ride-height loss (that travel plus the tire's F / k_t), and the
+    ride frequency there. The mass doesn't change, so the frequency moves only with the motion ratio's progression."""
+    z_up = [float(z) for z in zs[i0:]]
+    kw = [k_s * float(m) ** 2 for m in mr[i0:]]
+    force, z_at, kw_at = 0.0, z_up[-1], kw[-1]
+    for j in range(1, len(z_up)):
+        df = (kw[j - 1] + kw[j]) / 2 * (z_up[j] - z_up[j - 1])
+        if force + df >= F:
+            t = (F - force) / df if df > 0 else 0.0
+            z_at = z_up[j - 1] + t * (z_up[j] - z_up[j - 1])
+            kw_at = kw[j - 1] + t * (kw[j] - kw[j - 1])
+            break
+        force += df
+    k_r = kw_at * k_t / (kw_at + k_t)
+    return dict(aero_sag=z_at + F / k_t, ride_freq_aero=math.sqrt(k_r * 1000 / m_s) / (2 * math.pi), _aero_travel=z_at)
 
 
 def damping(sc, MR, k_w, k_r, k_t, m_s):

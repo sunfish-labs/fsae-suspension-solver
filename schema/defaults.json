@@ -28,7 +28,19 @@
   "spring.unsprung_mass": "kg per corner",
   "spring.tire_rate": "N/mm vertical tire stiffness",
   "spring.damper_bump_low": "N per m/s at the shaft, from the damper dyno; also _high and rebound_low/_high",
-  "spring.damper_knee": "mm/s shaft speed where low-speed turns into high-speed"
+  "spring.damper_knee": "mm/s shaft speed where low-speed turns into high-speed",
+  "sweep.bump_travel": "mm of bump to check (null = travel); with droop_travel, for a car whose travel isn't symmetric",
+  "sweep.droop_travel": "mm of droop to check (null = travel)",
+  "sweep.pack_heave_steps": "heave positions searched for the tightest link clearance (x pack_rack_steps rack positions at the front)",
+  "wheel.rim_inner_radius": "mm, radius of the inside of the rim barrel; null = rim radius - 15 mm (an estimate: measure your wheel)",
+  "wheel.caliper": "optional brake caliper envelope: {clock_deg (0 = forward, 90 = top), radius (mm, axle to caliper center), size (mm, bounding diameter), offset (mm along the axle, + outboard)}",
+  "vehicle.aero_front": "N of downforce on the front axle at your design speed (optional): reports sag and the ride frequency there",
+  "vehicle.aero_rear": "N of downforce on the rear axle at your design speed (optional)",
+  "halfshaft": "rear, optional: {diff_output: [x,y,z] inboard CV center, cv_outboard: [x,y,z] outboard CV center at ride height, cv_angle_max_in / cv_angle_max_out (deg), plunge_max (mm)}",
+  "members.rack_k": "N/mm, steering rack and its mounts along the rack (front compliance; optional estimate)",
+  "members.column_k": "N m/deg at the steering wheel, column torsion (needs vehicle.rack_c_factor; optional estimate)",
+  "clearance.halfshaft_od": "mm, halfshaft tube OD for its clearance to the links",
+  "clearance.caliper_margin": "mm, gap the caliper needs to the rim barrel and the links"
  },
  "defaults": {
   "name": "untitled",
@@ -38,7 +50,9 @@
    "toe_deg": 0.0,
    "tire_radius": 254.0,
    "tire_width": 190.5,
-   "rim_diameter_in": 13.0
+   "rim_diameter_in": 13.0,
+   "rim_inner_radius": null,
+   "caliper": null
   },
   "vehicle": {
    "wheelbase": 1700.0,
@@ -49,23 +63,31 @@
    "drive": "inboard",
    "mass": 280.0,
    "weight_front": 0.46,
-   "rack_c_factor": null
+   "rack_c_factor": null,
+   "aero_front": null,
+   "aero_rear": null
   },
   "sweep": {
    "travel": 30.0,
+   "bump_travel": null,
+   "droop_travel": null,
    "steps": 41,
    "rack_travel": 35.0,
    "rack_steps": 14,
    "ackermann_at_outer_deg": 15.0,
    "roll_deg": 2.0,
-   "roll_steps": 9
+   "roll_steps": 9,
+   "pack_heave_steps": 9,
+   "pack_rack_steps": 7
   },
   "clearance": {
    "wishbone_tube_od": 25.4,
    "tie_rod_od": 16.0,
    "pushrod_od": 15.9,
    "damper_od": 55.0,
-   "margin": 5.0
+   "margin": 5.0,
+   "halfshaft_od": 25.0,
+   "caliper_margin": 3.0
   },
   "rack_direction": [
    0.0,
@@ -110,8 +132,11 @@
    "rod_end_k": 40000.0,
    "mount_k": 20000.0,
    "toe_comp_limit": 0.15,
-   "camber_comp_limit": 0.25
-  }
+   "camber_comp_limit": 0.25,
+   "rack_k": null,
+   "column_k": null
+  },
+  "halfshaft": null
  },
  "spring_defaults": {
   "rod_on": "lower",

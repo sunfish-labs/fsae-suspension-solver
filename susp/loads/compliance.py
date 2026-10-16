@@ -19,7 +19,23 @@ def link_stiffness(cfg, k, length):
         parts += [mem["rod_end_k"]] * 2
     if mem.get("mount_k"):
         parts.append(mem["mount_k"])
+    if k == "tie_rod" and cfg["axle"] == "front":
+        parts += steering_stiffness(cfg)
     return 1.0 / sum(1.0 / x for x in parts)
+
+
+def steering_stiffness(cfg):
+    """Front tie rod only: the rack and its mounts (members.rack_k, N/mm along the rack) and the steering column's
+    torsion (members.column_k, N m/deg at the wheel) seen at the rack through vehicle.rack_c_factor (mm of rack per
+    steering-wheel turn): a rack force F turns the column by F (c / 2 pi) / 1000 / column_k degrees, which moves the
+    rack by that x c / 360 mm."""
+    mem, out = cfg["members"], []
+    if mem.get("rack_k"):
+        out.append(float(mem["rack_k"]))
+    cf = cfg["vehicle"].get("rack_c_factor")
+    if mem.get("column_k") and cf:
+        out.append(float(mem["column_k"]) / ((cf / (2 * math.pi) / 1000.0) * (cf / 360.0)))
+    return out
 
 
 IMPACT_CASES = ("bump", "pothole", "kerb strike", "bump (deflected)", "pothole (deflected)")

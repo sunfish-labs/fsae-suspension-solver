@@ -40,9 +40,9 @@ def seg_dist(p1, q1, p2, q2):
     s = np.clip((b * f - c * e) / den, 0, 1) if den > 1e-12 else 0.0
     t = (b * s + f) / e
     if t < 0:
-        t, s = 0.0, np.clip(-c / a, 0, 1)
+        t, s = 0.0, (np.clip(-c / a, 0, 1) if a > 1e-12 else 0.0)
     elif t > 1:
-        t, s = 1.0, np.clip((b - c) / a, 0, 1)
+        t, s = 1.0, (np.clip((b - c) / a, 0, 1) if a > 1e-12 else 0.0)
     return float(np.linalg.norm((p1 + d1 * s) - (p2 + d2 * t)))
 
 
@@ -64,6 +64,29 @@ def line_intersect_2d(p1, d1, p2, d2):
 # --------------------------------------------------------------------------- #
 #  Solver
 # --------------------------------------------------------------------------- #
+def travel_range(cfg):
+    """(droop, bump) in mm: sweep.droop_travel / bump_travel, each defaulting to sweep.travel."""
+    sw = cfg["sweep"]
+    T = float(sw["travel"])
+    D = sw.get("droop_travel")
+    B = sw.get("bump_travel")
+    return (float(D) if D is not None else T), (float(B) if B is not None else T)
+
+
+def heave_points(droop, bump, n):
+    """n points (odd) from -droop to +bump, half on each side, evenly spaced on each side, 0 included."""
+    n = int(n) + (int(n) % 2 == 0)
+    k = n // 2
+    zs = [-droop + droop * i / k for i in range(k)] + [0.0] + [bump * i / k for i in range(1, k + 1)]
+    return [float(z) for z in zs]
+
+
+def rim_inner_radius(cfg):
+    w = cfg["wheel"]
+    r = w.get("rim_inner_radius")
+    return float(r) if r is not None else w["rim_diameter_in"] * 25.4 / 2 - 15.0
+
+
 class Suspension:
     """Rigid-link kinematics of one (right-hand) wheel. State x = [tx ty tz rx ry rz] of the upright."""
 
@@ -254,12 +277,12 @@ class Suspension:
 
     # ---- sweeps ------------------------------------------------------------
     def heave_sweep(self, steps=None, travel=None):
+        """Rows from full droop to full bump. Droop and bump can differ (sweep.droop_travel / bump_travel); each
+        side gets half the points, evenly spaced, with 0 on the grid."""
         sw = self.cfg["sweep"]
-        T = float(travel if travel is not None else sw["travel"])
+        D, B = (float(travel), float(travel)) if travel is not None else travel_range(self.cfg)
         n = int(steps if steps is not None else sw["steps"])
-        n += (n % 2 == 0)                       # odd, so 0 is on the grid
-        zs = [float(z) for z in np.linspace(-T, T, n)]
-        zs[n // 2] = 0.0
+        zs = heave_points(D, B, n)
         xs = self.states(zs)
         return [self.observe(xs[z], z) for z in zs]
 
@@ -348,15 +371,21 @@ class Suspension:
 
     # ---- packaging ----------------------------------------------------------
     def packaging(self, spring=None, heaves=None, racks=None):
-        """Center-line clearance between moving links, and a radial rim check, over heave (x rack, front)."""
+        """Center-line clearance between moving links, the rim barrel, the brake caliper and the rear halfshaft,
+        searched over the whole travel (pack_heave_steps) and, at the front, the whole rack range (pack_rack_steps)."""
         sw = self.cfg["sweep"]
-        T, Rk = sw["travel"], sw["rack_travel"]
-        heaves = heaves if heaves is not None else [-T, 0.0, T]
+        D, B = travel_range(self.cfg)
+        Rk = sw["rack_travel"]
+        heaves = heaves if heaves is not None else heave_points(D, B, int(sw.get("pack_heave_steps") or 9))
         if racks is None:
-            racks = [-Rk, 0.0, Rk] if self.axle == "front" else [0.0]
+            nr = int(sw.get("pack_rack_steps") or 7)
+            racks = heave_points(Rk, Rk, nr) if self.axle == "front" else [0.0]
         h = self.h
-        rim_r = self.cfg["wheel"]["rim_diameter_in"] * 25.4 / 2
+        whl = self.cfg["wheel"]
+        rim_r = rim_inner_radius(self.cfg)
         cl = self.cfg["clearance"]
+        cal = whl.get("caliper")
+        hs = self.cfg.get("halfshaft") if self.axle == "rear" else None
         od = {"tie rod": cl["tie_rod_od"], "pushrod": cl.get("pushrod_od", 15.9), "arm": cl["wishbone_tube_od"]}
         res = dict(rim_radius=rim_r, pairs={}, rim_max=0.0, rim_where=None)
         rodname = "toe link" if self.axle == "rear" else "tie rod"
@@ -385,6 +414,22 @@ class Suspension:
                 mir = np.array([1.0, -1.0, 1.0])
                 checks.append(("damper - other side's damper", (d0, d1), (d0 * mir, d1 * mir),
                                cl.get("damper_od", 55.0) + cl["margin"]))
+            links = [(rodname, (p["tri"], p["tro"]), cl["tie_rod_od"])] + [(n, (s0, s1), cl["wishbone_tube_od"]) for n, (_, s0, s1) in legs.items()]
+            if spring is not None:
+                links.append(("pushrod", pr, cl.get("pushrod_od", 15.9)))
+            if cal:
+                # the caliper as a sphere fixed to the upright: clock angle in the wheel plane, radius from the axle
+                ax_ = p["a"]
+                up = unit(p["ub"] - p["lb"] - ((p["ub"] - p["lb"]) @ ax_) * ax_)
+                fwd = np.cross(ax_, up)
+                th = math.radians(float(cal.get("clock_deg", 90.0)))
+                cc = p["c"] + float(cal.get("offset", 0.0)) * ax_ + float(cal["radius"]) * (math.cos(th) * fwd + math.sin(th) * up)
+                for n, (s0, s1), od_ in links:
+                    checks.append((f"caliper - {n}", (cc, cc), (s0, s1), float(cal["size"]) / 2 + od_ / 2 + cl.get("caliper_margin", 3.0)))
+            if hs:
+                d_in, d_out = np.array(hs["diff_output"], float), self.move(x, hs["cv_outboard"])
+                for n, (s0, s1), od_ in links:
+                    checks.append((f"halfshaft - {n}", (d_in, d_out), (s0, s1), (cl.get("halfshaft_od", 25.0) + od_) / 2 + cl["margin"]))
             for name, (a0, a1), (b0, b1), req in checks:
                 dist = seg_dist(a0, a1, b0, b1)
                 cur = res["pairs"].get(name)
@@ -399,7 +444,29 @@ class Suspension:
         res["min_clearance"], res["required"], res["min_pair"] = wd[1][0], wd[1][3], wd
         res["ok"] = wd[1][0] >= wd[1][3]
         res["rim_margin"] = rim_r - res["rim_max"]
+        if cal:
+            res["caliper_rim_margin"] = rim_r - (float(cal["radius"]) + float(cal["size"]) / 2)
+        if hs:
+            hp_ = [v for k, v in res["pairs"].items() if k.startswith("halfshaft - ")]
+            res["hs_clearance_margin"] = min(d - req for d, _, _, req in hp_) if hp_ else float("nan")
         return res
+
+    def halfshaft(self, rows):
+        """Rear halfshaft from the diff output (fixed) to the outboard CV (on the upright) over the heave rows:
+        length change (plunge) and the worst CV angles (inboard vs the lateral diff axis, outboard vs the spin axis)."""
+        hs = self.cfg.get("halfshaft")
+        d_in = np.array(hs["diff_output"], float)
+        Ls, a_in, a_out = [], [], []
+        for r in rows:
+            q = r["_pts"]
+            d_out = self.move(r["_x"], hs["cv_outboard"])
+            v = d_out - d_in
+            L = float(np.linalg.norm(v))
+            u = v / L
+            Ls.append(L)
+            a_in.append(math.degrees(math.acos(min(1.0, abs(float(u[1]))))))
+            a_out.append(math.degrees(math.acos(min(1.0, abs(float(u @ q["a"]))))))
+        return dict(hs_plunge=max(Ls) - min(Ls), hs_cv_in_max=max(a_in), hs_cv_out_max=max(a_out), hs_length=Ls[len(Ls) // 2])
 
 
 # --------------------------------------------------------------------------- #
@@ -488,6 +555,11 @@ def evaluate(cfg, full=True, steer=True, pack=True, ride=True):
         m["clearance_min"] = out["pack"]["min_clearance"]
         m["clearance_margin"] = out["pack"]["min_clearance"] - out["pack"]["required"]
         m["rim_margin"] = out["pack"]["rim_margin"]
+        for k in ("caliper_rim_margin", "hs_clearance_margin"):
+            if k in out["pack"]:
+                m[k] = out["pack"][k]
+    if cfg["axle"] == "rear" and cfg.get("halfshaft"):
+        m.update({k: v for k, v in s.halfshaft(rows).items() if k != "hs_length"})
     return out
 
 

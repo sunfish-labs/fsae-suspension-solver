@@ -80,14 +80,41 @@ function transmissionAngles(sp, st) {
 }
 
 function gradient2(L, zs) {
-  // numpy.gradient(L, zs, edge_order=2) for evenly spaced zs
+  // numpy.gradient(L, zs, edge_order=2), also for uneven spacing (bump and droop travel can differ)
   const n = L.length,
-    h = zs[1] - zs[0],
     g = new Array(n);
-  for (let i = 1; i < n - 1; i++) g[i] = (L[i + 1] - L[i - 1]) / (zs[i + 1] - zs[i - 1]);
-  g[0] = (-3 * L[0] + 4 * L[1] - L[2]) / (2 * h);
-  g[n - 1] = (3 * L[n - 1] - 4 * L[n - 2] + L[n - 3]) / (2 * h);
+  for (let i = 1; i < n - 1; i++) {
+    const hd = zs[i] - zs[i - 1],
+      hs = zs[i + 1] - zs[i];
+    g[i] = (hd * hd * L[i + 1] + (hs * hs - hd * hd) * L[i] - hs * hs * L[i - 1]) / (hs * hd * (hd + hs));
+  }
+  let d1 = zs[1] - zs[0],
+    d2 = zs[2] - zs[1];
+  g[0] = (-(2 * d1 + d2) / (d1 * (d1 + d2))) * L[0] + ((d1 + d2) / (d1 * d2)) * L[1] - (d1 / (d2 * (d1 + d2))) * L[2];
+  d1 = zs[n - 2] - zs[n - 3];
+  d2 = zs[n - 1] - zs[n - 2];
+  g[n - 1] = (d2 / (d1 * (d1 + d2))) * L[n - 3] - ((d2 + d1) / (d1 * d2)) * L[n - 2] + ((2 * d2 + d1) / (d2 * (d1 + d2))) * L[n - 1];
   return g;
+}
+// mirrors ride.aero_sag: travel where the spring has taken the downforce F, ride-height loss and the frequency there
+function aeroSag(F, zs, mr, ks, kt, ms, i0) {
+  const zUp = zs.slice(i0),
+    kw = mr.slice(i0).map(m => ks * m * m);
+  let force = 0,
+    zAt = zUp[zUp.length - 1],
+    kwAt = kw[kw.length - 1];
+  for (let j = 1; j < zUp.length; j++) {
+    const df = ((kw[j - 1] + kw[j]) / 2) * (zUp[j] - zUp[j - 1]);
+    if (force + df >= F) {
+      const t = df > 0 ? (F - force) / df : 0;
+      zAt = zUp[j - 1] + t * (zUp[j] - zUp[j - 1]);
+      kwAt = kw[j - 1] + t * (kw[j] - kw[j - 1]);
+      break;
+    }
+    force += df;
+  }
+  const kr = (kwAt * kt) / (kwAt + kt);
+  return { aero_sag: zAt + F / kt, ride_freq_aero: Math.sqrt((kr * 1000) / ms) / (2 * Math.PI), _aero_travel: zAt };
 }
 
 function rideMetrics(cfg, susp, sp, rows) {
@@ -169,6 +196,8 @@ function rideMetrics(cfg, susp, sp, rows) {
     out.spring_for_target = krt < kt ? (krt * kt) / (kt - krt) / (MR * MR) : NaN;
   }
   Object.assign(out, damping(sc, MR, kw, kr, kt, ms));
+  const aero = veh[cfg.axle === "front" ? "aero_front" : "aero_rear"];
+  if (aero) Object.assign(out, aeroSag(aero / 2, zs, mr, ks, kt, ms, i0));
   return out;
 }
 // mirrors ride.damping: damper c (N per m/s at the shaft) acts at the wheel as c MR^2

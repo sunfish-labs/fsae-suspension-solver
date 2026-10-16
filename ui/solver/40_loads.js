@@ -279,7 +279,7 @@ function runLoads(cfg, susp, sp, lltd = null) {
     deflect = {};
   const geom0 = loadGeometry(susp, sp),
     kw = wheelRateAtRide(cfg, susp, sp),
-    travel = +cfg.sweep.travel,
+    travel = travelRange(cfg)[1], // full bump
     extra = [];
   for (const [name, forces, d, parts] of cases) {
     if ((name === "bump" || name === "pothole") && kw > 1e-9) {
@@ -372,7 +372,17 @@ function linkStiffness(cfg, k, length) {
   const parts = [(mem.E * A) / length];
   if (mem.rod_end_k) parts.push(+mem.rod_end_k, +mem.rod_end_k);
   if (mem.mount_k) parts.push(+mem.mount_k);
+  if (k === "tie_rod" && cfg.axle === "front") parts.push(...steeringStiffness(cfg));
   return 1 / parts.reduce((s, x) => s + 1 / x, 0);
+}
+// mirrors compliance.steering_stiffness: the rack (rack_k) and the column's torsion (column_k) seen at the rack
+function steeringStiffness(cfg) {
+  const mem = cfg.members,
+    out = [],
+    cf = cfg.vehicle.rack_c_factor;
+  if (mem.rack_k) out.push(+mem.rack_k);
+  if (mem.column_k && cf) out.push(+mem.column_k / ((cf / (2 * Math.PI) / 1000) * (cf / 360)));
+  return out;
 }
 function compliance(cfg, susp, sp, results) {
   const [, inb, outb] = loadGeometry(susp, sp),

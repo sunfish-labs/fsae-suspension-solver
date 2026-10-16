@@ -189,9 +189,17 @@ wheel (body and wheel hop), the damping ratio of each setting (ζ = c × MR² ÷
 rebound given, the Targets list checks ζ bump 0.4–0.9 and rebound 0.5–1.2 (edit them like any target).
 ## Config (JSON)
 - `hardpoints` (mm): the 9 points, using KineSolver names. The solver only uses the coordinates; "front"/"rear" are just labels.
-- `wheel`: static camber/toe, tire radius/width, rim diameter.
+- `wheel`: static camber/toe, tire radius/width, rim diameter. Optional `rim_inner_radius` (mm, the barrel's inside;
+  default rim radius − 15 mm) and `caliper`: `{"clock_deg", "radius", "size", "offset"}` - a sphere of diameter
+  `size` fixed to the upright, `radius` mm from the axle at a clock angle in the wheel plane (0 = forward, 90 = up),
+  `offset` mm along the axle (+ outboard). It is checked against every link (`clearance.caliper_margin`) and the barrel.
 - `vehicle`: wheelbase, cg_height, **mass** (with driver), **weight_front** (fraction), brake share, inboard/outboard
-  brakes and drive, optional `rack_c_factor` (mm of rack per steering-wheel turn).
+  brakes and drive, optional `rack_c_factor` (mm of rack per steering-wheel turn), `aero_front` / `aero_rear`
+  (downforce in N per axle at your reference speed: gives the ride-height loss and the ride frequency there).
+- `halfshaft` (rear, optional): `diff_output` (fixed, the inboard CV center) and `cv_outboard` (on the upright) as
+  `[x, y, z]`, optional `plunge_max`, `cv_angle_max_in`, `cv_angle_max_out`. Reports plunge, both CV angles over the
+  travel (inboard against the lateral diff axis, outboard against the spin axis) and the clearance to every link
+  (`clearance.halfshaft_od`).
 - `spring` (optional, needed for ride and loads):
   `rod_on` (`lower`/`upper`/`upright`), `rod_outboard`, `rocker_pivot`, `rocker_axis` (pivot bolt direction),
   `rocker_rod`, `rocker_damper`, `damper_chassis`, `spring_rate` (N/mm), `damper_stroke`, `unsprung_mass` (kg/corner),
@@ -201,8 +209,10 @@ rebound given, the Targets list checks ζ bump 0.4–0.9 and rebound 0.5–1.2 (
   (`"bias"` or `"grip"`); optional `lltd_front` (overrides the car's roll balance).
 - `members`: `material` (label), tube `[OD, wall]` (mm) for `wishbone`, `tie_rod` and `pushrod`; `E`, `yield` (MPa); `sf_target`;
   `rod_end_rating` (N), `bolt_dia` (mm), `bolt_grade`, `bolt_shear_planes`; compliance `rod_end_k`, `mount_k` (N/mm),
-  `toe_comp_limit`, `camber_comp_limit` (deg).
-- `sweep`: heave travel, rack travel, roll angle and step counts. `clearance`: tube ODs and margin.
+  `toe_comp_limit`, `camber_comp_limit` (deg); front steering compliance `rack_k` (N/mm, rack and its mounts) and
+  `column_k` (N m/deg, column torsion, needs `vehicle.rack_c_factor`), both in series with the tie rod.
+- `sweep`: heave travel (`travel`, or separate `bump_travel` / `droop_travel`), rack travel, roll angle and step
+  counts; the packaging grid is `pack_heave_steps` × `pack_rack_steps` (9 × 7). `clearance`: tube ODs and margin.
 - `targets`: override any target range, e.g. `"roll_center": [30, 60]`, or `null` to drop one. A key that isn't a
   metric the solver reports (usually a typo) is reported with the nearest match, e.g. `'camberr' ... did you mean
   'camber'?`, instead of being ignored.
@@ -240,7 +250,10 @@ Member forces: + = tension.
   cases use the ride-height geometry (no body roll or pitch). Impacts are fixed g factors. There is no fatigue, and no checks on tabs, welds or inserts.
 - The pushrod-mount bending check is a simple beam: it ignores the gusset or bracket you add and any weld
   heat-affected zone.
-- Clearance is center-line distance plus tube radii. The rim check is radial only.
+- Clearance is center-line distance plus tube radii. The rim check is radial only. The caliper is a sphere and the
+  halfshaft a straight cylinder; neither is drawn in the 3D view or the CAD export yet.
+- Springs are linear, with no bump stops, and the tire rate does not change with load. Anti-roll bars are a rate in
+  the car balance, not a modeled linkage.
 - Default targets (ride frequency 2.5-4.5 Hz, bump steer, LLTD = front weight + 5 %, 1 deg/g) are starting points,
   not rules. Check wheelbase and turning limits against the current FSAE rulebook.
 - The optimizer finds one local solution. Always re-run `run` on the result.

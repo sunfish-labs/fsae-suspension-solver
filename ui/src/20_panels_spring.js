@@ -113,6 +113,7 @@ function panelSpring() {
     ${kv("Motion ratio (damper/wheel)", "motion_ratio", "", 3)}${kv("MR change over travel", "mr_progression", "%", 1)}
     ${kv("Wheel rate", "wheel_rate", "N/mm", 1)}${kv("Ride rate with tire", "ride_rate", "N/mm", 1)}
     ${kv("Ride frequency", "ride_freq", "Hz", 2)}${kv(`Spring for ${fmt(sc.target_freq_hz, 1)} Hz`, "spring_for_target", "N/mm", 1)}
+    ${kv("Ride-height loss under aero", "aero_sag", "mm", 1)}${kv("Ride frequency under aero", "ride_freq_aero", "Hz", 2)}
     ${kv("Spring force at ride height", "static_spring_force", "N", 0)}${kv("Damper stroke used", "damper_used", "mm", 1)}
     ${kv("Damper at ride height", "damper_static_pos", "% of stroke", 0)}${kv("Room to full extension", "damper_topout", "mm", 1)}
     ${kv("Room to full compression", "damper_bottomout", "mm", 1)}${kv("Rocker rotation", "rocker_rot", "deg", 1)}

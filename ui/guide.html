@@ -329,7 +329,8 @@ lay out the rocker.</p></div>
 <ul>
   <li>The kinematic curves use rigid links. The Loads tab adds a separate compliance check (rod ends, tubes and tabs stretching); arm bending, bushings, upright and wheel flex, the tire and chassis twist are not modeled.</li>
   <li>Roll is modeled as equal and opposite wheel travel, which gives the kinematic roll center.</li>
-  <li>Loads are quasi-static at ride height. Tabs, welds, inserts and fatigue are not checked.</li>
+  <li>Loads are quasi-static at ride height, plus bump and pothole at the spring's deflected position. Tabs, welds, inserts and fatigue are not checked.</li>
+  <li>The caliper is a sphere and the halfshaft a straight cylinder for clearance; springs are linear with no bump stops, and the tire rate does not change with load.</li>
   <li>The default ranges are starting points, not rules. Check wheelbase, travel and turning limits against the current FSAE rulebook.</li>
   <li>Always confirm the final design in CAD.</li>
 </ul>

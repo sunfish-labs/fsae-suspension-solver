@@ -120,6 +120,20 @@
     0.5,
     1.2
    ]
+  },
+  "halfshaft": {
+   "hs_cv_in_max": [
+    null,
+    24.0
+   ],
+   "hs_cv_out_max": [
+    null,
+    24.0
+   ],
+   "hs_clearance_margin": [
+    0.0,
+    null
+   ]
   }
  },
  "car": {

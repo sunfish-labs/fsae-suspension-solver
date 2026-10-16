@@ -7,7 +7,7 @@ import math
 
 from ..config import METRICS, validate
 from ..schema import METRICS_FILE
-from ..kinematics import check_targets, rack_for_angle
+from ..kinematics import check_targets, rack_for_angle, travel_range
 from ..loads import MEMBERS, member_label
 
 
@@ -74,8 +74,9 @@ def print_report(cfg, ev):
             "antidive", "antisquat", "antilift"]
     print("\nAt ride height")
     table(["metric", "value", "unit"], [mrow(m, k) for k in keys if k in m])
-    T = cfg["sweep"]["travel"]
-    print(f"\nOver +/-{T:.0f} mm of heave")
+    D, B = travel_range(cfg)
+    trav = f"+/-{B:.0f}" if D == B else f"{D:.0f} droop / {B:.0f} bump"
+    print(f"\nOver {trav} mm of heave")
     rowsx = [mrow(m, k) for k in ("camber_gain", "bump_steer", "bump_steer_curve", "bump_steer_max", "track_change")]
     rowsx.append(["Roll center range (ground-relative)", f"{m['rc_min']:.1f} .. {m['rc_max']:.1f}", "mm"])
     table(["metric", "value", "unit"], rowsx)
@@ -122,7 +123,7 @@ def print_report(cfg, ev):
 
     if ev.get("pack"):
         p = ev["pack"]
-        print(f"\nPackaging (heave +/-{T:.0f}"
+        print(f"\nPackaging (heave {trav}"
               + (f", rack +/-{cfg['sweep']['rack_travel']:.0f}" if s.axle == "front" else "")
               + "; center-line distances)")
         fr = s.axle == "front"
@@ -135,8 +136,14 @@ def print_report(cfg, ev):
               f"tie rod {cl['tie_rod_od']:g}, pushrod {cl.get('pushrod_od', 15.9):g}")
         nm, hz, rk = p["rim_where"]
         print(f"rim: farthest of UBJ/LBJ/TRO from the wheel axis is {p['rim_max']:.1f} mm "
-              f"({nm} at heave {hz:+.0f}); rim radius {p['rim_radius']:.1f} mm -> margin {p['rim_margin']:.1f} mm "
-              "(radial check only)")
+              f"({nm} at heave {hz:+.0f}); rim barrel inner radius {p['rim_radius']:.1f} mm -> margin {p['rim_margin']:.1f} mm "
+              "(radial check only" + ("" if cfg["wheel"].get("rim_inner_radius") else "; barrel radius estimated as rim radius - 15 mm: set wheel.rim_inner_radius") + ")")
+        if "caliper_rim_margin" in p:
+            print(f"caliper: outer edge {p['rim_radius'] - p['caliper_rim_margin']:.1f} mm from the axle -> {p['caliper_rim_margin']:.1f} mm to the rim barrel")
+    if "hs_plunge" in m:
+        print(f"\nHalfshaft (diff output to outboard CV): plunge {m['hs_plunge']:.1f} mm over the travel; worst CV angles "
+              f"{m['hs_cv_in_max']:.1f} deg inboard, {m['hs_cv_out_max']:.1f} deg outboard"
+              + (f"; tightest gap to a link {m['hs_clearance_margin']:+.1f} mm beyond what the tubes need" if "hs_clearance_margin" in m else ""))
 
     print("\nTarget checks")
     table(["target", "value", "range", "status"], [list(c[1:]) for c in all_checks(cfg, ev)])
@@ -169,6 +176,10 @@ def print_ride(cfg, ev):
         print(f"  damper stroke {sc['damper_stroke']:g} mm allows about {rd['_wheel_travel_per_stroke']:.0f} mm "
               "of total wheel travel at this motion ratio.")
     print(f"  wheel-hop frequency ~{rd['hop_freq']:.1f} Hz (unsprung mass on spring + tire).")
+    if "aero_sag" in rd:
+        aero = cfg["vehicle"].get("aero_front" if cfg["axle"] == "front" else "aero_rear")
+        print(f"  under {aero:g} N of downforce on this axle: the corner sinks {rd['aero_sag']:.1f} mm "
+              f"({rd['_aero_travel']:.1f} mm of wheel travel + tire), ride frequency there {rd['ride_freq_aero']:.2f} Hz.")
     print(f"\nDamping (critical damping at the wheel: body {rd['c_crit']:.0f} N s/m, wheel hop {rd['c_crit_hop']:.0f} N s/m)")
     zrows = [[lab, f"{rd[k]:.2f}"] for k, lab in (("zeta_bump_low", "bump, low-speed"), ("zeta_rebound_low", "rebound, low-speed"),
              ("zeta_bump_high", "bump, high-speed"), ("zeta_rebound_high", "rebound, high-speed"), ("zeta_hop", "wheel hop (bump high-speed)")) if k in rd]
