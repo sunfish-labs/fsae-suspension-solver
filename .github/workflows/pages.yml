@@ -1,9 +1,9 @@
-# Builds the web app (ui/build.py) and publishes the site with GitHub Pages.
-# To use it: repo Settings -> Pages -> Source: "GitHub Actions" (one time). Until then the site is still published
-# from the committed ui/index.html, so this workflow only runs when started by hand (Actions -> pages -> Run workflow).
-# Once the setting is switched, add "push: branches: [main]" below and stop committing ui/index.html.
+# Builds the web app (ui/build.py) and publishes the site with GitHub Pages on every push to main
+# (repo Settings -> Pages -> Source: "GitHub Actions"). ui/index.html is built here, not committed.
 name: pages
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read

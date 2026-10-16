@@ -185,9 +185,11 @@ def cmd_ui(a):
     """Open the browser UI (ui/index.html). It runs the same solver, ported to JavaScript, with no server."""
     import pathlib
     import webbrowser
-    page = pathlib.Path(__file__).resolve().parent / "ui" / "index.html"
-    if not page.exists():
-        sys.exit("ui/index.html is missing - run: python3 ui/build.py")
+    import subprocess
+    ui = pathlib.Path(__file__).resolve().parent / "ui"
+    page = ui / "index.html"
+    # the built page is not kept in the repo: build it from the sources (a second or so)
+    subprocess.run([sys.executable, str(ui / "build.py")], check=True, stdout=subprocess.DEVNULL)
     print(f"opening {page}")
     webbrowser.open(page.as_uri())
 

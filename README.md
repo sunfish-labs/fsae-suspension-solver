@@ -33,8 +33,10 @@ It covers the four suspension decisions a team makes before it has a car:
 | Whole car | `car front.json rear.json` | front/rear frequencies, **roll gradient**, **LLTD**, and the **anti-roll bar stiffness** needed |
 
 ## Browser UI (`ui/index.html`)
-A KineSolver-style interface for the same solver. Use the hosted link above, double-click `ui/index.html`, or run
-`python3 susp_solver.py ui`.
+A KineSolver-style interface for the same solver. Use the hosted link above, or build it with
+`python3 ui/build.py` and double-click `ui/index.html` (or run `python3 susp_solver.py ui`). The built page is not
+kept in the repo; GitHub builds and publishes it on every push. For a copy that works offline, save the hosted page
+(File → Save Page As, "Webpage, Single File" or "HTML Only") or build it once.
 It needs no install, server or internet: three.js, the Excel writer and the fonts are built into the one file (see
 `ui/vendor/`), so it also runs from a USB stick.
 - **Inputs** match KineSolver's panels: hardpoints, wheel settings, vehicle and anti-geometry, and simulation
@@ -402,6 +404,5 @@ After editing, run `python3 ui/build.py`, then the checks:
     (cd tests && npm ci) && node tests/browser_test.js   # the web app end to end in a headless browser
 
 GitHub runs all of these on every push (Actions tab, workflow "tests"); a red X on a commit means something broke.
-GitHub Pages republishes the site about a minute after each push to `main`. A second workflow (`pages.yml`) can
-build and publish the page itself; to switch to it, set Settings → Pages → Source to "GitHub Actions", let it run on
-push, and stop committing `ui/index.html` (the test workflow's freshness check then goes too).
+On every push to `main` the `pages` workflow builds `ui/index.html` and publishes the site (Settings → Pages →
+Source: GitHub Actions), about a minute later. The built page is not committed.

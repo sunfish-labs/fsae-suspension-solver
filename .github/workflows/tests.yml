@@ -42,10 +42,8 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: tests/package-lock.json
-      - name: Build the web page (and check the committed copy is up to date)
-        run: |
-          python3 ui/build.py
-          git diff --exit-code ui/index.html || (echo "ui/index.html is out of date: run python3 ui/build.py and commit it" && exit 1)
+      - name: Build the web page
+        run: python3 ui/build.py
       - name: Browser solver matches the Python solver
         run: python3 ui/test_port.py
       - name: Randomized parity, 200 perturbed designs (Python vs browser)

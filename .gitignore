@@ -4,6 +4,7 @@ old/
 *.csv
 reports/
 ui/artifact.html
+ui/index.html
 # keep the public examples
 !designs/*.json
 __pycache__/
