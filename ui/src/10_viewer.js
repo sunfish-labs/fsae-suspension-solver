@@ -382,6 +382,7 @@ function updateScene() {
     `<span><b>travel</b> ${fmt(pose.dz, 1)} mm${cfg.axle === "front" ? ` · <b>rack</b> ${fmt(pose.rack, 1)} mm` : ""}</span><span><b>camber</b> ${fmt(o.camber, 2)}°</span><span><b>toe</b> ${fmt(o.toe, 3)}°</span><span><b>caster</b> ${fmt(o.caster, 2)}°</span><span><b>RC</b> ${fmt(o.roll_center, 1)} mm${sp2}</span>`;
   const hb = ($("#hud").offsetHeight || 30) + 18 + "px";
   for (const id of ["#ovcap", "#pvbar", "#vhint"]) $(id).style.bottom = hb;
+  placeChassis();
   three.need = true;
 }
 

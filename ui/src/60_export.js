@@ -518,10 +518,15 @@ function wireExport() {
       : "";
   };
   $("#openPop").innerHTML =
-    `<button type="button" role="menuitem" id="omFile"><b>A file from your computer…</b><span>A design, a car file or a team targets file. Read in your browser, never uploaded.</span></button><hr>` +
+    `<button type="button" role="menuitem" id="omFile"><b>A file from your computer…</b><span>A design, a car file or a team targets file. Read in your browser, never uploaded.</span></button>` +
+    `<button type="button" role="menuitem" id="omChassis"><b>Chassis model (STL / OBJ)…</b><span>Your frame from CAD, shown see-through around the suspension.</span></button><hr>` +
     grp("Example cars", isCarRaw) +
     grp("Front corners", c => c.hardpoints && c.axle !== "rear") +
     grp("Rear corners", c => c.hardpoints && c.axle === "rear");
+  $("#omChassis").addEventListener("click", () => {
+    om.open = false;
+    openChassis();
+  });
   $("#omFile").addEventListener("click", () => {
     om.open = false;
     $("#fileIn").click();

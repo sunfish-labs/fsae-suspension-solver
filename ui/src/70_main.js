@@ -270,6 +270,11 @@ $("#panels").addEventListener("click", e => {
 });
 wireExport();
 wireCad();
+wireChassis();
+$("#dmChassis").addEventListener("click", () => {
+  $("#dispMenu").open = false;
+  openChassis();
+});
 {
   const dm = $("#dispMenu");
   document.addEventListener("click", e => {

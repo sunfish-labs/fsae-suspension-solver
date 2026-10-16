@@ -481,6 +481,37 @@ body { border-top: 4px solid var(--gold); }
   </div>
 </div>
 
+<div class="welcome" id="chDlg" hidden>
+  <div class="wcard cadcard" role="dialog" aria-modal="true" aria-labelledby="chTitle">
+    <button class="btn small wclose" type="button" id="chClose" aria-label="Close">✕</button>
+    <h2 id="chTitle">Chassis model</h2>
+    <p class="note">Show your frame (or body, seat, driver, anything) from CAD in the 3D view, see-through, with the suspension moving inside it. STL or OBJ. It is read in your browser, never uploaded, and kept in this browser for next time.</p>
+    <div class="cadgo"><button class="btn primary" type="button" id="chPick">Choose an STL or OBJ file…</button>
+      <input id="chFile" type="file" accept=".stl,.obj,model/stl" hidden></div>
+    <div id="chLoaded" hidden><p class="note"><b id="chName"></b></p></div>
+    <div class="fields cadf">
+      <div class="field"><label for="chFrame">Axes the model was drawn in</label><select id="chFrame"></select></div>
+      <div class="field"><label for="chOrigin">Origin of the model</label><select id="chOrigin">
+        <option value="axle">Front axle centerline on the ground (same as 3D for CAD)</option>
+        <option value="solver">The solver's own frame</option></select></div>
+      <div class="field"><label for="chUnits">Units the STL was saved in</label><select id="chUnits"><option value="mm">mm</option><option value="in">inch</option><option value="m">m</option></select></div>
+      <div class="field"><label for="chOp">See-through</label><input type="range" id="chOp" min="0.08" max="1" step="0.02"></div>
+    </div>
+    <label class="small-check"><input type="checkbox" id="chShow" checked> Show in the 3D view</label>
+    <p class="note" id="chInfo"></p>
+    <div class="cadgo"><button class="btn" type="button" id="chRemove">Remove the model</button></div>
+    <details class="cadhelp"><summary>How to get the file</summary>
+      <ul>
+        <li>Easiest: build the frame around the <b>3D for CAD</b> export, then export the frame with the same axes and origin. It lines up with no adjustment.</li>
+        <li><b>SolidWorks:</b> File → Save As → STL. Under Options pick the units and a coarse resolution to keep the file small.</li>
+        <li><b>Onshape:</b> right-click the part or Part Studio → Export → STL, units mm, resolution coarse or medium.</li>
+        <li><b>Fusion:</b> right-click the body → Save as Mesh → STL (binary).</li>
+        <li>If it comes in sideways or backwards, change <i>Axes</i>; if it is tiny or huge, change <i>Units</i>. The numbers below say how big it is and where it sits.</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
 <div class="welcome" id="cadDlg" hidden>
   <div class="wcard cadcard" role="dialog" aria-modal="true" aria-labelledby="cadTitle">
     <button class="btn small wclose" type="button" id="cadClose" aria-label="Close">✕</button>
@@ -611,7 +642,9 @@ body { border-top: 4px solid var(--gold); }
               <div class="xpop" role="menu">
                 <button type="button" class="tg" id="tgRC" aria-pressed="true"><b>Roll center</b><span>Draw the roll-center lines</span></button>
                 <button type="button" class="tg" id="tgMirror" aria-pressed="false"><b>Other side</b><span>Show the left corner too</span></button>
-                <button type="button" class="tg" id="tgLabels" aria-pressed="false"><b>Names</b><span>Label every joint</span></button></div></details>
+                <button type="button" class="tg" id="tgLabels" aria-pressed="false"><b>Names</b><span>Label every joint</span></button>
+                <button type="button" class="tg" id="tgChassis" aria-pressed="true" hidden><b>Chassis</b><span>Show the chassis model you loaded</span></button>
+                <button type="button" id="dmChassis"><b>Chassis model…</b><span>Load a frame or body from CAD (STL or OBJ)</span></button></div></details>
             <select id="showSel" class="sel showsel" aria-label="Draw a term on the 3D corner"><option value="">Show me…</option></select>
           </div>
         </div>
@@ -4010,6 +4043,7 @@ function updateScene() {
     `<span><b>travel</b> ${fmt(pose.dz, 1)} mm${cfg.axle === "front" ? ` · <b>rack</b> ${fmt(pose.rack, 1)} mm` : ""}</span><span><b>camber</b> ${fmt(o.camber, 2)}°</span><span><b>toe</b> ${fmt(o.toe, 3)}°</span><span><b>caster</b> ${fmt(o.caster, 2)}°</span><span><b>RC</b> ${fmt(o.roll_center, 1)} mm${sp2}</span>`;
   const hb = ($("#hud").offsetHeight || 30) + 18 + "px";
   for (const id of ["#ovcap", "#pvbar", "#vhint"]) $(id).style.bottom = hb;
+  placeChassis();
   three.need = true;
 }
 
@@ -7712,6 +7746,7 @@ function updateCarScene() {
     (B ? `<span><b>roll</b> ${fmt(B.grad, 2)} deg/g</span><span><b>front LLTD</b> ${fmt(B.lltd * 100, 1)} %</span>` : "");
   const hb = ($("#hud").offsetHeight || 30) + 18 + "px";
   for (const id of ["#ovcap", "#pvbar", "#vhint"]) $(id).style.bottom = hb;
+  placeChassis();
   three.need = true;
 }
 // ------------------------------------------------------------------ export: design report (HTML) and Excel workbook
@@ -8234,10 +8269,15 @@ function wireExport() {
       : "";
   };
   $("#openPop").innerHTML =
-    `<button type="button" role="menuitem" id="omFile"><b>A file from your computer…</b><span>A design, a car file or a team targets file. Read in your browser, never uploaded.</span></button><hr>` +
+    `<button type="button" role="menuitem" id="omFile"><b>A file from your computer…</b><span>A design, a car file or a team targets file. Read in your browser, never uploaded.</span></button>` +
+    `<button type="button" role="menuitem" id="omChassis"><b>Chassis model (STL / OBJ)…</b><span>Your frame from CAD, shown see-through around the suspension.</span></button><hr>` +
     grp("Example cars", isCarRaw) +
     grp("Front corners", c => c.hardpoints && c.axle !== "rear") +
     grp("Rear corners", c => c.hardpoints && c.axle === "rear");
+  $("#omChassis").addEventListener("click", () => {
+    om.open = false;
+    openChassis();
+  });
   $("#omFile").addEventListener("click", () => {
     om.open = false;
     $("#fileIn").click();
@@ -8368,6 +8408,267 @@ function wireCad() {
       $("#cadInfo").textContent = "Export failed: " + e.message;
     }
   });
+}
+// 67_chassis.js - A chassis (or any other) model from CAD shown see-through in the 3D view, to check packaging by eye.
+// STL (binary or text) or OBJ, read in the browser and kept in this browser (IndexedDB) between visits; never uploaded.
+const chassis = {
+  buf: null,
+  name: "",
+  ext: "stl",
+  tris: 0,
+  mesh: null,
+  opts: { frame: "sw", units: "mm", origin: "axle", opacity: 0.3, show: true },
+};
+const CH_UNITS = { mm: 1, in: 25.4, m: 1000 };
+
+function parseSTL(buf) {
+  const dv = new DataView(buf);
+  if (buf.byteLength >= 84) {
+    const n = dv.getUint32(80, true);
+    if (n > 0 && 84 + n * 50 === buf.byteLength) {
+      const out = new Float32Array(n * 9);
+      for (let i = 0; i < n; i++) for (let j = 0; j < 9; j++) out[i * 9 + j] = dv.getFloat32(84 + i * 50 + 12 + j * 4, true);
+      return out;
+    }
+  }
+  const txt = new TextDecoder().decode(buf),
+    re = /vertex\s+(\S+)\s+(\S+)\s+(\S+)/g,
+    v = [];
+  let m;
+  while ((m = re.exec(txt))) v.push(+m[1], +m[2], +m[3]);
+  if (!v.length || v.length % 9 || v.some(x => !Number.isFinite(x)))
+    throw new Error("This doesn't read as an STL file (no triangles found).");
+  return new Float32Array(v);
+}
+function parseOBJ(buf) {
+  const txt = new TextDecoder().decode(buf),
+    V = [],
+    out = [];
+  for (const line of txt.split(/\r?\n/)) {
+    const t = line.trim().split(/\s+/);
+    if (t[0] === "v") V.push([+t[1], +t[2], +t[3]]);
+    else if (t[0] === "f") {
+      const ix = t.slice(1).map(s => {
+        const k = parseInt(s, 10);
+        return k < 0 ? V.length + k : k - 1;
+      });
+      for (let i = 1; i + 1 < ix.length; i++)
+        for (const k of [ix[0], ix[i], ix[i + 1]]) {
+          const p = V[k];
+          if (!p) throw new Error("This OBJ file has a face that points at a missing vertex.");
+          out.push(p[0], p[1], p[2]);
+        }
+    }
+  }
+  if (!out.length) throw new Error("No faces found in this OBJ file.");
+  return new Float32Array(out);
+}
+// the model's frame and units -> the solver frame of the front corner (X forward, Y right, Z up, mm). Every export
+// frame is its own inverse (a swap or a sign flip), so the same map takes CAD back to the solver.
+function chassisSolverPoints() {
+  const src = chassis.ext === "obj" ? parseOBJ(chassis.buf) : parseSTL(chassis.buf),
+    f = window.SuspCAD.FRAMES[chassis.opts.frame].f,
+    k = CH_UNITS[chassis.opts.units] || 1,
+    fr = car ? car.front : cfg,
+    x0 = chassis.opts.origin === "axle" && fr ? fr.hardpoints.contact_patch[0] : 0;
+  const out = new Float32Array(src.length);
+  for (let i = 0; i < src.length; i += 3) {
+    const q = f([src[i] * k, src[i + 1] * k, src[i + 2] * k]);
+    out[i] = q[0] + x0;
+    out[i + 1] = q[1];
+    out[i + 2] = q[2];
+  }
+  return out;
+}
+function chassisInfo(P) {
+  let lo = [Infinity, Infinity, Infinity],
+    hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < P.length; i += 3)
+    for (let j = 0; j < 3; j++) {
+      lo[j] = Math.min(lo[j], P[i + j]);
+      hi[j] = Math.max(hi[j], P[i + j]);
+    }
+  const L = hi[0] - lo[0],
+    W = hi[1] - lo[1],
+    H = hi[2] - lo[2],
+    mid = (hi[1] + lo[1]) / 2;
+  let note = `${fmt(L, 0)} mm long, ${fmt(W, 0)} mm wide, ${fmt(H, 0)} mm tall; lowest point ${fmt(lo[2], 0)} mm above the ground; centered ${fmt(Math.abs(mid), 0)} mm ${mid >= 0 ? "right" : "left"} of the car centerline.`;
+  if (Math.max(L, W, H) < 300) note += " That is very small: check the units.";
+  else if (Math.max(L, W, H) > 8000) note += " That is very large: check the units.";
+  else if (W > L * 1.3 || H > L) note += " It looks rotated: try another axes setting.";
+  return note;
+}
+function buildChassisMesh() {
+  if (!three) return;
+  if (chassis.mesh) {
+    three.scene.remove(chassis.mesh);
+    chassis.mesh.geometry.dispose();
+    chassis.mesh.material.dispose();
+    chassis.mesh = null;
+  }
+  if (!chassis.buf) return;
+  const T = three.T,
+    P = chassisSolverPoints(),
+    pos = new Float32Array(P.length);
+  for (let i = 0; i < P.length; i += 3) {
+    pos[i] = P[i];
+    pos[i + 1] = P[i + 2];
+    pos[i + 2] = -P[i + 1]; // same mapping as toT
+  }
+  const g = new T.BufferGeometry();
+  g.setAttribute("position", new T.BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  const mat = new T.MeshStandardMaterial({
+    color: 0x8a96a3,
+    roughness: 0.85,
+    metalness: 0,
+    transparent: true,
+    opacity: chassis.opts.opacity,
+    depthWrite: false,
+    side: T.DoubleSide,
+  });
+  chassis.mesh = new T.Mesh(g, mat);
+  chassis.mesh.renderOrder = -1;
+  chassis.mesh.name = "chassis";
+  chassis.tris = P.length / 9;
+  chassis.info = chassisInfo(P);
+  three.scene.add(chassis.mesh);
+  placeChassis();
+}
+// the mesh lives in the front corner's frame; the rear corner view is one wheelbase further forward
+function placeChassis() {
+  if (!three || !chassis.mesh) return;
+  const carView = car && axleView === "car" && !chal,
+    rearView = !carView && cfg && cfg.axle === "rear",
+    wb = ((car && car.vehicle) || (cfg && cfg.vehicle) || {}).wheelbase || 1550;
+  chassis.mesh.position.x = rearView ? wb : 0;
+  chassis.mesh.visible = chassis.opts.show;
+  chassis.mesh.material.opacity = chassis.opts.opacity;
+  $("#tgChassis").hidden = false;
+  $("#tgChassis").setAttribute("aria-pressed", String(chassis.opts.show));
+  three.need = true;
+}
+
+// ---- kept in this browser between visits
+function chDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open("susp-chassis", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("m");
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function chSave() {
+  try {
+    const db = await chDB(),
+      tx = db.transaction("m", "readwrite");
+    if (chassis.buf) tx.objectStore("m").put({ buf: chassis.buf, name: chassis.name, ext: chassis.ext, opts: chassis.opts }, "model");
+    else tx.objectStore("m").delete("model");
+  } catch (e) {
+    /* private window or storage off: the model just isn't remembered */
+  }
+}
+async function chLoadSaved() {
+  try {
+    const db = await chDB(),
+      v = await new Promise(res => {
+        const r = db.transaction("m").objectStore("m").get("model");
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => res(null);
+      });
+    if (v && v.buf) {
+      Object.assign(chassis, { buf: v.buf, name: v.name, ext: v.ext });
+      Object.assign(chassis.opts, v.opts || {});
+      buildChassisMesh();
+    }
+  } catch (e) {
+    /* nothing saved */
+  }
+}
+
+// ---- the dialog
+function chSync() {
+  const has = !!chassis.buf;
+  $("#chLoaded").hidden = !has;
+  $("#chName").textContent = has ? `${chassis.name} · ${chassis.tris.toLocaleString()} triangles` : "";
+  $("#chInfo").textContent = has ? chassis.info || "" : "No model loaded.";
+  for (const [k, id] of [
+    ["frame", "#chFrame"],
+    ["units", "#chUnits"],
+    ["origin", "#chOrigin"],
+  ])
+    $(id).value = chassis.opts[k];
+  $("#chOp").value = chassis.opts.opacity;
+  $("#chShow").checked = chassis.opts.show;
+  $("#tgChassis").hidden = !has;
+}
+function openChassis() {
+  $("#chFrame").innerHTML = Object.entries(window.SuspCAD.FRAMES)
+    .map(([k, f]) => `<option value="${attr(k)}">${esc(f.label)}</option>`)
+    .join("");
+  chSync();
+  $("#chDlg").hidden = false;
+  setTimeout(() => $("#chPick").focus(), 0);
+}
+function wireChassis() {
+  $("#chClose").addEventListener("click", () => ($("#chDlg").hidden = true));
+  $("#chDlg").addEventListener("click", e => {
+    if (e.target.id === "chDlg") $("#chDlg").hidden = true;
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !$("#chDlg").hidden) $("#chDlg").hidden = true;
+  });
+  $("#chPick").addEventListener("click", () => $("#chFile").click());
+  $("#chFile").addEventListener("change", async e => {
+    const f = e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    const ext = /\.obj$/i.test(f.name) ? "obj" : "stl";
+    try {
+      const buf = await busy(f.arrayBuffer());
+      (ext === "obj" ? parseOBJ : parseSTL)(buf); // check it reads before replacing the current model
+      Object.assign(chassis, { buf, name: f.name, ext });
+      chassis.opts.show = true;
+      buildChassisMesh();
+      chSave();
+      chSync();
+      if (!three) $("#chInfo").textContent = "Loaded, but the 3D view is not available in this browser.";
+    } catch (er) {
+      $("#chInfo").textContent = "That file did not load: " + er.message;
+    }
+  });
+  const change = () => {
+    chassis.opts.frame = $("#chFrame").value;
+    chassis.opts.units = $("#chUnits").value;
+    chassis.opts.origin = $("#chOrigin").value;
+    buildChassisMesh();
+    chSave();
+    chSync();
+  };
+  ["#chFrame", "#chUnits", "#chOrigin"].forEach(id => $(id).addEventListener("change", change));
+  $("#chOp").addEventListener("input", () => {
+    chassis.opts.opacity = +$("#chOp").value;
+    placeChassis();
+    chSave();
+  });
+  $("#chShow").addEventListener("change", () => {
+    chassis.opts.show = $("#chShow").checked;
+    placeChassis();
+    chSave();
+  });
+  $("#chRemove").addEventListener("click", () => {
+    chassis.buf = null;
+    buildChassisMesh();
+    chSave();
+    chSync();
+    if (three) three.need = true;
+  });
+  $("#tgChassis").addEventListener("click", () => {
+    chassis.opts.show = !chassis.opts.show;
+    placeChassis();
+    chSave();
+  });
+  chLoadSaved();
 }
 // ------------------------------------------------------------------ toolbar
 function loadCfg(raw, name, opts = {}) {
@@ -8641,6 +8942,11 @@ $("#panels").addEventListener("click", e => {
 });
 wireExport();
 wireCad();
+wireChassis();
+$("#dmChassis").addEventListener("click", () => {
+  $("#dispMenu").open = false;
+  openChassis();
+});
 {
   const dm = $("#dispMenu");
   document.addEventListener("click", e => {

@@ -62,6 +62,37 @@
   </div>
 </div>
 
+<div class="welcome" id="chDlg" hidden>
+  <div class="wcard cadcard" role="dialog" aria-modal="true" aria-labelledby="chTitle">
+    <button class="btn small wclose" type="button" id="chClose" aria-label="Close">✕</button>
+    <h2 id="chTitle">Chassis model</h2>
+    <p class="note">Show your frame (or body, seat, driver, anything) from CAD in the 3D view, see-through, with the suspension moving inside it. STL or OBJ. It is read in your browser, never uploaded, and kept in this browser for next time.</p>
+    <div class="cadgo"><button class="btn primary" type="button" id="chPick">Choose an STL or OBJ file…</button>
+      <input id="chFile" type="file" accept=".stl,.obj,model/stl" hidden></div>
+    <div id="chLoaded" hidden><p class="note"><b id="chName"></b></p></div>
+    <div class="fields cadf">
+      <div class="field"><label for="chFrame">Axes the model was drawn in</label><select id="chFrame"></select></div>
+      <div class="field"><label for="chOrigin">Origin of the model</label><select id="chOrigin">
+        <option value="axle">Front axle centerline on the ground (same as 3D for CAD)</option>
+        <option value="solver">The solver's own frame</option></select></div>
+      <div class="field"><label for="chUnits">Units the STL was saved in</label><select id="chUnits"><option value="mm">mm</option><option value="in">inch</option><option value="m">m</option></select></div>
+      <div class="field"><label for="chOp">See-through</label><input type="range" id="chOp" min="0.08" max="1" step="0.02"></div>
+    </div>
+    <label class="small-check"><input type="checkbox" id="chShow" checked> Show in the 3D view</label>
+    <p class="note" id="chInfo"></p>
+    <div class="cadgo"><button class="btn" type="button" id="chRemove">Remove the model</button></div>
+    <details class="cadhelp"><summary>How to get the file</summary>
+      <ul>
+        <li>Easiest: build the frame around the <b>3D for CAD</b> export, then export the frame with the same axes and origin. It lines up with no adjustment.</li>
+        <li><b>SolidWorks:</b> File → Save As → STL. Under Options pick the units and a coarse resolution to keep the file small.</li>
+        <li><b>Onshape:</b> right-click the part or Part Studio → Export → STL, units mm, resolution coarse or medium.</li>
+        <li><b>Fusion:</b> right-click the body → Save as Mesh → STL (binary).</li>
+        <li>If it comes in sideways or backwards, change <i>Axes</i>; if it is tiny or huge, change <i>Units</i>. The numbers below say how big it is and where it sits.</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
 <div class="welcome" id="cadDlg" hidden>
   <div class="wcard cadcard" role="dialog" aria-modal="true" aria-labelledby="cadTitle">
     <button class="btn small wclose" type="button" id="cadClose" aria-label="Close">✕</button>
@@ -192,7 +223,9 @@
               <div class="xpop" role="menu">
                 <button type="button" class="tg" id="tgRC" aria-pressed="true"><b>Roll center</b><span>Draw the roll-center lines</span></button>
                 <button type="button" class="tg" id="tgMirror" aria-pressed="false"><b>Other side</b><span>Show the left corner too</span></button>
-                <button type="button" class="tg" id="tgLabels" aria-pressed="false"><b>Names</b><span>Label every joint</span></button></div></details>
+                <button type="button" class="tg" id="tgLabels" aria-pressed="false"><b>Names</b><span>Label every joint</span></button>
+                <button type="button" class="tg" id="tgChassis" aria-pressed="true" hidden><b>Chassis</b><span>Show the chassis model you loaded</span></button>
+                <button type="button" id="dmChassis"><b>Chassis model…</b><span>Load a frame or body from CAD (STL or OBJ)</span></button></div></details>
             <select id="showSel" class="sel showsel" aria-label="Draw a term on the 3D corner"><option value="">Show me…</option></select>
           </div>
         </div>

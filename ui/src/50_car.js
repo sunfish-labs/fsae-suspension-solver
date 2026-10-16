@@ -543,5 +543,6 @@ function updateCarScene() {
     (B ? `<span><b>roll</b> ${fmt(B.grad, 2)} deg/g</span><span><b>front LLTD</b> ${fmt(B.lltd * 100, 1)} %</span>` : "");
   const hb = ($("#hud").offsetHeight || 30) + 18 + "px";
   for (const id of ["#ovcap", "#pvbar", "#vhint"]) $(id).style.bottom = hb;
+  placeChassis();
   three.need = true;
 }

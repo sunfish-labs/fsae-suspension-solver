@@ -187,6 +187,37 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
   await setIn("#in_halfshaft_diff_output_1", ""); await settle(p);
   await p.click('#axleSeg [data-ax="car"]'); await settle(p);
 
+  console.log("\nChassis model");
+  {
+    // a 2000 x 600 x 400 mm box, bottom 50 mm off the ground, drawn in SolidWorks axes (X forward, Y up, Z right), mm,
+    // front axle origin; written as binary STL
+    const box = [[-2200, 50, -300], [-200, 450, 300]], [a, b] = box, tris = [];
+    const c = (i, j, k) => [[a[0], b[0]][i], [a[1], b[1]][j], [a[2], b[2]][k]];
+    const quad = (p, q, r, s_) => tris.push([p, q, r], [p, r, s_]);
+    quad(c(0,0,0), c(1,0,0), c(1,1,0), c(0,1,0)); quad(c(0,0,1), c(0,1,1), c(1,1,1), c(1,0,1));
+    quad(c(0,0,0), c(0,1,0), c(0,1,1), c(0,0,1)); quad(c(1,0,0), c(1,0,1), c(1,1,1), c(1,1,0));
+    quad(c(0,0,0), c(0,0,1), c(1,0,1), c(1,0,0)); quad(c(0,1,0), c(1,1,0), c(1,1,1), c(0,1,1));
+    const buf = Buffer.alloc(84 + tris.length * 50); buf.writeUInt32LE(tris.length, 80);
+    tris.forEach((t, i) => t.forEach((v, j) => v.forEach((x, k) => buf.writeFloatLE(x, 84 + i * 50 + 12 + j * 12 + k * 4))));
+    fs.writeFileSync(path.join(tmpd, "frame.stl"), buf);
+  }
+  await p.click("#openMenu summary"); await p.click("#omChassis"); await settle(p);
+  await p.selectOption("#chFrame", "sw"); await p.selectOption("#chUnits", "mm"); await p.selectOption("#chOrigin", "axle");
+  await p.setInputFiles("#chFile", path.join(tmpd, "frame.stl")); await settle(p);
+  const chInfo = await text(p, "#chInfo");
+  check("a binary STL chassis loads and reads back at its real size and place", /2000 mm long, 600 mm wide, 400 mm tall; lowest point 50 mm/.test(chInfo) && /centered 0 mm/.test(chInfo), chInfo);
+  check("the chassis is drawn in the 3D view", await p.evaluate(() => { const v = window.__suspView(); return !!v.three.scene.getObjectByName("chassis"); }));
+  await p.selectOption("#chUnits", "in"); await settle(p);
+  check("changing the units rescales it (and warns when the size looks wrong)", /very large/.test(await text(p, "#chInfo")), await text(p, "#chInfo"));
+  await p.selectOption("#chUnits", "mm"); await settle(p);
+  await p.reload(); await settle(p); await p.waitForFunction(() => { const v = window.__suspView && window.__suspView(); return v && v.three && v.three.scene.getObjectByName("chassis"); }, null, { timeout: 5000 }).catch(() => null);
+  check("the chassis model is remembered after a reload", await p.evaluate(() => !!window.__suspView().three.scene.getObjectByName("chassis")));
+  await closeWelcome(p);
+  await p.click("#openMenu summary"); await p.click("#omChassis"); await settle(p);
+  await p.click("#chRemove"); await settle(p);
+  check("Remove takes it out of the view", await p.evaluate(() => !window.__suspView().three.scene.getObjectByName("chassis")));
+  await p.click("#chClose");
+
   console.log("\nTheme");
   await p.click("#themeMenu summary"); await p.click('[data-theme-set="dark"]'); await settle(p);
   await p.reload(); await settle(p);

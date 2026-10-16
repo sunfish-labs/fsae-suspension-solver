@@ -124,6 +124,14 @@ as reference geometry for the chassis designer:
 - Files are written in the browser; nothing is uploaded. `tests/test_cad.py` reads them back in OpenCascade and checks
   every point, and that every solid body is a valid closed solid with the right volume in the right place.
 
+## Showing your chassis in the 3D view
+**Open ▾ → Chassis model (STL / OBJ)…** (or **Display ▾ → Chassis model…** in a corner view) loads a frame, body,
+seat or driver model from CAD and draws it see-through around the suspension, so you can watch the links move
+inside it. Pick the axes, origin and units the model was saved in; the dialog reports its size and where it sits so
+you can tell if a setting is wrong. A frame built around the **3D for CAD** export, saved with the same settings,
+lines up with no adjustment. The model is read in your browser, never uploaded, and kept in this browser
+(IndexedDB) for the next visit. It is for looking only: no clearance numbers are computed against it yet.
+
 ## How loads are calculated (`loads`)
 One config covers both corners of its axle, because the car is symmetric. The solved wheel is the **outer** wheel
 in a left turn and the **inner** wheel in a right turn, and both are checked. The inner wheel's side force points
