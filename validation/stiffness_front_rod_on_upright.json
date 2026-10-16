@@ -1,0 +1,566 @@
+{
+ "name": "Example front, rod on the upright: member forces by a stiffness model",
+ "source": "validation/tools/stiffness_model.py, displacement method (rigid bodies on stiff joints), no solver statics code",
+ "config": {
+  "name": "Example front, rod on the upright",
+  "axle": "front",
+  "wheel": {
+   "camber_deg": -1.5,
+   "toe_deg": 0.0,
+   "tire_radius": 254.0,
+   "tire_width": 190.5,
+   "rim_diameter_in": 13.0
+  },
+  "vehicle": {
+   "wheelbase": 1550.0,
+   "track": null,
+   "cg_height": 280.0,
+   "front_brake_share": 0.6,
+   "brakes": "outboard",
+   "drive": "inboard",
+   "mass": 275.0,
+   "weight_front": 0.47,
+   "rack_c_factor": null
+  },
+  "sweep": {
+   "travel": 30.0,
+   "steps": 41,
+   "rack_travel": 35.0,
+   "rack_steps": 14,
+   "ackermann_at_outer_deg": 15.0,
+   "roll_deg": 2.0,
+   "roll_steps": 9
+  },
+  "clearance": {
+   "wishbone_tube_od": 25.4,
+   "tie_rod_od": 16.0,
+   "pushrod_od": 15.9,
+   "damper_od": 55.0,
+   "margin": 5.0
+  },
+  "rack_direction": [
+   0.0,
+   1.0,
+   0.0
+  ],
+  "spring": {
+   "rod_on": "upright",
+   "rod_outboard": [
+    -5.0,
+    545.0,
+    150.0
+   ],
+   "rocker_pivot": [
+    -5.0,
+    205.0,
+    380.0
+   ],
+   "rocker_axis": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "rocker_rod": [
+    -5.0,
+    246.4,
+    427.0
+   ],
+   "rocker_damper": [
+    -5.0,
+    201.5,
+    459.7
+   ],
+   "damper_chassis": [
+    -5.0,
+    30.5,
+    446.3
+   ],
+   "spring_rate": 52.5,
+   "damper_stroke": 57.0,
+   "damper_eye_to_eye": 200.0,
+   "unsprung_mass": 11.0,
+   "tire_rate": 110.0,
+   "target_freq_hz": 3.5,
+   "damper_bump_low": 2000,
+   "damper_bump_high": 900,
+   "damper_rebound_low": 3000,
+   "damper_rebound_high": 1400,
+   "damper_knee": 50.0,
+   "target_zeta_low": 0.7,
+   "target_zeta_high": 0.35
+  },
+  "loads": {
+   "bump_g": 3.0,
+   "corner_g": 1.6,
+   "brake_g": 1.6,
+   "combined_g": 1.2,
+   "accel_g": 1.0,
+   "lltd_front": null
+  },
+  "members": {
+   "material": "4130 chromoly steel, normalized (yield is lower next to welds)",
+   "wishbone": [
+    15.88,
+    0.89
+   ],
+   "tie_rod": [
+    15.88,
+    0.89
+   ],
+   "pushrod": [
+    15.88,
+    0.89
+   ],
+   "E": 205000.0,
+   "yield": 435.0,
+   "sf_target": 2.0
+  },
+  "hardpoints": {
+   "upper_inboard_front": [
+    -230.0,
+    288.0,
+    327.7
+   ],
+   "upper_inboard_rear": [
+    210.0,
+    287.1,
+    336.2
+   ],
+   "lower_inboard_front": [
+    -230.0,
+    167.5,
+    143.5
+   ],
+   "lower_inboard_rear": [
+    230.0,
+    166.1,
+    140.2
+   ],
+   "upper_outboard": [
+    -15.0,
+    562.0,
+    345.0
+   ],
+   "lower_outboard": [
+    5.0,
+    580.0,
+    135.0
+   ],
+   "trackrod_inboard": [
+    -80.0,
+    193.0,
+    170.8
+   ],
+   "trackrod_outboard": [
+    -75.0,
+    567.1,
+    168.3
+   ],
+   "contact_patch": [
+    0.0,
+    610.0,
+    0.0
+   ]
+  },
+  "targets": {
+   "camber": [
+    -2.5,
+    -1.0
+   ],
+   "camber_gain": [
+    0.35,
+    0.7
+   ],
+   "caster": [
+    4,
+    7
+   ],
+   "kpi": [
+    3,
+    8
+   ],
+   "scrub": [
+    5,
+    25
+   ],
+   "trail": [
+    10,
+    30
+   ],
+   "toe": [
+    -0.2,
+    0.0
+   ],
+   "roll_center": [
+    25,
+    60
+   ],
+   "rc_lat": [
+    -20,
+    20
+   ],
+   "antidive": [
+    5,
+    20
+   ],
+   "ackermann": [
+    10,
+    40
+   ],
+   "bump_steer": [
+    -0.03,
+    0.03
+   ],
+   "bump_steer_max": [
+    null,
+    0.05
+   ],
+   "ride_freq": [
+    3.0,
+    4.0
+   ]
+  }
+ },
+ "loads": {
+  "bump": {
+   "upper_front": [
+    -365.383686,
+    0.001
+   ],
+   "upper_rear": [
+    -283.421675,
+    0.001
+   ],
+   "lower_front": [
+    1303.630068,
+    0.00130363
+   ],
+   "lower_rear": [
+    1265.743142,
+    0.001265743
+   ],
+   "tie_rod": [
+    382.182775,
+    0.001
+   ],
+   "pushrod": [
+    -2892.134134,
+    0.002892134
+   ],
+   "damper": [
+    -2271.226205,
+    0.002271226
+   ],
+   "rocker_pivot": [
+    2149.184526,
+    0.002149185
+   ]
+  },
+  "corner outer": {
+   "upper_front": [
+    569.667833,
+    0.001
+   ],
+   "upper_rear": [
+    597.670179,
+    0.001
+   ],
+   "lower_front": [
+    -728.291443,
+    0.001
+   ],
+   "lower_rear": [
+    -817.444521,
+    0.001
+   ],
+   "tie_rod": [
+    -204.831401,
+    0.001
+   ],
+   "pushrod": [
+    -1519.03454,
+    0.001519035
+   ],
+   "damper": [
+    -1192.915298,
+    0.001192915
+   ],
+   "rocker_pivot": [
+    1128.815392,
+    0.001128815
+   ]
+  },
+  "corner inner": {
+   "upper_front": [
+    -151.917904,
+    0.001
+   ],
+   "upper_rear": [
+    -141.694291,
+    0.001
+   ],
+   "lower_front": [
+    342.32196,
+    0.001
+   ],
+   "lower_rear": [
+    349.265149,
+    0.001
+   ],
+   "tie_rod": [
+    99.028745,
+    0.001
+   ],
+   "pushrod": [
+    -279.456788,
+    0.001
+   ],
+   "damper": [
+    -219.46063,
+    0.001
+   ],
+   "rocker_pivot": [
+    207.66817,
+    0.001
+   ]
+  },
+  "braking": {
+   "upper_front": [
+    497.198534,
+    0.001
+   ],
+   "upper_rear": [
+    -791.022973,
+    0.001
+   ],
+   "lower_front": [
+    -1363.668772,
+    0.001363669
+   ],
+   "lower_rear": [
+    2985.803488,
+    0.002985803
+   ],
+   "tie_rod": [
+    -110.533898,
+    0.001
+   ],
+   "pushrod": [
+    -1509.450566,
+    0.001509451
+   ],
+   "damper": [
+    -1185.388893,
+    0.001185389
+   ],
+   "rocker_pivot": [
+    1121.69341,
+    0.001121693
+   ]
+  },
+  "brake+corner outer": {
+   "upper_front": [
+    954.792548,
+    0.001
+   ],
+   "upper_rear": [
+    -6.359055,
+    0.001
+   ],
+   "lower_front": [
+    -1964.147347,
+    0.001964147
+   ],
+   "lower_rear": [
+    1229.333531,
+    0.001229334
+   ],
+   "tie_rod": [
+    -351.335273,
+    0.001
+   ],
+   "pushrod": [
+    -1770.97081,
+    0.001770971
+   ],
+   "damper": [
+    -1390.763749,
+    0.001390764
+   ],
+   "rocker_pivot": [
+    1316.032688,
+    0.001316033
+   ]
+  },
+  "brake+corner inner": {
+   "upper_front": [
+    102.111189,
+    0.001
+   ],
+   "upper_rear": [
+    -864.642785,
+    0.001
+   ],
+   "lower_front": [
+    -570.053243,
+    0.001
+   ],
+   "lower_rear": [
+    2722.324316,
+    0.002722324
+   ],
+   "tie_rod": [
+    46.399021,
+    0.001
+   ],
+   "pushrod": [
+    -902.328466,
+    0.001
+   ],
+   "damper": [
+    -708.608924,
+    0.001
+   ],
+   "rocker_pivot": [
+    670.532654,
+    0.001
+   ]
+  },
+  "pothole": {
+   "upper_front": [
+    -487.178249,
+    0.001
+   ],
+   "upper_rear": [
+    -377.895567,
+    0.001
+   ],
+   "lower_front": [
+    1738.173424,
+    0.001738173
+   ],
+   "lower_rear": [
+    1687.657523,
+    0.001687658
+   ],
+   "tie_rod": [
+    509.577033,
+    0.001
+   ],
+   "pushrod": [
+    -3856.178846,
+    0.003856179
+   ],
+   "damper": [
+    -3028.301607,
+    0.003028302
+   ],
+   "rocker_pivot": [
+    2865.579368,
+    0.002865579
+   ]
+  },
+  "kerb strike": {
+   "upper_front": [
+    441.007925,
+    0.001
+   ],
+   "upper_rear": [
+    454.359032,
+    0.001
+   ],
+   "lower_front": [
+    -633.515069,
+    0.001
+   ],
+   "lower_rear": [
+    -694.610398,
+    0.001
+   ],
+   "tie_rod": [
+    -179.470439,
+    0.001
+   ],
+   "pushrod": [
+    -853.756153,
+    0.001
+   ],
+   "damper": [
+    -670.464528,
+    0.001
+   ],
+   "rocker_pivot": [
+    634.437902,
+    0.001
+   ]
+  },
+  "bump (deflected)": {
+   "upper_front": [
+    -358.809408,
+    0.001
+   ],
+   "upper_rear": [
+    -281.400152,
+    0.001
+   ],
+   "lower_front": [
+    1342.757934,
+    0.001342758
+   ],
+   "lower_rear": [
+    1315.158718,
+    0.001315159
+   ],
+   "tie_rod": [
+    397.838917,
+    0.001
+   ],
+   "pushrod": [
+    -2873.967819,
+    0.002873968
+   ],
+   "damper": [
+    -2271.90883,
+    0.002271909
+   ],
+   "rocker_pivot": [
+    1951.911607,
+    0.001951912
+   ]
+  },
+  "pothole (deflected)": {
+   "upper_front": [
+    -478.412544,
+    0.001
+   ],
+   "upper_rear": [
+    -375.200203,
+    0.001
+   ],
+   "lower_front": [
+    1790.343912,
+    0.001790344
+   ],
+   "lower_rear": [
+    1753.544957,
+    0.001753545
+   ],
+   "tie_rod": [
+    530.451889,
+    0.001
+   ],
+   "pushrod": [
+    -3831.957093,
+    0.003831957
+   ],
+   "damper": [
+    -3029.211773,
+    0.003029212
+   ],
+   "rocker_pivot": [
+    2602.548809,
+    0.002602549
+   ]
+  }
+ }
+}

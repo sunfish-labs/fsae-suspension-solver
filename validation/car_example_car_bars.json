@@ -1,0 +1,31 @@
+{
+ "name": "Example car with bar linkages, bump stops and tire load sensitivity (invented demo geometry): roll gradient and load transfer by a full-car stiffness model",
+ "source": "validation/tools/full_car_model.py: springs-and-masses matrix model, no car.py code",
+ "car": "designs/example_car_bars.json",
+ "arb": [
+  0.0,
+  0.0
+ ],
+ "car_balance": {
+  "grad": [
+   0.701189235,
+   1e-06
+  ],
+  "lltd": [
+   0.502675744,
+   1e-06
+  ],
+  "dFz_f": [
+   311.234570873,
+   0.000311234571
+  ],
+  "dFz_r": [
+   307.921166832,
+   0.000307921167
+  ],
+  "K_warp": [
+   213.762453003,
+   0.000213762453
+  ]
+ }
+}

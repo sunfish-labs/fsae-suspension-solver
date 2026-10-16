@@ -46,13 +46,18 @@ function carBalance(fcfg, fev, rcfg, rev, o = {}) {
     Ktf = rollK(fcfg.spring.tire_rate, tf),
     Ktr = rollK(rcfg.spring.tire_rate, tr);
   const Kf = series(Ksf + arbF, Ktf),
-    Kr = series(Ksr + arbR, Ktr),
-    grad = (ms * G * d) / (Kf + Kr);
-  const transfer = lam => [
-    (ms * G * d * lam + msf * G * zrf + muf * G * Rf) / tf,
-    (ms * G * d * (1 - lam) + msr * G * zrr + mur * G * Rr) / tr,
-  ];
-  const [dF, dR] = transfer(Kf / (Kf + Kr)),
+    Kr = series(Ksr + arbR, Ktr);
+  // body roll includes the tires squashing under the whole transfer, the geometric part too (mirrors car.py)
+  const A = ms * G * d,
+    Gf = msf * G * zrf + muf * G * Rf,
+    Gr = msr * G * zrr + mur * G * Rr,
+    gf = Gf / Ktf,
+    gr = Gr / Ktr;
+  const grad = (A + Kf * gf + Kr * gr) / (Kf + Kr),
+    Ef = Kf * (grad - gf),
+    Er = Kr * (grad - gr);
+  const dF = (Ef + Gf) / tf,
+    dR = (Er + Gr) / tr,
     lltd = (dF * tf) / (dF * tf + dR * tr);
   const out = {
     ms,
@@ -71,6 +76,9 @@ function carBalance(fcfg, fev, rcfg, rev, o = {}) {
     arb_src_r: srcR,
     grad,
     lltd,
+    K_warp: Kf + Kr > 0 ? (Kf * Kr) / (Kf + Kr) : 0, // twist test on corner scales
+    roll_susp_f: Ksf + arbF > 0 ? Ef / (Ksf + arbF) : NaN,
+    roll_susp_r: Ksr + arbR > 0 ? Er / (Ksr + arbR) : NaN,
     freq_f: fr.ride_freq,
     freq_r: rr.ride_freq,
     wf,
@@ -78,8 +86,8 @@ function carBalance(fcfg, fev, rcfg, rev, o = {}) {
     dFz_r: dR,
     rc_f: zrf * 1000,
     rc_r: zrr * 1000,
-    geo_f: (msf * G * zrf + muf * G * Rf) / tf,
-    geo_r: (msr * G * zrr + mur * G * Rr) / tr,
+    geo_f: Gf / tf,
+    geo_r: Gr / tr,
   };
   // tire load sensitivity (mirrors car.car_balance): each axle's lateral limit and the LLTD that equalizes them
   const ks = veh.tire_load_sens;
@@ -94,36 +102,35 @@ function carBalance(fcfg, fev, rcfg, rev, o = {}) {
     out.limit_balance = out.ay_lim_r - out.ay_lim_f; // + : the front lets go first (understeer)
     out.grip_loss_f = (1 - out.ay_lim_f / mu) * 100;
     out.grip_loss_r = (1 - out.ay_lim_r / mu) * 100;
-    const a1 = (ms * G * d) / tf / F0f,
-      b1 = (msf * G * zrf + muf * G * Rf) / tf / F0f,
-      a2 = (-ms * G * d) / tr / F0r,
-      b2 = (ms * G * d + msr * G * zrr + mur * G * Rr) / tr / F0r;
-    if (Math.abs(a1 - a2) > 1e-12) {
-      const [dFn, dRn] = transfer((b2 - b1) / (a1 - a2));
-      out.lltd_neutral = (dFn * tf) / (dFn * tf + dRn * tr);
-    }
+    out.lltd_neutral = (tf * F0f) / (tf * F0f + tr * F0r); // dF / F0f = dR / F0r, dF tf + dR tr = m g h
   }
   const tg = o.targetGrad || 1.0,
-    tl = o.targetLltd || wf + 0.05,
-    K_need = (ms * G * d) / tg;
-  const a_ = ms * G * d,
-    b_ = msf * G * zrf + muf * G * Rf,
-    e_ = msr * G * zrr + mur * G * Rr;
-  const lam = Math.abs(a_) > 1e-9 ? (tl * (a_ + b_ + e_) - b_) / a_ : NaN,
-    lam_c = Math.min(1, Math.max(0, lam));
+    tl = o.targetLltd || wf + 0.05;
+  const lam = Math.abs(A) > 1e-9 ? (tl * (A + Gf + Gr) - Gf) / A : NaN,
+    lam_c = Math.min(1, Math.max(0, lam)),
+    Efn = lam_c * A,
+    Ern = (1 - lam_c) * A;
+  const need = (E, g) => (tg > g ? E / (tg - g) : Infinity),
+    Kfn = need(Efn, gf),
+    Krn = need(Ern, gr);
   const barFor = (K, Ks, Kt) => (K >= Kt ? Infinity : 1 / (1 / K - 1 / Kt) - Ks);
   Object.assign(out, {
     target_grad: tg,
     target_lltd: tl,
-    K_need,
+    K_need: Kfn + Krn,
     lam,
     lam_c,
-    arb_f: barFor(lam_c * K_need, Ksf, Ktf),
-    arb_r: barFor((1 - lam_c) * K_need, Ksr, Ktr),
+    arb_f: barFor(Kfn, Ksf, Ktf),
+    arb_r: barFor(Krn, Ksr, Ktr),
   });
-  const lam0 = Kf / (Kf + Kr);
-  if (lam_c > lam0 + 1e-9 && lam_c < 1) out.lltd_fix = ["front", barFor((lam_c / (1 - lam_c)) * Kr, Ksf, Ktf) - arbF];
-  else if (lam_c < lam0 - 1e-9 && lam_c > 0) out.lltd_fix = ["rear", barFor(((1 - lam_c) / lam_c) * Kf, Ksr, Ktr) - arbR];
+  const lam0 = Math.abs(A) > 1e-9 ? Ef / A : 0.5;
+  if (lam_c > lam0 + 1e-9 && lam_c < 1) {
+    const den = A + Kr * (gr - gf) - Efn;
+    if (den > 0) out.lltd_fix = ["front", barFor((Efn * Kr) / den, Ksf, Ktf) - arbF];
+  } else if (lam_c < lam0 - 1e-9 && lam_c > 0) {
+    const den = A + Kf * (gf - gr) - Ern;
+    if (den > 0) out.lltd_fix = ["rear", barFor((Ern * Kf) / den, Ksr, Ktr) - arbR];
+  }
   const t = Object.assign({}, CAR_TARGETS, o.targets || {});
   const vals = { roll_gradient: grad, lltd_vs_weight: (lltd - wf) * 100, freq_ratio: rr.ride_freq / fr.ride_freq };
   out.checks = ["roll_gradient", "lltd_vs_weight", "freq_ratio"].map(k => ({

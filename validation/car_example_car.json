@@ -1,0 +1,31 @@
+{
+ "name": "Example car (invented demo geometry): roll gradient and load transfer by a full-car stiffness model",
+ "source": "validation/tools/full_car_model.py: springs-and-masses matrix model, no car.py code",
+ "car": "designs/example_car.json",
+ "arb": [
+  200.0,
+  0.0
+ ],
+ "car_balance": {
+  "grad": [
+   0.703581563,
+   1e-06
+  ],
+  "lltd": [
+   0.495714154,
+   1e-06
+  ],
+  "dFz_f": [
+   306.924262677,
+   0.000306924263
+  ],
+  "dFz_r": [
+   312.231475028,
+   0.000312231475
+  ],
+  "K_warp": [
+   213.408894227,
+   0.000213408894
+  ]
+ }
+}

@@ -254,7 +254,13 @@ for arb in (0.0, 300.0):
     check(f"total load-transfer moment per g, front bar {arb:g}, N m", total, veh["mass"] * 9.81 * veh["cg_height"] / 1000, 1e-6, "moment balance: sum(dFz x track) = m g h")
 cb = car_balance(fc, fe, rc, re_)
 K = cb["Kf"] + cb["Kr"]
-check("roll gradient, deg/g", cb["grad"], cb["ms"] * 9.81 * cb["arm"] / 1000 / K, 1e-9, "sprung weight x roll moment arm / total roll stiffness")
+gf_, gr_ = cb["geo_f"] * fe["susp"].track / 1000 / cb["Ktf"], cb["geo_r"] * re_["susp"].track / 1000 / cb["Ktr"]
+check("roll gradient, deg/g", cb["grad"], (cb["ms"] * 9.81 * cb["arm"] / 1000 + cb["Kf"] * gf_ + cb["Kr"] * gr_) / K, 1e-9,
+      "(sprung weight x roll arm + K_f x tire roll from the geometric transfer + same rear) / total roll stiffness")
+fc_r, rc_r = (dict(c, spring=dict(c["spring"], tire_rate=1e9)) for c in (fc, rc))
+cb_r = car_balance(fc_r, fe, rc_r, re_)
+check("rigid tires: roll gradient, deg/g", cb_r["grad"], cb_r["ms"] * 9.81 * cb_r["arm"] / 1000 / (cb_r["Kf"] + cb_r["Kr"]), 1e-6,
+      "sprung weight x roll moment arm / total roll stiffness (the textbook formula)")
 
 print("\n8. Travel, halfshaft, caliper, aero and steering stiffness")
 from susp.kinematics import heave_points, rim_inner_radius  # noqa: E402

@@ -33,6 +33,12 @@ def car_balance(fcfg, fev, rcfg, rev, target_grad=None, target_lltd=None, arb_f=
     at the wheels, in Nm per degree of body roll. A corner with an "arb" linkage block uses the bar stiffness worked out
     from its geometry instead of arb_f / arb_r.
 
+    The body roll (relative to the ground) is the springs' share of the roll moment plus the tires squashing under
+    the whole load transfer, including the part that reaches them through the roll centers and the unsprung mass:
+    phi = (A + K_f g_f + K_r g_r) / (K_f + K_r), with A the sprung roll moment and g the tire roll from the geometric
+    transfer alone. With rigid tires this is the textbook A / (K_f + K_r). Checked against a full-car stiffness model
+    (validation/tools/full_car_model.py). roll_susp_f / _r is the roll across the springs only (damper pots).
+
     With vehicle.tire_load_sens (k) set, each tire's friction falls with load, mu = tire_mu (1 - k (Fz / Fz0 - 1)), so
     an axle's lateral grip is mu (2 Fz0 - 2 k dFz^2 / Fz0) for a load transfer dFz: the axle that transfers more load
     (relative to its static load) saturates first. Reports each axle's limit (g) and the front LLTD that makes them
@@ -61,18 +67,23 @@ def car_balance(fcfg, fev, rcfg, rev, target_grad=None, target_lltd=None, arb_f=
     Ksf, Ksr = roll_k(fr["wheel_rate"], tf), roll_k(rr["wheel_rate"], tr)
     Ktf, Ktr = roll_k(fcfg["spring"]["tire_rate"], tf), roll_k(rcfg["spring"]["tire_rate"], tr)
     Kf, Kr = _series(Ksf + arb_f, Ktf), _series(Ksr + arb_r, Ktr)
-    grad = ms * G * d / (Kf + Kr)               # deg per g
-
-    def transfer(lam):
-        dF = (ms * G * d * lam + msf * G * zrf + muf * G * Rf) / tf
-        dR = (ms * G * d * (1 - lam) + msr * G * zrr + mur * G * Rr) / tr
-        return dF, dR
-    dF, dR = transfer(Kf / (Kf + Kr))
+    A = ms * G * d                              # sprung roll moment about the roll axis, per g
+    Gf = msf * G * zrf + muf * G * Rf           # moment that reaches the front tires through the links (geometric)
+    Gr = msr * G * zrr + mur * G * Rr
+    gf, gr = Gf / Ktf, Gr / Ktr                 # tire roll that the geometric part alone causes, deg per g
+    # body roll phi: each axle's springs and bars carry E = Ks (phi - tire roll), tire roll = (E + Geo) / Kt, so
+    # E = K (phi - g) with K the springs and tires in series; E_f + E_r = A
+    grad = (A + Kf * gf + Kr * gr) / (Kf + Kr)  # deg per g, body relative to the ground
+    Ef, Er = Kf * (grad - gf), Kr * (grad - gr)
+    dF, dR = (Ef + Gf) / tf, (Er + Gr) / tr
     lltd = dF * tf / (dF * tf + dR * tr)    # share of the total lateral load transfer moment at the front
     out = dict(ms=ms, hs=hs * 1000, z_ra=z_ra * 1000, arm=d * 1000, Kf=Kf, Kr=Kr, Ksf=Ksf, Ksr=Ksr, Ktf=Ktf, Ktr=Ktr,
                arb_in_f=arb_f, arb_in_r=arb_r, arb_src_f=src_f, arb_src_r=src_r, grad=grad, lltd=lltd,
+               K_warp=Kf * Kr / (Kf + Kr) if Kf + Kr > 0 else 0.0,  # twist test on corner scales (see validation/)
+               roll_susp_f=Ef / (Ksf + arb_f) if Ksf + arb_f > 0 else float("nan"),
+               roll_susp_r=Er / (Ksr + arb_r) if Ksr + arb_r > 0 else float("nan"),
                freq_f=fr["ride_freq"], freq_r=rr["ride_freq"], wf=wf, dFz_f=dF, dFz_r=dR, rc_f=zrf * 1000, rc_r=zrr * 1000,
-               geo_f=(msf * G * zrf + muf * G * Rf) / tf, geo_r=(msr * G * zrr + mur * G * Rr) / tr)
+               geo_f=Gf / tf, geo_r=Gr / tr)
     # tire load sensitivity: each axle's lateral limit, and the LLTD that saturates both axles together
     ks = veh.get("tire_load_sens")
     if ks is not None:
@@ -83,35 +94,38 @@ def car_balance(fcfg, fev, rcfg, rev, target_grad=None, target_lltd=None, arb_f=
         out["limit_balance"] = out["ay_lim_r"] - out["ay_lim_f"]       # + : the front lets go first (understeer)
         out["grip_loss_f"] = (1 - out["ay_lim_f"] / mu) * 100
         out["grip_loss_r"] = (1 - out["ay_lim_r"] / mu) * 100
-        # dF(lam) / F0f = dR(lam) / F0r is linear in lam
-        a1, b1 = ms * G * d / tf / F0f, (msf * G * zrf + muf * G * Rf) / tf / F0f
-        a2, b2 = -ms * G * d / tr / F0r, (ms * G * d + msr * G * zrr + mur * G * Rr) / tr / F0r
-        if abs(a1 - a2) > 1e-12:
-            lam_n = (b2 - b1) / (a1 - a2)
-            dFn, dRn = transfer(lam_n)
-            out["lltd_neutral"] = dFn * tf / (dFn * tf + dRn * tr)
+        # dF / F0f = dR / F0r with dF tf + dR tr = m g h (always): LLTD = tf F0f / (tf F0f + tr F0r)
+        out["lltd_neutral"] = tf * F0f / (tf * F0f + tr * F0r)
     tg = target_grad if target_grad else 1.0
     tl = target_lltd if target_lltd else wf + 0.05
-    K_need = ms * G * d / tg
-    # LLTD (front share of total moment) is linear in the elastic split lam
-    a_ = ms * G * d
-    b_, e_ = msf * G * zrf + muf * G * Rf, msr * G * zrr + mur * G * Rr
-    # front moment = a lam + b ; rear moment = a (1 - lam) + e ; share = (a lam + b) / (a + b + e)
-    lam = (tl * (a_ + b_ + e_) - b_) / a_ if abs(a_) > 1e-9 else float("nan")
+    # bars for a target gradient and LLTD: the front must carry M_f = tl (A + Gf + Gr), so its springs and bars carry
+    # Ef* = M_f - Gf and the rear Er* = A - Ef*; then K = E* / (tg - g) for each axle
+    lam = (tl * (A + Gf + Gr) - Gf) / A if abs(A) > 1e-9 else float("nan")    # front share of the elastic moment
     lam_c = min(1.0, max(0.0, lam))
+    Efn, Ern = lam_c * A, (1 - lam_c) * A
+
+    def need(E, g):
+        return E / (tg - g) if tg > g else float("inf")           # the tires alone already roll more than that
+    Kfn, Krn = need(Efn, gf), need(Ern, gr)
+    K_need = Kfn + Krn
 
     def bar_for(K_axle, Ks, Kt):              # total bar (at the wheels) that gives this axle stiffness
         if K_axle >= Kt:
             return float("inf")              # the tires alone are softer than that
         return 1 / (1 / K_axle - 1 / Kt) - Ks
     out.update(target_grad=tg, target_lltd=tl, K_need=K_need, lam=lam, lam_c=lam_c,
-               arb_f=bar_for(lam_c * K_need, Ksf, Ktf), arb_r=bar_for((1 - lam_c) * K_need, Ksr, Ktr))
-    # balance-only fix: keep the rear as is and change the front bar (or the reverse) until LLTD hits its target
-    lam0 = Kf / (Kf + Kr)
+               arb_f=bar_for(Kfn, Ksf, Ktf), arb_r=bar_for(Krn, Ksr, Ktr))
+    # balance-only fix: keep the rear as is and change the front bar (or the reverse) until LLTD hits its target.
+    # With the other axle's K fixed, E = K (A + K_o (g_o - g)) / (K + K_o); solve E = E* for K.
+    lam0 = Ef / A if abs(A) > 1e-9 else 0.5
     if lam_c > lam0 + 1e-9 and lam_c < 1:
-        out["lltd_fix"] = ("front", bar_for(lam_c / (1 - lam_c) * Kr, Ksf, Ktf) - arb_f)
+        den = A + Kr * (gr - gf) - Efn
+        if den > 0:
+            out["lltd_fix"] = ("front", bar_for(Efn * Kr / den, Ksf, Ktf) - arb_f)
     elif lam_c < lam0 - 1e-9 and lam_c > 0:
-        out["lltd_fix"] = ("rear", bar_for((1 - lam_c) / lam_c * Kf, Ksr, Ktr) - arb_r)
+        den = A + Kf * (gf - gr) - Ern
+        if den > 0:
+            out["lltd_fix"] = ("rear", bar_for(Ern * Kf / den, Ksr, Ktr) - arb_r)
     # car-level targets
     t = dict(CAR_TARGETS, **(targets or {}))
     vals = {"roll_gradient": grad, "lltd_vs_weight": (lltd - wf) * 100, "freq_ratio": rr["ride_freq"] / fr["ride_freq"]}

@@ -335,7 +335,8 @@ def print_car(cfg_f, cfg_r, out):
             ["  of which geometric (through links)", f"{out['geo_f']:.0f}", f"{out['geo_r']:.0f}", "N/g"]]
     table(["", "front", "rear", "unit"], rows)
     print(f"\nrear/front frequency ratio {out['freq_r'] / out['freq_f']:.2f} (many teams run the rear 5-20 % higher)")
-    print(f"roll gradient: {out['grad']:.2f} deg/g")
+    print(f"roll gradient: {out['grad']:.2f} deg/g body to ground; on the springs {out['roll_susp_f']:.2f} front, "
+          f"{out['roll_susp_r']:.2f} rear (what damper pots see; the rest is the tires)")
     print(f"LLTD front: {out['lltd'] * 100:.1f} %  (front weight {out['wf'] * 100:.0f} %; front LLTD a few % above "
           "front weight is a common starting point for mild understeer)")
     if "ay_lim_f" in out:

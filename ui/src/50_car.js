@@ -368,7 +368,8 @@ function renderCarBox() {
           ? `about <b>${fmt(v, 0)} Nm/deg</b> in total`
           : `no bar (the springs alone are ${fmt(-v, 0)} Nm/deg stiffer than this needs)`) + ` · you have ${fmt(have, 0)}`;
     html += `<h3 class="sub-h">Roll balance</h3><div class="kv">
-      <div><span>Roll gradient</span><b>${fmt(B.grad, 2)} <small>deg/g</small></b></div>
+      <div><span>Roll gradient (body to ground)</span><b>${fmt(B.grad, 2)} <small>deg/g</small></b></div>
+      <div><span>Roll on the springs, front / rear <small>(what damper pots see)</small></span><b>${fmt(B.roll_susp_f, 2)} / ${fmt(B.roll_susp_r, 2)} <small>deg/g</small></b></div>
       <div><span>Front LLTD (front weight ${fmt(B.wf * 100, 0)} %)</span><b>${fmt(B.lltd * 100, 1)} <small>%</small></b></div>
       <div><span>Sprung mass / CG height</span><b>${fmt(B.ms, 0)} <small>kg</small> / ${fmt(B.hs, 0)} <small>mm</small></b></div>
       <div><span>Roll axis height at the CG</span><b>${fmt(B.z_ra, 0)} <small>mm</small></b></div>

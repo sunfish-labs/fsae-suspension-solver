@@ -314,6 +314,13 @@ Member forces: + = tension.
     kinematics. This ties the statics and the kinematics together.
   - The suggested spring gives the target frequency.
   - Car load transfer adds up to m·g·h.
+- Independent models in `validation/` (run by `tests/test_reference.py`): a displacement-method stiffness model of
+  the corner gives every load case's member forces on five corners (rod on the lower or upper arm, on the upright,
+  direct-acting damper), and a springs-and-masses matrix model of the whole car gives the roll gradient, LLTD and
+  twist-test stiffness. Both agree with the solver to about 1e-9.
+- Your own car: [validation/MEASURING.md](validation/MEASURING.md) lists five shop-tool tests (bump sweep, spring
+  force, wheel rate, twist test on corner scales, skidpad with damper pots) and turns the readings into reference
+  cases.
 
 ## Limitations
 - The kinematic curves use rigid links. Compliance is a separate linear check at ride height (axial link stretch

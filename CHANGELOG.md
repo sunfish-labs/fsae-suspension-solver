@@ -3,6 +3,18 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.4.0 - 2026-10-16
+
+- **Car balance:** the roll gradient now includes the tires squashing under the whole lateral load transfer,
+  including the part that goes through the roll centers and the unsprung mass (it counted the tires only for the
+  part the springs carry). About 10 % more roll on the example cars and a 0.7 % point change in LLTD; the
+  anti-roll bar sizing and the balance-only fix use the same model. New outputs: roll on the springs, front and
+  rear (what damper pots measure), and the twist-test stiffness on corner scales.
+- **Validation:** a displacement-method stiffness model of the corner (member forces in every load case on five
+  corner layouts) and a full-car springs-and-masses model (roll gradient, LLTD, load transfer, twist stiffness), both
+  independent of the solver code they check, both agreeing to about 1e-9. `validation/MEASURING.md`: five shop-tool
+  tests, and `validation/tools/rig_to_reference.py` to turn the readings into reference cases.
+
 ## 1.3.1 - 2026-10-16
 
 - Every "Show me" drawing, both challenges and the phone layouts checked after the mirror fix. Fixed: the

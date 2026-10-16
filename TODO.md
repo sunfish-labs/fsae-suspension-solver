@@ -5,9 +5,9 @@ then extra features, then housekeeping. Team-specific design fixes live in `priv
 
 1. **Switch GitHub Pages to the Actions build** (repo Settings -> Pages -> Source: GitHub Actions; needs the repo
    owner). Then stop committing the 2 MB built `ui/index.html` and drop the "is it up to date" CI step.
-2. **Outside validation for loads, ride and the car balance.** Kinematics match KineSolver and hand calculations;
-   the rest is checked only against physics identities. Add a rig measurement or another tool's results to
-   `validation/` (see the cheap-validation list in the guide).
+2. **Measure the car (validation/MEASURING.md).** Every model is now cross-checked by an independent one; what
+   is left is reality. The bump sweep and the twist test on corner scales are the cheapest and check the most
+   (kinematics, motion ratio, springs and bars). Put the results in `private/validation/`.
 3. **Clearance to the chassis model: more parts.** Today: wishbone legs, tie rod, pushrod and damper. Add the
    tire and wheel (full lock and bump against the body), the upright and the rocker.
 4. **Draw the brake caliper and the halfshaft** in the 3D view and include them in the CAD export (they are
@@ -16,12 +16,18 @@ then extra features, then housekeeping. Team-specific design fixes live in `priv
    aligned somewhere other than ride height.
 6. **Loads: brackets and fatigue.** The pushrod-mount check is a bare tube (no gusset); no fatigue, weld or tab
    checks.
-7. **Housekeeping.** CI can move to `ubuntu-26.04` whenever you like: a manual run there passed on 1.2.0 (jobs
+7. **Wheel rate: include the preload term?** Spring preload x the motion ratio's change adds 1.4-1.7 % to the
+   wheel rate on the examples (more with a strongly rising rocker). Left out, as in most hand calculations; decide
+   once a bench measurement (test 3) shows whether it matters for your car.
+8. **Housekeeping.** CI can move to `ubuntu-26.04` whenever you like: a manual run there passed on 1.2.0 (jobs
    stay pinned to 24.04 until then). Create the missing `v0.9.0` tag (needs a token that may push tags). Empty the
    `_to_delete/` folder on the desktop copy.
 
 ## Done recently
 
+- Independent models for loads (displacement method, five corner layouts) and the car balance (full-car matrix
+  model); the car balance now includes the tires squashing under the geometric load transfer (about 10 % more roll
+  on the example cars); measurement guide and rig-to-reference script (1.4.0)
 - Drawings checked by eye after the mirror fix: anti-dive/squat drawing reframed so its lines clear the caption, a
   stray letter removed from the challenge header, the chassis gap field no longer wraps on phones (1.3.1)
 - Chassis tools on a real laptop (Apple M2, Chrome): synthetic tube frames of 14k / 113k / 410k triangles load in
