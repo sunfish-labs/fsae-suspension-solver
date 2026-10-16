@@ -27,6 +27,10 @@ for f in files:
     raw = json.load(open(f))
     if isinstance(raw, dict) and "hardpoints" in raw:
         cfgs[os.path.relpath(f, root)] = raw
+def fin(v):
+    return float(v) if math.isfinite(v) else None       # JSON has no Infinity
+
+
 py = {}
 for n, raw in cfgs.items():
     c = finish_config(deep_merge(DEFAULTS, raw))
@@ -36,7 +40,8 @@ for n, raw in cfgs.items():
     py[n] = {"m": m, "loads": L["results"] if L else None,
              "bend": {k: float(v) for k, v in (L["bending_check"] or {}).items() if isinstance(v, (int, float, np.floating)) and math.isfinite(v)} if L else None,
              "comp": [[x["camber"], x["toe"], x["cp_y"]] for x in L["compliance"]["cases"]] if L else None,
-             "parts": [float(r["sf_bolt"]) for r in L["parts"] if r["sf_bolt"] is not None and math.isfinite(r["sf_bolt"])] if L else None}
+             "parts": [float(r["sf_bolt"]) for r in L["parts"] if r["sf_bolt"] is not None and math.isfinite(r["sf_bolt"])] if L else None,
+             "dur": [[fin(r["sf"]) for r in L["durability"]["tabs"]], [[fin(r["n"]), r["s_a"], r["allow"]] for r in L["durability"]["fatigue"]]] if L else None}
 # whole-car balance from car files (front + rear + shared vehicle + anti-roll bars)
 from susp.config import load_car  # noqa: E402
 from susp.car import car_balance  # noqa: E402
@@ -62,6 +67,8 @@ for (const [n, raw] of Object.entries(d.cfgs)) {
   if (p.bend) for (const [k, v] of Object.entries(p.bend)) { const r = Math.abs(L.bending_check[k] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} bending ${k}: py ${v} js ${L.bending_check[k]}`); }
   if (p.comp) p.comp.forEach((row, i) => { const c = L.compliance.cases[i], j = [c.camber, c.toe, c.cp_y];
     row.forEach((v, q) => { const r = Math.abs(j[q] - v); worst = Math.max(worst, r); if (r > 1e-7) bad.push(`${n} compliance ${c.case} ${q}: py ${v} js ${j[q]}`); }); });
+  if (p.dur) { const D = L.durability, ck = (a, b, w) => { if (a === null && !isFinite(b)) return; const r = Math.abs(a - b) / Math.max(1, Math.abs(a)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} ${w}: py ${a} js ${b}`); };
+    p.dur[0].forEach((v, i) => ck(v, D.tabs[i].sf, `tab ${i}`)); p.dur[1].forEach((row, i) => row.forEach((v, q) => ck(v, [D.fatigue[i].n, D.fatigue[i].s_a, D.fatigue[i].allow][q], `fatigue ${D.fatigue[i].item} ${q}`))); }
   if (p.parts) { const js = L.parts.map(q => q.sf_bolt).filter(v => v != null && isFinite(v)); p.parts.forEach((v, i) => { const r = Math.abs(js[i] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} bolt ${i}`); }); }
 }
 for (const [n, c] of Object.entries(d.cars || {})) {

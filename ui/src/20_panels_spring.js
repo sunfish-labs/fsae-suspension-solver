@@ -111,7 +111,7 @@ function panelSpring() {
   const bRows = base && base.ride ? base.rows : null;
   return `<div class="kv">
     ${kv("Motion ratio (damper/wheel)", "motion_ratio", "", 3)}${kv("MR change over travel", "mr_progression", "%", 1)}
-    ${kv("Wheel rate", "wheel_rate", "N/mm", 1)}${kv("Wheel rate at full bump", "wheel_rate_bump", "N/mm", 1)}
+    ${kv("Wheel rate", "wheel_rate", "N/mm", 1)}${kv("Wheel rate with the preload term (what a bench test reads)", "wheel_rate_preload", "N/mm", 1)}${kv("Wheel rate at full bump", "wheel_rate_bump", "N/mm", 1)}
     ${kv("Wheel travel to the bump stop", "bumpstop_travel", "mm", 1)}${kv("Ride rate with tire", "ride_rate", "N/mm", 1)}
     ${kv("Ride frequency", "ride_freq", "Hz", 2)}${kv(`Spring for ${fmt(sc.target_freq_hz, 1)} Hz`, "spring_for_target", "N/mm", 1)}
     ${kv("Ride-height loss under aero", "aero_sag", "mm", 1)}${kv("Ride frequency under aero", "ride_freq_aero", "Hz", 2)}

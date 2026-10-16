@@ -69,6 +69,24 @@ def _check_extras(cfg, where):
     for k in ("travel", "droop_travel", "bump_travel"):
         if sw.get(k) is not None and not float(sw[k]) > 0:
             raise ConfigError(f"{where}: sweep.{k} must be a positive distance in mm")
+    mem, lo_ = cfg.get("members") or {}, cfg.get("loads") or {}
+    surf = mem.get("surface")
+    if surf is not None and surf not in ("ground", "machined", "cold-drawn", "hot-rolled", "as-forged"):
+        raise ConfigError(f"{where}: members.surface must be ground, machined, cold-drawn, hot-rolled or as-forged")
+    for k in ("uts", "fatigue_sf", "weld_fat_tube", "weld_fat_tab", "tab_yield"):
+        v = mem.get(k)
+        if v is not None and not (isinstance(v, (int, float)) and v > 0):
+            raise ConfigError(f"{where}: members.{k} must be a positive number")
+    tab = mem.get("tab")
+    if tab is not None:
+        bad_ = [k for k, v in tab.items() if k in ("thickness", "width", "edge", "weld_leg", "weld_length", "count")
+                and not (isinstance(v, (int, float)) and v > 0)] if isinstance(tab, dict) else ["tab"]
+        if bad_:
+            raise ConfigError(f"{where}: members.tab needs positive numbers for {', '.join(bad_)}")
+    for k in ("fatigue_cycles", "fatigue_bump_cycles"):
+        v = lo_.get(k)
+        if v is not None and not (isinstance(v, (int, float)) and v >= 1):
+            raise ConfigError(f"{where}: loads.{k} must be a number of cycles (1 or more)")
     cal = cfg["wheel"].get("caliper")
     if cal is not None:
         miss = [k for k in ("clock_deg", "radius", "size", "offset") if not isinstance(cal.get(k) if isinstance(cal, dict) else None, (int, float))]

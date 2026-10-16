@@ -91,6 +91,10 @@ for i in range(a.cases):
         raw["arb"] = {"link_on": "rocker" if on_rocker else "lower", "link_outboard": lo, "arm_tip": tip,
                       "bar_pivot": [tip[0] + rng.uniform(90, 140), tip[1], tip[2]], "bar_od": round(rng.uniform(8, 16), 2),
                       "bar_wall": None if i % 3 else 1.2, "bar_length": round(rng.uniform(400, 700))}
+    if i % 4 == 1:
+        raw.setdefault("members", {}).update({"uts": round(rng.uniform(550, 900)), "surface": ["ground", "machined", "hot-rolled"][i % 3],
+                                              "weld_fat_tube": 50.0, "tab": {"thickness": 2.5, "edge": 10.0, "count": 2}})
+        raw.setdefault("loads", {}).update({"fatigue_cycles": 2e4 if i % 8 == 1 else 3e7, "fatigue_bump_cycles": 5e3})
     if i % 5 == 3:
         raw["joints"] = {"trackrod_outboard": {"bolt": "x"}, "upper_inboard_front": {"bolt": "pivot", "square": False},
                          "lower_outboard": {"bolt": [1.0, 0.2, 0.1]}, "trackrod_inboard": {"allow": 9.5},
@@ -115,6 +119,10 @@ for raw in cases:
             out["comp"] = [[x["camber"], x["toe"], x["cp_y"]] for x in L["compliance"]["cases"]]
             out["bend"] = num(L["bending_check"] or {})
             out["checks"] = [[r["sf_buckle"], r["sf_yield"]] for r in L["checks"]]
+            D = L["durability"]
+            fn = lambda v: float(v) if math.isfinite(v) else None  # noqa: E731  (JSON has no Infinity)
+            out["tabs"] = [[fn(r["force"]), fn(r["sf"])] for r in D["tabs"]]
+            out["fat"] = [[r["item"] + "/" + r["case"]] + [fn(r[k]) for k in ("n", "s_a", "s_m", "allow", "life")] for r in D["fatigue"]]
         py.append(out)
     except Exception as ex:                                       # noqa: BLE001 - any failure must also fail in JS
         py.append({"ok": False, "err": f"{type(ex).__name__}: {ex}"})
@@ -123,7 +131,7 @@ tmp = tempfile.mkdtemp()
 json.dump({"cases": cases, "py": py}, open(os.path.join(tmp, "d.json"), "w"))
 js = r"""
 require(process.argv[2]); const d = JSON.parse(require('fs').readFileSync(process.argv[3]));
-const fin = (v) => typeof v === "number" && isFinite(v);
+const fin = (v) => typeof v === "number" && isFinite(v);   // null (from python) and Infinity both count as not finite
 let worst = 0, worstAt = "", bad = [], nboth = 0, nfail = 0;
 const cmp = (i, what, a, b) => { if (!fin(a) || !fin(b)) { if (fin(a) !== fin(b)) bad.push(`case ${i} ${what}: py ${a} js ${b}`); return; }
   const r = Math.abs(a - b) / Math.max(1, Math.abs(a)); if (r > worst) { worst = r; worstAt = `case ${i} ${what}`; } if (r > 1e-6) bad.push(`case ${i} ${what}: py ${a} js ${b}`); };
@@ -139,6 +147,10 @@ d.cases.forEach((raw, i) => {
   if (p.comp) p.comp.forEach((row, j) => { const c = L.compliance.cases[j]; [c.camber, c.toe, c.cp_y].forEach((v, q) => cmp(i, `compliance ${c.case} ${q}`, row[q], v)); });
   if (p.bend) for (const [k, v] of Object.entries(p.bend)) cmp(i, `bending ${k}`, v, L.bending_check[k]);
   if (p.checks) p.checks.forEach(([b, y], j) => { cmp(i, `buckling FOS ${j}`, b, L.checks[j].sf_buckle); cmp(i, `yield FOS ${j}`, y, L.checks[j].sf_yield); });
+  if (p.tabs) p.tabs.forEach(([f, s], j) => { cmp(i, `tab force ${j}`, f, L.durability.tabs[j].force); cmp(i, `tab FOS ${j}`, s, L.durability.tabs[j].sf); });
+  if (p.fat) p.fat.forEach(([id, ...v], j) => { const r = L.durability.fatigue[j];
+    if (!r || r.item + "/" + r.case !== id) { bad.push(`case ${i} fatigue row ${j}: py ${id} js ${r && r.item + "/" + r.case}`); return; }
+    [r.n, r.s_a, r.s_m, r.allow, r.life].forEach((x, q) => cmp(i, `fatigue ${id} ${["n", "s_a", "s_m", "allow", "life"][q]}`, v[q], x)); });
 });
 console.log(`${d.cases.length} random designs: ${nboth} solved in both, ${nfail} rejected by both; worst relative difference ${worst.toExponential(2)} (${worstAt})`);
 if (bad.length) { console.log(bad.slice(0, 25).join("\n")); console.log(`${bad.length} mismatches`); process.exit(1); }

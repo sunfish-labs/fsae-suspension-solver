@@ -66,6 +66,17 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   const ld = await text(p, "#pn_loads");
   check("Loads tab has impact cases, mount bending and rod-end / bolt checks", /pothole/.test(ld) && /kerb strike/.test(ld) && /Pushrod mount bending/.test(ld) && /Rod ends and bolts/.test(ld));
   check("Loads tab shows compliance toe and camber per case", /Compliance/.test(ld) && /Toe-in change/.test(ld) && /Worst toe change/.test(ld));
+  check("Loads tab shows the pickup tabs and the fatigue screen", /Pickup tabs/.test(ld) && /FOS tear-out/.test(ld) && /Fatigue screen/.test(ld) && /end weld/.test(ld) && /Tab weld/.test(ld), ld.slice(-600));
+  const tabFos = async () => p.evaluate(() => [...document.querySelectorAll("#pn_loads h3")].find(h => /Pickup tabs/.test(h.textContent)).nextElementSibling.querySelector("tbody tr").children[2].textContent);
+  const fos0 = parseFloat(await tabFos());
+  await p.evaluate(() => { const i = document.querySelector("#in_members_tab_thickness"); i.value = "1.5"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
+  const fos1 = parseFloat(await tabFos());
+  check("a thinner tab lowers its bearing FOS in proportion (3.175 -> 1.5 mm)", Math.abs(fos1 / fos0 - 1.5 / 3.175) < 0.02, `${fos0} -> ${fos1}`);
+  await p.click("#btnUndo"); await settle(p);
+  check("Undo restores the tab", Math.abs(parseFloat(await tabFos()) - fos0) < 0.05);
+  await p.click("#tab_spring"); await settle(p);
+  check("Spring tab shows the wheel rate with the preload term", /Wheel rate with the preload term/.test(await text(p, "#pn_spring")));
+  await p.click("#tab_loads"); await settle(p);
   await p.click("#tab_motion"); await p.click('#pn_heave [data-msub="roll"]'); await settle(p);
   check("Motion → Roll switch", await p.$eval("#pn_roll", e => !e.hidden));
   const labels = await p.$$eval("#hpTable .hpbtn[data-leg]", bs => bs.map(b => b.dataset.leg + ":" + b.textContent));

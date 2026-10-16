@@ -126,6 +126,7 @@ check("critical damping, wheel hop, N s/m", e["ride"]["c_crit_hop"], 2 * math.sq
 print("\n6. Statics: member forces hold the upright in equilibrium (pushrod on the upright)")
 up = dict(TEMPLATE_FRONT["spring"], rod_on="upright", rod_outboard=[0, 520, 150])
 cfg = corner(spring=up)
+cfg6 = cfg
 e = evaluate(cfg)
 L6 = run_loads(cfg, e["susp"], e["spring"])
 from susp.loads import _geometry, MEMBERS, load_cases  # noqa: E402
@@ -391,6 +392,57 @@ F0f, F0r = fc["vehicle"]["mass"] * fc["vehicle"]["weight_front"] * 9.81 / 2, fc[
 tf_, tr_ = fe["susp"].track, re_["susp"].track
 check("front LLTD that saturates both axles together", cbt["lltd_neutral"], F0f * tf_ / (F0f * tf_ + F0r * tr_), 1e-9,
       "equal load-transfer ratio dFz / Fz0 front and rear (same tires)")
+
+print("\n11. Pickup tabs and the fatigue screen (textbook formulas, IIW and Shigley S-N lines)")
+from susp.loads.durability import CAFL, endurance, sn_life, sn_strength, weld_allow, weld_life  # noqa: E402
+D11 = L6["durability"]
+mem11 = cfg6["members"]
+tb, d11 = D11["tab"], mem11["bolt_dia"]
+r11 = max(D11["tabs"], key=lambda q: q["force"])
+F11, n11, t11 = r11["force"], tb["count"], tb["thickness"]
+check("tab bearing FOS: yield / (F / (n t d))", r11["fos"]["bearing"], mem11["yield"] / (F11 / (n11 * t11 * d11)), 1e-9, f"{r11['member']}, {F11:.0f} N")
+check("tab tear-out FOS: 0.577 yield / (F / (2 n t (e - d/2)))", r11["fos"]["tearout"],
+      0.577 * mem11["yield"] / (F11 / (2 * n11 * t11 * (tb["edge"] - d11 / 2))), 1e-9, "two shear planes per tab")
+check("tab weld FOS: 0.577 yield / (F / (n L 0.707 leg))", r11["fos"]["weld"],
+      0.577 * mem11["yield"] / (F11 / (n11 * tb["weld_length"] * 0.707 * tb["weld_leg"])), 1e-9, "fillet weld throat")
+bg = cfg6["loads"]["bump_g"]
+worst11 = max(abs(D11["static"][k] - L6["results"]["bump"][k] / bg) for k in MEMBERS)
+check("the car at rest = the bump case / bump_g (same geometry, linear statics), N", worst11, 0.0, 1e-6, "static corner weight at the contact patch")
+se11, f11 = endurance(dict(uts=670.0, surface="machined"))
+check("endurance limit, 670 MPa machined steel, axial, MPa", se11, 4.51 * 670 ** -0.265 * 0.85 * 0.5 * 670, 1e-9, "k_a = 4.51 S_ut^-0.265, k_c = 0.85, S_e' = 0.5 S_ut")
+check("S-N line: 0.9 S_ut at 1000 cycles, MPa", sn_strength(se11, 670.0, 1e3), 0.9 * 670, 1e-9, "Shigley")
+check("S-N line: S_e at a million cycles, MPa", sn_strength(se11, 670.0, 1e6 - 1e-6), se11, 1e-6, "Shigley")
+check("S-N life inverts the strength: life at S_f(1e5) = 1e5", sn_life(se11, 670.0, sn_strength(se11, 670.0, 1e5), 0.0), 1e5, 1e-3, "Basquin")
+check("weld: FAT at 2 million cycles, MPa", weld_allow(45.0, 2e6), 45.0, 1e-9, "IIW definition of FAT")
+check("weld: flat at 0.585 FAT from 10 million cycles, MPa", weld_allow(45.0, 5e7), 45.0 * 0.2 ** (1 / 3), 1e-9, "(2e6 / 1e7)^(1/3)")
+check("weld life inverts the allowed range: 1e5 cycles", weld_life(45.0, weld_allow(45.0, 1e5)), 1e5, 1e-3, "slope 3")
+sw_names = [f"{a} ↔ {b}" for a, b in D11["swings"] if b != "at rest"]
+check("left/right turns are a swing of their own (corner outer ↔ inner)", 1.0 if "corner outer ↔ corner inner" in sw_names else 0.0, 1.0, 0,
+      "a wheel is the outer one in a left turn and the inner one in a right turn")
+tw = next(r for r in D11["fatigue"] if r["kind"] == "weld" and r["item"] == "pushrod")
+A_p = math.pi / 4 * (mem11["pushrod"][0] ** 2 - (mem11["pushrod"][0] - 2 * mem11["pushrod"][1]) ** 2)
+want_n = min((weld_allow(D11["weld_fat_tube"], D11["bump_cycles"] if (b == "at rest" and a.startswith("bump")) else D11["cycles"])
+              / abs((L6["results"][a]["pushrod"] - (D11["static"] if b == "at rest" else L6["results"][b])["pushrod"]) / A_p))
+             for a, b in D11["swings"])
+check("pushrod weld: the smallest allowed / applied range over every swing", tw["n"], want_n, 1e-9,
+      "range = (F_a - F_b) / A, allowed = FAT (2e6 / N)^(1/3)")
+check("weld under its constant-amplitude limit never cracks", 1.0 if weld_life(45.0, CAFL * 45.0 * 0.99) == float("inf") else 0.0, 1.0, 0, "")
+
+print("\n12. Wheel rate with the preload term, from the spring's energy")
+from susp.config import load_config  # noqa: E402
+c12 = load_config(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "designs", "example_front.json"))
+e12 = evaluate(c12, steer=False, pack=False)
+s12, sp12 = e12["susp"], e12["spring"]
+k12, Fs12 = c12["spring"]["spring_rate"], e12["metrics"]["static_spring_force"]
+h12 = 0.5
+xs12 = s12.states([-h12, 0.0, h12])
+Ls12 = {z: sp12.state(xs12[z])["damper_len"] for z in (-h12, 0.0, h12)}
+E12 = {z: 0.5 * k12 * (Fs12 / k12 + Ls12[0.0] - Ls12[z]) ** 2 for z in Ls12}     # spring energy, preloaded to its static force
+check("wheel rate with preload = d2E/dz2 of the preloaded spring, N/mm", e12["metrics"]["wheel_rate_preload"],
+      (E12[h12] - 2 * E12[0.0] + E12[-h12]) / h12 ** 2, 2e-3 * e12["metrics"]["wheel_rate_preload"],
+      "second difference of 1/2 k (x0 + L0 - L(z))^2 over +-0.5 mm of travel, x0 = static force / k")
+check("the preload term is the gap to k MR^2, N/mm", e12["metrics"]["wheel_rate_preload"] - e12["metrics"]["wheel_rate"],
+      Fs12 * (((Ls12[0.0] - Ls12[h12]) - (Ls12[-h12] - Ls12[0.0])) / h12 ** 2), 2e-2, "static spring force x dMR/dz")
 
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")

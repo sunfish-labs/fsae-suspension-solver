@@ -79,6 +79,16 @@ th{color:var(--mut);font-weight:600}.pass{color:var(--ok);font-weight:700}.fail{
 <div class="scroll"><table><tr><th>Member<th>Tube (mm)<th>Worst compression<th>Buckling load<th>FOS buckling<th>Worst |force|<th>Yield force<th>FOS yield<th></tr>
 {% for r in loads.checks %}<tr><td>{{ r.member }}<td>{{ r.tube }}<td>{{ r.comp }}<td>{{ r.pcr }}<td>{{ r.sfb }}<td>{{ r.peak }}<td>{{ r.py }}<td>{{ r.sfy }}<td class="{{ 'pass' if r.ok else 'fail' }}">{{ 'OK' if r.ok else 'BELOW FOS' }}</tr>{% endfor %}
 </table></div>
+{% if loads.tabs %}
+<h3>Pickup tabs</h3><p class="small">{{ loads.tab_text }}. Bearing and net section against yield; tear-out and weld throat against 0.577 × yield.</p>
+<div class="scroll"><table><tr><th>Link end<th>Worst |force|<th>FOS bearing<th>FOS tear-out<th>FOS net<th>FOS weld<th></tr>
+{% for r in loads.tabs %}<tr><td>{{ r.end }}<td>{{ r.force }}{% for f in r.fos %}<td>{{ f }}{% endfor %}<td class="{{ 'pass' if r.ok else 'fail' }}">{{ 'OK' if r.ok else 'BELOW FOS' }}</tr>{% endfor %}
+</table></div>
+<h3>Fatigue screen</h3><p class="small">{{ loads.fatigue_text }}</p>
+<div class="scroll"><table><tr><th>Part<th>Worst cycle<th>Applied (MPa)<th>Allowed (MPa)<th>Margin<th>Life (cycles)<th></tr>
+{% for r in loads.fatigue %}<tr><td>{{ r.part }}<td>{{ r.case }}<td>{{ r.applied }}<td>{{ r.allow }}<td>{{ r.n }}<td>{{ r.life }}<td class="{{ 'pass' if r.ok else 'fail' }}">{{ 'OK' if r.ok else 'LOOK AT THIS' }}</tr>{% endfor %}
+</table></div>
+{% endif %}
 {% endif %}
 
 {% if pack %}

@@ -437,3 +437,6 @@ body { border-top: 4px solid var(--gold); }
 
 .jtab .jnum { width: 4.2em; padding: 2px 4px; font: inherit; text-align: right; }
 .jtab .jal { display: inline-flex; gap: 4px; align-items: center; white-space: nowrap; margin-top: 4px; }
+table.data.fatab td:first-child { max-width: 13em; white-space: normal; }
+.fatab td:nth-child(2) { min-width: 8.5em; }
+.fatab th, .fatab td { padding-left: 6px; padding-right: 6px; }

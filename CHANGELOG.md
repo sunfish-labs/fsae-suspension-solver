@@ -3,6 +3,19 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.6.0 - 2026-10-16
+
+- **Pickup tabs:** a pair per link end (sizes in `members.tab`), checked for bearing, tear-out, net section and the
+  weld throat against each end's worst force.
+- **Fatigue screen:** each driving case repeated `loads.fatigue_cycles` times (default 100,000) and the bump
+  `loads.fatigue_bump_cycles` times (10,000), from the car at rest, plus the swings between opposite cases (left and
+  right turns, braking and accelerating). Tubes by modified Goodman on the Shigley S-N line,
+  the welds at the tube ends and tab throats by their IIW fatigue class, the leg carrying the pushrod mount with its
+  bending; margin and cycles to a crack per part. In the Loads tab, the command line, both reports and Excel.
+- **Wheel rate with the preload term** (`wheel_rate_preload`), reported beside the usual spring rate x MR²: what a
+  bench test reads.
+- CI runs on Ubuntu 26.04.
+
 ## 1.5.0 - 2026-10-16
 
 - **Clearance to the chassis model:** the tire (the solid drawn in the view, checked exactly: it is convex, so the
@@ -105,7 +118,7 @@ form (camber, contact patch and toe every 5 mm) and hand statics for five load c
 tire are linear, the bar is a rate). The caliper and halfshaft are not drawn in the 3D view or the CAD export.
 No outside public reference with full hardpoints and results has been found.
 
-## 0.9.0 - 2026-10-15
+## 0.9.0 - 2026-10-15 (commit e3fee2a; no tag yet, see TODO)
 
 The first complete version: the command-line tool and web app with heave, roll and steering sweeps, ride and
 damping, member loads and compliance, packaging, the whole-car view, challenges, Compare, reports, Excel and the

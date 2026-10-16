@@ -252,6 +252,31 @@ function reportHtml() {
             `<tr><td>${memLabel(q.member, e)}</td><td class="n">${fmt(q.peak, 0)}</td><td class="n">${q.sf_bolt == null ? "–" : fmt(q.sf_bolt, 1)}</td><td class="n">${q.sf_rod_end == null ? "rating not entered" : fmt(q.sf_rod_end, 1)}</td></tr>`
         )
       );
+      const D = k.L.durability;
+      if (D) {
+        const lb = m => DUR_END[m] || memLabel(m, e);
+        body +=
+          `<h3>Pickup tabs (${fmt(D.tab.count, 0)} × ${fmt(D.tab.thickness, 2)} mm, ${fmt(D.tab.width, 1)} mm wide, ${fmt(D.tab.edge, 1)} mm to the end; weld ${fmt(D.tab.weld_leg, 1)} × ${fmt(D.tab.weld_length, 0)} mm per tab)</h3>` +
+          tbl(
+            ["Link end", "Worst |force|, N", "FOS bearing", "FOS tear-out", "FOS net", "FOS weld", ""],
+            D.tabs.map(
+              q =>
+                `<tr><td>${esc(lb(q.member))}</td><td class="n">${fmt(q.force, 0)}</td>${["bearing", "tearout", "net", "weld"].map(f => `<td class="n">${fmt(q.fos[f], 1)}</td>`).join("")}<td>${q.sf >= mem.sf_target ? `<span class="ok">OK</span>` : `<span class="bad">Below FOS</span>`}</td></tr>`
+            )
+          ) +
+          `<h3>Fatigue screen (driving cases × ${fmt(D.cycles, 0)}, bump × ${fmt(D.bump_cycles, 0)}; required margin ${fmt(D.fatigue_sf, 1)})</h3>` +
+          tbl(
+            ["Part", "Worst cycle", "Applied, MPa", "Allowed, MPa", "Margin", "Life, cycles", ""],
+            D.fatigue
+              .slice()
+              .sort((a, b2) => a.n - b2.n)
+              .map(
+                q =>
+                  `<tr><td>${esc(durItem(q, m => memLabel(m, e)))}</td><td>${esc(q.case)}</td><td class="n">${fmt(q.kind === "weld" ? 2 * q.s_a : q.s_a, 1)}</td><td class="n">${fmt(q.allow, 0)}</td><td class="n">${fmt(q.n, 2)}</td><td class="n">${durLife(q.life)}</td><td>${q.ok ? `<span class="ok">OK</span>` : `<span class="bad">Look at this</span>`}</td></tr>`
+              )
+          ) +
+          `<p class="note">Tubes: Goodman on the Shigley S-N line (applied = amplitude). Welds: IIW stress range against FAT ${fmt(D.weld_fat_tube, 0)} (tube ends) and ${fmt(D.weld_fat_tab, 0)} (tab throats). A screen at the design g levels, not a life prediction; tab sizes and weld classes are inputs.</p>`;
+      }
       const C = k.L.compliance;
       if (C)
         body +=
@@ -466,6 +491,33 @@ async function exportXlsx() {
                   r4(k.L.bending_check.stress),
                   r4(k.L.bending_check.sf),
                 ],
+              ]
+            : []),
+          ...(k.L.durability
+            ? [
+                [],
+                ["Pickup tabs", "worst |force|, N", "worst case", "FOS bearing", "FOS tear-out", "FOS net", "FOS weld"],
+                ...k.L.durability.tabs.map(q => [
+                  DUR_END[q.member] || memLabel(q.member, e),
+                  r4(q.force),
+                  q.case,
+                  r4(q.fos.bearing),
+                  r4(q.fos.tearout),
+                  r4(q.fos.net),
+                  r4(q.fos.weld),
+                ]),
+                [],
+                ["Fatigue screen", "worst cycle", "cycles", "applied, MPa", "mean, MPa", "allowed, MPa", "margin", "life, cycles"],
+                ...k.L.durability.fatigue.map(q => [
+                  durItem(q, m => memLabel(m, e)),
+                  q.case,
+                  q.cycles,
+                  r4(q.kind === "weld" ? 2 * q.s_a : q.s_a),
+                  q.kind === "weld" ? "" : r4(q.s_m),
+                  r4(q.allow),
+                  r4(q.n),
+                  Number.isFinite(q.life) ? Math.round(q.life) : "no limit",
+                ]),
               ]
             : []),
           ...(k.L.compliance

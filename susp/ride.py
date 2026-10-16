@@ -312,6 +312,10 @@ def ride_metrics(cfg, susp, sp, rows):
         raise SolveError("Motion ratio is zero - the damper does not move with the wheel. Check the spring geometry.")
     out.update(damping(sc, MR, k_w, k_r, k_t, m_s))
     out["wheel_rate_bump"] = kw_rows[-1]
+    # the wheel force is the spring force times the motion ratio, F = F_s MR, so dF/dz = k MR^2 + F_s dMR/dz: the second
+    # term (the spring's static force times the motion ratio's change) is left out of wheel_rate, as in most hand
+    # calculations; a bench measurement includes it
+    out["wheel_rate_preload"] = k_w + out["static_spring_force"] * float(np.gradient(mr, zs, edge_order=2)[i0])
     g = sc.get("bumpstop_gap")
     if g is not None:
         g = float(g)

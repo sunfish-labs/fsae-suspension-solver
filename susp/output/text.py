@@ -165,7 +165,7 @@ def print_ride(cfg, ev):
     kind = "direct-acting damper" if ev["spring"].direct else "rocker"
     print(f"\nSpring and damper ({sc['rod_on']}-arm rod, {kind}; spring {sc['spring_rate']:g} N/mm, "
           f"tire {sc['tire_rate']:g} N/mm, sprung corner {rd['_m_sprung']:.1f} kg)")
-    keys = ["motion_ratio", "mr_progression", "wheel_rate", "wheel_rate_bump", "bumpstop_travel", "ride_rate", "ride_freq",
+    keys = ["motion_ratio", "mr_progression", "wheel_rate", "wheel_rate_preload", "wheel_rate_bump", "bumpstop_travel", "ride_rate", "ride_freq",
             "static_spring_force", "spring_for_target", "damper_used", "damper_margin", "damper_static_pos", "damper_topout",
             "damper_bottomout", "rod_angle", "rocker_rot", "trans_min",
             "arb_twist", "arb_wheel_rate", "arb_roll", "arb_progression", "arb_tau", "arb_fos"]
@@ -315,8 +315,42 @@ def print_loads(cfg, ev, L):
                 print(f"  Worst {key} change in a driving case: {w[key]:+.3f} deg ({w['case']}), limit {lim:g} -> {'OK' if ok else 'TOO SOFT'}")
         print("  * bump and impact cases: shown, not held to the limits. Toe-in + / camber - = top in. The stiffnesses are\n"
               "    estimates: rod_end_k and mount_k under 'members' (stiffer tabs and rod ends help most).")
-    print("\nNot checked here: tabs, welds, inserts, rod-end threads and fatigue. Change g levels under 'loads' (pothole_g and\n"
-          "kerb_g are the impact cases), tubes, material, bolts and rod-end rating under 'members'.")
+    D = L.get("durability")
+    if D:
+        tb = D["tab"]
+        print(f"\nPickup tabs: {tb['count']:g} x {tb['thickness']:g} mm thick, {tb['width']:g} mm wide, hole {D['bolt']:g} mm, "
+              f"{tb['edge']:g} mm from the hole to the tab's end; weld {tb['weld_leg']:g} mm leg x {tb['weld_length']:g} mm per tab; "
+              f"yield {D['tab_yield']:g} MPa (members.tab)")
+        print("  bearing F/(n t d), tear-out F/(2 n t (e - d/2)) vs 0.577 yield, net section F/(n t (W - d)), weld throat F/(n L 0.707 leg) vs 0.577 yield")
+        names_ = {"damper": "Damper chassis end", "rocker_pivot": "Rocker pivot"}
+        table(["link end", "worst |force| N", "FOS bearing", "FOS tear-out", "FOS net", "FOS weld", ""],
+              [[names_.get(r["member"]) or member_label(r["member"], s), f"{r['force']:.0f} ({r['case']})"]
+               + [f_num(r["fos"][k], 1) for k in ("bearing", "tearout", "net", "weld")]
+               + ["OK" if r["sf"] >= mem["sf_target"] else "BELOW FOS"] for r in D["tabs"]])
+        en = D["endurance"]
+        print(f"\nFatigue screen: each driving case repeated {D['cycles']:,.0f} times and the bump {D['bump_cycles']:,.0f} times, from the car at rest,"
+              f"\n  and the swings between opposite cases (left / right turns, braking / accelerating)"
+              f"\n  (loads.fatigue_cycles / fatigue_bump_cycles). Tubes: Goodman, S_ut {en['sut']:g} MPa, endurance limit {en['se_axial']:.0f} MPa axial"
+              f"\n  (k_a {en['ka']:.2f}, k_c {en['kc']:g}); welds: IIW, tube ends FAT {D['weld_fat_tube']:g}, tab throats FAT {D['weld_fat_tab']:g} MPa."
+              f" Required margin {D['fatigue_sf']:g}.")
+
+        def item(r):
+            it = r["item"]
+            if it.startswith("tab:"):
+                k = it[4:]
+                return f"tab weld, {(names_.get(k) or member_label(k, s)).lower()}"
+            if it.startswith("leg:"):
+                return f"{member_label(it[4:], s)} with the pushrod mount (bending)"
+            return f"{member_label(it, s)}, {'tube' if r['kind'] == 'tube' else 'end weld'}"
+        table(["part", "worst cycle", "applied MPa", "mean MPa", "allowed MPa", "margin", "life, cycles", ""],
+              [[item(r), f"{r['case']} x {r['cycles']:,.0f}", f"{r['s_a'] * (2 if r['kind'] == 'weld' else 1):.1f}",
+                f"{r['s_m']:.1f}" if r["kind"] == "tube" else "-", f"{r['allow']:.0f}", f_num(r["n"], 2),
+                "no limit" if r["life"] == float("inf") else f"{r['life']:.2g}", "OK" if r["ok"] else "LOOK AT THIS"]
+               for r in sorted(D["fatigue"], key=lambda q: q["n"])])
+        print("  Applied: stress amplitude for tubes (with the mean, Goodman), stress range for welds. A screen at the design g\n"
+              "  levels, not a life prediction: logged loads from the car make it exact.")
+    print("\nNot checked here: inserts and rod-end threads. Change g levels under 'loads' (pothole_g and kerb_g are the impact\n"
+          "cases), tubes, material, bolts, tabs, weld classes and rod-end rating under 'members'.")
 
 
 CAR_LABELS = {k: (d["label"], d["unit"], d["decimals"]) for k, d in METRICS_FILE["car"].items()}

@@ -50,6 +50,23 @@ function checkExtras(cfg) {
     vec3 = v => Array.isArray(v) && v.length === 3 && v.every(num);
   for (const k of ["travel", "droop_travel", "bump_travel"])
     if (sw[k] != null && !(+sw[k] > 0)) throw new SolveError(`sweep.${k} must be a positive distance in mm`);
+  const mem = cfg.members || {},
+    lo = cfg.loads || {};
+  if (mem.surface != null && !["ground", "machined", "cold-drawn", "hot-rolled", "as-forged"].includes(mem.surface))
+    throw new SolveError("members.surface must be ground, machined, cold-drawn, hot-rolled or as-forged");
+  for (const k of ["uts", "fatigue_sf", "weld_fat_tube", "weld_fat_tab", "tab_yield"])
+    if (mem[k] != null && !(num(mem[k]) && mem[k] > 0)) throw new SolveError(`members.${k} must be a positive number`);
+  if (mem.tab != null) {
+    const bad =
+      typeof mem.tab === "object" && !Array.isArray(mem.tab)
+        ? Object.entries(mem.tab)
+            .filter(([k, v]) => ["thickness", "width", "edge", "weld_leg", "weld_length", "count"].includes(k) && !(num(v) && v > 0))
+            .map(([k]) => k)
+        : ["tab"];
+    if (bad.length) throw new SolveError(`members.tab needs positive numbers for ${bad.join(", ")}`);
+  }
+  for (const k of ["fatigue_cycles", "fatigue_bump_cycles"])
+    if (lo[k] != null && !(num(lo[k]) && lo[k] >= 1)) throw new SolveError(`loads.${k} must be a number of cycles (1 or more)`);
   const cal = cfg.wheel.caliper;
   if (cal != null) {
     const miss = ["clock_deg", "radius", "size", "offset"].filter(k => !num((cal || {})[k]));

@@ -174,6 +174,31 @@ function buildForm() {
       ],
     }),
   ].join("");
+  $("#tabFields").innerHTML = [
+    field("Tab thickness", "mm", "members.tab.thickness", { step: 0.1 }),
+    field("Tab width", "mm", "members.tab.width", { step: 0.5 }),
+    field("Hole center to tab end", "mm", "members.tab.edge", { step: 0.5 }),
+    field("Tabs per link end", "", "members.tab.count", { step: 1 }),
+    field("Weld leg", "mm", "members.tab.weld_leg", { step: 0.5 }),
+    field("Weld length per tab", "mm", "members.tab.weld_length", { step: 1 }),
+    field("Tab yield (blank = tube yield)", "MPa", "members.tab_yield", { step: 5, opt: 1 }),
+  ].join("");
+  $("#fatFields").innerHTML = [
+    field("Tube ultimate strength", "MPa", "members.uts", { step: 5 }),
+    field("Tube surface", "", "members.surface", {
+      options: [
+        ["machined", "Machined / cold-drawn"],
+        ["ground", "Ground"],
+        ["hot-rolled", "Hot-rolled"],
+        ["as-forged", "As-forged"],
+      ],
+    }),
+    field("Weld class at tube ends (IIW FAT)", "MPa", "members.weld_fat_tube", { step: 1 }),
+    field("Weld class of tab welds (IIW FAT)", "MPa", "members.weld_fat_tab", { step: 1 }),
+    field("Driving cases repeat", "times", "loads.fatigue_cycles", { step: 10000 }),
+    field("Bump repeats", "times", "loads.fatigue_bump_cycles", { step: 1000 }),
+    field("Required fatigue margin", "", "members.fatigue_sf", { step: 0.1 }),
+  ].join("");
   $("#compFields").innerHTML = [
     field("Rod-end stiffness (each)", "N/mm", "members.rod_end_k", { step: 1000, opt: 1 }),
     field("Chassis tab / bracket stiffness", "N/mm", "members.mount_k", { step: 1000, opt: 1 }),

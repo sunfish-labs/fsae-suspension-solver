@@ -218,6 +218,22 @@ the other way, which can put a different leg into compression. `loads car.json` 
    acceleration case is compared with `toe_comp_limit` (default 0.15 deg) and `camber_comp_limit` (0.25 deg);
    bump and impact cases are shown but not limited. The default stiffnesses are estimates: measure your own tabs and
    rod ends if you can.
+10. **Pickup tabs:** a pair of tabs per link end (double shear; sizes under `members.tab`: `thickness`, `width`,
+   `edge` = hole center to the tab's end, `weld_leg`, `weld_length` per tab, `count`; the defaults are a typical 1/8 in
+   tab, so enter yours). Against each end's worst force: bearing F/(n t d) and net section F/(n t (W − d)) vs yield,
+   tear-out F/(2 n t (e − d/2)) and the weld throat F/(n L 0.707 leg) vs 0.577 × yield (`members.tab_yield`, default
+   the tube yield), compared with `sf_target`.
+11. **Fatigue screen:** each driving case is a load that repeats, from the car at rest to that case and back, and
+   so does each swing between opposite cases (left and right turns: corner outer ↔ inner; braking ↔ accelerating),
+   `loads.fatigue_cycles` times (default 100,000: about three seasons of hard corners and stops with margin); the bump
+   repeats `loads.fatigue_bump_cycles` times (10,000); impacts are left out. Tubes away from welds: modified Goodman
+   on the Shigley S-N line (0.9 S_ut at 1,000 cycles to the endurance limit k_a k_b k_c 0.5 S_ut at a million;
+   `members.uts`, `members.surface`). Welds at the tube ends and the tab throats: the stress range against the weld's
+   IIW fatigue class (`members.weld_fat_tube`, default 45 MPa; `members.weld_fat_tab`, default 36 MPa; FAT = the range a
+   weld survives 2 million times, slope 3, flat from 10 million). The leg carrying the pushrod mount is checked with
+   its bending stress. Margin = allowed ÷ applied, against `members.fatigue_sf` (1.5); each row also gives the cycles
+   to a crack. It is a screen at the design g levels, not a life prediction: a failing row is a part to look at
+   closely, and loads logged on the car make it exact. Look up the weld class for your weld detail.
 
 ## Iterating on the pushrod, rocker and damper
 1. Put your actual damper in the `spring` block: `damper_eye_to_eye` and `damper_stroke`.
@@ -335,14 +351,18 @@ Member forces: + = tension.
 - Roll uses equal and opposite wheel travel, so it gives the kinematic roll center. The force-based roll center
   moves once the tires are loaded unevenly.
 - Loads are quasi-static. The bump and pothole cases are also solved at the spring's deflected position; the other
-  cases use the ride-height geometry (no body roll or pitch). Impacts are fixed g factors. There is no fatigue, and no checks on tabs, welds or inserts.
+  cases use the ride-height geometry (no body roll or pitch). Impacts are fixed g factors. The tab check is a
+  simplified lug (no hole stress concentration) and the fatigue check is a screen at stated cycle counts and the
+  design g levels, not a life prediction; weld fatigue classes depend on the weld detail. Inserts and rod-end
+  threads are not checked.
 - The pushrod-mount bending check is a simple beam: it ignores the gusset or bracket you add and any weld
   heat-affected zone.
 - Clearance is center-line distance plus tube radii. The rim check is radial only. The caliper is a sphere and the
   halfshaft a straight cylinder; both are drawn that way in the 3D view and the CAD export.
 - The tire's vertical rate does not change with load. Tire load sensitivity is a straight-line fall of friction with
   load, the same on both axles, used only for the limit balance (not for the load cases). Wheel rate is spring rate x
-  motion ratio^2 (the spring force x d(MR)/dz term is left out, as in most hand calculations). The bar's arms are
+  motion ratio^2 (the spring force x d(MR)/dz term is left out, as in most hand calculations;
+  `wheel_rate_preload` reports it with that term, which is what a bench test reads). The bar's arms are
   rigid and its drop links don't affect the ride rate (the bar only acts in roll).
 - Default targets (ride frequency 2.5-4.5 Hz, bump steer, LLTD = front weight + 5 %, 1 deg/g) are starting points,
   not rules. Check wheelbase and turning limits against the current FSAE rulebook.

@@ -57,7 +57,8 @@ squash: hub height change = frame-to-hub change, not floor-to-hub. Compare with 
 
 The solver's wheel rate is spring rate x motion ratio squared. A measurement also picks up the spring's preload
 times the motion ratio's change with travel, which adds about 1-2 % on the example corners (more for a strongly
-rising rocker), and friction in the joints and damper. Measure both loading and unloading and take the average.
+rising rocker), so compare it with `wheel_rate_preload` (both are reported), and friction in the joints and damper:
+measure both loading and unloading and take the average.
 
 ## 4. Twist test on corner scales
 

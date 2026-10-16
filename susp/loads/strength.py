@@ -62,6 +62,38 @@ def part_checks(cfg, rows):
     return out
 
 
+def rod_leg(susp, sp):
+    """The leg of the arm carrying the rod that the rod mount sits closest to: (leg, length, a from pivot, offset)."""
+    pts, inb, outb, _ = _geometry(susp, sp)
+    best = None
+    for leg in (f"{sp.on}_front", f"{sp.on}_rear"):
+        p0, p1 = inb[leg], outb[leg]
+        u = unit(p1 - p0)
+        Lg = float(np.linalg.norm(p1 - p0))
+        a = float(np.clip((pts["rod_out"] - p0) @ u, 0.0, Lg))
+        off = float(np.linalg.norm(pts["rod_out"] - (p0 + a * u)))
+        if best is None or off < best[3]:
+            best = (leg, Lg, a, off)
+    return best
+
+
+def leg_stress(cfg, leg, r, geom):
+    """Peak fiber stress (bending + |axial|) in that leg for member forces r at geometry geom."""
+    gp, gi, go, _ = geom
+    od, wall = cfg["members"]["wishbone"]
+    A, Imom = tube_props(od, wall)
+    p0, p1 = gi[leg], go[leg]
+    uu, Lc = unit(p1 - p0), float(np.linalg.norm(p1 - p0))
+    ac = float(np.clip((gp["rod_out"] - p0) @ uu, 0.0, Lc))
+    F = r["pushrod"] * unit(gp["rod_in"] - gp["rod_out"])         # the pushrod's pull on the arm at the mount
+    P_perp = float(np.linalg.norm(F - (F @ uu) * uu))
+    M = P_perp * ac * (Lc - ac) / Lc
+    n_pivot = r[leg]                                               # tension between the pivot and the mount
+    n_node = n_pivot - F @ uu                                      # tension between the mount and the ball joint
+    sig = M * (od / 2) / Imom + max(abs(n_pivot), abs(n_node)) / A
+    return dict(P_perp=P_perp, moment=M, stress=sig, n_pivot=float(n_pivot), n_node=float(n_node))
+
+
 def bending_check(cfg, susp, sp, results, deflect=None):
     """The wishbone leg that carries the pushrod mount, as a beam pinned at the inboard pivot and the ball joint.
     The pushrod force's component across the leg at distance a from the pivot gives M = P a (L - a) / L. The axial
@@ -71,33 +103,14 @@ def bending_check(cfg, susp, sp, results, deflect=None):
     if sp.on not in ("lower", "upper"):
         return None
     deflect = deflect or {}
-    pts, inb, outb, st = _geometry(susp, sp)
-    arm = sp.on
-    best = None
-    for leg in (f"{arm}_front", f"{arm}_rear"):
-        p0, p1 = inb[leg], outb[leg]
-        u = unit(p1 - p0)
-        Lg = float(np.linalg.norm(p1 - p0))
-        a = float(np.clip((pts["rod_out"] - p0) @ u, 0.0, Lg))
-        off = float(np.linalg.norm(pts["rod_out"] - (p0 + a * u)))
-        if best is None or off < best[3]:
-            best = (leg, u, Lg, off, a)
-    leg, _u, Lg, off, a = best
+    geom0 = _geometry(susp, sp)
+    leg, Lg, a, off = rod_leg(susp, sp)
     od, wall = cfg["members"]["wishbone"]
-    A, Imom = tube_props(od, wall)
     worst = None
     for name, r in results.items():
-        gp, gi, go, _ = _geometry(susp, sp, deflect[name]) if deflect.get(name) else (pts, inb, outb, st)
-        p0, p1 = gi[leg], go[leg]
-        uu, Lc = unit(p1 - p0), float(np.linalg.norm(p1 - p0))
-        ac = float(np.clip((gp["rod_out"] - p0) @ uu, 0.0, Lc))
-        F = r["pushrod"] * unit(gp["rod_in"] - gp["rod_out"])         # the pushrod's pull on the arm at the mount
-        P_perp = float(np.linalg.norm(F - (F @ uu) * uu))
-        M = P_perp * ac * (Lc - ac) / Lc
-        n_pivot = r[leg]                                               # tension between the pivot and the mount
-        n_node = n_pivot - F @ uu                                      # tension between the mount and the ball joint
-        sig = M * (od / 2) / Imom + max(abs(n_pivot), abs(n_node)) / A
-        if worst is None or sig > worst["stress"]:
-            worst = dict(case=name, P_perp=P_perp, moment=M, stress=sig, n_pivot=float(n_pivot), n_node=float(n_node))
+        g = _geometry(susp, sp, deflect[name]) if deflect.get(name) else geom0
+        s = leg_stress(cfg, leg, r, g)
+        if worst is None or s["stress"] > worst["stress"]:
+            worst = dict(case=name, **s)
     sy = cfg["members"]["yield"]
     return dict(leg=leg, length=Lg, a=a, offset=off, od=od, wall=wall, sf=sy / worst["stress"] if worst["stress"] > 1e-9 else float("inf"), **worst)

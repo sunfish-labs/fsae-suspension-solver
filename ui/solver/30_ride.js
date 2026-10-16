@@ -310,6 +310,8 @@ function rideMetrics(cfg, susp, sp, rows) {
   }
   Object.assign(out, damping(sc, MR, kw, kr, kt, ms));
   out.wheel_rate_bump = kwRows[kwRows.length - 1];
+  // mirrors ride_metrics: the wheel rate with the spring's static force x the motion ratio's change (dF/dz exactly)
+  out.wheel_rate_preload = kw + out.static_spring_force * gradient2(mr, zs)[i0];
   if (sc.bumpstop_gap != null) {
     const g = +sc.bumpstop_gap;
     if (g <= 0) out.bumpstop_travel = 0;

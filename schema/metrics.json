@@ -237,6 +237,12 @@
    "decimals": 1,
    "help": "Spring (and bump stop) rate x motion ratio squared at full bump. Rises with a progressive motion ratio, a dual-rate spring or the bump stop."
   },
+  "wheel_rate_preload": {
+   "label": "Wheel rate with the preload term",
+   "unit": "N/mm",
+   "decimals": 1,
+   "help": "dF/dz at ride height: spring rate x motion ratio squared plus the spring's static force x the motion ratio's change per mm. What a bench test measures; the usual wheel rate leaves the second term out."
+  },
   "bumpstop_travel": {
    "label": "Wheel travel to the bump stop",
    "unit": "mm",

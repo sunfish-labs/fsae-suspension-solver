@@ -6,13 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       runner:
-        description: "Machine image to test on (e.g. ubuntu-26.04 to try the next image before it becomes the default)"
+        description: "Machine image to test on (e.g. ubuntu-24.04 to compare with the previous image)"
         required: false
-        default: ubuntu-24.04
+        default: ubuntu-26.04
 jobs:
   test:
-    # pinned: ubuntu-latest moves to a new Ubuntu without warning; try the next one with a manual run first
-    runs-on: ${{ inputs.runner || 'ubuntu-24.04' }}
+    # pinned: ubuntu-latest moves to a new Ubuntu without warning; try the next one with a manual run first (runner input)
+    runs-on: ${{ inputs.runner || 'ubuntu-26.04' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7

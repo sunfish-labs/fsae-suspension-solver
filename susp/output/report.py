@@ -91,7 +91,7 @@ def report_context(cfg, ev, baseline=None, delta=5.0, sens=None, adv=None, loads
             intro=f"{sc['rod_on']}-arm rod, {'direct-acting damper' if ev['spring'].direct else 'rocker'}; spring {sc['spring_rate']:g} N/mm, "
                   f"tire {sc['tire_rate']:g} N/mm, sprung corner mass {rd['_m_sprung']:.1f} kg.",
             rows=[dict(label=lab(k), value=f"{fmt(k, m[k])} {METRICS[k][1]}") for k in (
-                "motion_ratio", "mr_progression", "wheel_rate", "wheel_rate_bump", "bumpstop_travel", "ride_rate", "ride_freq",
+                "motion_ratio", "mr_progression", "wheel_rate", "wheel_rate_preload", "wheel_rate_bump", "bumpstop_travel", "ride_rate", "ride_freq",
                 "static_spring_force", "spring_for_target", "damper_used", "damper_margin", "damper_static_pos", "damper_topout",
                 "damper_bottomout", "rod_angle", "rocker_rot", "trans_min", "arb_twist", "arb_wheel_rate", "arb_roll", "arb_tau",
                 "arb_fos") if k in m],
@@ -107,6 +107,30 @@ def report_context(cfg, ev, baseline=None, delta=5.0, sens=None, adv=None, loads
             checks=[dict(member=member_label(r["member"], s), tube=f"{r['od']:g}×{r['wall']:g}", comp=f"{r['compression']:.0f} N",
                          pcr=f"{r['Pcr']:.0f} N", sfb=f_num(r["sf_buckle"], 1), peak=f"{r['peak']:.0f} N", py=f"{r['Py']:.0f} N",
                          sfy=f_num(r["sf_yield"], 1), ok=min(r["sf_buckle"], r["sf_yield"]) >= mem["sf_target"]) for r in loads["checks"]])
+        D = loads.get("durability")
+        if D:
+            end = {"damper": "Damper chassis end", "rocker_pivot": "Rocker pivot"}
+
+            def item(r):
+                it = r["item"]
+                if it.startswith("tab:"):
+                    return f"Tab weld, {(end.get(it[4:]) or member_label(it[4:], s)).lower()}"
+                if it.startswith("leg:"):
+                    return f"{member_label(it[4:], s)} with the pushrod mount (bending)"
+                return f"{member_label(it, s)}, {'tube' if r['kind'] == 'tube' else 'end weld'}"
+            ctx["loads"]["tabs"] = [dict(end=end.get(r["member"]) or member_label(r["member"], s), force=f"{r['force']:.0f} N",
+                                         fos=[f_num(r["fos"][k], 1) for k in ("bearing", "tearout", "net", "weld")], ok=r["sf"] >= mem["sf_target"])
+                                    for r in D["tabs"]]
+            tb = D["tab"]
+            ctx["loads"]["tab_text"] = (f"{tb['count']:g} tabs × {tb['thickness']:g} mm, {tb['width']:g} mm wide, {tb['edge']:g} mm from the hole to the end; "
+                                        f"weld {tb['weld_leg']:g} mm leg × {tb['weld_length']:g} mm per tab (members.tab)")
+            ctx["loads"]["fatigue"] = [dict(part=item(r), case=f"{r['case']} × {r['cycles']:,.0f}", applied=f"{r['s_a'] * (2 if r['kind'] == 'weld' else 1):.1f}",
+                                            allow=f"{r['allow']:.0f}", n=f_num(r["n"], 2), life="no limit" if r["life"] == float("inf") else f"{r['life']:.2g}", ok=r["ok"])
+                                       for r in sorted(D["fatigue"], key=lambda q: q["n"])]
+            ctx["loads"]["fatigue_text"] = (f"Each driving case repeated {D['cycles']:,.0f} times and the bump {D['bump_cycles']:,.0f} times, from the car at rest, and the swings between opposite cases (left and right turns, braking and accelerating). "
+                                            f"Tubes: Goodman on the Shigley S-N line (applied = amplitude); welds: IIW stress range against FAT {D['weld_fat_tube']:g} "
+                                            f"(tube ends) and {D['weld_fat_tab']:g} (tab throats). Required margin {D['fatigue_sf']:g}. A screen at the design g levels, "
+                                            "not a life prediction.")
     if pk:
         ctx["pack"] = dict(rows=[dict(pair=n, d=f"{d:.1f}", ok=d >= need, need=f"{need:.1f}", hz=f"{hz:+.0f}", rk=f"{rk:+.0f}")
                                  for n, (d, hz, rk, need) in sorted(pk["pairs"].items(), key=lambda kv: kv[1][0] - kv[1][3])],

@@ -9,6 +9,7 @@ the ball-joint node).
     cases.py       the tire forces for each case
     statics.py     member forces (upright and rigid arm), geometry at ride height or deflected
     strength.py    buckling, yield, rod ends, bolts, pushrod-mount bending
+    durability.py  pickup tabs (static) and the infinite-life fatigue screen
     compliance.py  toe and camber change from link stretch"""
 from __future__ import annotations
 
@@ -16,12 +17,13 @@ from ..kinematics import SolveError, travel_range
 from ..ride import spring_nonlinear, wheel_travel_under
 from .cases import G, load_cases
 from .compliance import IMPACT_CASES, compliance, link_stiffness
+from .durability import durability
 from .statics import MEMBER_LABEL, MEMBERS, _geometry, arm_reactions, member_label, solve_case, solve_FM, wheel_rate_at_ride
 from .strength import BOLT_UTS, bending_check, member_checks, part_checks, tube_props
 
 __all__ = ["G", "load_cases", "IMPACT_CASES", "compliance", "link_stiffness", "MEMBER_LABEL", "MEMBERS", "_geometry",
            "arm_reactions", "member_label", "solve_case", "solve_FM", "wheel_rate_at_ride", "BOLT_UTS", "bending_check",
-           "member_checks", "part_checks", "tube_props", "run_loads"]
+           "member_checks", "part_checks", "tube_props", "durability", "run_loads"]
 
 
 def run_loads(cfg, susp, sp, lltd=None):
@@ -58,4 +60,4 @@ def run_loads(cfg, susp, sp, lltd=None):
     checks = member_checks(cfg, susp, sp, res)
     return dict(results=res, desc=desc, tire=tire, fz_parts=fz, Fz0=info["Fz0"], info=info, deflect=deflect,
                 checks=checks, parts=part_checks(cfg, checks), bending_check=bending_check(cfg, susp, sp, res, deflect),
-                compliance=compliance(cfg, susp, sp, res))
+                compliance=compliance(cfg, susp, sp, res), durability=durability(cfg, susp, sp, res, info, deflect))

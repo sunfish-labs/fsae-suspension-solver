@@ -78,6 +78,9 @@ check("tire load sensitivity outside 0..1 -> ConfigError", raises(ConfigError, l
 check("an unknown joint name -> ConfigError", raises(ConfigError, lambda: load_config(write("h.json", dict(front, joints={"tie_rod_out": {"bolt": "x"}})))))
 check("a bad bolt direction -> ConfigError", raises(ConfigError, lambda: load_config(write("i.json", dict(front, joints={"trackrod_outboard": {"bolt": "up"}})))))
 check("a rod end can't be a bearing -> ConfigError", raises(ConfigError, lambda: load_config(write("j.json", dict(front, joints={"trackrod_outboard": {"type": "bearing"}})))))
+check("an unknown tube surface -> ConfigError", raises(ConfigError, lambda: load_config(write("o.json", dict(front, members={"surface": "polished"})))))
+check("a tab with zero thickness -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"tab": {"thickness": 0}})))))
+check("negative fatigue cycles -> ConfigError", raises(ConfigError, lambda: load_config(write("q.json", dict(front, loads={"fatigue_cycles": -5})))))
 check("every library error is a SuspError", all(issubclass(e, SuspError) for e in (ConfigError, GoalError, SolveError, UnknownPointError)))
 from susp import tools as T  # noqa: E402
 cfg = make_config(front)

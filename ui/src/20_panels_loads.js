@@ -70,7 +70,7 @@ function panelLoads() {
   <div class="tbl-wrap"><table class="data"><thead><tr><th>Member</th>${names.map(n => `<th class="n">${esc(n)}</th>`).join("")}</tr></thead><tbody>${mr}</tbody></table></div>
   <h3 class="sub-h">Strength check · ${esc(mem.material || "steel")} · E ${fmt(mem.E, 0)} MPa · yield ${fmt(mem.yield, 0)} MPa · required FOS ${fmt(mem.sf_target, 1)}</h3>
   <div class="tbl-wrap"><table class="data"><thead><tr><th>Member</th><th class="n">Tube, mm</th><th class="n">Length</th><th class="n">Worst compression, N</th><th class="n">Buckling load, N</th><th class="n">FOS buckling</th><th class="n">Worst |force|, N</th><th class="n">Yield force, N</th><th class="n">FOS yield</th><th></th></tr></thead><tbody>${ck}</tbody></table></div>
-  <p class="note">Buckling load = π²EI/L² with pinned ends. Yield force = yield stress × tube area. Tabs, welds, inserts and fatigue are not checked here.</p>
+  <p class="note">Buckling load = π²EI/L² with pinned ends. Yield force = yield stress × tube area. Tabs, welds and fatigue: below. Inserts and rod-end threads are not checked.</p>
   ${partsHtml(L, label, mem)}`;
 }
 function partsHtml(L, label, mem) {
@@ -99,6 +99,7 @@ function partsHtml(L, label, mem) {
     ${P.map(r => `<tr><td>${esc(label(r.member))}</td><td class="n">${fmt(r.peak, 0)} <span class="muted">(${esc(r.p_case)})</span></td>${cell(r.sf_bolt)}${r.sf_rod_end == null ? `<td class="n muted">enter rating</td>` : cell(r.sf_rod_end)}</tr>`).join("")}</tbody></table></div>
     <p class="note">Bolt shear capacity = shear planes × bolt area × 0.6 × tensile strength. Enter your rod end's catalog radial rating (inputs → Loads &amp; materials → Rod ends and bolts) to check it.</p>`;
   }
+  h += durabilityHtml(L, label, mem);
   const C = L.compliance;
   if (C) {
     const lim = (v, l) => (l == null ? "" : Math.abs(v) <= l ? "" : "bad-t");
@@ -117,4 +118,43 @@ function partsHtml(L, label, mem) {
     * Bump and impact cases are shown but not held to the limits. The rod-end and tab stiffnesses are estimates (inputs → Loads &amp; materials → Compliance); a stiffer tab or rod end helps most.</p>`;
   }
   return h;
+}
+// pickup tabs (static) and the fatigue screen (mirrors loads/durability.py)
+const DUR_END = { damper: "Damper chassis end", rocker_pivot: "Rocker pivot" };
+function durItem(r, label) {
+  if (r.item.startsWith("tab:")) {
+    const k = r.item.slice(4);
+    return `Tab weld, ${(DUR_END[k] || label(k)).toLowerCase()}`;
+  }
+  if (r.item.startsWith("leg:")) return `${label(r.item.slice(4))} with the pushrod mount (bending)`;
+  return `${label(r.item)}, ${r.kind === "tube" ? "tube" : "end weld"}`;
+}
+const durLife = v => (Number.isFinite(v) ? (v >= 1e4 ? v.toExponential(1).replace("e+", "e") : fmt(v, 0)) : "no limit");
+function durabilityHtml(L, label, mem) {
+  const D = L.durability;
+  if (!D) return "";
+  const tb = D.tab,
+    need = mem.sf_target,
+    c = v => `<td class="n ${v >= need ? "" : "bad-t"}">${fmt(v, 1)}</td>`;
+  const en = D.endurance,
+    rows = D.fatigue.slice().sort((a, b) => a.n - b.n),
+    fails = rows.filter(r => !r.ok);
+  return `<h3 class="sub-h">Pickup tabs · ${fmt(tb.count, 0)} × ${fmt(tb.thickness, 2)} mm, ${fmt(tb.width, 1)} mm wide, hole ${fmt(D.bolt, 2)} mm, ${fmt(tb.edge, 1)} mm to the end · weld ${fmt(tb.weld_leg, 1)} × ${fmt(tb.weld_length, 0)} mm per tab</h3>
+  <div class="tbl-wrap"><table class="data"><thead><tr><th>Link end</th><th class="n">Worst |force|, N</th><th class="n">FOS bearing</th><th class="n">FOS tear-out</th><th class="n">FOS net section</th><th class="n">FOS weld</th><th></th></tr></thead><tbody>
+  ${D.tabs
+    .map(
+      r =>
+        `<tr><td>${esc(DUR_END[r.member] || label(r.member))}</td><td class="n">${fmt(r.force, 0)} <span class="muted">(${esc(r.case)})</span></td>${["bearing", "tearout", "net", "weld"].map(k => c(r.fos[k])).join("")}<td>${r.sf >= need ? `<span class="pill ok">OK</span>` : `<span class="pill bad">Below FOS</span>`}</td></tr>`
+    )
+    .join("")}</tbody></table></div>
+  <p class="note">Bearing F/(n·t·d) and net section F/(n·t·(W−d)) against yield (${fmt(D.tab_yield, 0)} MPa); tear-out F/(2·n·t·(e−d/2)) and the weld throat F/(n·L·0.707·leg) against 0.577 × yield. A simplified lug check (no hole stress concentration, fine for ductile steel under static load). <b>The tab sizes are inputs</b> (inputs → Loads &amp; materials → Pickup tabs): the defaults are a typical 1/8 in tab, so put in yours.</p>
+  <h3 class="sub-h">Fatigue screen · driving cases × ${Number(D.cycles).toLocaleString("en-US")}, bump × ${Number(D.bump_cycles).toLocaleString("en-US")}${fails.length ? ` · <span class="bad-t">${fails.length} to look at</span>` : ""}</h3>
+  <div class="tbl-wrap"><table class="data fatab"><thead><tr><th>Part</th><th>Worst cycle</th><th class="n">Cycles</th><th class="n">Applied, MPa</th><th class="n">Mean, MPa</th><th class="n">Allowed, MPa</th><th class="n">Life, cycles</th><th class="n">Margin</th></tr></thead><tbody>
+  ${rows
+    .map(
+      r =>
+        `<tr><td>${esc(durItem(r, label))}</td><td>${esc(r.case).replace(" ↔ ", " ↔<br>")}</td><td class="n">${Number(r.cycles).toLocaleString("en-US")}</td><td class="n">${fmt(r.kind === "weld" ? 2 * r.s_a : r.s_a, 1)}</td><td class="n">${r.kind === "weld" ? "–" : fmt(r.s_m, 1)}</td><td class="n">${fmt(r.allow, 0)}</td><td class="n">${durLife(r.life)}</td><td class="n"><span class="pill ${r.ok ? "ok" : "bad"}" title="${r.ok ? "passes" : "below the required margin: look at this part"}">${fmt(r.n, 2)}</span></td></tr>`
+    )
+    .join("")}</tbody></table></div>
+  <p class="note">Each driving case is a load that repeats, from the car at rest to that case and back, and so does each swing between opposite cases (left and right turns, braking and accelerating, marked ↔); the impact cases are one-offs and are left out. Tubes: modified Goodman on the Shigley S-N line (S<sub>ut</sub> ${fmt(en.sut, 0)} MPa, endurance limit ${fmt(en.se_axial, 0)} MPa axial; applied = amplitude). Welds: the stress range against the weld's IIW fatigue class (FAT ${fmt(D.weld_fat_tube, 0)} at tube ends, ${fmt(D.weld_fat_tab, 0)} at tab throats; applied = range). Margin = allowed ÷ applied, required ${fmt(D.fatigue_sf, 1)}. <b>A screen at the design g levels, not a life prediction:</b> a failing row is a part to look at closely; loads logged on the car make it exact. Weld classes depend on the weld detail: look yours up.</p>`;
 }
