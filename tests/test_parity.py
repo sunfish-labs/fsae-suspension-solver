@@ -67,6 +67,15 @@ for i in range(a.cases):
     if raw.get("axle") == "rear" and i % 2 == 0:
         raw["halfshaft"] = {"diff_output": [cp[0] + rng.uniform(-10, 10), rng.uniform(120, 180), R - rng.uniform(0, 30)],
                             "cv_outboard": [cp[0], cp[1] - rng.uniform(50, 80), R], "plunge_max": 20}
+    if i % 7 == 5 and raw.get("spring"):
+        # a direct-acting damper on the same arm
+        spg = dict(raw["spring"], rocker_pivot=None, rocker_axis=None, rocker_rod=None, rocker_damper=None)
+        ro = spg["rod_outboard"]
+        spg["damper_chassis"] = [ro[0], ro[1] - 60.0, ro[2] + 280.0]
+        raw["spring"] = spg
+    if i % 5 == 3:
+        raw["joints"] = {"trackrod_outboard": {"bolt": "x"}, "upper_inboard_front": {"bolt": "pivot", "square": False},
+                         "lower_outboard": {"bolt": [1.0, 0.2, 0.1]}, "trackrod_inboard": {"allow": 9.5}}
     cases.append(raw)
 
 
@@ -80,6 +89,7 @@ for raw in cases:
         c = finish_config(deep_merge(DEFAULTS, raw))
         e = evaluate(c)
         out = {"ok": True, "m": num(e["metrics"])}
+        out["joints"] = [[r["ride"], r["worst"], r["margin"], r["best"]["worst"] if r["best"] else None] for r in e["joints"]["rows"]]
         if e["spring"]:
             L = run_loads(c, e["susp"], e["spring"])
             out["loads"] = {n: num(r) for n, r in L["results"].items()}
@@ -104,6 +114,8 @@ d.cases.forEach((raw, i) => {
   if (!p.ok || err) { if (p.ok !== !err) bad.push(`case ${i}: python ${p.ok ? "solved" : "failed (" + p.err + ")"}, browser ${err ? "failed (" + err + ")" : "solved"}`); else nfail++; return; }
   nboth++;
   for (const [k, v] of Object.entries(p.m)) cmp(i, k, v, e.metrics[k]);
+  if (p.joints.length !== e.joints.rows.length) bad.push(`case ${i}: ${p.joints.length} joints in python, ${e.joints.rows.length} in the browser`);
+  p.joints.forEach((row, j) => { const r = e.joints.rows[j]; if (!r) return; [r.ride, r.worst, r.margin, r.best ? r.best.worst : null].forEach((v, q) => { if (row[q] !== null) cmp(i, `joint ${r.key} ${["ride", "worst", "margin", "best"][q]}`, row[q], v); }); });
   if (p.loads) for (const [n, row] of Object.entries(p.loads)) for (const [k, v] of Object.entries(row)) cmp(i, `${n}/${k}`, v, L.results[n][k]);
   if (p.comp) p.comp.forEach((row, j) => { const c = L.compliance.cases[j]; [c.camber, c.toe, c.cp_y].forEach((v, q) => cmp(i, `compliance ${c.case} ${q}`, row[q], v)); });
   if (p.bend) for (const [k, v] of Object.entries(p.bend)) cmp(i, `bending ${k}`, v, L.bending_check[k]);

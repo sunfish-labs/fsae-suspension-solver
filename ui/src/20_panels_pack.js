@@ -21,5 +21,6 @@ function panelPack() {
     );
   return `<div class="tbl-wrap"><table class="data"><thead><tr><th>Link pair</th><th class="n">Min gap, mm</th><th class="n">Needs</th><th class="n">At travel</th>${rear ? "" : `<th class="n">At rack</th>`}<th></th></tr></thead><tbody>${rows}</tbody></table></div>
   <p class="note">Center-line distances, checked at 9 heights from full droop to full bump${rear ? "" : " at 7 rack positions across the full rack travel"}. "Needs" = half of each tube's OD plus ${fmt(ev.cfg.clearance.margin, 0)} mm margin.
-  Rim: the farthest joint is ${fmt(p.rim_max, 1)} mm from the wheel axis against a ${fmt(p.rim_radius, 1)} mm rim radius, leaving ${fmt(p.rim_margin, 1)} mm (radial check only, against the rim barrel's inner radius).</p>${extra.map(t => `<p class="note">${esc(t)}</p>`).join("")}`;
+  Rim: the farthest joint is ${fmt(p.rim_max, 1)} mm from the wheel axis against a ${fmt(p.rim_radius, 1)} mm rim radius, leaving ${fmt(p.rim_margin, 1)} mm (radial check only, against the rim barrel's inner radius).</p>${extra.map(t => `<p class="note">${esc(t)}</p>`).join("")}
+  <h3 class="subh" id="jointsH">Rod ends and bearings: misalignment</h3>${jointTable(ev, { editable: true })}<p class="note">${esc(JOINT_NOTE)}</p>`;
 }

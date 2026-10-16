@@ -444,6 +444,10 @@ body { border-top: 4px solid var(--gold); }
 .fmmove .u { font-size: 12px; color: var(--muted); }
 .fmbtns { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (max-width: 520px) { .fmwrap { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; } .fmwrap .wcard { max-height: 55vh; } .vaxkey { display: none; } }
+
+.subh { font-size: 15px; margin: 18px 0 6px; }
+.jbolt { font-size: 12px; padding: 2px 4px; max-width: 150px; }
+.jtab td:nth-child(2) { min-width: 250px; } .jtab td:first-child { min-width: 170px; }
 </style>
 
 <header class="top">
@@ -472,6 +476,7 @@ body { border-top: 4px solid var(--gold); }
         <div class="xpop xleft" role="menu"><p class="note" id="exScope"></p>
           <button type="button" role="menuitem" id="xCad"><b>3D for CAD…</b><span>Solid parts (links, joints, tires) or wireframe points and lines as STEP or IGES for SolidWorks, Fusion or Onshape, a CSV point table, or STL tubes.</span></button>
           <button type="button" role="menuitem" id="xReport"><b>Design report</b><span>A page with targets, hardpoints, curves and loads. Open it and print to PDF.</span></button>
+          <button type="button" role="menuitem" id="xMis"><b>Joint misalignment sheet</b><span>Every rod end and spherical bearing: worst angle over the travel and steer, against its limit. A page on its own; it is also the last section of the design report.</span></button>
           <button type="button" role="menuitem" id="xXlsx"><b>Excel workbook (.xlsx)</b><span>Targets, hardpoints, sweep data and loads, one sheet each.</span></button></div></details>
       <span class="curname" id="curName"></span>
       <select id="preset" class="sel" hidden aria-hidden="true" tabindex="-1"></select>
@@ -749,7 +754,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
 </script>
 <script>
-window.SUSP_SCHEMA = {"defaults":{"_doc":{"vehicle.track":"null -> 2 x contact patch Y","vehicle.brakes":"'outboard' (at the upright) or 'inboard' (on the chassis)","vehicle.drive":"rear only: 'inboard' (chassis-mounted diff) or 'outboard'","vehicle.mass":"whole car including the driver, kg","vehicle.weight_front":"fraction of the weight on the front axle","vehicle.rack_c_factor":"rack mm per steering-wheel turn (optional)","targets_file":"optional shared team targets JSON, path relative to this design file","spring":"optional block (null = not modeled); see spring_defaults","loads.pothole_g":"impact: vertical load as a multiple of the static wheel load","loads.kerb_g":"impact: sideways load on the wheel (pushing it inboard), multiple of the static load","loads.brake_split":"'bias': braking force shared by vehicle.front_brake_share; 'grip': Fx = g x Fz","loads.lltd_front":"front lateral load transfer share; null = from the car's roll balance or the weight split","members.rod_end_rating":"N, the rod end's catalog radial static (ultimate) rating; null = not checked","members.bolt_dia":"mm, bolt through each rod end (7.94 = 5/16 in)","members.bolt_grade":"8.8, 10.9, 12.9, SAE 5 or SAE 8","members.bolt_shear_planes":"2 = double shear (clevis), 1 = single shear","members.rod_end_k":"N/mm, axial stiffness of one rod end (each link has two); an estimate","members.mount_k":"N/mm, chassis tab or bracket at the inboard end of each link; an estimate","members.toe_comp_limit":"deg, largest acceptable compliance toe change (cornering, braking, accel)","members.camber_comp_limit":"deg, largest acceptable compliance camber change","spring.rod_on":"'lower' arm, 'upper' arm or 'upright'","spring.rocker_axis":"direction of the rocker pivot bolt","spring.spring_rate":"N/mm","spring.damper_stroke":"mm, optional","spring.damper_eye_to_eye":"mm, fully extended, optional","spring.unsprung_mass":"kg per corner","spring.tire_rate":"N/mm vertical tire stiffness","spring.damper_bump_low":"N per m/s at the shaft, from the damper dyno; also _high and rebound_low/_high","spring.damper_knee":"mm/s shaft speed where low-speed turns into high-speed","sweep.bump_travel":"mm of bump to check (null = travel); with droop_travel, for a car whose travel isn't symmetric","sweep.droop_travel":"mm of droop to check (null = travel)","sweep.pack_heave_steps":"heave positions searched for the tightest link clearance (x pack_rack_steps rack positions at the front)","wheel.rim_inner_radius":"mm, radius of the inside of the rim barrel; null = rim radius - 15 mm (an estimate: measure your wheel)","wheel.caliper":"optional brake caliper envelope: {clock_deg (0 = forward, 90 = top), radius (mm, axle to caliper center), size (mm, bounding diameter), offset (mm along the axle, + outboard)}","vehicle.aero_front":"N of downforce on the front axle at your design speed (optional): reports sag and the ride frequency there","vehicle.aero_rear":"N of downforce on the rear axle at your design speed (optional)","halfshaft":"rear, optional: {diff_output: [x,y,z] inboard CV center, cv_outboard: [x,y,z] outboard CV center at ride height, cv_angle_max_in / cv_angle_max_out (deg), plunge_max (mm)}","members.rack_k":"N/mm, steering rack and its mounts along the rack (front compliance; optional estimate)","members.column_k":"N m/deg at the steering wheel, column torsion (needs vehicle.rack_c_factor; optional estimate)","clearance.halfshaft_od":"mm, halfshaft tube OD for its clearance to the links","clearance.caliper_margin":"mm, gap the caliper needs to the rim barrel and the links"},"defaults":{"name":"untitled","axle":"front","wheel":{"camber_deg":-1.0,"toe_deg":0.0,"tire_radius":254.0,"tire_width":190.5,"rim_diameter_in":13.0,"rim_inner_radius":null,"caliper":null},"vehicle":{"wheelbase":1700.0,"track":null,"cg_height":300.0,"front_brake_share":0.5,"brakes":"outboard","drive":"inboard","mass":280.0,"weight_front":0.46,"rack_c_factor":null,"aero_front":null,"aero_rear":null},"sweep":{"travel":30.0,"bump_travel":null,"droop_travel":null,"steps":41,"rack_travel":35.0,"rack_steps":14,"ackermann_at_outer_deg":15.0,"roll_deg":2.0,"roll_steps":9,"pack_heave_steps":9,"pack_rack_steps":7},"clearance":{"wishbone_tube_od":25.4,"tie_rod_od":16.0,"pushrod_od":15.9,"damper_od":55.0,"margin":5.0,"halfshaft_od":25.0,"caliper_margin":3.0},"rack_direction":[0.0,1.0,0.0],"targets":{},"targets_file":null,"spring":null,"loads":{"bump_g":3.0,"corner_g":1.6,"brake_g":1.6,"combined_g":1.2,"accel_g":1.0,"lltd_front":null,"pothole_g":4.0,"kerb_g":2.0,"brake_split":"bias"},"members":{"material":"4130 chromoly steel, normalized (yield is lower next to welds)","wishbone":[15.875,0.889],"tie_rod":[15.875,0.889],"pushrod":[15.875,0.889],"E":205000.0,"yield":435.0,"sf_target":2.0,"rod_end_rating":null,"bolt_dia":7.94,"bolt_grade":"SAE 8","bolt_shear_planes":2,"rod_end_k":40000.0,"mount_k":20000.0,"toe_comp_limit":0.15,"camber_comp_limit":0.25,"rack_k":null,"column_k":null},"halfshaft":null},"spring_defaults":{"rod_on":"lower","rod_outboard":null,"rocker_pivot":null,"rocker_axis":null,"rocker_rod":null,"rocker_damper":null,"damper_chassis":null,"spring_rate":35.0,"damper_stroke":null,"damper_eye_to_eye":null,"unsprung_mass":11.0,"tire_rate":110.0,"target_freq_hz":null,"damper_bump_low":null,"damper_bump_high":null,"damper_rebound_low":null,"damper_rebound_high":null,"damper_knee":50.0,"target_zeta_low":0.7,"target_zeta_high":0.35},"damper_keys":["damper_bump_low","damper_bump_high","damper_rebound_low","damper_rebound_high"]},"metrics":{"_doc":"Metric labels, units, decimals and help text, shared by the Python solver and the web app (term = the Learn-tab glossary entry). corner = per-corner metrics, car = whole-car balance.","corner":{"camber":{"label":"Static camber","unit":"deg","decimals":2,"help":"Wheel lean at ride height. Negative = top leans in. Sets static grip; tune with static camber shims.","term":"camber"},"toe":{"label":"Static toe (+ = in)","unit":"deg","decimals":3,"help":"Static toe. + = toe-in. Front usually slight toe-out, rear slight toe-in.","term":"toe"},"caster":{"label":"Caster","unit":"deg","decimals":2,"help":"Kingpin tilt seen from the side. More caster = more self-centring and camber gain while steering, heavier steering.","term":"caster"},"kpi":{"label":"KPI","unit":"deg","decimals":2,"help":"Kingpin inclination seen from the front. Drives scrub radius and steering-induced camber/jacking.","term":"kpi"},"scrub":{"label":"Scrub radius","unit":"mm","decimals":1,"help":"Distance from the steering axis ground point to the contact patch (+ = axis meets ground inboard). Large = kickback and heavy steering.","term":"scrub"},"trail":{"label":"Mechanical trail","unit":"mm","decimals":1,"help":"Distance from the steering axis ground point to the contact patch along X. Gives self-centring torque.","term":"trail"},"roll_center":{"label":"Roll center height","unit":"mm","decimals":1,"help":"Height of the roll center above ground. Higher = more load transfer through links, less body roll; big swings hurt consistency.","term":"roll_center"},"fvsa":{"label":"Front-view swing arm","unit":"mm","decimals":0,"help":"Front-view swing arm length. Sets camber gain and where the roll center moves in heave.","term":"fvsa"},"camber_gain":{"label":"Camber gain","unit":"deg/in","decimals":3,"help":"How much camber changes per inch of bump. Controlled by front-view swing arm (FVSA): longer FVSA = less gain.","term":"camber_gain"},"bump_steer":{"label":"Bump steer (+ = in)","unit":"deg/in","decimals":3,"help":"Toe change per inch of bump (+ = toe-in). Should be near 0. Fixed with tie-rod inboard/outboard heights.","term":"bump_steer"},"bump_steer_max":{"label":"Max |toe change|","unit":"deg","decimals":3,"help":"Largest toe change anywhere in the sweep. Catches curved toe traces that a slope hides."},"bump_steer_curve":{"label":"Toe curvature (avg of ends, + = in)","unit":"deg","decimals":3,"help":"Curved (U-shaped) part of the toe trace: toe at full bump and full droop averaged. Comes from tie-rod LENGTH/angle (move trackrod_inboard.y); the slope part comes from tie-rod HEIGHT."},"track_change":{"label":"Track change","unit":"mm","decimals":2,"help":"Sideways contact-patch movement over the sweep. Big = tire scrub and unpredictable grip.","term":"track_change"},"antidive":{"label":"Anti-dive","unit":"%","decimals":1,"help":"Share of braking weight transfer taken through the links at the front. 0 = all through springs.","term":"antidive"},"antisquat":{"label":"Anti-squat","unit":"%","decimals":1,"help":"Share of acceleration weight transfer taken through the links at the rear.","term":"antisquat"},"antilift":{"label":"Anti-lift","unit":"%","decimals":1,"help":"Rear equivalent of anti-dive: link share of braking transfer at the rear.","term":"antilift"},"ackermann":{"label":"Ackermann","unit":"%","decimals":0,"help":"How closely the steering matches the true-turning-geometry angle split. 0 = parallel steer, 100 = full Ackermann.","term":"ackermann"},"clearance_min":{"label":"Min link clearance","unit":"mm","decimals":1,"help":"Smallest center-line distance between moving links (tie rod, pushrod, wishbone legs) over heave and steer."},"clearance_margin":{"label":"Clearance margin (worst pair)","unit":"mm","decimals":1},"rim_margin":{"label":"Rim radial margin","unit":"mm","decimals":1,"help":"Gap between the farthest hardpoint and the rim radius (radial only)."},"caliper_rim_margin":{"label":"Caliper to rim barrel","unit":"mm","decimals":1,"help":"Gap from the brake caliper's outer edge to the inside of the rim barrel."},"roll_camber":{"label":"Roll camber (outer, to ground)","unit":"deg/deg","decimals":3,"help":"Camber change of the outer wheel relative to the GROUND per degree of body roll. 1.0 = wheel leans with the body (no compensation, e.g. equal parallel arms); 0 = wheel stays at static camber. More camber gain lowers it.","term":"roll_camber"},"roll_camber_max":{"label":"Outer camber to ground at max roll","unit":"deg","decimals":2},"rc_lat":{"label":"Roll center lateral shift","unit":"mm/deg","decimals":1,"help":"How far the roll center moves sideways per degree of roll. Large values make the car's balance change through a corner.","term":"rc_lat"},"rc_height_roll":{"label":"Roll center height at max roll","unit":"mm","decimals":1},"rc_min":{"label":"Lowest roll center over the travel","unit":"mm","decimals":1},"rc_max":{"label":"Highest roll center over the travel","unit":"mm","decimals":1},"roll_max_deg":{"label":"Body roll swept in the roll check","unit":"deg","decimals":1},"roll_steer":{"label":"Roll steer (outer, + = in)","unit":"deg/deg","decimals":3,"help":"Toe change of the outer wheel per degree of roll (+ = toe-in). Mostly bump steer seen through roll.","term":"roll_steer"},"turn_radius":{"label":"Turning radius (outer front wheel)","unit":"m","decimals":2,"help":"Path radius of the outer front wheel at full rack travel (kinematic, no slip). Must fit the tightest hairpin."},"steer_arm":{"label":"Steering arm length","unit":"mm","decimals":1,"help":"Distance from the tie-rod outer joint to the steering axis. Short arm = high rack force and sensitive steering.","term":"steer_arm"},"motion_ratio":{"label":"Motion ratio (damper/wheel)","unit":"","decimals":3,"help":"Damper travel per unit wheel travel at ride height. Wheel rate = spring rate x MR^2.","term":"motion_ratio"},"mr_progression":{"label":"Motion ratio change over travel","unit":"%","decimals":1,"term":"mr_progression"},"wheel_rate":{"label":"Wheel rate","unit":"N/mm","decimals":1,"term":"wheel_rate"},"ride_rate":{"label":"Ride rate (with tire)","unit":"N/mm","decimals":1,"term":"ride_rate"},"ride_freq":{"label":"Ride frequency","unit":"Hz","decimals":2,"help":"Natural frequency of the sprung corner on its springs and tire. Sets how stiff the car feels; FSAE cars often run 2.5-4.5 Hz.","term":"ride_freq"},"aero_sag":{"label":"Sag under downforce","unit":"mm","decimals":1,"help":"How far the corner sinks under the aero load at your design speed."},"ride_freq_aero":{"label":"Ride frequency under downforce","unit":"Hz","decimals":2,"help":"Ride frequency at the sagged position: it changes only through the motion ratio's progression."},"spring_for_target":{"label":"Spring rate for target freq","unit":"N/mm","decimals":1},"c_crit":{"label":"Critical damping at the wheel (body)","unit":"N s/m","decimals":0,"term":"critical_damping"},"c_crit_hop":{"label":"Critical damping at the wheel (wheel hop)","unit":"N s/m","decimals":0},"zeta_bump_low":{"label":"Damping ratio, bump low-speed","unit":"","decimals":2,"term":"damping_ratio"},"zeta_rebound_low":{"label":"Damping ratio, rebound low-speed","unit":"","decimals":2},"zeta_bump_high":{"label":"Damping ratio, bump high-speed","unit":"","decimals":2},"zeta_rebound_high":{"label":"Damping ratio, rebound high-speed","unit":"","decimals":2},"zeta_hop":{"label":"Wheel-hop damping ratio (bump high-speed)","unit":"","decimals":2},"damper_c_low_target":{"label":"Damper rate for the low-speed target","unit":"N s/m","decimals":0},"damper_c_high_target":{"label":"Damper rate for the high-speed target","unit":"N s/m","decimals":0},"damper_used":{"label":"Damper stroke used","unit":"mm","decimals":1},"damper_margin":{"label":"Damper stroke left","unit":"mm","decimals":1,"help":"Damper stroke left over after the full wheel travel."},"rocker_rot":{"label":"Rocker rotation over travel","unit":"deg","decimals":1},"static_spring_force":{"label":"Spring force at ride height","unit":"N","decimals":0},"damper_topout":{"label":"Damper room to full extension (droop)","unit":"mm","decimals":1,"help":"Room before the damper fully extends at full droop."},"damper_bottomout":{"label":"Damper room to full compression (bump)","unit":"mm","decimals":1,"help":"Room before the damper fully compresses at full bump."},"damper_static_pos":{"label":"Damper compressed at ride height","unit":"% stroke","decimals":0,"help":"How far into its stroke the damper sits at ride height. With symmetric bump/droop travel you want roughly 40-60 %.","term":"damper_stroke"},"trans_min":{"label":"Worst rocker transmission angle","unit":"deg","decimals":0,"help":"Angle between the rod (or damper) and the rocker arm it acts on, worst case over travel. 90 deg = best leverage; below ~45 deg the rocker approaches a toggle and the motion ratio changes quickly.","term":"trans_min"},"rod_angle":{"label":"Pushrod angle from horizontal","unit":"deg","decimals":0},"hop_freq":{"label":"Wheel-hop frequency","unit":"Hz","decimals":1},"link_clearance":{"label":"Link clearance","unit":"mm","decimals":1,"help":"Tightest center-line gap between moving links over travel and steer, against tube radii plus margin."},"hs_plunge":{"label":"Halfshaft plunge over travel","unit":"mm","decimals":1,"help":"How much the halfshaft length changes between the CV centers over bump, droop and roll. The inboard joint must slide this much."},"hs_cv_in_max":{"label":"Inboard CV angle, worst","unit":"deg","decimals":1,"help":"Largest angle between the halfshaft and the diff output axis over the travel."},"hs_cv_out_max":{"label":"Outboard CV angle, worst","unit":"deg","decimals":1,"help":"Largest angle between the halfshaft and the wheel's spin axis over the travel."},"hs_clearance_margin":{"label":"Halfshaft clearance margin","unit":"mm","decimals":1,"help":"Tightest gap from the halfshaft to a link, minus what the tube sizes need."}},"car":{"roll_gradient":{"label":"Roll gradient","unit":"deg/g","decimals":2},"lltd_vs_weight":{"label":"Front LLTD minus front weight","unit":"% points","decimals":1},"freq_ratio":{"label":"Ride frequency ratio, rear / front","unit":"","decimals":2}}},"targets":{"_doc":"Built-in target ranges: broad sanity checks, narrowed per design (targets) or by a team targets file. conditional ranges apply when the design has that part.","general":{"front":{"camber":[-3.0,-0.5],"camber_gain":[0.2,1.0],"caster":[3,8],"kpi":[0,9],"scrub":[0,30],"trail":[5,30],"toe":[-0.5,0.25],"roll_center":[0,75],"antidive":[0,40],"ackermann":[0,100],"bump_steer":[-0.05,0.05],"bump_steer_max":[null,0.1]},"rear":{"camber":[-3.0,-0.5],"camber_gain":[0.2,1.0],"toe":[0.0,0.5],"roll_center":[0,100],"antisquat":[0,60],"bump_steer":[-0.05,0.05],"bump_steer_max":[null,0.1]}},"conditional":{"spring":{"ride_freq":[2.5,4.5]},"damper_stroke":{"damper_margin":[0.0,null]},"damper_eye_to_eye":{"damper_topout":[2.0,null],"damper_bottomout":[2.0,null]},"rocker":{"trans_min":[45.0,null]},"damping":{"zeta_bump_low":[0.4,0.9],"zeta_rebound_low":[0.5,1.2]},"halfshaft":{"hs_cv_in_max":[null,24.0],"hs_cv_out_max":[null,24.0],"hs_clearance_margin":[0.0,null]}},"car":{"roll_gradient":[0.5,1.5],"lltd_vs_weight":[0.0,10.0],"freq_ratio":[1.0,1.2]}},"points":{"_doc":"Point names. key = JSON key (KineSolver naming, 'front' = smaller X); short = internal name; label and hint = the web app's input table; aliases = extra names the CSV importer accepts.","hardpoints":[{"key":"upper_inboard_front","short":"uif","label":"Upper inboard front","hint":"smaller-X pivot"},{"key":"upper_inboard_rear","short":"uir","label":"Upper inboard rear","hint":"larger-X pivot"},{"key":"lower_inboard_front","short":"lif","label":"Lower inboard front","hint":"smaller-X pivot"},{"key":"lower_inboard_rear","short":"lir","label":"Lower inboard rear","hint":"larger-X pivot"},{"key":"upper_outboard","short":"ubj","label":"Upper outboard","hint":"upper ball joint"},{"key":"lower_outboard","short":"lbj","label":"Lower outboard","hint":"lower ball joint"},{"key":"trackrod_inboard","short":"tri","label":"Trackrod inboard","hint":"rack end"},{"key":"trackrod_outboard","short":"tro","label":"Trackrod outboard","hint":"steering arm"},{"key":"contact_patch","short":"cp","label":"Tire contact patch","hint":"ground, Z = 0"}],"spring_points":[{"key":"rod_outboard","label":"Pushrod outboard","hint":"on the arm / upright"},{"key":"rocker_pivot","label":"Rocker pivot","hint":"chassis"},{"key":"rocker_axis","label":"Rocker axis","hint":"pivot bolt direction"},{"key":"rocker_rod","label":"Rocker – pushrod point","hint":""},{"key":"rocker_damper","label":"Rocker – damper point","hint":""},{"key":"damper_chassis","label":"Damper chassis mount","hint":""}],"aliases":{"tie_rod_inboard":"tri","tie_rod_outboard":"tro","tierod_inboard":"tri","tierod_outboard":"tro","toe_link_inboard":"tri","toe_link_outboard":"tro","upper_ball_joint":"ubj","lower_ball_joint":"lbj","upper_balljoint":"ubj","lower_balljoint":"lbj","contact":"cp","tire_contact_patch":"cp","tyre_contact_patch":"cp","uca_front":"uif","uca_rear":"uir","lca_front":"lif","lca_rear":"lir"},"spring_aliases":{"pushrod_outboard":"rod_outboard","pullrod_outboard":"rod_outboard","rocker_pushrod":"rocker_rod","damper_inboard":"damper_chassis","shock_chassis":"damper_chassis","rocker_shock":"rocker_damper"}},"moves":{"_doc":"Candidate moves for advice ('What moves this?' in the app, 'run' advice and 'sens' on the command line). Each single point is tried along X, Y and Z; each group moves its points together by the same amount. Spring-side metrics (motion ratio, damper, rocker, ride frequency) are moved with the spring points.","hardpoints":["upper_inboard_front","upper_inboard_rear","lower_inboard_front","lower_inboard_rear","trackrod_inboard","trackrod_outboard","upper_outboard","lower_outboard"],"spring_points":["rod_outboard","rocker_rod","rocker_damper","damper_chassis","rocker_pivot"],"spring_metrics":["motion_ratio","mr_progression","damper_margin","damper_topout","damper_bottomout","damper_static_pos","trans_min","rod_angle","rocker_rot","ride_freq","damper_used"],"groups":[{"id":"grp_lower_z","points":["lower_inboard_front","lower_inboard_rear"],"axis":"z","name":"both lower inboard pivots"},{"id":"grp_upper_z","points":["upper_inboard_front","upper_inboard_rear"],"axis":"z","name":"both upper inboard pivots"},{"id":"grp_lower_y","points":["lower_inboard_front","lower_inboard_rear"],"axis":"y","name":"both lower inboard pivots"},{"id":"grp_upper_y","points":["upper_inboard_front","upper_inboard_rear"],"axis":"y","name":"both upper inboard pivots"},{"id":"grp_tierod_z","points":["trackrod_inboard","trackrod_outboard"],"axis":"z","name":"the whole tie rod"}]}};
+window.SUSP_SCHEMA = {"defaults":{"_doc":{"vehicle.track":"null -> 2 x contact patch Y","vehicle.brakes":"'outboard' (at the upright) or 'inboard' (on the chassis)","vehicle.drive":"rear only: 'inboard' (chassis-mounted diff) or 'outboard'","vehicle.mass":"whole car including the driver, kg","vehicle.weight_front":"fraction of the weight on the front axle","vehicle.rack_c_factor":"rack mm per steering-wheel turn (optional)","targets_file":"optional shared team targets JSON, path relative to this design file","spring":"optional block (null = not modeled); see spring_defaults","loads.pothole_g":"impact: vertical load as a multiple of the static wheel load","loads.kerb_g":"impact: sideways load on the wheel (pushing it inboard), multiple of the static load","loads.brake_split":"'bias': braking force shared by vehicle.front_brake_share; 'grip': Fx = g x Fz","loads.lltd_front":"front lateral load transfer share; null = from the car's roll balance or the weight split","members.rod_end_rating":"N, the rod end's catalog radial static (ultimate) rating; null = not checked","members.bolt_dia":"mm, bolt through each rod end (7.94 = 5/16 in)","members.bolt_grade":"8.8, 10.9, 12.9, SAE 5 or SAE 8","members.bolt_shear_planes":"2 = double shear (clevis), 1 = single shear","members.rod_end_k":"N/mm, axial stiffness of one rod end (each link has two); an estimate","members.mount_k":"N/mm, chassis tab or bracket at the inboard end of each link; an estimate","members.toe_comp_limit":"deg, largest acceptable compliance toe change (cornering, braking, accel)","members.camber_comp_limit":"deg, largest acceptable compliance camber change","spring.rod_on":"'lower' arm, 'upper' arm or 'upright'","spring.rocker_axis":"direction of the rocker pivot bolt","spring.spring_rate":"N/mm","spring.damper_stroke":"mm, optional","spring.damper_eye_to_eye":"mm, fully extended, optional","spring.unsprung_mass":"kg per corner","spring.tire_rate":"N/mm vertical tire stiffness","spring.damper_bump_low":"N per m/s at the shaft, from the damper dyno; also _high and rebound_low/_high","spring.damper_knee":"mm/s shaft speed where low-speed turns into high-speed","sweep.bump_travel":"mm of bump to check (null = travel); with droop_travel, for a car whose travel isn't symmetric","sweep.droop_travel":"mm of droop to check (null = travel)","sweep.pack_heave_steps":"heave positions searched for the tightest link clearance (x pack_rack_steps rack positions at the front)","wheel.rim_inner_radius":"mm, radius of the inside of the rim barrel; null = rim radius - 15 mm (an estimate: measure your wheel)","wheel.caliper":"optional brake caliper envelope: {clock_deg (0 = forward, 90 = top), radius (mm, axle to caliper center), size (mm, bounding diameter), offset (mm along the axle, + outboard)}","vehicle.aero_front":"N of downforce on the front axle at your design speed (optional): reports sag and the ride frequency there","vehicle.aero_rear":"N of downforce on the rear axle at your design speed (optional)","halfshaft":"rear, optional: {diff_output: [x,y,z] inboard CV center, cv_outboard: [x,y,z] outboard CV center at ride height, cv_angle_max_in / cv_angle_max_out (deg), plunge_max (mm)}","members.rack_k":"N/mm, steering rack and its mounts along the rack (front compliance; optional estimate)","members.column_k":"N m/deg at the steering wheel, column torsion (needs vehicle.rack_c_factor; optional estimate)","clearance.halfshaft_od":"mm, halfshaft tube OD for its clearance to the links","clearance.caliper_margin":"mm, gap the caliper needs to the rim barrel and the links","members.rod_end_misalign":"deg, the rod ends' catalog misalignment limit (each side of square); joints.<key>.allow overrides one joint","members.bearing_misalign":"deg, the spherical bearings' (ball joints') catalog misalignment limit","joints":"per-joint overrides keyed like the hardpoints and spring points: {\"bolt\": \"x\"|\"y\"|\"z\"|\"pivot\"|\"kingpin\"|\"rocker\"|[x, y, z], \"square\": true|false, \"type\": \"rod_end\"|\"bearing\", \"allow\": deg}"},"defaults":{"name":"untitled","axle":"front","wheel":{"camber_deg":-1.0,"toe_deg":0.0,"tire_radius":254.0,"tire_width":190.5,"rim_diameter_in":13.0,"rim_inner_radius":null,"caliper":null},"vehicle":{"wheelbase":1700.0,"track":null,"cg_height":300.0,"front_brake_share":0.5,"brakes":"outboard","drive":"inboard","mass":280.0,"weight_front":0.46,"rack_c_factor":null,"aero_front":null,"aero_rear":null},"sweep":{"travel":30.0,"bump_travel":null,"droop_travel":null,"steps":41,"rack_travel":35.0,"rack_steps":14,"ackermann_at_outer_deg":15.0,"roll_deg":2.0,"roll_steps":9,"pack_heave_steps":9,"pack_rack_steps":7},"clearance":{"wishbone_tube_od":25.4,"tie_rod_od":16.0,"pushrod_od":15.9,"damper_od":55.0,"margin":5.0,"halfshaft_od":25.0,"caliper_margin":3.0},"rack_direction":[0.0,1.0,0.0],"targets":{},"targets_file":null,"spring":null,"loads":{"bump_g":3.0,"corner_g":1.6,"brake_g":1.6,"combined_g":1.2,"accel_g":1.0,"lltd_front":null,"pothole_g":4.0,"kerb_g":2.0,"brake_split":"bias"},"members":{"material":"4130 chromoly steel, normalized (yield is lower next to welds)","wishbone":[15.875,0.889],"tie_rod":[15.875,0.889],"pushrod":[15.875,0.889],"E":205000.0,"yield":435.0,"sf_target":2.0,"rod_end_rating":null,"rod_end_misalign":12.0,"bearing_misalign":10.0,"bolt_dia":7.94,"bolt_grade":"SAE 8","bolt_shear_planes":2,"rod_end_k":40000.0,"mount_k":20000.0,"toe_comp_limit":0.15,"camber_comp_limit":0.25,"rack_k":null,"column_k":null},"halfshaft":null,"joints":{}},"spring_defaults":{"rod_on":"lower","rod_outboard":null,"rocker_pivot":null,"rocker_axis":null,"rocker_rod":null,"rocker_damper":null,"damper_chassis":null,"spring_rate":35.0,"damper_stroke":null,"damper_eye_to_eye":null,"unsprung_mass":11.0,"tire_rate":110.0,"target_freq_hz":null,"damper_bump_low":null,"damper_bump_high":null,"damper_rebound_low":null,"damper_rebound_high":null,"damper_knee":50.0,"target_zeta_low":0.7,"target_zeta_high":0.35},"damper_keys":["damper_bump_low","damper_bump_high","damper_rebound_low","damper_rebound_high"]},"metrics":{"_doc":"Metric labels, units, decimals and help text, shared by the Python solver and the web app (term = the Learn-tab glossary entry). corner = per-corner metrics, car = whole-car balance.","corner":{"camber":{"label":"Static camber","unit":"deg","decimals":2,"help":"Wheel lean at ride height. Negative = top leans in. Sets static grip; tune with static camber shims.","term":"camber"},"toe":{"label":"Static toe (+ = in)","unit":"deg","decimals":3,"help":"Static toe. + = toe-in. Front usually slight toe-out, rear slight toe-in.","term":"toe"},"caster":{"label":"Caster","unit":"deg","decimals":2,"help":"Kingpin tilt seen from the side. More caster = more self-centring and camber gain while steering, heavier steering.","term":"caster"},"kpi":{"label":"KPI","unit":"deg","decimals":2,"help":"Kingpin inclination seen from the front. Drives scrub radius and steering-induced camber/jacking.","term":"kpi"},"scrub":{"label":"Scrub radius","unit":"mm","decimals":1,"help":"Distance from the steering axis ground point to the contact patch (+ = axis meets ground inboard). Large = kickback and heavy steering.","term":"scrub"},"trail":{"label":"Mechanical trail","unit":"mm","decimals":1,"help":"Distance from the steering axis ground point to the contact patch along X. Gives self-centring torque.","term":"trail"},"roll_center":{"label":"Roll center height","unit":"mm","decimals":1,"help":"Height of the roll center above ground. Higher = more load transfer through links, less body roll; big swings hurt consistency.","term":"roll_center"},"fvsa":{"label":"Front-view swing arm","unit":"mm","decimals":0,"help":"Front-view swing arm length. Sets camber gain and where the roll center moves in heave.","term":"fvsa"},"camber_gain":{"label":"Camber gain","unit":"deg/in","decimals":3,"help":"How much camber changes per inch of bump. Controlled by front-view swing arm (FVSA): longer FVSA = less gain.","term":"camber_gain"},"bump_steer":{"label":"Bump steer (+ = in)","unit":"deg/in","decimals":3,"help":"Toe change per inch of bump (+ = toe-in). Should be near 0. Fixed with tie-rod inboard/outboard heights.","term":"bump_steer"},"bump_steer_max":{"label":"Max |toe change|","unit":"deg","decimals":3,"help":"Largest toe change anywhere in the sweep. Catches curved toe traces that a slope hides."},"bump_steer_curve":{"label":"Toe curvature (avg of ends, + = in)","unit":"deg","decimals":3,"help":"Curved (U-shaped) part of the toe trace: toe at full bump and full droop averaged. Comes from tie-rod LENGTH/angle (move trackrod_inboard.y); the slope part comes from tie-rod HEIGHT."},"track_change":{"label":"Track change","unit":"mm","decimals":2,"help":"Sideways contact-patch movement over the sweep. Big = tire scrub and unpredictable grip.","term":"track_change"},"antidive":{"label":"Anti-dive","unit":"%","decimals":1,"help":"Share of braking weight transfer taken through the links at the front. 0 = all through springs.","term":"antidive"},"antisquat":{"label":"Anti-squat","unit":"%","decimals":1,"help":"Share of acceleration weight transfer taken through the links at the rear.","term":"antisquat"},"antilift":{"label":"Anti-lift","unit":"%","decimals":1,"help":"Rear equivalent of anti-dive: link share of braking transfer at the rear.","term":"antilift"},"ackermann":{"label":"Ackermann","unit":"%","decimals":0,"help":"How closely the steering matches the true-turning-geometry angle split. 0 = parallel steer, 100 = full Ackermann.","term":"ackermann"},"clearance_min":{"label":"Min link clearance","unit":"mm","decimals":1,"help":"Smallest center-line distance between moving links (tie rod, pushrod, wishbone legs) over heave and steer."},"clearance_margin":{"label":"Clearance margin (worst pair)","unit":"mm","decimals":1},"rim_margin":{"label":"Rim radial margin","unit":"mm","decimals":1,"help":"Gap between the farthest hardpoint and the rim radius (radial only)."},"caliper_rim_margin":{"label":"Caliper to rim barrel","unit":"mm","decimals":1,"help":"Gap from the brake caliper's outer edge to the inside of the rim barrel."},"misalign_max":{"label":"Worst joint misalignment","unit":"deg","decimals":1,"help":"The largest angle any rod end or spherical bearing tilts away from its bolt, over the whole travel and rack range. Compare with the catalog's misalignment limit; see the misalignment table."},"misalign_margin":{"label":"Joint misalignment margin","unit":"deg","decimals":1,"help":"Catalog misalignment limit minus the worst angle, for the joint closest to its limit. Below 0 that joint binds: use a high-misalignment rod end, add misalignment spacers, or turn its bracket (the table suggests the best bolt direction)."},"roll_camber":{"label":"Roll camber (outer, to ground)","unit":"deg/deg","decimals":3,"help":"Camber change of the outer wheel relative to the GROUND per degree of body roll. 1.0 = wheel leans with the body (no compensation, e.g. equal parallel arms); 0 = wheel stays at static camber. More camber gain lowers it.","term":"roll_camber"},"roll_camber_max":{"label":"Outer camber to ground at max roll","unit":"deg","decimals":2},"rc_lat":{"label":"Roll center lateral shift","unit":"mm/deg","decimals":1,"help":"How far the roll center moves sideways per degree of roll. Large values make the car's balance change through a corner.","term":"rc_lat"},"rc_height_roll":{"label":"Roll center height at max roll","unit":"mm","decimals":1},"rc_min":{"label":"Lowest roll center over the travel","unit":"mm","decimals":1},"rc_max":{"label":"Highest roll center over the travel","unit":"mm","decimals":1},"roll_max_deg":{"label":"Body roll swept in the roll check","unit":"deg","decimals":1},"roll_steer":{"label":"Roll steer (outer, + = in)","unit":"deg/deg","decimals":3,"help":"Toe change of the outer wheel per degree of roll (+ = toe-in). Mostly bump steer seen through roll.","term":"roll_steer"},"turn_radius":{"label":"Turning radius (outer front wheel)","unit":"m","decimals":2,"help":"Path radius of the outer front wheel at full rack travel (kinematic, no slip). Must fit the tightest hairpin."},"steer_arm":{"label":"Steering arm length","unit":"mm","decimals":1,"help":"Distance from the tie-rod outer joint to the steering axis. Short arm = high rack force and sensitive steering.","term":"steer_arm"},"motion_ratio":{"label":"Motion ratio (damper/wheel)","unit":"","decimals":3,"help":"Damper travel per unit wheel travel at ride height. Wheel rate = spring rate x MR^2.","term":"motion_ratio"},"mr_progression":{"label":"Motion ratio change over travel","unit":"%","decimals":1,"term":"mr_progression"},"wheel_rate":{"label":"Wheel rate","unit":"N/mm","decimals":1,"term":"wheel_rate"},"ride_rate":{"label":"Ride rate (with tire)","unit":"N/mm","decimals":1,"term":"ride_rate"},"ride_freq":{"label":"Ride frequency","unit":"Hz","decimals":2,"help":"Natural frequency of the sprung corner on its springs and tire. Sets how stiff the car feels; FSAE cars often run 2.5-4.5 Hz.","term":"ride_freq"},"aero_sag":{"label":"Sag under downforce","unit":"mm","decimals":1,"help":"How far the corner sinks under the aero load at your design speed."},"ride_freq_aero":{"label":"Ride frequency under downforce","unit":"Hz","decimals":2,"help":"Ride frequency at the sagged position: it changes only through the motion ratio's progression."},"spring_for_target":{"label":"Spring rate for target freq","unit":"N/mm","decimals":1},"c_crit":{"label":"Critical damping at the wheel (body)","unit":"N s/m","decimals":0,"term":"critical_damping"},"c_crit_hop":{"label":"Critical damping at the wheel (wheel hop)","unit":"N s/m","decimals":0},"zeta_bump_low":{"label":"Damping ratio, bump low-speed","unit":"","decimals":2,"term":"damping_ratio"},"zeta_rebound_low":{"label":"Damping ratio, rebound low-speed","unit":"","decimals":2},"zeta_bump_high":{"label":"Damping ratio, bump high-speed","unit":"","decimals":2},"zeta_rebound_high":{"label":"Damping ratio, rebound high-speed","unit":"","decimals":2},"zeta_hop":{"label":"Wheel-hop damping ratio (bump high-speed)","unit":"","decimals":2},"damper_c_low_target":{"label":"Damper rate for the low-speed target","unit":"N s/m","decimals":0},"damper_c_high_target":{"label":"Damper rate for the high-speed target","unit":"N s/m","decimals":0},"damper_used":{"label":"Damper stroke used","unit":"mm","decimals":1},"damper_margin":{"label":"Damper stroke left","unit":"mm","decimals":1,"help":"Damper stroke left over after the full wheel travel."},"rocker_rot":{"label":"Rocker rotation over travel","unit":"deg","decimals":1},"static_spring_force":{"label":"Spring force at ride height","unit":"N","decimals":0},"damper_topout":{"label":"Damper room to full extension (droop)","unit":"mm","decimals":1,"help":"Room before the damper fully extends at full droop."},"damper_bottomout":{"label":"Damper room to full compression (bump)","unit":"mm","decimals":1,"help":"Room before the damper fully compresses at full bump."},"damper_static_pos":{"label":"Damper compressed at ride height","unit":"% stroke","decimals":0,"help":"How far into its stroke the damper sits at ride height. With symmetric bump/droop travel you want roughly 40-60 %.","term":"damper_stroke"},"trans_min":{"label":"Worst rocker transmission angle","unit":"deg","decimals":0,"help":"Angle between the rod (or damper) and the rocker arm it acts on, worst case over travel. 90 deg = best leverage; below ~45 deg the rocker approaches a toggle and the motion ratio changes quickly.","term":"trans_min"},"rod_angle":{"label":"Pushrod angle from horizontal","unit":"deg","decimals":0},"hop_freq":{"label":"Wheel-hop frequency","unit":"Hz","decimals":1},"link_clearance":{"label":"Link clearance","unit":"mm","decimals":1,"help":"Tightest center-line gap between moving links over travel and steer, against tube radii plus margin."},"hs_plunge":{"label":"Halfshaft plunge over travel","unit":"mm","decimals":1,"help":"How much the halfshaft length changes between the CV centers over bump, droop and roll. The inboard joint must slide this much."},"hs_cv_in_max":{"label":"Inboard CV angle, worst","unit":"deg","decimals":1,"help":"Largest angle between the halfshaft and the diff output axis over the travel."},"hs_cv_out_max":{"label":"Outboard CV angle, worst","unit":"deg","decimals":1,"help":"Largest angle between the halfshaft and the wheel's spin axis over the travel."},"hs_clearance_margin":{"label":"Halfshaft clearance margin","unit":"mm","decimals":1,"help":"Tightest gap from the halfshaft to a link, minus what the tube sizes need."}},"car":{"roll_gradient":{"label":"Roll gradient","unit":"deg/g","decimals":2},"lltd_vs_weight":{"label":"Front LLTD minus front weight","unit":"% points","decimals":1},"freq_ratio":{"label":"Ride frequency ratio, rear / front","unit":"","decimals":2}}},"targets":{"_doc":"Built-in target ranges: broad sanity checks, narrowed per design (targets) or by a team targets file. conditional ranges apply when the design has that part.","general":{"front":{"camber":[-3.0,-0.5],"camber_gain":[0.2,1.0],"caster":[3,8],"kpi":[0,9],"scrub":[0,30],"trail":[5,30],"toe":[-0.5,0.25],"roll_center":[0,75],"antidive":[0,40],"ackermann":[0,100],"bump_steer":[-0.05,0.05],"bump_steer_max":[null,0.1],"misalign_margin":[0,null]},"rear":{"camber":[-3.0,-0.5],"camber_gain":[0.2,1.0],"toe":[0.0,0.5],"roll_center":[0,100],"antisquat":[0,60],"bump_steer":[-0.05,0.05],"bump_steer_max":[null,0.1],"misalign_margin":[0,null]}},"conditional":{"spring":{"ride_freq":[2.5,4.5]},"damper_stroke":{"damper_margin":[0.0,null]},"damper_eye_to_eye":{"damper_topout":[2.0,null],"damper_bottomout":[2.0,null]},"rocker":{"trans_min":[45.0,null]},"damping":{"zeta_bump_low":[0.4,0.9],"zeta_rebound_low":[0.5,1.2]},"halfshaft":{"hs_cv_in_max":[null,24.0],"hs_cv_out_max":[null,24.0],"hs_clearance_margin":[0.0,null]}},"car":{"roll_gradient":[0.5,1.5],"lltd_vs_weight":[0.0,10.0],"freq_ratio":[1.0,1.2]}},"points":{"_doc":"Point names. key = JSON key (KineSolver naming, 'front' = smaller X); short = internal name; label and hint = the web app's input table; aliases = extra names the CSV importer accepts.","hardpoints":[{"key":"upper_inboard_front","short":"uif","label":"Upper inboard front","hint":"smaller-X pivot"},{"key":"upper_inboard_rear","short":"uir","label":"Upper inboard rear","hint":"larger-X pivot"},{"key":"lower_inboard_front","short":"lif","label":"Lower inboard front","hint":"smaller-X pivot"},{"key":"lower_inboard_rear","short":"lir","label":"Lower inboard rear","hint":"larger-X pivot"},{"key":"upper_outboard","short":"ubj","label":"Upper outboard","hint":"upper ball joint"},{"key":"lower_outboard","short":"lbj","label":"Lower outboard","hint":"lower ball joint"},{"key":"trackrod_inboard","short":"tri","label":"Trackrod inboard","hint":"rack end"},{"key":"trackrod_outboard","short":"tro","label":"Trackrod outboard","hint":"steering arm"},{"key":"contact_patch","short":"cp","label":"Tire contact patch","hint":"ground, Z = 0"}],"spring_points":[{"key":"rod_outboard","label":"Pushrod outboard","hint":"on the arm / upright"},{"key":"rocker_pivot","label":"Rocker pivot","hint":"chassis"},{"key":"rocker_axis","label":"Rocker axis","hint":"pivot bolt direction"},{"key":"rocker_rod","label":"Rocker – pushrod point","hint":""},{"key":"rocker_damper","label":"Rocker – damper point","hint":""},{"key":"damper_chassis","label":"Damper chassis mount","hint":""}],"aliases":{"tie_rod_inboard":"tri","tie_rod_outboard":"tro","tierod_inboard":"tri","tierod_outboard":"tro","toe_link_inboard":"tri","toe_link_outboard":"tro","upper_ball_joint":"ubj","lower_ball_joint":"lbj","upper_balljoint":"ubj","lower_balljoint":"lbj","contact":"cp","tire_contact_patch":"cp","tyre_contact_patch":"cp","uca_front":"uif","uca_rear":"uir","lca_front":"lif","lca_rear":"lir"},"spring_aliases":{"pushrod_outboard":"rod_outboard","pullrod_outboard":"rod_outboard","rocker_pushrod":"rocker_rod","damper_inboard":"damper_chassis","shock_chassis":"damper_chassis","rocker_shock":"rocker_damper"}},"moves":{"_doc":"Candidate moves for advice ('What moves this?' in the app, 'run' advice and 'sens' on the command line). Each single point is tried along X, Y and Z; each group moves its points together by the same amount. Spring-side metrics (motion ratio, damper, rocker, ride frequency) are moved with the spring points.","hardpoints":["upper_inboard_front","upper_inboard_rear","lower_inboard_front","lower_inboard_rear","trackrod_inboard","trackrod_outboard","upper_outboard","lower_outboard"],"spring_points":["rod_outboard","rocker_rod","rocker_damper","damper_chassis","rocker_pivot"],"spring_metrics":["motion_ratio","mr_progression","damper_margin","damper_topout","damper_bottomout","damper_static_pos","trans_min","rod_angle","rocker_rot","ride_freq","damper_used"],"groups":[{"id":"grp_lower_z","points":["lower_inboard_front","lower_inboard_rear"],"axis":"z","name":"both lower inboard pivots"},{"id":"grp_upper_z","points":["upper_inboard_front","upper_inboard_rear"],"axis":"z","name":"both upper inboard pivots"},{"id":"grp_lower_y","points":["lower_inboard_front","lower_inboard_rear"],"axis":"y","name":"both lower inboard pivots"},{"id":"grp_upper_y","points":["upper_inboard_front","upper_inboard_rear"],"axis":"y","name":"both upper inboard pivots"},{"id":"grp_tierod_z","points":["trackrod_inboard","trackrod_outboard"],"axis":"z","name":"the whole tie rod"}]}};
 /* susp.js - FSAE double-wishbone solver (browser port of the Python `susp` package). GENERATED by ui/build.py
    from ui/solver/*.js - edit those. Same conventions: X forward, Y outboard, Z up, mm, deg, N; right-hand wheel;
    ground at Z = 0. Every function mirrors a Python function of the same name; tests/test_parity.py compares them. */
@@ -901,6 +906,21 @@ function checkExtras(cfg) {
   if (cal != null) {
     const miss = ["clock_deg", "radius", "size", "offset"].filter(k => !num((cal || {})[k]));
     if (miss.length) throw new SolveError("wheel.caliper needs numbers for " + miss.join(", "));
+  }
+  const js = cfg.joints || {};
+  if (typeof js !== "object" || Array.isArray(js)) throw new SolveError("joints must be an object keyed by joint");
+  for (const [k, v] of Object.entries(js)) {
+    if (!(k in DEFAULT_JOINTS)) throw new SolveError(`joints.${k} is not a joint; use one of ${Object.keys(DEFAULT_JOINTS).join(", ")}`);
+    if (!v || typeof v !== "object") throw new SolveError(`joints.${k} must be an object like {"bolt": "z", "allow": 13}`);
+    const b = v.bolt;
+    if (b != null && !(["x", "y", "z", "pivot", "kingpin", "rocker"].includes(b) || (vec3(b) && b.some(c => c))))
+      throw new SolveError(`joints.${k}.bolt must be x, y, z, pivot, kingpin, rocker or [x, y, z]`);
+    if (v.type != null && !["rod_end", "bearing"].includes(v.type)) throw new SolveError(`joints.${k}.type must be rod_end or bearing`);
+    if (v.type === "bearing" && !["upper_outboard", "lower_outboard"].includes(k))
+      throw new SolveError(`joints.${k}: only the ball joints can be modeled as a bearing`);
+    if (v.allow != null && !(num(v.allow) && v.allow > 0)) throw new SolveError(`joints.${k}.allow must be a positive angle in degrees`);
+    if (b === "rocker" && !(cfg.spring || {}).rocker_axis)
+      throw new SolveError(`joints.${k}.bolt = rocker needs a rocker (spring.rocker_axis)`);
   }
   const hs = cfg.halfshaft;
   if (hs != null && !(vec3(hs.diff_output) && vec3(hs.cv_outboard)))
@@ -1339,12 +1359,17 @@ class Suspension {
     });
   }
   grid(heaves, racks) {
+    // cached: packaging and the joint check share it
+    const key = JSON.stringify([heaves.map(Number), racks.map(Number)]);
+    this._grid = this._grid || new Map();
+    if (this._grid.has(key)) return this._grid.get(key);
     const xs = this.states(heaves),
       out = [];
     for (const hz of heaves) {
       const xh = xs.get(Number(hz));
       for (const rk of racks) out.push([hz, rk, rk ? this.ramp(xh, [hz, 0], [hz, rk]) : xh]);
     }
+    this._grid.set(key, out);
     return out;
   }
   steerArm() {
@@ -1565,6 +1590,9 @@ function evaluate(rawCfg, opts = {}) {
     m.clearance_margin = out.pack.min_clearance - out.pack.required;
     m.rim_margin = out.pack.rim_margin;
     for (const k of ["caliper_rim_margin", "hs_clearance_margin"]) if (k in out.pack) m[k] = out.pack[k];
+    out.joints = misalignment(cfg, s, out.spring);
+    m.misalign_margin = out.joints.margin;
+    m.misalign_max = Math.max(...out.joints.rows.map(r => r.worst));
   }
   if (cfg.axle === "rear" && cfg.halfshaft) Object.assign(m, s.halfshaft(rows));
   out.checks = checkTargets(cfg, m, out.pack);
@@ -1826,6 +1854,171 @@ function damping(sc, MR, kw, kr, kt, ms) {
     if (sc[k]) out[n] = (+sc[k] * MR * MR) / cc;
   if (sc.damper_bump_high) out.zeta_hop = (+sc.damper_bump_high * MR * MR) / ch;
   return out;
+}
+/* 35_joints.js: Rod-end and spherical-bearing misalignment over the travel and rack range (Python: joints.py). */
+// key: [label, kind, bolt, square]; keys match the hardpoint / spring point each joint sits on
+const DEFAULT_JOINTS = {
+  upper_inboard_front: ["Upper wishbone, inboard (pivot {uif})", "rod_end", "pivot", true],
+  upper_inboard_rear: ["Upper wishbone, inboard (pivot {uir})", "rod_end", "pivot", true],
+  lower_inboard_front: ["Lower wishbone, inboard (pivot {lif})", "rod_end", "pivot", true],
+  lower_inboard_rear: ["Lower wishbone, inboard (pivot {lir})", "rod_end", "pivot", true],
+  upper_outboard: ["Upper ball joint", "bearing", "kingpin", false],
+  lower_outboard: ["Lower ball joint", "bearing", "kingpin", false],
+  trackrod_inboard: ["{rod}, inboard", "rod_end", "z", true],
+  trackrod_outboard: ["{rod}, outboard", "rod_end", "z", true],
+  rod_outboard: ["Pushrod, outboard", "rod_end", "pivot", false],
+  rocker_rod: ["Pushrod, rocker end", "rod_end", "rocker", false],
+  rocker_damper: ["Damper, rocker end", "rod_end", "rocker", false],
+  damper_chassis: ["Damper, chassis end", "rod_end", "rocker", false],
+};
+const EYE3 = [
+  [1, 0, 0],
+  [0, 1, 0],
+  [0, 0, 1],
+];
+function armR([a, b], bj0, bj) {
+  const u = unit(sub(b, a)),
+    v0 = perp(sub(bj0, a), u),
+    v1 = perp(sub(bj, a), u);
+  return rodrigues(mul(u, Math.atan2(dot(u, cross(v0, v1)), dot(v0, v1))));
+}
+function misalignment(cfg, s, sp) {
+  const sw = cfg.sweep,
+    mem = cfg.members,
+    [D, B] = travelRange(cfg),
+    h = s.h,
+    rear = cfg.axle === "rear";
+  const heaves = heavePoints(D, B, +(sw.pack_heave_steps || 9)),
+    racks = cfg.axle === "front" ? heavePoints(sw.rack_travel, sw.rack_travel, +(sw.pack_rack_steps || 7)) : [0];
+  const piv = { upper: [h.uif, h.uir], lower: [h.lif, h.lir] },
+    names = {
+      uif: `X=${h.uif[0].toFixed(0)}`,
+      uir: `X=${h.uir[0].toFixed(0)}`,
+      lif: `X=${h.lif[0].toFixed(0)}`,
+      lir: `X=${h.lir[0].toFixed(0)}`,
+      rod: rear ? "Toe link" : "Tie rod",
+    };
+  const jl = [];
+  for (const [key, arm, pk, bj] of [
+    ["upper_inboard_front", "upper", "uif", "ub"],
+    ["upper_inboard_rear", "upper", "uir", "ub"],
+    ["lower_inboard_front", "lower", "lif", "lb"],
+    ["lower_inboard_rear", "lower", "lir", "lb"],
+  ])
+    jl.push([key, "chassis", P => unit(sub(P.pts[bj], h[pk])), arm]);
+  jl.push(["upper_outboard", "upright", null, "upper"], ["lower_outboard", "upright", null, "lower"]);
+  const tr = P => unit(sub(P.pts.tro, P.pts.tri));
+  jl.push(["trackrod_inboard", "chassis", tr, null], ["trackrod_outboard", "upright", tr, null]);
+  if (sp) {
+    const on = sp.on === "upper" || sp.on === "lower" ? sp.on : "upright",
+      dmp = P => unit(sub(sp.dch, P.st.damper_out));
+    if (!sp.direct) {
+      const pr = P => unit(sub(P.st.rod_in, P.st.rod_out));
+      jl.push(
+        ["rod_outboard", on, pr, on !== "upright" ? sp.on : null],
+        ["rocker_rod", "rocker", pr, null],
+        ["rocker_damper", "rocker", dmp, null]
+      );
+    } else jl.push(["rod_outboard", on, dmp, on !== "upright" ? sp.on : null]);
+    jl.push(["damper_chassis", "chassis", dmp, null]);
+  }
+  const user = cfg.joints || {},
+    P0 = { ub: s.P0[0], lb: s.P0[1] };
+  const poses = [];
+  for (const [hz, rk, x] of s.grid(heaves, racks)) {
+    const pts = s.observe(x, hz, rk)._pts,
+      Ru = rodrigues(x.slice(3)),
+      st = sp ? sp.state(x) : null,
+      Rr = sp && !sp.direct ? rodrigues(mul(sp.k, rad(st.rocker_deg))) : EYE3;
+    poses.push({
+      hz,
+      rk,
+      pts,
+      st,
+      R: { chassis: EYE3, upright: Ru, rocker: Rr, upper: armR(piv.upper, P0.ub, pts.ub), lower: armR(piv.lower, P0.lb, pts.lb) },
+    });
+  }
+  let ride = poses[0];
+  for (const q of poses) if (Math.abs(q.hz) + Math.abs(q.rk) < Math.abs(ride.hz) + Math.abs(ride.rk)) ride = q;
+  const asinD = v => deg(Math.asin(Math.min(1, Math.abs(v))));
+  const rows = [];
+  for (const [key, mount, link, arm] of jl) {
+    let [label, kind, boltD, squareD] = DEFAULT_JOINTS[key];
+    const uc = user[key] || {};
+    kind = uc.type || kind;
+    let bolt = uc.bolt ?? boltD,
+      arm_ = arm;
+    const square = "square" in uc ? uc.square : !("bolt" in uc) ? squareD : ["x", "y", "z"].includes(uc.bolt);
+    if (bolt === "rocker" && (!sp || sp.direct)) {
+      // no rocker (direct-acting damper): the damper's chassis bolt parallels the arm's pivot axis
+      if (sp && (sp.on === "upper" || sp.on === "lower")) [bolt, arm_] = ["pivot", sp.on];
+      else bolt = "x";
+    }
+    let b0;
+    if (bolt === "pivot") {
+      const pa = piv[arm_ || "lower"];
+      b0 = unit(sub(pa[1], pa[0]));
+    } else if (bolt === "kingpin") b0 = unit(sub(s.P0[0], s.P0[1]));
+    else if (bolt === "rocker") b0 = sp.k.slice();
+    else if (typeof bolt === "string") b0 = EYE3["xyz".indexOf(bolt)].slice();
+    else b0 = unit(bolt.map(Number));
+    const allow = +(uc.allow ?? (mem[kind === "bearing" ? "bearing_misalign" : "rod_end_misalign"] || (kind === "bearing" ? 10 : 12)));
+    let ang;
+    if (kind === "bearing")
+      ang = q => {
+        const p = matvec(q.R[arm], b0),
+          r = matvec(q.R.upright, b0);
+        return deg(Math.atan2(norm(cross(p, r)), Math.abs(dot(p, r)))); // atan2: exact near 0
+      };
+    else {
+      if (square) b0 = unit(perp(b0, link(ride)));
+      ang = q => asinD(dot(link(q), matvec(q.R[mount], b0)));
+    }
+    let worst = null;
+    for (const q of poses) {
+      const v = [ang(q), q.hz, q.rk];
+      if (!worst || v[0] > worst[0] || (v[0] === worst[0] && (v[1] > worst[1] || (v[1] === worst[1] && v[2] > worst[2])))) worst = v;
+    }
+    const row = {
+      key,
+      label: label.replace(/\{(\w+)\}/g, (_, k) => names[k]),
+      kind,
+      mount: kind === "rod_end" ? mount : arm,
+      square: !!square && kind === "rod_end",
+      bolt: typeof bolt === "string" ? bolt : "vector",
+      bolt0: b0,
+      ride: ang(ride),
+      worst: worst[0],
+      at: [worst[1], worst[2]],
+      allow,
+      margin: allow - worst[0],
+      best: null,
+    };
+    if (kind === "rod_end") {
+      // the bolt direction (square to the link at ride height) that keeps the worst angle smallest
+      const u0 = link(ride),
+        e1 = unit(Math.abs(u0[2]) < 0.9 ? cross(u0, [0, 0, 1]) : cross(u0, [1, 0, 0])),
+        e2 = cross(u0, e1);
+      const A = poses.map(q => dot(link(q), matvec(q.R[mount], e1))),
+        Bv = poses.map(q => dot(link(q), matvec(q.R[mount], e2)));
+      let bi = 0,
+        bw = Infinity;
+      for (let i = 0; i < 180; i++) {
+        const ph = (Math.PI * i) / 180,
+          c = Math.cos(ph),
+          sn = Math.sin(ph);
+        let w = 0;
+        for (let j = 0; j < A.length; j++) w = Math.max(w, asinD(c * A[j] + sn * Bv[j]));
+        if (w < bw) [bw, bi] = [w, i];
+      }
+      const ph = (Math.PI * bi) / 180;
+      row.best = { worst: bw, bolt: add(mul(e1, Math.cos(ph)), mul(e2, Math.sin(ph))) };
+    }
+    rows.push(row);
+  }
+  let wr = rows[0];
+  for (const r of rows) if (r.margin < wr.margin) wr = r;
+  return { rows, margin: wr.margin, worst: wr, n_poses: poses.length };
 }
 /* 40_loads.js: Load cases, statics (incl. the rigid pushrod arm), strength and compliance (Python: loads/). */
 // ------------------------------------------------------------------ loads
@@ -2452,6 +2645,8 @@ root.Susp = {
   rackForAngle,
   MEMBERS,
   checkTargets,
+  misalignment,
+  DEFAULT_JOINTS,
   travelRange,
   heavePoints,
   vec: { add, sub, mul, dot, cross, norm, unit, perp, rodrigues, matvec, deg, rad },
@@ -3359,6 +3554,8 @@ function buildForm() {
   ].join("");
   $("#partFields").innerHTML = [
     field("Rod-end rating (catalog)", "N", "members.rod_end_rating", { step: 500, opt: 1 }),
+    field("Rod-end misalignment limit (catalog)", "deg", "members.rod_end_misalign", { step: 0.5 }),
+    field("Spherical-bearing misalignment limit", "deg", "members.bearing_misalign", { step: 0.5 }),
     field("Bolt diameter", "mm", "members.bolt_dia", { step: 0.1 }),
     field("Bolt grade", "", "members.bolt_grade", {
       options: [
@@ -5241,6 +5438,7 @@ function renderAll(ms) {
   $("#pn_spring").innerHTML = panelSpring();
   $("#pn_loads").innerHTML = panelLoads();
   $("#pn_pack").innerHTML = panelPack();
+  wireJointSelects($("#pn_pack"));
   $("#pn_compare").innerHTML = panelCompare();
   $("#pn_learn").innerHTML = panelLearn();
   wireChecks();
@@ -5639,7 +5837,8 @@ function panelPack() {
     );
   return `<div class="tbl-wrap"><table class="data"><thead><tr><th>Link pair</th><th class="n">Min gap, mm</th><th class="n">Needs</th><th class="n">At travel</th>${rear ? "" : `<th class="n">At rack</th>`}<th></th></tr></thead><tbody>${rows}</tbody></table></div>
   <p class="note">Center-line distances, checked at 9 heights from full droop to full bump${rear ? "" : " at 7 rack positions across the full rack travel"}. "Needs" = half of each tube's OD plus ${fmt(ev.cfg.clearance.margin, 0)} mm margin.
-  Rim: the farthest joint is ${fmt(p.rim_max, 1)} mm from the wheel axis against a ${fmt(p.rim_radius, 1)} mm rim radius, leaving ${fmt(p.rim_margin, 1)} mm (radial check only, against the rim barrel's inner radius).</p>${extra.map(t => `<p class="note">${esc(t)}</p>`).join("")}`;
+  Rim: the farthest joint is ${fmt(p.rim_max, 1)} mm from the wheel axis against a ${fmt(p.rim_radius, 1)} mm rim radius, leaving ${fmt(p.rim_margin, 1)} mm (radial check only, against the rim barrel's inner radius).</p>${extra.map(t => `<p class="note">${esc(t)}</p>`).join("")}
+  <h3 class="subh" id="jointsH">Rod ends and bearings: misalignment</h3>${jointTable(ev, { editable: true })}<p class="note">${esc(JOINT_NOTE)}</p>`;
 }
 // 20_panels_spring.js - Spring & damper tab: rocker drawing, motion ratio, damping.
 function rockerSvg() {
@@ -5803,6 +6002,91 @@ function panelSpring() {
         : ""
     }
   </div>`;
+}
+// 21_joints.js - Rod-end and spherical-bearing misalignment: the table for the Packaging tab, the report and Excel.
+const MOUNT_NAME = { chassis: "chassis", upright: "upright", upper: "upper wishbone", lower: "lower wishbone", rocker: "rocker" };
+const BOLT_NAME = {
+  x: "fore-aft (X)",
+  y: "sideways (Y)",
+  z: "vertical (Z)",
+  pivot: "along the wishbone pivot axis",
+  kingpin: "along the kingpin axis",
+  rocker: "along the rocker axis",
+  vector: "set direction",
+};
+function nearAxis(v) {
+  const a = v.map(Math.abs),
+    i = a.indexOf(Math.max(...a));
+  return a[i] > 0.9 ? ` (≈ ${"XYZ"[i]})` : "";
+}
+function boltText(r) {
+  if (r.kind === "bearing")
+    return `race in the ${MOUNT_NAME[r.mount]}, bolt in the upright ${BOLT_NAME[r.bolt] || r.bolt}, aligned at ride height`;
+  return `bolt on the ${MOUNT_NAME[r.mount]}, ${BOLT_NAME[r.bolt] || r.bolt}${r.square ? ", bracket square to the rod end at ride height" : ""}`;
+}
+const vecTxt = v => `[${v.map(q => fmt(q, 2)).join(", ")}]`;
+// rows for one corner: [{...row, status, bestTxt}]
+function jointRows(e) {
+  if (!e.joints) return [];
+  return e.joints.rows.map(r => ({
+    ...r,
+    ok: r.margin >= 0,
+    bestTxt: r.best && r.worst - r.best.worst > 0.5 ? `${vecTxt(r.best.bolt)}${nearAxis(r.best.bolt)}: worst ${fmt(r.best.worst, 1)}°` : "",
+  }));
+}
+const atTxt = (r, front) => `${fmt(r.at[0], 0)} mm${front ? `, rack ${fmt(r.at[1], 0)} mm` : ""}`;
+// the bolt choices offered per joint in the Packaging tab
+function boltChoices(r, e) {
+  const sp = e.cfg.spring,
+    out = [["", "default"]];
+  if (r.kind === "bearing") out.push(["kingpin", "kingpin axis"], ["pivot", "wishbone pivot axis"], ["x", "X"], ["y", "Y"], ["z", "Z"]);
+  else {
+    out.push(["x", "X, square"], ["y", "Y, square"], ["z", "Z, square"]);
+    if (r.mount === "upper" || r.mount === "lower" || /inboard_(front|rear)$/.test(r.key)) out.push(["pivot", "pivot axis"]);
+    if (sp && sp.rocker_axis) out.push(["rocker", "rocker axis"]);
+    if (r.best) out.push(["best", "best direction"]);
+  }
+  return out;
+}
+function jointTable(e, { editable = false } = {}) {
+  const rows = jointRows(e);
+  if (!rows.length) return `<p class="note">Not computed.</p>`;
+  const front = e.cfg.axle === "front",
+    cur = e.cfg.joints || {};
+  const sel = r => {
+    const uc = cur[r.key] || {},
+      v = Array.isArray(uc.bolt) ? "vector" : uc.bolt || "";
+    const opts = boltChoices(r, e);
+    if (v === "vector") opts.push(["vector", "set direction"]);
+    return `<select class="sel jbolt" data-joint="${attr(r.key)}" aria-label="Bolt direction for ${attr(r.label)}">${opts.map(([k, t]) => `<option value="${attr(k)}"${k === v ? " selected" : ""}>${esc(t)}</option>`).join("")}</select>`;
+  };
+  return `<div class="tbl-wrap"><table class="data jtab"><thead><tr><th>Joint</th><th>How it is mounted</th><th class="n">At ride</th><th class="n">Worst</th><th>Worst at travel${front ? " / rack" : ""}</th><th class="n">Limit</th><th class="n">Margin</th><th></th><th>Better bolt direction</th>${editable ? "<th>Bolt</th>" : ""}</tr></thead><tbody>${rows
+    .map(
+      r =>
+        `<tr><td>${esc(r.label)}<br><small class="note">${r.kind === "bearing" ? "spherical bearing" : "rod end"}</small></td><td><small>${esc(boltText(r))}</small></td><td class="n">${fmt(r.ride, 1)}°</td><td class="n">${fmt(r.worst, 1)}°</td><td>${atTxt(r, front)}</td><td class="n">${fmt(r.allow, 1)}°</td><td class="n">${fmt(r.margin, 1)}°</td><td>${r.ok ? `<span class="pill ok">OK</span>` : `<span class="pill bad">Binds</span>`}</td><td><small>${esc(r.bestTxt)}</small></td>${editable ? `<td>${sel(r)}</td>` : ""}</tr>`
+    )
+    .join("")}</tbody></table></div>`;
+}
+const JOINT_NOTE =
+  "Misalignment = how far each rod end or spherical bearing tilts from square to its bolt, searched over the whole travel and rack range. A rod end can spin on its link, so only the link's angle to the plane square to the bolt counts; a spherical bearing (the ball joints) is assumed aligned at ride height. Limits are the catalog's misalignment angles (inputs → Loads → Parts), per joint under joints in the JSON. Past the limit the joint binds: use a high-misalignment rod end or misalignment spacers, or turn the bracket to the better bolt direction.";
+function wireJointSelects(box) {
+  $$(".jbolt", box).forEach(s =>
+    s.addEventListener("change", () => {
+      const key = s.dataset.joint,
+        r = (ev.joints ? ev.joints.rows : []).find(q => q.key === key);
+      pushHistory();
+      cfg.joints = Object.assign({}, cfg.joints || {});
+      const uc = Object.assign({}, cfg.joints[key] || {});
+      delete uc.bolt;
+      delete uc.square;
+      if (s.value === "best" && r && r.best) Object.assign(uc, { bolt: r.best.bolt.map(v => +v.toFixed(4)), square: false });
+      else if (s.value && s.value !== "vector") uc.bolt = s.value;
+      if (Object.keys(uc).length) cfg.joints[key] = uc;
+      else delete cfg.joints[key];
+      if (!Object.keys(cfg.joints).length) delete cfg.joints;
+      schedule();
+    })
+  );
 }
 // 22_learn.js - Learn tab: the glossary with live values.
 // ------------------------------------------------------------------ Learn tab
@@ -7979,6 +8263,41 @@ const memLabel = (k, e) => {
 };
 
 // ---------------------------------------------------------------- HTML report
+const REPORT_CSS = `:root{--s1:#2F5D7C;--s2:#9E7E38;--s3:#4C7A5A;--base:#9a9ca0;--ok:#276b43;--bad:#b3261e;--line:#dcd9d1;--muted:#53565A;--ink:#1f1f1f;--panel:#fff;--accent:#9E7E38}
+    body{font:13px/1.45 "IBM Plex Sans",system-ui,sans-serif;color:#15212b;margin:24px auto;max-width:1000px;padding:0 16px}
+    h1{font-size:26px;margin:0}header p{color:#5a6876;margin:2px 0 10px}h2{font-size:19px;margin:26px 0 8px;border-bottom:2px solid #15212b;padding-bottom:3px}h3{font-size:14px;margin:16px 0 6px}
+    table{border-collapse:collapse;width:100%;margin:6px 0 10px}th,td{border-bottom:1px solid #d9dee3;padding:4px 6px;text-align:left;vertical-align:top}.jtab td:nth-child(2){min-width:220px}th{font-size:11px;text-transform:uppercase;color:#5a6876}td.n{text-align:right;font-family:"IBM Plex Mono",ui-monospace,monospace}
+    .ok{color:#1f7a46;font-weight:600}.bad{color:#b42318;font-weight:600}.pill{display:inline-block;border-radius:99px;padding:2px 10px;font-weight:600}.okb{background:#dcf1e4;color:#1f7a46}.badb{background:#fbe3df;color:#b42318}
+    .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin:6px 0}.kv div{border:1px solid #d9dee3;border-radius:6px;padding:5px 8px}.kv span{display:block;font-size:11px;color:#5a6876}
+    .charts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.chart{border:1px solid #d9dee3;border-radius:6px;padding:6px;break-inside:avoid}.chart h3{margin:0 0 2px;font-size:12px}.chart .cap{display:none}
+    .note{color:#5a6876}footer{margin-top:24px;color:#5a6876;font-size:11.5px;border-top:1px solid #d9dee3;padding-top:8px}
+    @media print{body{margin:0}.pb{break-before:page}}`;
+const reportPage = (title, body) =>
+  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${REPORT_CSS}</style></head><body>${body}</body></html>`;
+// the misalignment check as its own section: the last part of the design report, or a document on its own
+function misalignSection(X, inReport) {
+  const corners = X.corners.filter(k => k.e.joints);
+  if (!corners.length) return "";
+  let h = inReport ? `<h2 class="pb">Rod ends and bearings: misalignment</h2>` : "";
+  h += `<p class="note">${esc(JOINT_NOTE)}</p>`;
+  for (const k of corners) {
+    const e = k.e,
+      mem = e.cfg.members,
+      worst = e.joints.worst;
+    h += `<h3>${esc(k.lab)}${k.c.name ? ": " + esc(k.c.name) : ""}</h3>`;
+    h += jointTable(e);
+    h += `<p class="note">Searched over ${e.joints.n_poses} positions (${fmt(-S.travelRange(e.cfg)[0], 0)} to +${fmt(S.travelRange(e.cfg)[1], 0)} mm${e.cfg.axle === "front" ? `, rack ±${fmt(e.cfg.sweep.rack_travel, 0)} mm` : ""}). Limits: rod ends ${fmt(+mem.rod_end_misalign || 12, 1)}°, spherical bearings ${fmt(+mem.bearing_misalign || 10, 1)}°. Closest to its limit: <b class="${attr(worst.margin >= 0 ? "ok" : "bad")}">${esc(worst.label)}, ${fmt(worst.worst, 1)}° of ${fmt(worst.allow, 1)}°</b>.</p>`;
+  }
+  return h;
+}
+function misalignHtml() {
+  const X = exportScope();
+  const body =
+    `<header><h1>${esc(X.name)}</h1><p>Rod-end and bearing misalignment · ${esc(new Date().toLocaleString())}</p></header>` +
+    misalignSection(X, false) +
+    `<footer>Rigid links; joints checked over the full travel and rack range. Generated by the FSAE Suspension Solver.</footer>`;
+  return reportPage(`${X.name} · joint misalignment`, body);
+}
 function reportHtml() {
   const X = exportScope(),
     when = new Date().toLocaleString(),
@@ -8132,17 +8451,10 @@ function reportHtml() {
           `<p class="note">Worst driving-case toe change ${fmt(C.worst_toe.toe, 3)}° (${esc(C.worst_toe.case)})${C.toe_limit != null ? `, limit ${fmt(C.toe_limit, 2)}: <b class="${attr(C.toe_ok ? "ok" : "bad")}">${C.toe_ok ? "OK" : "too soft"}</b>` : ""}; camber ${fmt(C.worst_camber.camber, 3)}° (${esc(C.worst_camber.case)})${C.camber_limit != null ? `, limit ${fmt(C.camber_limit, 2)}: <b class="${attr(C.camber_ok ? "ok" : "bad")}">${C.camber_ok ? "OK" : "too soft"}</b>` : ""}.</p>`;
     }
   }
+  body += misalignSection(X, true);
   body += `<footer>Rigid links, quasi-static, no tire model; the car balance assumes a rigid chassis and roll centers at ride height. Confirm the final design in CAD. Generated by the FSAE Suspension Solver.</footer>`;
-  const css = `:root{--s1:#2F5D7C;--s2:#9E7E38;--s3:#4C7A5A;--base:#9a9ca0;--ok:#276b43;--bad:#b3261e;--line:#dcd9d1;--muted:#53565A;--ink:#1f1f1f;--panel:#fff;--accent:#9E7E38}
-    body{font:13px/1.45 "IBM Plex Sans",system-ui,sans-serif;color:#15212b;margin:24px auto;max-width:1000px;padding:0 16px}
-    h1{font-size:26px;margin:0}header p{color:#5a6876;margin:2px 0 10px}h2{font-size:19px;margin:26px 0 8px;border-bottom:2px solid #15212b;padding-bottom:3px}h3{font-size:14px;margin:16px 0 6px}
-    table{border-collapse:collapse;width:100%;margin:6px 0 10px}th,td{border-bottom:1px solid #d9dee3;padding:4px 6px;text-align:left}th{font-size:11px;text-transform:uppercase;color:#5a6876}td.n{text-align:right;font-family:"IBM Plex Mono",ui-monospace,monospace}
-    .ok{color:#1f7a46;font-weight:600}.bad{color:#b42318;font-weight:600}.pill{display:inline-block;border-radius:99px;padding:2px 10px;font-weight:600}.okb{background:#dcf1e4;color:#1f7a46}.badb{background:#fbe3df;color:#b42318}
-    .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin:6px 0}.kv div{border:1px solid #d9dee3;border-radius:6px;padding:5px 8px}.kv span{display:block;font-size:11px;color:#5a6876}
-    .charts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.chart{border:1px solid #d9dee3;border-radius:6px;padding:6px;break-inside:avoid}.chart h3{margin:0 0 2px;font-size:12px}.chart .cap{display:none}
-    .note{color:#5a6876}footer{margin-top:24px;color:#5a6876;font-size:11.5px;border-top:1px solid #d9dee3;padding-top:8px}
-    @media print{body{margin:0}.pb{break-before:page}}`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(X.name)} · design report</title><style>${css}</style></head><body>${body}</body></html>`;
+
+  return reportPage(`${X.name} · design report`, body);
 }
 
 // ---------------------------------------------------------------- Excel workbook
@@ -8366,6 +8678,46 @@ async function exportXlsx() {
       );
     }
   }
+  const jc = X.corners.filter(k => k.e.joints);
+  if (jc.length)
+    add(
+      "Misalignment",
+      [
+        [
+          "Corner",
+          "Joint",
+          "Type",
+          "Mounting",
+          "At ride, deg",
+          "Worst, deg",
+          "Worst at travel, mm",
+          "Worst at rack, mm",
+          "Limit, deg",
+          "Margin, deg",
+          "Status",
+          "Better bolt direction (ride height)",
+          "Worst with it, deg",
+        ],
+        ...jc.flatMap(k =>
+          jointRows(k.e).map(r => [
+            k.lab,
+            r.label,
+            r.kind === "bearing" ? "spherical bearing" : "rod end",
+            boltText(r),
+            r4(r.ride),
+            r4(r.worst),
+            r4(r.at[0]),
+            r4(r.at[1]),
+            r4(r.allow),
+            r4(r.margin),
+            r.ok ? "OK" : "Binds",
+            r.best ? vecTxt(r.best.bolt) : "",
+            r.best ? r4(r.best.worst) : "",
+          ])
+        ),
+      ],
+      [8, 34, 16, 60, 10, 10, 10, 10, 9, 10, 8, 28, 10]
+    );
   XL.writeFile(wb, fileBase(X.name) + ".xlsx");
 }
 
@@ -8392,6 +8744,10 @@ function wireExport() {
   $("#xReport").addEventListener("click", () => {
     ex.open = false;
     download(fileBase(exportScope().name) + "_report.html", new Blob([reportHtml()], { type: "text/html" }));
+  });
+  $("#xMis").addEventListener("click", () => {
+    ex.open = false;
+    download(fileBase(exportScope().name) + "_misalignment.html", new Blob([misalignHtml()], { type: "text/html" }));
   });
   $("#xXlsx").addEventListener("click", async () => {
     ex.open = false;

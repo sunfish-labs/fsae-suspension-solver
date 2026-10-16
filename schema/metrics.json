@@ -141,6 +141,18 @@
    "decimals": 1,
    "help": "Gap from the brake caliper's outer edge to the inside of the rim barrel."
   },
+  "misalign_max": {
+   "label": "Worst joint misalignment",
+   "unit": "deg",
+   "decimals": 1,
+   "help": "The largest angle any rod end or spherical bearing tilts away from its bolt, over the whole travel and rack range. Compare with the catalog's misalignment limit; see the misalignment table."
+  },
+  "misalign_margin": {
+   "label": "Joint misalignment margin",
+   "unit": "deg",
+   "decimals": 1,
+   "help": "Catalog misalignment limit minus the worst angle, for the joint closest to its limit. Below 0 that joint binds: use a high-misalignment rod end, add misalignment spacers, or turn its bracket (the table suggests the best bolt direction)."
+  },
   "roll_camber": {
    "label": "Roll camber (outer, to ground)",
    "unit": "deg/deg",

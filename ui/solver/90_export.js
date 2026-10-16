@@ -25,6 +25,8 @@ root.Susp = {
   rackForAngle,
   MEMBERS,
   checkTargets,
+  misalignment,
+  DEFAULT_JOINTS,
   travelRange,
   heavePoints,
   vec: { add, sub, mul, dot, cross, norm, unit, perp, rodrigues, matvec, deg, rad },

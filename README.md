@@ -124,6 +124,27 @@ as reference geometry for the chassis designer:
 - Files are written in the browser; nothing is uploaded. `tests/test_cad.py` reads them back in OpenCascade and checks
   every point, and that every solid body is a valid closed solid with the right volume in the right place.
 
+## Rod-end and bearing misalignment
+Every rod end and spherical bearing is checked over the whole travel and rack range (the packaging grid): how far it
+tilts from square to its bolt, against the catalog limit (`members.rod_end_misalign`, default 12°, and
+`members.bearing_misalign`, default 10°; check your parts). The joints are the four wishbone inboard pickups, both
+ball joints, both tie-rod / toe-link ends, both pushrod ends and both damper eyes.
+
+- **Rod end** (on a link): the link can turn about its own axis, so the angle is asin(|link · bolt|).
+- **Spherical bearing** (the ball joints: race in the wishbone, bolt through the upright): assumed aligned at ride
+  height; the angle is how far the two parts turn the bolt axis apart. Steering and travel both count.
+- **Bolt direction** per joint under `joints.<key>.bolt`: `"x"`, `"y"`, `"z"`, `"pivot"` (the wishbone pivot axis),
+  `"kingpin"`, `"rocker"` or `[x, y, z]`; `"square": true` squares it to the link at ride height (a bracket built
+  square to the rod end). Defaults: wishbone pickups along the pivot axis squared to the leg, ball joints along the
+  kingpin, tie-rod ends vertical squared to the rod, pushrod on the arm along its pivot axis, rocker ends along the
+  rocker axis. `joints.<key>.allow` sets one joint's limit.
+- For each rod end the solver also finds the bolt direction (square to the link) that keeps its worst angle
+  smallest, and shows it when it is at least 0.5° better. In the web app you can pick it from the table.
+
+It shows as `misalign_margin` among the targets (must be ≥ 0), in the **Packaging** tab, in its own section at the
+end of the design report, as **Export ▾ → Joint misalignment sheet** (a page on its own), as a sheet in the Excel
+export and in the command-line `run` output.
+
 ## Showing your chassis in the 3D view
 **Open ▾ → Chassis model (STL / OBJ)…** (or **Display ▾ → Chassis model…** in a corner view) loads a frame, body,
 seat or driver model from CAD and draws it see-through around the suspension, so you can watch the links move

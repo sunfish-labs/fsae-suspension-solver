@@ -187,6 +187,27 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
   await setIn("#in_halfshaft_diff_output_1", ""); await settle(p);
   await p.click('#axleSeg [data-ax="car"]'); await settle(p);
 
+  console.log("\nJoint misalignment");
+  await p.click('#axleSeg [data-ax="front"]'); await settle(p);
+  await p.click("#tab_pack"); await settle(p);
+  const jt = await text(p, "#pn_pack");
+  check("Packaging lists every rod end and bearing with its worst angle and limit", /Rod ends and bearings: misalignment/.test(jt) && /Upper ball joint/.test(jt) && /Pushrod, rocker end/.test(jt) && /Tie rod, outboard/.test(jt), jt.slice(-400));
+  const worstOf = async key => p.evaluate(k => { const r = [...document.querySelectorAll("#pn_pack .jbolt")].find(s => s.dataset.joint === k).closest("tr"); return parseFloat(r.children[3].textContent); }, key);
+  const before = await worstOf("trackrod_outboard");
+  await p.selectOption('#pn_pack .jbolt[data-joint="trackrod_outboard"]', "best"); await settle(p);
+  const after = await worstOf("trackrod_outboard");
+  check("choosing the best bolt direction lowers that joint's worst angle", after < before - 0.4, `${before} -> ${after}`);
+  await p.click("#btnUndo"); await settle(p);
+  check("Undo puts the bolt back", Math.abs((await worstOf("trackrod_outboard")) - before) < 0.05);
+  await p.click("#exMenu summary"); await settle(p);
+  const [md] = await Promise.all([p.waitForEvent("download"), p.click("#xMis")]);
+  const mf = path.join(os.tmpdir(), md.suggestedFilename()); await md.saveAs(mf); const mis = fs.readFileSync(mf, "utf8");
+  check("Joint misalignment sheet downloads as its own document", /joint misalignment<\/title>/.test(mis) && /Upper ball joint/.test(mis) && !/Member strength/.test(mis), md.suggestedFilename());
+  await p.click("#exMenu summary"); await settle(p);
+  const [rd] = await Promise.all([p.waitForEvent("download"), p.click("#xReport")]);
+  const rf = path.join(os.tmpdir(), rd.suggestedFilename()); await rd.saveAs(rf);
+  check("the design report has it as its own section", /<h2 class="pb">Rod ends and bearings: misalignment<\/h2>/.test(fs.readFileSync(rf, "utf8")));
+
   console.log("\nChassis model");
   {
     // a 2000 x 600 x 400 mm box, bottom 50 mm off the ground, drawn in SolidWorks axes (X forward, Y up, Z right), mm,

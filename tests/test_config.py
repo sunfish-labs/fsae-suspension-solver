@@ -71,6 +71,9 @@ check("car file without a rear -> ConfigError", raises(ConfigError, lambda: load
 check("negative bump travel -> ConfigError", raises(ConfigError, lambda: load_config(write("e.json", dict(front, sweep={"bump_travel": -5})))))
 check("caliper missing its size -> ConfigError", raises(ConfigError, lambda: load_config(write("f.json", dict(front, wheel={"caliper": {"clock_deg": 0, "radius": 100, "offset": 0}})))))
 check("halfshaft with a 2D point -> ConfigError", raises(ConfigError, lambda: load_config(write("g.json", dict(front, axle="rear", halfshaft={"diff_output": [0, 150], "cv_outboard": [0, 500, 250]})))))
+check("an unknown joint name -> ConfigError", raises(ConfigError, lambda: load_config(write("h.json", dict(front, joints={"tie_rod_out": {"bolt": "x"}})))))
+check("a bad bolt direction -> ConfigError", raises(ConfigError, lambda: load_config(write("i.json", dict(front, joints={"trackrod_outboard": {"bolt": "up"}})))))
+check("a rod end can't be a bearing -> ConfigError", raises(ConfigError, lambda: load_config(write("j.json", dict(front, joints={"trackrod_outboard": {"type": "bearing"}})))))
 check("every library error is a SuspError", all(issubclass(e, SuspError) for e in (ConfigError, GoalError, SolveError, UnknownPointError)))
 from susp import tools as T  # noqa: E402
 cfg = make_config(front)

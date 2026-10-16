@@ -145,6 +145,16 @@ def print_report(cfg, ev):
               f"{m['hs_cv_in_max']:.1f} deg inboard, {m['hs_cv_out_max']:.1f} deg outboard"
               + (f"; tightest gap to a link {m['hs_clearance_margin']:+.1f} mm beyond what the tubes need" if "hs_clearance_margin" in m else ""))
 
+    if ev.get("joints"):
+        from ..joints import best_text
+        J = ev["joints"]
+        front = cfg["axle"] == "front"
+        print(f"\nRod ends and bearings: misalignment over {J['n_poses']} positions (travel" + (" x rack)" if front else ")"))
+        table(["joint", "type", "at ride", "worst", "at travel" + (" / rack" if front else ""), "limit", "margin", "", "better bolt"],
+              [[r["label"], "bearing" if r["kind"] == "bearing" else "rod end", f"{r['ride']:.1f}", f"{r['worst']:.1f}",
+                f"{r['at'][0]:+.0f}" + (f" / {r['at'][1]:+.0f}" if front else ""), f"{r['allow']:.1f}", f"{r['margin']:+.1f}",
+                "OK" if r["margin"] >= 0 else "BINDS", best_text(r)] for r in J["rows"]])
+
     print("\nTarget checks")
     table(["target", "value", "range", "status"], [list(c[1:]) for c in all_checks(cfg, ev)])
 

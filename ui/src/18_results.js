@@ -116,6 +116,7 @@ function renderAll(ms) {
   $("#pn_spring").innerHTML = panelSpring();
   $("#pn_loads").innerHTML = panelLoads();
   $("#pn_pack").innerHTML = panelPack();
+  wireJointSelects($("#pn_pack"));
   $("#pn_compare").innerHTML = panelCompare();
   $("#pn_learn").innerHTML = panelLearn();
   wireChecks();

@@ -55,6 +55,21 @@ function checkExtras(cfg) {
     const miss = ["clock_deg", "radius", "size", "offset"].filter(k => !num((cal || {})[k]));
     if (miss.length) throw new SolveError("wheel.caliper needs numbers for " + miss.join(", "));
   }
+  const js = cfg.joints || {};
+  if (typeof js !== "object" || Array.isArray(js)) throw new SolveError("joints must be an object keyed by joint");
+  for (const [k, v] of Object.entries(js)) {
+    if (!(k in DEFAULT_JOINTS)) throw new SolveError(`joints.${k} is not a joint; use one of ${Object.keys(DEFAULT_JOINTS).join(", ")}`);
+    if (!v || typeof v !== "object") throw new SolveError(`joints.${k} must be an object like {"bolt": "z", "allow": 13}`);
+    const b = v.bolt;
+    if (b != null && !(["x", "y", "z", "pivot", "kingpin", "rocker"].includes(b) || (vec3(b) && b.some(c => c))))
+      throw new SolveError(`joints.${k}.bolt must be x, y, z, pivot, kingpin, rocker or [x, y, z]`);
+    if (v.type != null && !["rod_end", "bearing"].includes(v.type)) throw new SolveError(`joints.${k}.type must be rod_end or bearing`);
+    if (v.type === "bearing" && !["upper_outboard", "lower_outboard"].includes(k))
+      throw new SolveError(`joints.${k}: only the ball joints can be modeled as a bearing`);
+    if (v.allow != null && !(num(v.allow) && v.allow > 0)) throw new SolveError(`joints.${k}.allow must be a positive angle in degrees`);
+    if (b === "rocker" && !(cfg.spring || {}).rocker_axis)
+      throw new SolveError(`joints.${k}.bolt = rocker needs a rocker (spring.rocker_axis)`);
+  }
   const hs = cfg.halfshaft;
   if (hs != null && !(vec3(hs.diff_output) && vec3(hs.cv_outboard)))
     throw new SolveError("halfshaft needs diff_output and cv_outboard as [x, y, z]");

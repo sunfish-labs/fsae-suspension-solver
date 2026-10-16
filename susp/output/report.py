@@ -110,6 +110,13 @@ def report_context(cfg, ev, baseline=None, delta=5.0, sens=None, adv=None, loads
         ctx["pack"] = dict(rows=[dict(pair=n, d=f"{d:.1f}", ok=d >= need, need=f"{need:.1f}", hz=f"{hz:+.0f}", rk=f"{rk:+.0f}")
                                  for n, (d, hz, rk, need) in sorted(pk["pairs"].items(), key=lambda kv: kv[1][0] - kv[1][3])],
                            rim=f"{pk['rim_margin']:.1f}")
+    if ev.get("joints"):
+        from ..joints import NOTE, best_text, bolt_text
+        J = ev["joints"]
+        ctx["joints"] = dict(front=cfg["axle"] == "front", n=J["n_poses"], note=NOTE, rows=[
+            dict(label=r["label"], kind="spherical bearing" if r["kind"] == "bearing" else "rod end", mount=bolt_text(r),
+                 ride=f"{r['ride']:.1f}", worst=f"{r['worst']:.1f}", at=f"{r['at'][0]:+.0f}" + (f" / {r['at'][1]:+.0f}" if cfg["axle"] == "front" else ""),
+                 allow=f"{r['allow']:.1f}", margin=f"{r['margin']:+.1f}", ok=r["margin"] >= 0, best=best_text(r)) for r in J["rows"]])
     hps = []
     for k in HP_ORDER:
         v = cfg["hardpoints"][k]

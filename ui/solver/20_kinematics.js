@@ -282,12 +282,17 @@ class Suspension {
     });
   }
   grid(heaves, racks) {
+    // cached: packaging and the joint check share it
+    const key = JSON.stringify([heaves.map(Number), racks.map(Number)]);
+    this._grid = this._grid || new Map();
+    if (this._grid.has(key)) return this._grid.get(key);
     const xs = this.states(heaves),
       out = [];
     for (const hz of heaves) {
       const xh = xs.get(Number(hz));
       for (const rk of racks) out.push([hz, rk, rk ? this.ramp(xh, [hz, 0], [hz, rk]) : xh]);
     }
+    this._grid.set(key, out);
     return out;
   }
   steerArm() {
@@ -508,6 +513,9 @@ function evaluate(rawCfg, opts = {}) {
     m.clearance_margin = out.pack.min_clearance - out.pack.required;
     m.rim_margin = out.pack.rim_margin;
     for (const k of ["caliper_rim_margin", "hs_clearance_margin"]) if (k in out.pack) m[k] = out.pack[k];
+    out.joints = misalignment(cfg, s, out.spring);
+    m.misalign_margin = out.joints.margin;
+    m.misalign_max = Math.max(...out.joints.rows.map(r => r.worst));
   }
   if (cfg.axle === "rear" && cfg.halfshaft) Object.assign(m, s.halfshaft(rows));
   out.checks = checkTargets(cfg, m, out.pack);

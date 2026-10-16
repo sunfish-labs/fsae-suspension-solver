@@ -75,6 +75,26 @@ def _check_extras(cfg, where):
         if miss:
             raise ConfigError(f"{where}: wheel.caliper needs numbers for {', '.join(miss)} "
                               "(clock_deg, radius and size in mm, offset along the spin axis in mm)")
+    js = cfg.get("joints") or {}
+    if not isinstance(js, dict):
+        raise ConfigError(f"{where}: joints must be an object keyed by joint, e.g. {{\"trackrod_outboard\": {{\"bolt\": \"x\"}}}}")
+    from .joints import DEFAULT_JOINTS
+    for k, v in js.items():
+        if k not in DEFAULT_JOINTS:
+            raise ConfigError(f"{where}: joints.{k} is not a joint; use one of {', '.join(DEFAULT_JOINTS)}")
+        if not isinstance(v, dict):
+            raise ConfigError(f"{where}: joints.{k} must be an object like {{\"bolt\": \"z\", \"allow\": 13}}")
+        b = v.get("bolt")
+        if b is not None and not (b in ("x", "y", "z", "pivot", "kingpin", "rocker") or (_vec3(b) and any(b))):
+            raise ConfigError(f"{where}: joints.{k}.bolt must be x, y, z, pivot, kingpin, rocker or [x, y, z]")
+        if v.get("type") not in (None, "rod_end", "bearing"):
+            raise ConfigError(f"{where}: joints.{k}.type must be rod_end or bearing")
+        if v.get("type") == "bearing" and k not in ("upper_outboard", "lower_outboard"):
+            raise ConfigError(f"{where}: joints.{k}: only the ball joints can be modeled as a bearing")
+        if v.get("allow") is not None and not (isinstance(v["allow"], (int, float)) and v["allow"] > 0):
+            raise ConfigError(f"{where}: joints.{k}.allow must be a positive angle in degrees")
+        if b == "rocker" and not (cfg.get("spring") or {}).get("rocker_axis"):
+            raise ConfigError(f"{where}: joints.{k}.bolt = rocker needs a rocker (spring.rocker_axis)")
     hs = cfg.get("halfshaft")
     if hs is not None:
         if not isinstance(hs, dict) or not (_vec3(hs.get("diff_output")) and _vec3(hs.get("cv_outboard"))):

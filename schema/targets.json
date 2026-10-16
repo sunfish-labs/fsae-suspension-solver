@@ -49,6 +49,10 @@
    "bump_steer_max": [
     null,
     0.1
+   ],
+   "misalign_margin": [
+    0,
+    null
    ]
   },
   "rear": {
@@ -79,6 +83,10 @@
    "bump_steer_max": [
     null,
     0.1
+   ],
+   "misalign_margin": [
+    0,
+    null
    ]
   }
  },

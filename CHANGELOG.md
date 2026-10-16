@@ -3,6 +3,17 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.1.0 - 2026-10-16
+
+- **Rod-end and bearing misalignment:** every rod end, ball joint, pushrod end and damper eye over the whole travel
+  and rack range, against its catalog limit, with the best bolt direction for each rod end. A target, a Packaging
+  table with a bolt choice per joint, its own section of the design report, a separate sheet (Export menu), an Excel
+  sheet and the command line.
+- **3D view:** an XYZ axis triad, hover coordinates, and the right-hand corner drawn on the car's right (the view was
+  mirrored before; numbers and exports were not affected).
+- **Chassis model:** load an STL or OBJ frame, move and rotate it to line up, kept in the browser.
+- **CAD export:** STEP with solid bodies (named parts) for Onshape and Fusion.
+
 ## 1.0.0 - 2026-10-15
 
 Everything in the improvement plan, in order.

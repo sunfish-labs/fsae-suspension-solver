@@ -306,6 +306,23 @@ k1 = link_stiffness(cs, "tie_rod", 310.0)
 k_col = 10.0 * 2 * math.pi * 360.0 * 1000.0 / 90.0 ** 2
 check("tie rod with rack and column, N/mm", 1 / k1, 1 / k0 + 1 / 15000.0 + 1 / k_col, 1e-12, "springs in series; column 2 pi 360 1000 k_col / c^2")
 
+print("\n9. Rod-end and ball-joint misalignment on the parallelogram")
+e = evaluate(corner(PAR), steer=False)
+J = {r["key"]: r for r in e["joints"]["rows"]}
+T9 = max(abs(r["dz"]) for r in e["rows"])
+th = math.asin(T9 / L)
+check("ball joint (bolt along the kingpin): misalignment = arm swing, deg", J["upper_outboard"]["worst"], math.degrees(th), 1e-6,
+      "upright translates, the arm turns asin(travel / 310 mm) about the pivot axis")
+check("tie rod outboard (vertical bolt on the upright): misalignment = link swing, deg", J["trackrod_outboard"]["worst"], math.degrees(th), 1e-6,
+      "the tie rod swings asin(travel / 310 mm) out of the horizontal plane")
+u0 = np.array([200.0, 310.0, 0.0]) / math.hypot(200, 310)        # lower leg from the X = -200 pivot, at ride height
+c9 = abs(u0[0])
+check("inboard leg rod end (bracket square to the leg): asin(c sqrt(1 - c^2) (1 - cos theta)), deg", J["lower_inboard_front"]["worst"],
+      math.degrees(math.asin(c9 * math.sqrt(1 - c9 * c9) * (1 - math.cos(th)))), 1e-6, "c = leg . pivot axis; the leg turns theta about the pivot axis")
+check("a straight bracket (bolt along the pivot axis) sees the leg's splay angle all the time, deg",
+      evaluate(corner(PAR, joints={"lower_inboard_front": {"bolt": "pivot", "square": False}}), steer=False)["joints"]["rows"][2]["worst"],
+      math.degrees(math.asin(c9)), 1e-6, "asin(leg . pivot axis), constant over the travel")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)

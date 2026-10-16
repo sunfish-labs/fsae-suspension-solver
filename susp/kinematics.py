@@ -354,13 +354,18 @@ class Suspension:
         return rows
 
     def grid(self, heaves, racks):
-        """Upright states on a (heave x rack) grid, via continuation."""
+        """Upright states on a (heave x rack) grid, via continuation. Cached: packaging and the joint check share it."""
+        key = (tuple(float(v) for v in heaves), tuple(float(v) for v in racks))
+        cache = self.__dict__.setdefault("_grid_cache", {})
+        if key in cache:
+            return cache[key]
         xs = self.states(heaves)
         out = {}
         for h_ in heaves:
             xh = xs[float(h_)]
             for r_ in racks:
                 out[(h_, r_)] = self.ramp(xh, (h_, 0.0), (h_, r_)) if r_ else xh
+        cache[key] = out
         return out
 
     def steer_arm(self):
@@ -558,6 +563,10 @@ def evaluate(cfg, full=True, steer=True, pack=True, ride=True):
         for k in ("caliper_rim_margin", "hs_clearance_margin"):
             if k in out["pack"]:
                 m[k] = out["pack"][k]
+        from .joints import misalignment   # local import: joints depends on kinematics
+        out["joints"] = misalignment(cfg, s, out["spring"])
+        m["misalign_margin"] = out["joints"]["margin"]
+        m["misalign_max"] = max(r["worst"] for r in out["joints"]["rows"])
     if cfg["axle"] == "rear" and cfg.get("halfshaft"):
         m.update({k: v for k, v in s.halfshaft(rows).items() if k != "hs_length"})
     return out

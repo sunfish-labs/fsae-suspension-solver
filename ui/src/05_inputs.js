@@ -135,6 +135,8 @@ function buildForm() {
   ].join("");
   $("#partFields").innerHTML = [
     field("Rod-end rating (catalog)", "N", "members.rod_end_rating", { step: 500, opt: 1 }),
+    field("Rod-end misalignment limit (catalog)", "deg", "members.rod_end_misalign", { step: 0.5 }),
+    field("Spherical-bearing misalignment limit", "deg", "members.bearing_misalign", { step: 0.5 }),
     field("Bolt diameter", "mm", "members.bolt_dia", { step: 0.1 }),
     field("Bolt grade", "", "members.bolt_grade", {
       options: [

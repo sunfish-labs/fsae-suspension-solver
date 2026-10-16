@@ -422,3 +422,7 @@ body { border-top: 4px solid var(--gold); }
 .fmmove .u { font-size: 12px; color: var(--muted); }
 .fmbtns { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (max-width: 520px) { .fmwrap { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; } .fmwrap .wcard { max-height: 55vh; } .vaxkey { display: none; } }
+
+.subh { font-size: 15px; margin: 18px 0 6px; }
+.jbolt { font-size: 12px; padding: 2px 4px; max-width: 150px; }
+.jtab td:nth-child(2) { min-width: 250px; } .jtab td:first-child { min-width: 170px; }

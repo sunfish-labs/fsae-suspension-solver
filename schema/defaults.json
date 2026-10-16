@@ -40,7 +40,10 @@
   "members.rack_k": "N/mm, steering rack and its mounts along the rack (front compliance; optional estimate)",
   "members.column_k": "N m/deg at the steering wheel, column torsion (needs vehicle.rack_c_factor; optional estimate)",
   "clearance.halfshaft_od": "mm, halfshaft tube OD for its clearance to the links",
-  "clearance.caliper_margin": "mm, gap the caliper needs to the rim barrel and the links"
+  "clearance.caliper_margin": "mm, gap the caliper needs to the rim barrel and the links",
+  "members.rod_end_misalign": "deg, the rod ends' catalog misalignment limit (each side of square); joints.<key>.allow overrides one joint",
+  "members.bearing_misalign": "deg, the spherical bearings' (ball joints') catalog misalignment limit",
+  "joints": "per-joint overrides keyed like the hardpoints and spring points: {\"bolt\": \"x\"|\"y\"|\"z\"|\"pivot\"|\"kingpin\"|\"rocker\"|[x, y, z], \"square\": true|false, \"type\": \"rod_end\"|\"bearing\", \"allow\": deg}"
  },
  "defaults": {
   "name": "untitled",
@@ -126,6 +129,8 @@
    "yield": 435.0,
    "sf_target": 2.0,
    "rod_end_rating": null,
+   "rod_end_misalign": 12.0,
+   "bearing_misalign": 10.0,
    "bolt_dia": 7.94,
    "bolt_grade": "SAE 8",
    "bolt_shear_planes": 2,
@@ -136,7 +141,8 @@
    "rack_k": null,
    "column_k": null
   },
-  "halfshaft": null
+  "halfshaft": null,
+  "joints": {}
  },
  "spring_defaults": {
   "rod_on": "lower",

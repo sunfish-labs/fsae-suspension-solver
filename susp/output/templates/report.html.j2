@@ -15,7 +15,7 @@ th{color:var(--mut);font-weight:600}.pass{color:var(--ok);font-weight:700}.fail{
 .tile b{display:block;font-size:20px}.tile span{color:var(--mut);font-size:12px}img{max-width:100%;border:1px solid var(--line);border-radius:6px;background:#fff}
 .scroll{overflow-x:auto}.small{font-size:12.5px;color:var(--mut)}code{background:var(--card);padding:1px 4px;border-radius:4px}
 .left{text-align:left}
-@media print{body{max-width:none}}
+@media print{body{max-width:none}.pb{break-before:page}}
 </style>
 <h1>{{ name }}</h1>
 <div class="sub">{{ axle }} axle · {{ sub }} · generated {{ generated }} · rigid-link kinematics</div>
@@ -85,6 +85,14 @@ th{color:var(--mut);font-weight:600}.pass{color:var(--ok);font-weight:700}.fail{
 <h2>Packaging</h2><div class="scroll"><table><tr><th>Link pair<th>Min distance (mm)<th>Needs<th>at heave<th>at rack</tr>
 {% for r in pack.rows %}<tr><td>{{ r.pair }}<td class="{{ 'pass' if r.ok else 'fail' }}">{{ r.d }}<td>{{ r.need }}<td>{{ r.hz }}<td>{{ r.rk }}</tr>{% endfor %}
 </table></div><p class="small">Rim radial margin: {{ pack.rim }} mm.</p>
+{% endif %}
+
+{% if joints %}
+<h2 class="pb">Rod ends and bearings: misalignment</h2>
+<p class="small">{{ joints.note }}</p>
+<div class="scroll"><table><tr><th>Joint<th class="left">How it is mounted<th>At ride (°)<th>Worst (°)<th>at travel{% if joints.front %} / rack{% endif %} (mm)<th>Limit (°)<th>Margin (°)<th><th class="left">Better bolt direction</tr>
+{% for r in joints.rows %}<tr><td>{{ r.label }}<br><span class="small">{{ r.kind }}</span><td class="left small">{{ r.mount }}<td>{{ r.ride }}<td>{{ r.worst }}<td>{{ r.at }}<td>{{ r.allow }}<td>{{ r.margin }}<td class="{{ 'pass' if r.ok else 'fail' }}">{{ 'OK' if r.ok else 'BINDS' }}<td class="left small">{{ r.best }}</tr>{% endfor %}
+</table></div><p class="small">Searched over {{ joints.n }} positions over the whole travel{% if joints.front %} and rack range{% endif %}.</p>
 {% endif %}
 
 <h2>Hardpoints</h2><div class="scroll"><table><tr><th>Point<th>X<th>Y<th>Z{% if has_baseline_points %}<th>Δ vs baseline{% endif %}</tr>
