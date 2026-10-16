@@ -77,7 +77,8 @@ function showMe(id) {
   } else if (id === "anti") {
     const Lr = s.WB * 0.7,
       dirx = cfg.axle === "front" ? -1 : 1;
-    frameOn([p.cp[0] + (dirx * Lr) / 2, p.cp[1], 350], fitR(Lr + D + 200, D + 500));
+    // low enough that the lines from the contact patch (front) clear the caption at the bottom of the view
+    frameOn([p.cp[0] + (dirx * Lr) / 2, p.cp[1], 150], fitR(Lr + D + 200, D + 700));
   } else if (id === "ackermann") {
     if (cfg.axle === "front" && Math.abs(pose.rack) < 3) setRack(Math.round(cfg.sweep.rack_travel * 0.9));
     const ak = ackPoints(s),

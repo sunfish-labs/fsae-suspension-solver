@@ -307,7 +307,6 @@ body.chal.focus #status, body.chal.focus #errBox, body.chal.focus #tabs, body.ch
 .focusbox { display: flex; flex-direction: column; gap: 8px; }
 .focushd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .focushd h3 { font-size: 17px; text-transform: uppercase; letter-spacing: .03em; }
-body.chal .top .brand h1::after { content: " · challenge"; color: var(--muted); font-size: 18px; }
 /* compare */
 .cmpbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .cmpadd { display: inline-flex; gap: 6px; align-items: center; flex: 1 1 320px; min-width: 0; }

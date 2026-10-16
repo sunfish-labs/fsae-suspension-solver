@@ -329,7 +329,6 @@ body.chal.focus #status, body.chal.focus #errBox, body.chal.focus #tabs, body.ch
 .focusbox { display: flex; flex-direction: column; gap: 8px; }
 .focushd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .focushd h3 { font-size: 17px; text-transform: uppercase; letter-spacing: .03em; }
-body.chal .top .brand h1::after { content: " · challenge"; color: var(--muted); font-size: 18px; }
 /* compare */
 .cmpbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .cmpadd { display: inline-flex; gap: 6px; align-items: center; flex: 1 1 320px; min-width: 0; }
@@ -540,7 +539,7 @@ body { border-top: 4px solid var(--gold); }
     <div class="fmbtns">
       <button class="btn small" type="button" id="fmCenter" title="Move sideways so the model is centered on Y = 0">Center on the centerline</button>
       <button class="btn small" type="button" id="fmGround" title="Move up or down so the lowest point is this far above the ground">Lowest point at</button>
-      <input class="num" id="fmGap" type="number" step="1" value="40" style="width:70px" aria-label="Height of the lowest point above the ground, mm"><span class="note">mm</span>
+      <span style="white-space:nowrap"><input class="num" id="fmGap" type="number" step="1" value="40" style="width:70px" aria-label="Height of the lowest point above the ground, mm"> <span class="note">mm</span></span>
       <button class="btn small" type="button" id="fmZero">Reset move</button></div>
     <div class="field"><label for="fmOp">See-through</label><input type="range" id="fmOp" min="0.08" max="1" step="0.02"></div>
     <h3 class="fmh">Clearance to the model</h3>
@@ -5164,7 +5163,8 @@ function showMe(id) {
   } else if (id === "anti") {
     const Lr = s.WB * 0.7,
       dirx = cfg.axle === "front" ? -1 : 1;
-    frameOn([p.cp[0] + (dirx * Lr) / 2, p.cp[1], 350], fitR(Lr + D + 200, D + 500));
+    // low enough that the lines from the contact patch (front) clear the caption at the bottom of the view
+    frameOn([p.cp[0] + (dirx * Lr) / 2, p.cp[1], 150], fitR(Lr + D + 200, D + 700));
   } else if (id === "ackermann") {
     if (cfg.axle === "front" && Math.abs(pose.rack) < 3) setRack(Math.round(cfg.sweep.rack_travel * 0.9));
     const ak = ackPoints(s),

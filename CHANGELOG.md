@@ -3,6 +3,13 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.3.1 - 2026-10-16
+
+- Every "Show me" drawing, both challenges and the phone layouts checked after the mirror fix. Fixed: the
+  anti-dive / anti-squat drawing framing, a stray letter in the challenge header, the chassis gap field wrapping.
+- Chassis tools measured on a laptop (Apple M2): a 410,000-triangle frame loads in 0.2 s, renders at 60 fps and
+  checks clearance in 1.5 s.
+
 ## 1.3.0 - 2026-10-16
 
 - **Springs as fitted:** dual-rate springs (`spring_rate2` from `spring_breakpoint`) and progressive bump stops
