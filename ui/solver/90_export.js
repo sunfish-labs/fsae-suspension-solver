@@ -29,5 +29,7 @@ root.Susp = {
   DEFAULT_JOINTS,
   travelRange,
   heavePoints,
+  caliperCenter,
+  cornerParts,
   vec: { add, sub, mul, dot, cross, norm, unit, perp, rodrigues, matvec, deg, rad },
 };

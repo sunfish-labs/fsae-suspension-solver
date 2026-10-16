@@ -3,6 +3,16 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.5.0 - 2026-10-16
+
+- **Clearance to the chassis model:** the tire (the solid drawn in the view, checked exactly: it is convex, so the
+  closest point to each nearby triangle is found by alternating projections), the upright and rocker as drawn, the
+  brake caliper envelope and the rear halfshaft, over the whole travel and steering range, both sides.
+- **Caliper and halfshaft drawn** in the 3D view and included in the CAD export (points, lines and solid bodies).
+- **Joint misalignment:** each joint's own limit, and the travel at which a ball joint is square
+  (`joints.<key>.align`, mm), set in the Packaging table.
+- **GitHub Pages** builds and publishes the site from Actions; `ui/index.html` is no longer committed.
+
 ## 1.4.0 - 2026-10-16
 
 - **Car balance:** the roll gradient now includes the tires squashing under the whole lateral load transfer,

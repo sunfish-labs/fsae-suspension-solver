@@ -43,7 +43,7 @@
   "clearance.caliper_margin": "mm, gap the caliper needs to the rim barrel and the links",
   "members.rod_end_misalign": "deg, the rod ends' catalog misalignment limit (each side of square); joints.<key>.allow overrides one joint",
   "members.bearing_misalign": "deg, the spherical bearings' (ball joints') catalog misalignment limit",
-  "joints": "per-joint overrides keyed like the hardpoints and spring points: {\"bolt\": \"x\"|\"y\"|\"z\"|\"pivot\"|\"kingpin\"|\"rocker\"|[x, y, z], \"square\": true|false, \"type\": \"rod_end\"|\"bearing\", \"allow\": deg}",
+  "joints": "per-joint overrides keyed like the hardpoints and spring points: {\"bolt\": \"x\"|\"y\"|\"z\"|\"pivot\"|\"kingpin\"|\"rocker\"|[x, y, z], \"square\": true|false, \"type\": \"rod_end\"|\"bearing\", \"allow\": deg, \"align\": mm of wheel travel where a ball joint is square (ball joints only)}",
   "spring.spring_rate2": "N/mm, second rate of a dual-rate spring, from spring_breakpoint on (optional)",
   "spring.spring_breakpoint": "mm of damper compression beyond ride height where spring_rate2 takes over",
   "spring.bumpstop_gap": "mm of damper compression beyond ride height before the bump stop touches (optional; 0 = touching at ride height)",

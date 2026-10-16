@@ -228,6 +228,17 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
   check("choosing the best bolt direction lowers that joint's worst angle", after < before - 0.4, `${before} -> ${after}`);
   await p.click("#btnUndo"); await settle(p);
   check("Undo puts the bolt back", Math.abs((await worstOf("trackrod_outboard")) - before) < 0.05);
+  const rowOf = async key => p.evaluate(k => [...document.querySelector(`#pn_pack .jbolt[data-joint="${k}"]`).closest("tr").children].map(c => c.textContent.trim().replace(/\u2212/g, "-")), key);
+  await p.fill('#pn_pack .jallow[data-joint="upper_outboard"]', "3"); await p.press('#pn_pack .jallow[data-joint="upper_outboard"]', "Enter"); await settle(p);
+  const ru = await rowOf("upper_outboard");
+  check("a joint's own limit typed in its row sets its margin (limit - worst)", Math.abs(parseFloat(ru[6]) - (3 - parseFloat(ru[3]))) < 0.06
+    && (await p.inputValue('#pn_pack .jallow[data-joint="upper_outboard"]')) === "3", ru.join(" | "));
+  const rideBefore = parseFloat((await rowOf("lower_outboard"))[2]);
+  await p.fill('#pn_pack .jalign[data-joint="lower_outboard"]', "20"); await p.press('#pn_pack .jalign[data-joint="lower_outboard"]', "Enter"); await settle(p);
+  const rl = await rowOf("lower_outboard");
+  check("a ball joint aligned at +20 mm of travel: says so, and is no longer square at ride height", /aligned at \+20 mm of wheel travel/.test(rl[1]) && rideBefore < 0.05 && parseFloat(rl[2]) > 0.05, rl.join(" | "));
+  await p.click("#btnUndo"); await settle(p); await p.click("#btnUndo"); await settle(p);
+  check("Undo takes both back out", (await p.inputValue('#pn_pack .jallow[data-joint="upper_outboard"]')) === "" && /aligned at ride height/.test((await rowOf("lower_outboard"))[1]));
   await p.click("#exMenu summary"); await settle(p);
   const [md] = await Promise.all([p.waitForEvent("download"), p.click("#xMis")]);
   const mf = path.join(os.tmpdir(), md.suggestedFilename()); await md.saveAs(mf); const mis = fs.readFileSync(mf, "utf8");
@@ -323,6 +334,37 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
   check("clearance to a plate: tie rod = 193 - 35 - 100 - 8 mm (worst at full rack)", Math.abs(gaps["FR tie rod"] - 50) < 1e-6, gaps["FR tie rod"]);
   check("clearance to a plate: lower leg = pivot Y - 100 - 12.7 mm", Math.abs(gaps["FR lower leg to pivot X=230"] - (166.1 - 100 - 12.7)) < 1e-6, gaps["FR lower leg to pivot X=230"]);
   check("clearance table lists the closest links with a status", /Too close|Clear/.test(await text(p, "#fmClear")) && /FR tie rod/.test(await text(p, "#fmClear")));
+  // the tire against a tilted plane over the tires: the gap is the plane's offset from the drawn tire's support point
+  // (tilted down to the right, then to the left, so each side's tires come within reach once)
+  const tireCmp = [];
+  for (const s of [0.35, -0.35]) {
+    const D = 820, tri = [[[-3000, -1500, D + s * 1500], [1000, -1500, D + s * 1500], [1000, 1500, D - s * 1500]], [[-3000, -1500, D + s * 1500], [1000, 1500, D - s * 1500], [-3000, 1500, D - s * 1500]]];
+    const buf = Buffer.alloc(84 + tri.length * 50); buf.writeUInt32LE(tri.length, 80);
+    tri.forEach((t3, i) => t3.forEach((v, j) => v.forEach((x, k) => buf.writeFloatLE(x, 84 + i * 50 + 12 + j * 12 + k * 4))));
+    fs.writeFileSync(path.join(tmpd, "tilt.stl"), buf);
+    await p.setInputFiles("#fmFile", path.join(tmpd, "tilt.stl")); await settle(p);
+    tireCmp.push(...(await p.evaluate(async ({ s, D }) => {
+      const C = window.__suspChassis(), S = window.Susp, res = await C.clearance(), got = Object.fromEntries(res.rows.map(r => [r.key, r.gap]));
+      const m = [0, s, 1], mn = Math.hypot(s, 1), dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2], want = {};
+      for (const { ax, e, dx } of C.corners()) {
+        const sw = e.cfg.sweep, [Dd, B] = S.travelRange(e.cfg), hv = S.heavePoints(Dd, B, +(sw.pack_heave_steps || 9)),
+          rk = ax === "F" ? S.heavePoints(sw.rack_travel, sw.rack_travel, +(sw.pack_rack_steps || 7)) : [0];
+        for (const [hz, r, x] of e.susp.grid(hv, rk)) for (const side of ["R", "L"]) {
+          const T = C.tireShape(e, e.susp.observe(x, hz, r)._pts, side), c = [T.c[0] + dx, T.c[1], T.c[2]], ma = dot(m, T.a);
+          const h = dot(m, c) + T.rc * Math.hypot(...m.map((v, i) => v - ma * T.a[i])) + T.hc * Math.abs(ma) + T.rnd * mn;
+          const k = `${ax}${side} tire`;
+          want[k] = Math.min(want[k] ?? Infinity, (D - h) / mn);
+        }
+      }
+      return Object.keys(want).filter(k => want[k] < 150).map(k => [k, got[k], want[k]]);
+    }, { s, D })));
+  }
+  check("tire clearance to a tilted plane equals the drawn tire's support distance, all four tires, over travel and steer",
+    tireCmp.length === 4 && new Set(tireCmp.map(r => r[0])).size === 4 && tireCmp.every(([, g, w]) => w > 0 && Math.abs(g - w) < 1e-3), JSON.stringify(tireCmp));
+  await p.setInputFiles("#fmFile", path.join(tmpd, "plate.stl")); await settle(p);
+  await p.click("#fmCheck"); await settle(p);
+  const rowKeys = await p.evaluate(() => window.__suspChassis().chassis.clear.rows.map(r => r.key));
+  check("clearance also covers the tire, the upright and the rocker as drawn", ["FR tire", "FR upright (as drawn)", "FR rocker (as drawn)"].every(k => rowKeys.includes(k)), rowKeys.join(", "));
   await p.click('#fmClear [data-chhit="0"]'); await settle(p);
   check("clicking a row shows that pose and marks the closest points", await p.evaluate(() => { const v = window.__suspView(); return !!(v.three.chHit && v.three.chHit.visible); }));
   await p.click("#fmClose");

@@ -6,23 +6,20 @@ then extra features, then housekeeping. Team-specific design fixes live in `priv
 1. **Measure the car (validation/MEASURING.md).** Every model is now cross-checked by an independent one; what
    is left is reality. The bump sweep and the twist test on corner scales are the cheapest and check the most
    (kinematics, motion ratio, springs and bars). Put the results in `private/validation/`.
-2. **Clearance to the chassis model: more parts.** Today: wishbone legs, tie rod, pushrod and damper. Add the
-   tire and wheel (full lock and bump against the body), the upright and the rocker.
-3. **Draw the brake caliper and the halfshaft** in the 3D view and include them in the CAD export (they are
-   checked for clearance but not shown).
-4. **Joint misalignment: limits per joint in the app** (only in the JSON today), and an option for ball joints
-   aligned somewhere other than ride height.
-5. **Loads: brackets and fatigue.** The pushrod-mount check is a bare tube (no gusset); no fatigue, weld or tab
+2. **Loads: brackets and fatigue.** The pushrod-mount check is a bare tube (no gusset); no fatigue, weld or tab
    checks.
-6. **Wheel rate: include the preload term?** Spring preload x the motion ratio's change adds 1.4-1.7 % to the
+3. **Wheel rate: include the preload term?** Spring preload x the motion ratio's change adds 1.4-1.7 % to the
    wheel rate on the examples (more with a strongly rising rocker). Left out, as in most hand calculations; decide
    once a bench measurement (test 3) shows whether it matters for your car.
-7. **Housekeeping.** CI can move to `ubuntu-26.04` whenever you like: a manual run there passed on 1.2.0 (jobs
+4. **Housekeeping.** CI can move to `ubuntu-26.04` whenever you like: a manual run there passed on 1.2.0 (jobs
    stay pinned to 24.04 until then). Create the missing `v0.9.0` tag (needs a token that may push tags). Empty the
    `_to_delete/` folder on the desktop copy.
 
 ## Done recently
 
+- Clearance to the chassis model for the tire (exact for the drawn shape), the upright and rocker as drawn, the
+  caliper envelope and the halfshaft; caliper and halfshaft drawn in 3D and in the CAD export; each joint's own
+  misalignment limit and the ball joints' alignment travel set in the Packaging tab (1.5.0)
 - GitHub Pages builds and publishes the site from Actions on every push; the built `ui/index.html` is no longer
   committed (`python3 susp_solver.py ui` builds it)
 - Independent models for loads (displacement method, five corner layouts) and the car balance (full-car matrix

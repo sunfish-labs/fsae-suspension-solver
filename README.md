@@ -133,13 +133,15 @@ tilts from square to its bolt, against the catalog limit (`members.rod_end_misal
 ball joints, both tie-rod / toe-link ends, both pushrod ends and both damper eyes.
 
 - **Rod end** (on a link): the link can turn about its own axis, so the angle is asin(|link · bolt|).
-- **Spherical bearing** (the ball joints: race in the wishbone, bolt through the upright): assumed aligned at ride
-  height; the angle is how far the two parts turn the bolt axis apart. Steering and travel both count.
+- **Spherical bearing** (the ball joints: race in the wishbone, bolt through the upright): square at ride height,
+  or at `joints.<key>.align` mm of wheel travel (e.g. mid-bump, where it spends most of its time); the angle is how
+  far the two parts turn the bolt axis apart. Steering and travel both count.
 - **Bolt direction** per joint under `joints.<key>.bolt`: `"x"`, `"y"`, `"z"`, `"pivot"` (the wishbone pivot axis),
   `"kingpin"`, `"rocker"` or `[x, y, z]`; `"square": true` squares it to the link at ride height (a bracket built
   square to the rod end). Defaults: wishbone pickups along the pivot axis squared to the leg, ball joints along the
   kingpin, tie-rod ends vertical squared to the rod, pushrod on the arm along its pivot axis, rocker ends along the
-  rocker axis. `joints.<key>.allow` sets one joint's limit.
+  rocker axis. `joints.<key>.allow` sets one joint's limit. In the web app, type a joint's limit (and a ball
+  joint's alignment travel) straight into its row of the Packaging table.
 - For each rod end the solver also finds the bolt direction (square to the link) that keeps its worst angle
   smallest, and shows it when it is at least 0.5° better. In the web app you can pick it from the table.
 
@@ -160,7 +162,10 @@ uploaded, and kept in this browser (IndexedDB) with its position for the next vi
 
 **Clearance to the model.** **Check clearance** in the chassis panel finds how close each link (the four wishbone
 legs, tie rod / toe link, pushrod and damper, at their tube ODs) comes to the model's surface over the whole travel
-and steering range, on both sides of both axles. The table lists the closest links against `clearance.margin`;
+and steering range, on both sides of both axles. It also checks the **tire** (the solid drawn in the view: tire
+width, radius and rounded shoulders; exact, not sampled), the **upright** and **rocker** as drawn (stick tubes
+and the rocker plate's edges: a real upright is bulkier, so leave room), the brake caliper envelope and the rear
+halfshaft. The table lists the closest links against `clearance.margin`;
 click one to jump to that pose and mark the two closest points in red. Gaps over 150 mm are not listed. A link that
 crosses the model shows "touches". It checks surfaces, so a link entirely inside a closed shape isn't caught.
 
@@ -334,7 +339,7 @@ Member forces: + = tension.
 - The pushrod-mount bending check is a simple beam: it ignores the gusset or bracket you add and any weld
   heat-affected zone.
 - Clearance is center-line distance plus tube radii. The rim check is radial only. The caliper is a sphere and the
-  halfshaft a straight cylinder; neither is drawn in the 3D view or the CAD export yet.
+  halfshaft a straight cylinder; both are drawn that way in the 3D view and the CAD export.
 - The tire's vertical rate does not change with load. Tire load sensitivity is a straight-line fall of friction with
   load, the same on both axles, used only for the limit balance (not for the load cases). Wheel rate is spring rate x
   motion ratio^2 (the spring force x d(MR)/dz term is left out, as in most hand calculations). The bar's arms are

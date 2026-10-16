@@ -319,6 +319,11 @@ T9 = max(abs(r["dz"]) for r in e["rows"])
 th = math.asin(T9 / L)
 check("ball joint (bolt along the kingpin): misalignment = arm swing, deg", J["upper_outboard"]["worst"], math.degrees(th), 1e-6,
       "upright translates, the arm turns asin(travel / 310 mm) about the pivot axis")
+e9a = evaluate(corner(PAR, joints={"upper_outboard": {"align": 10.0}}), steer=False)
+Ja = {r["key"]: r for r in e9a["joints"]["rows"]}
+check("ball joint square at +10 mm of travel: worst = swing from there to full droop, deg", Ja["upper_outboard"]["worst"],
+      math.degrees(th + math.asin(10.0 / L)), 1e-6, "asin(travel / 310) + asin(10 / 310); at ride height it reads asin(10 / 310)")
+check("ball joint square at +10 mm: at ride height, deg", Ja["upper_outboard"]["ride"], math.degrees(math.asin(10.0 / L)), 1e-6, "asin(10 / 310)")
 check("tie rod outboard (vertical bolt on the upright): misalignment = link swing, deg", J["trackrod_outboard"]["worst"], math.degrees(th), 1e-6,
       "the tie rod swings asin(travel / 310 mm) out of the horizontal plane")
 u0 = np.array([200.0, 310.0, 0.0]) / math.hypot(200, 310)        # lower leg from the X = -200 pivot, at ride height

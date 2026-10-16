@@ -412,7 +412,7 @@ function wireChassis() {
   });
   chLoadSaved();
 }
-window.__suspChassis = () => ({ chassis, moved: chMoved, clearance: chClearance }); // used by the browser tests
+window.__suspChassis = () => ({ chassis, moved: chMoved, clearance: chClearance, corners: chCorners, tireShape: chTireShape }); // used by the browser tests
 
 // ---- clearance from every link to the chassis model, over the travel and rack range, both sides, both axles
 // closest points between segments p1-q1 and p2-q2 (Ericson, Real-Time Collision Detection 5.1.9)
@@ -571,12 +571,82 @@ function chNearest(P, G, p, q, reach, brute = false) {
   return best;
 }
 const CH_REACH = 150; // gaps larger than this are reported as "more than 150 mm"
+// ---- the tire as drawn: a solid cylinder with rounded shoulders. That solid is convex: a core cylinder (radius
+// R - rnd, half width w/2 - rnd) grown by a ball of radius rnd, so its distance to a triangle is the core's
+// distance minus rnd, and alternating projections between the triangle and the core converge to the closest pair.
+function chTireShape(e, p, side) {
+  const s = e.susp,
+    w = +e.cfg.wheel.tire_width || 190,
+    rr = ((+e.cfg.wheel.rim_diameter_in || 13) * 25.4) / 2,
+    R = s.R,
+    rnd = Math.min(28, (R - rr) / 2),
+    m = v => (side === "R" ? v : [v[0], -v[1], v[2]]);
+  return { c: m(p.c), a: m(p.a), rc: R - rnd, hc: w / 2 - rnd, rnd, R, w };
+}
+function chProjCore(x, T) {
+  const v = V.sub(x, T.c),
+    ax = V.dot(v, T.a),
+    rv = V.sub(v, V.mul(T.a, ax)),
+    r = V.norm(rv),
+    aa = Math.min(T.hc, Math.max(-T.hc, ax));
+  return V.add(V.add(T.c, V.mul(T.a, aa)), r > T.rc ? V.mul(rv, T.rc / r) : rv);
+}
+// closest approach of triangle abc to the tire: [gap (negative = inside), point on the tire, point on the triangle]
+function chTireTri(T, a, b, c) {
+  let x = chPtTri(T.c, a, b, c),
+    y = chProjCore(x, T),
+    d = V.norm(V.sub(x, y));
+  for (let i = 0; i < 80 && d > 1e-9; i++) {
+    const x2 = chPtTri(y, a, b, c),
+      y2 = chProjCore(x2, T),
+      d2 = V.norm(V.sub(x2, y2));
+    const done = d - d2 < 1e-7;
+    [x, y, d] = [x2, y2, d2];
+    if (done) break;
+  }
+  const onTire = d > 1e-9 ? V.add(y, V.mul(V.sub(x, y), T.rnd / d)) : x;
+  return [d - T.rnd, onTire, x];
+}
+// the closest the tire comes to the model, within reach (null if farther)
+function chTireNearest(P, G, T, reach, brute = false) {
+  let best = null;
+  if (brute) {
+    for (let o = 0; o < P.length; o += 9) {
+      const r = chTireTri(T, [P[o], P[o + 1], P[o + 2]], [P[o + 3], P[o + 4], P[o + 5]], [P[o + 6], P[o + 7], P[o + 8]]);
+      if (r[0] <= reach && (!best || r[0] < best[0])) best = r;
+    }
+    return best;
+  }
+  const ext = T.R + T.rnd + reach,
+    c = G.cell,
+    lo = T.c.map(v => Math.floor((v - ext) / c)),
+    hi = T.c.map(v => Math.floor((v + ext) / c)),
+    gen = ++G.gen;
+  for (let i = lo[0]; i <= hi[0]; i++)
+    for (let j = lo[1]; j <= hi[1]; j++)
+      for (let k = lo[2]; k <= hi[2]; k++) {
+        const l = G.map.get(G.key(i, j, k));
+        if (!l) continue;
+        for (const t of l) {
+          if (G.stamp[t] === gen) continue;
+          G.stamp[t] = gen;
+          const ct = [G.C[t * 3], G.C[t * 3 + 1], G.C[t * 3 + 2]],
+            lb = V.norm(V.sub(ct, chProjCore(ct, T))) - T.rnd - G.R[t];
+          if (lb > reach || (best && lb >= best[0])) continue;
+          const o = t * 9,
+            r = chTireTri(T, [P[o], P[o + 1], P[o + 2]], [P[o + 3], P[o + 4], P[o + 5]], [P[o + 6], P[o + 7], P[o + 8]]);
+          if (r[0] <= reach && (!best || r[0] < best[0])) best = r;
+        }
+      }
+  return best;
+}
 // the links of one corner at one pose (right-hand side, that corner's own frame): [name, a, b, radius]
 function chLinks(e, x, hz, rk) {
   const s = e.susp,
     h = s.h,
     cl = e.cfg.clearance,
-    p = s.observe(x, hz, rk)._pts,
+    o = s.observe(x, hz, rk),
+    p = o._pts,
     rod = e.cfg.axle === "rear" ? "toe link" : "tie rod",
     wr = (cl.wishbone_tube_od || 15.9) / 2;
   const L = [
@@ -588,9 +658,30 @@ function chLinks(e, x, hz, rk) {
   ];
   if (e.spring) {
     const st = e.spring.state(x);
-    if (!e.spring.direct) L.push(["pushrod", st.rod_out, st.rod_in, (cl.pushrod_od || 15.9) / 2]);
+    if (!e.spring.direct) {
+      L.push(["pushrod", st.rod_out, st.rod_in, (cl.pushrod_od || 15.9) / 2]);
+      // the rocker plate as drawn: its three edges
+      const sp = e.spring;
+      for (const [a, b] of [
+        [sp.c, st.rod_in],
+        [sp.c, st.damper_out],
+        [st.rod_in, st.damper_out],
+      ])
+        L.push(["rocker (as drawn)", a, b, 6]);
+    }
     L.push(["damper", st.damper_out, e.spring.dch, (cl.damper_od || 50) / 2]);
   }
+  // the upright as drawn (stick tubes between its joints): a real upright is bulkier, so leave room
+  for (const [a, b, r] of [
+    [p.ub, p.lb, 13],
+    [p.lb, p.tro, 9],
+    [p.ub, p.c, 9],
+    [p.lb, p.c, 9],
+  ])
+    L.push(["upright (as drawn)", a, b, r]);
+  const parts = S.cornerParts(s, o);
+  if (parts.caliper) L.push(["brake caliper envelope", parts.caliper.c, parts.caliper.c, parts.caliper.r]);
+  if (parts.halfshaft) L.push(["halfshaft", parts.halfshaft.a, parts.halfshaft.b, parts.halfshaft.r]);
   return L;
 }
 function chCorners() {
@@ -630,6 +721,31 @@ async function chClearance({ brute = false } = {}) {
             rows.set(key, { key, corner: ax + side, name, gap, hz, rk: side === "R" ? rk : -rk, a: hit && hit[1], b: hit && hit[2], r });
           if (++n % 200 === 0) await new Promise(res => setTimeout(res, 0)); // keep the page responsive
         }
+    // the tire over the same travel and steer, both sides
+    for (const [hz, rk, x] of e.susp.grid(heaves, racks)) {
+      const p = e.susp.observe(x, hz, rk)._pts;
+      for (const side of ["R", "L"]) {
+        const T = chTireShape(e, p, side);
+        T.c = [T.c[0] + dx, T.c[1], T.c[2]];
+        const hit = chTireNearest(P, G, T, CH_REACH, brute),
+          key = `${ax}${side} tire`,
+          gap = hit ? hit[0] : Infinity,
+          cur = rows.get(key);
+        if (!cur || gap < cur.gap)
+          rows.set(key, {
+            key,
+            corner: ax + side,
+            name: "tire",
+            gap,
+            hz,
+            rk: side === "R" ? rk : -rk,
+            a: hit && hit[1],
+            b: hit && hit[2],
+            r: 0,
+          });
+        await new Promise(res => setTimeout(res, 0));
+      }
+    }
   }
   const need = (chCorners()[0] || {}).e?.cfg.clearance.margin ?? 5;
   const out = [...rows.values()].sort((u, v) => u.gap - v.gap);
@@ -673,7 +789,7 @@ function chRenderClear(res) {
     far = res.rows.length - near.length;
   box.innerHTML =
     (res.worst
-      ? `<p class="note">Closest: <b class="${res.worst.gap >= res.need ? "ok" : "bad"}">${esc(res.worst.key)}, ${Number.isFinite(res.worst.gap) ? fmt(res.worst.gap, 1) + " mm" : `more than ${CH_REACH} mm`}</b> (needs ${fmt(res.need, 0)} mm, the clearance margin). Gap = tube surface to the model's surface.</p>`
+      ? `<p class="note">Closest: <b class="${res.worst.gap >= res.need ? "ok" : "bad"}">${esc(res.worst.key)}, ${Number.isFinite(res.worst.gap) ? fmt(res.worst.gap, 1) + " mm" : `more than ${CH_REACH} mm`}</b> (needs ${fmt(res.need, 0)} mm, the clearance margin). Gap = tube surface to the model's surface. The tire is the solid drawn in the view (no growth at speed); the upright and rocker are checked as drawn, and real ones are bulkier, so leave room.</p>`
       : "") +
     (near.length
       ? `<div class="tbl-wrap"><table class="data"><thead><tr><th>Link</th><th class="n">Gap, mm</th><th>At travel${fr ? " / rack" : ""}</th><th></th></tr></thead><tbody>${near

@@ -120,9 +120,18 @@ def misalignment(cfg, s, sp=None, heaves=None, racks=None):
             b0 = unit(np.array(bolt, float))
         allow = float(u_cfg.get("allow", mem.get("bearing_misalign" if kind == "bearing" else "rod_end_misalign") or (10.0 if kind == "bearing" else 12.0)))
         if kind == "bearing":
-            # race in the arm, bolt in the upright, aligned at ride height
-            def ang(q, b0=b0, arm=arm):
-                p_, r_ = q["R"][arm] @ b0, q["R"]["upright"] @ b0
+            # race in the arm, bolt in the upright, both square to each other at ride height (or at joints.<key>.align
+            # mm of wheel travel): the race's axis, carried by the arm, starts on the bolt's axis at that pose
+            al = float(u_cfg.get("align") or 0.0)
+            race0 = b0
+            if al:
+                xa = s.states([al])[float(al)]
+                pa_ = s.observe(xa, al)["_pts"]
+                bj_ = "ub" if arm == "upper" else "lb"
+                race0 = _arm_R(piv[arm], P0[bj_], pa_[bj_]).T @ (s.transform(xa)[0] @ b0)
+
+            def ang(q, b0=b0, arm=arm, race0=race0):
+                p_, r_ = q["R"][arm] @ race0, q["R"]["upright"] @ b0
                 return math.degrees(math.atan2(float(np.linalg.norm(np.cross(p_, r_))), abs(float(p_ @ r_))))  # atan2: exact near 0
         else:
             if square:
@@ -133,6 +142,7 @@ def misalignment(cfg, s, sp=None, heaves=None, racks=None):
         vals = [(ang(q), q["hz"], q["rk"]) for q in poses]
         worst = max(vals)
         row = dict(key=key, label=label.format(**names), kind=kind, mount=mount if kind == "rod_end" else arm,
+                   align=float(u_cfg.get("align") or 0.0) if kind == "bearing" else None,
                    square=bool(square) and kind == "rod_end", bolt=bolt if isinstance(bolt, str) else "vector",
                    bolt0=[float(v) for v in b0], ride=ang(ride), worst=worst[0], at=(worst[1], worst[2]), allow=allow,
                    margin=allow - worst[0], best=None)
@@ -166,7 +176,9 @@ NOTE = ("Misalignment = how far each rod end or spherical bearing tilts from squ
 
 def bolt_text(r):
     if r["kind"] == "bearing":
-        return f"race in the {MOUNT_NAME[r['mount']]}, bolt in the upright {BOLT_NAME.get(r['bolt'], r['bolt'])}, aligned at ride height"
+        al = r.get("align") or 0.0
+        return (f"race in the {MOUNT_NAME[r['mount']]}, bolt in the upright {BOLT_NAME.get(r['bolt'], r['bolt'])}, aligned at "
+                + (f"{al:+g} mm of wheel travel" if al else "ride height"))
     return (f"bolt on the {MOUNT_NAME[r['mount']]}, {BOLT_NAME.get(r['bolt'], r['bolt'])}"
             + (", bracket square to the rod end at ride height" if r["square"] else ""))
 

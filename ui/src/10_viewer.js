@@ -708,6 +708,19 @@ function buildCorner(e, o, sst, { col, mirror = false, ghost = false, xray = fal
     hub.quaternion.copy(q);
     g.add(hub);
   }
+  // brake caliper envelope (the sphere the clearance checks use) and the rear halfshaft with its CV joints
+  const parts = o._x ? S.cornerParts(s, o) : {};
+  if (parts.caliper) {
+    const cm = ghost ? mat("#c0392b") : mat("#c0392b", { transparent: true, opacity: 0.5, depthWrite: false });
+    const me = new T.Mesh(new T.SphereGeometry(parts.caliper.r, 24, 16), cm);
+    me.position.copy(toT(parts.caliper.c));
+    g.add(me);
+  }
+  if (parts.halfshaft) {
+    const hm = mat("#4a4f57", { metalness: 0.5 });
+    tube(parts.halfshaft.a, parts.halfshaft.b, parts.halfshaft.r, hm);
+    for (const q2 of [parts.halfshaft.a, parts.halfshaft.b]) ball(q2, parts.halfshaft.r * 1.9, hm);
+  }
   if (sp && sst) {
     tube(sst.rod_out, sst.rod_in, 7, push);
     ball(sst.rod_out, 9, steel, "spring.rod_outboard");

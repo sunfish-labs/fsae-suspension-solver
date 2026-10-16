@@ -62,6 +62,14 @@
       [tr, `${tr}_inboard`, `${tr}_outboard`, "tie_rod"],
       ["upright_axis", "LCA_ball_joint", "UCA_ball_joint", null],
     ];
+    // caliper envelope (a sphere on the upright) and rear halfshaft, when the design has them
+    const parts = S.cornerParts(s, o);
+    if (parts.caliper) P.caliper_center = parts.caliper.c;
+    if (parts.halfshaft) {
+      P.halfshaft_inboard = parts.halfshaft.a;
+      P.halfshaft_outboard = parts.halfshaft.b;
+      L.push(["halfshaft", "halfshaft_inboard", "halfshaft_outboard", "halfshaft"]);
+    }
     P.spin_axis_in = sub(p.c, mul(p.a, 40));
     P.spin_axis_out = add(p.c, mul(p.a, 40));
     L.push(["spin_axis", "spin_axis_in", "spin_axis_out", null]);
@@ -120,7 +128,9 @@
               ? e.cfg.members.pushrod[0]
               : kind === "damper"
                 ? (e.cfg.clearance || {}).damper_od || 50
-                : null;
+                : kind === "halfshaft"
+                  ? (e.cfg.clearance || {}).halfshaft_od || 25
+                  : null;
       for (const pose of poses) {
         if (pose.startsWith("steer") && (rear || !sw.rack_travel)) continue;
         const dz = pose === "bump" ? sw.travel : pose === "droop" ? -sw.travel : 0,
@@ -167,6 +177,11 @@
     }
     for (const [n, q] of Object.entries(g.P)) {
       if (/^(spin_axis|rocker_axis)_|^wheel_center$/.test(n)) continue;
+      if (n === "caliper_center") {
+        // the caliper envelope the clearance checks use
+        out.bodies.push({ name: tag + "caliper_envelope", layer, shape: "ball", c: T(q), d: +((cfg.wheel || {}).caliper || {}).size * k });
+        continue;
+      }
       out.bodies.push({ name: tag + n + "_ball", layer, shape: "ball", c: T(q), d: (n === "contact_patch" ? 10 : JOINT) * k });
     }
     const w = cfg.wheel || {},

@@ -107,13 +107,24 @@ function misalignment(cfg, s, sp) {
     else b0 = unit(bolt.map(Number));
     const allow = +(uc.allow ?? (mem[kind === "bearing" ? "bearing_misalign" : "rod_end_misalign"] || (kind === "bearing" ? 10 : 12)));
     let ang;
-    if (kind === "bearing")
+    const al = kind === "bearing" ? +(uc.align || 0) : 0;
+    if (kind === "bearing") {
+      // race in the arm, bolt in the upright, square to each other at ride height or at joints.<key>.align mm of travel
+      let race0 = b0;
+      if (al) {
+        const xa = s.states([al]).get(al),
+          pa = s.observe(xa, al)._pts,
+          bj = arm === "upper" ? "ub" : "lb",
+          Ra = armR(piv[arm], P0[bj], pa[bj]),
+          v = matvec(rodrigues(xa.slice(3)), b0);
+        race0 = [0, 1, 2].map(i => Ra[0][i] * v[0] + Ra[1][i] * v[1] + Ra[2][i] * v[2]); // Ra^T v
+      }
       ang = q => {
-        const p = matvec(q.R[arm], b0),
+        const p = matvec(q.R[arm], race0),
           r = matvec(q.R.upright, b0);
         return deg(Math.atan2(norm(cross(p, r)), Math.abs(dot(p, r)))); // atan2: exact near 0
       };
-    else {
+    } else {
       if (square) b0 = unit(perp(b0, link(ride)));
       ang = q => asinD(dot(link(q), matvec(q.R[mount], b0)));
     }
@@ -127,6 +138,7 @@ function misalignment(cfg, s, sp) {
       label: label.replace(/\{(\w+)\}/g, (_, k) => names[k]),
       kind,
       mount: kind === "rod_end" ? mount : arm,
+      align: kind === "bearing" ? al : null,
       square: !!square && kind === "rod_end",
       bolt: typeof bolt === "string" ? bolt : "vector",
       bolt0: b0,

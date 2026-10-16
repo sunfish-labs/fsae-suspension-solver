@@ -434,3 +434,6 @@ body { border-top: 4px solid var(--gold); }
 .cfails { margin: 4px 0 6px; padding-left: 18px; font-size: 13px; }
 .cfails li { margin: 2px 0; }
 .ctabs { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; font-size: 12.5px; }
+
+.jtab .jnum { width: 4.2em; padding: 2px 4px; font: inherit; text-align: right; }
+.jtab .jal { display: inline-flex; gap: 4px; align-items: center; white-space: nowrap; margin-top: 4px; }

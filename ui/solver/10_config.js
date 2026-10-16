@@ -103,6 +103,15 @@ function checkExtras(cfg) {
     if (v.allow != null && !(num(v.allow) && v.allow > 0)) throw new SolveError(`joints.${k}.allow must be a positive angle in degrees`);
     if (b === "rocker" && !(cfg.spring || {}).rocker_axis)
       throw new SolveError(`joints.${k}.bolt = rocker needs a rocker (spring.rocker_axis)`);
+    if (v.align != null) {
+      const sw = cfg.sweep || {},
+        lo = +(sw.droop_travel ?? sw.travel ?? 30),
+        hi = +(sw.bump_travel ?? sw.travel ?? 30);
+      if (!["upper_outboard", "lower_outboard"].includes(k))
+        throw new SolveError(`joints.${k}.align is for the ball joints (spherical bearings) only`);
+      if (!(num(v.align) && v.align >= -lo && v.align <= hi))
+        throw new SolveError(`joints.${k}.align must be a wheel travel in mm between -${lo} and ${hi}`);
+    }
   }
   const hs = cfg.halfshaft;
   if (hs != null && !(vec3(hs.diff_output) && vec3(hs.cv_outboard)))

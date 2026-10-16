@@ -134,6 +134,14 @@ def _check_extras(cfg, where):
             raise ConfigError(f"{where}: joints.{k}.allow must be a positive angle in degrees")
         if b == "rocker" and not (cfg.get("spring") or {}).get("rocker_axis"):
             raise ConfigError(f"{where}: joints.{k}.bolt = rocker needs a rocker (spring.rocker_axis)")
+        if v.get("align") is not None:
+            sw = cfg.get("sweep") or {}
+            lo = float(sw.get("droop_travel") if sw.get("droop_travel") is not None else sw.get("travel", 30))
+            hi = float(sw.get("bump_travel") if sw.get("bump_travel") is not None else sw.get("travel", 30))
+            if k not in ("upper_outboard", "lower_outboard"):
+                raise ConfigError(f"{where}: joints.{k}.align is for the ball joints (spherical bearings) only")
+            if not (isinstance(v["align"], (int, float)) and -lo <= v["align"] <= hi):
+                raise ConfigError(f"{where}: joints.{k}.align must be a wheel travel in mm between -{lo:g} and {hi:g}")
     hs = cfg.get("halfshaft")
     if hs is not None:
         if not isinstance(hs, dict) or not (_vec3(hs.get("diff_output")) and _vec3(hs.get("cv_outboard"))):

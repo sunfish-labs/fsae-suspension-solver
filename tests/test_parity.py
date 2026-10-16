@@ -93,7 +93,8 @@ for i in range(a.cases):
                       "bar_wall": None if i % 3 else 1.2, "bar_length": round(rng.uniform(400, 700))}
     if i % 5 == 3:
         raw["joints"] = {"trackrod_outboard": {"bolt": "x"}, "upper_inboard_front": {"bolt": "pivot", "square": False},
-                         "lower_outboard": {"bolt": [1.0, 0.2, 0.1]}, "trackrod_inboard": {"allow": 9.5}}
+                         "lower_outboard": {"bolt": [1.0, 0.2, 0.1]}, "trackrod_inboard": {"allow": 9.5},
+                         "upper_outboard": {"align": 10.0}}
     cases.append(raw)
 
 

@@ -1,5 +1,27 @@
 /* 20_kinematics.js: The rigid-link solver and its sweeps, metrics, evaluate and target checks (Python: kinematics.py). */
 // ------------------------------------------------------------------ kinematics
+// the brake caliper's envelope center, a sphere fixed to the upright: clock angle in the wheel plane (0 = front,
+// 90 = top), radius from the axle, offset along the axle (+ out). p: observe()._pts
+function caliperCenter(p, cal) {
+  const ax = p.a,
+    up = unit(perp(sub(p.ub, p.lb), ax)),
+    fwd = cross(ax, up),
+    th = rad(+(cal.clock_deg ?? 90));
+  return add(add(p.c, mul(ax, +(cal.offset || 0))), mul(add(mul(fwd, Math.cos(th)), mul(up, Math.sin(th))), +cal.radius));
+}
+// the parts that ride on the upright but are not links, at one pose: caliper envelope and rear halfshaft
+function cornerParts(susp, o) {
+  const cfg = susp.cfg,
+    cl = cfg.clearance || {},
+    cal = (cfg.wheel || {}).caliper,
+    hs = cfg.axle === "rear" ? cfg.halfshaft : null;
+  return {
+    caliper: cal ? { c: caliperCenter(o._pts, cal), r: +cal.size / 2 } : null,
+    halfshaft: hs
+      ? { a: hs.diff_output.map(Number), b: susp.move(o._x, hs.cv_outboard.map(Number)), r: (cl.halfshaft_od ?? 25) / 2 }
+      : null,
+  };
+}
 class Suspension {
   constructor(cfg) {
     this.cfg = cfg;
@@ -342,11 +364,7 @@ class Suspension {
       }
       if (cal) {
         // the caliper as a sphere fixed to the upright: clock angle in the wheel plane, radius from the axle
-        const ax = p.a,
-          up = unit(perp(sub(p.ub, p.lb), ax)),
-          fwd = cross(ax, up),
-          th = rad(+(cal.clock_deg ?? 90));
-        const cc = add(add(p.c, mul(ax, +(cal.offset || 0))), mul(add(mul(fwd, Math.cos(th)), mul(up, Math.sin(th))), +cal.radius));
+        const cc = caliperCenter(p, cal);
         for (const [n, seg, odv] of links)
           checks.push([`caliper – ${n}`, [cc, cc], seg, +cal.size / 2 + odv / 2 + (cl.caliper_margin ?? 3)]);
       }

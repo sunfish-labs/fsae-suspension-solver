@@ -152,6 +152,52 @@ else:
         check(f"solids ({units}): each body has the right volume and sits within 0.001 mm of where the solver puts it", worst < 1e-3, worst)
         check(f"solids ({units}): one named part per body (e.g. FR_tie_rod, FR_tire)", all(b["name"] in names for b in bodies) and "FR_tire" in names)
 
+print("\n5. Brake caliper envelope and rear halfshaft")
+import numpy as np  # noqa: E402
+from susp.config import load_car  # noqa: E402
+from susp.kinematics import Suspension, unit  # noqa: E402
+raw2 = json.loads(json.dumps(raw))
+cal = {"clock_deg": 135.0, "radius": 100.0, "size": 55.0, "offset": -15.0}
+raw2["front"].setdefault("wheel", {})["caliper"] = cal
+cpr = raw2["rear"]["hardpoints"]["contact_patch"]
+R2 = raw2["rear"].get("wheel", {}).get("tire_radius", 254.0)
+raw2["rear"]["halfshaft"] = {"diff_output": [cpr[0], 150.0, R2], "cv_outboard": [cpr[0], cpr[1] - 60.0, R2]}
+car2 = os.path.join(tempfile.mkdtemp(), "car2.json")
+json.dump(raw2, open(car2, "w"))
+base2, g2 = gen(car2, {"frame": "solver", "origin": "solver", "units": "mm"})
+P2 = {p["name"]: p["p"] for p in g2["points"]}
+B2 = {b["name"]: b for b in g2["bodies"]}
+fc2, rc2, _ = load_car(car2)
+s2 = Suspension(fc2)
+q2 = s2.observe(np.zeros(6), 0.0)["_pts"]
+ax2 = q2["a"]
+up2 = unit(q2["ub"] - q2["lb"] - ((q2["ub"] - q2["lb"]) @ ax2) * ax2)
+th2 = math.radians(cal["clock_deg"])
+cc2 = q2["c"] + cal["offset"] * ax2 + cal["radius"] * (math.cos(th2) * np.cross(ax2, up2) + math.sin(th2) * up2)
+check("caliper envelope center where the clearance check puts it (Python formula)", math.dist(P2["FR_caliper_center"], cc2) < 1e-6,
+      math.dist(P2["FR_caliper_center"], cc2))
+check("caliper envelope is a solid sphere of the envelope size, both sides",
+      B2["FR_caliper_envelope"]["d"] == 55.0 and "FL_caliper_envelope" in B2 and B2["FR_caliper_envelope"]["shape"] == "ball")
+hs2 = raw2["rear"]["halfshaft"]
+dxr = P2["RR_contact_patch"][0] - cpr[0]                      # the rear corner sits one wheelbase back in the car
+sh = lambda q: [q[0] + dxr, q[1], q[2]]  # noqa: E731
+ok_hs = (math.dist(P2["RR_halfshaft_inboard"], sh(hs2["diff_output"])) < 1e-6 and math.dist(P2["RR_halfshaft_outboard"], sh(hs2["cv_outboard"])) < 1e-6
+         and abs(B2["RR_halfshaft"]["d"] - (raw2["rear"].get("clearance", {}).get("halfshaft_od") or 25.0)) < 1e-9)
+check("halfshaft from the diff output to the CV at ride height, at its OD", ok_hs)
+_, g2b = gen(car2, {"frame": "solver", "origin": "solver", "units": "mm", "poses": ["bump"]})
+lb = {ln["name"]: ln for ln in g2b["lines"]}
+check("halfshaft drawn at full bump too, its CV moved with the upright", "RR_halfshaft_bump" in lb
+      and math.dist(lb["RR_halfshaft_bump"]["b"], sh(hs2["cv_outboard"])) > 5, lb.get("RR_halfshaft_bump"))
+try:
+    from OCP.STEPControl import STEPControl_Reader as _R
+    from OCP.BRepCheck import BRepCheck_Analyzer as _A
+    rd2 = _R()
+    rd2.ReadFile(base2 + "_solid.step")
+    rd2.TransferRoots()
+    check("solid STEP with the caliper and halfshaft is valid", _A(rd2.OneShape()).IsValid())
+except ImportError:
+    pass
+
 bad = results.count(False)
 print(f"\n{len(results) - bad} of {len(results)} CAD export checks passed")
 sys.exit(1 if bad else 0)
