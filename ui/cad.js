@@ -103,7 +103,7 @@
       poses = ["ride"].concat((opts.poses || []).flatMap(q => (q === "steer" ? ["steer_p", "steer_m"] : [q])));
     const front = corners.find(c => c.e.cfg.axle !== "rear") || corners[0];
     const x0 = opts.origin === "solver" ? 0 : front.e.susp.h.cp[0];
-    const out = { points: [], lines: [], layers: [], units: opts.units === "in" ? "in" : "mm", frame: opts.frame || "sw" };
+    const out = { points: [], lines: [], bodies: [], layers: [], units: opts.units === "in" ? "in" : "mm", frame: opts.frame || "sw" };
     for (const c of corners) {
       const e = c.e,
         rear = e.cfg.axle === "rear",
@@ -140,6 +140,7 @@
           if (pose === "ride")
             for (const [n, q] of Object.entries(g.P))
               if (!/^(spin_axis|rocker_axis)_/.test(n)) out.points.push({ name: tag + n, layer, p: T(q) });
+          if (pose === "ride") rideBodies(out, g, tag, layer, T, k, e.cfg, tube);
           for (const [n, a, b, kind] of g.L)
             out.lines.push({
               name: tag + n + (pose === "ride" ? "" : "_" + pose),
@@ -153,6 +154,33 @@
       }
     }
     return out;
+  }
+
+  // solid bodies at ride height for the STEP-solids export: every link as a tube (its real OD, or a 12 mm rod for the
+  // upright and rocker lines), a ball at every joint, and the tire as a cylinder. Each is {name, layer, shape, ...}.
+  function rideBodies(out, g, tag, layer, T, k, cfg, tube) {
+    const JOINT = 22,
+      ROD = 12;
+    for (const [n, a, b, kind] of g.L) {
+      if (n === "spin_axis") continue;
+      out.bodies.push({ name: tag + n, layer, shape: "cyl", a: T(g.P[a]), b: T(g.P[b]), d: (kind ? tube(kind) : ROD) * k });
+    }
+    for (const [n, q] of Object.entries(g.P)) {
+      if (/^(spin_axis|rocker_axis)_|^wheel_center$/.test(n)) continue;
+      out.bodies.push({ name: tag + n + "_ball", layer, shape: "ball", c: T(q), d: (n === "contact_patch" ? 10 : JOINT) * k });
+    }
+    const w = cfg.wheel || {},
+      c = g.P.wheel_center,
+      ax = unit(sub(g.P.spin_axis_out, g.P.spin_axis_in)),
+      half = (w.tire_width || 190) / 2;
+    out.bodies.push({
+      name: tag + "tire",
+      layer,
+      shape: "cyl",
+      a: T(sub(c, mul(ax, half))),
+      b: T(add(c, mul(ax, half))),
+      d: 2 * (w.tire_radius || 254) * k,
+    });
   }
 
   // ---------------------------------------------------------------- writers
@@ -332,6 +360,108 @@
     );
   }
 
+  // STEP AP214 with real solid bodies (B-rep cylinders and spheres), one named part per body, collected in one
+  // assembly. Onshape, Fusion and SolidWorks import these as parts you can mate to, measure and section.
+  function toSTEPSolid(g, meta = {}) {
+    const name = (meta.name || "suspension").replace(/'/g, "");
+    const L = [];
+    let n = 0;
+    const add_ = s => {
+      L.push(`#${++n}=${s};`);
+      return `#${n}`;
+    };
+    const q = s => `'${String(s).replace(/'/g, "")}'`,
+      pt = p => add_(`CARTESIAN_POINT('',(${p.map(num).join(",")}))`),
+      dir = v => add_(`DIRECTION('',(${v.map(num).join(",")}))`),
+      place = (o, z, x) => add_(`AXIS2_PLACEMENT_3D('',${pt(o)},${dir(z)},${dir(x)})`);
+    const ac = add_(`APPLICATION_CONTEXT('automotive design')`);
+    add_(`APPLICATION_PROTOCOL_DEFINITION('international standard','automotive_design',2000,${ac})`);
+    const pc = add_(`PRODUCT_CONTEXT('',${ac},'mechanical')`),
+      pdc = add_(`PRODUCT_DEFINITION_CONTEXT('part definition',${ac},'design')`);
+    let lu = add_(`(LENGTH_UNIT()NAMED_UNIT(*)SI_UNIT(.MILLI.,.METRE.))`);
+    if (g.units === "in") {
+      const m = add_(`LENGTH_MEASURE_WITH_UNIT(LENGTH_MEASURE(25.4),${lu})`),
+        de = add_(`DIMENSIONAL_EXPONENTS(1.,0.,0.,0.,0.,0.,0.)`);
+      lu = add_(`(CONVERSION_BASED_UNIT('INCH',${m})LENGTH_UNIT()NAMED_UNIT(${de}))`);
+    }
+    const au = add_(`(NAMED_UNIT(*)PLANE_ANGLE_UNIT()SI_UNIT($,.RADIAN.))`),
+      su = add_(`(NAMED_UNIT(*)SI_UNIT($,.STERADIAN.)SOLID_ANGLE_UNIT())`);
+    const um = add_(`UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(1.E-06),${lu},'distance_accuracy_value','confusion accuracy')`);
+    const ctx = add_(
+      `(GEOMETRIC_REPRESENTATION_CONTEXT(3)GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((${um}))GLOBAL_UNIT_ASSIGNED_CONTEXT((${lu},${au},${su}))REPRESENTATION_CONTEXT('',''))`
+    );
+    const product = nm => {
+      const pr = add_(`PRODUCT(${q(nm)},${q(nm)},'',(${pc}))`);
+      add_(`PRODUCT_RELATED_PRODUCT_CATEGORY('part',$,(${pr}))`);
+      const pd = add_(`PRODUCT_DEFINITION('design','',${add_(`PRODUCT_DEFINITION_FORMATION('','',${pr})`)},${pdc})`);
+      return [pd, add_(`PRODUCT_DEFINITION_SHAPE('','',${pd})`)];
+    };
+    const [apd, apds] = product(name),
+      aax = place([0, 0, 0], [0, 0, 1], [1, 0, 0]),
+      arep = add_(`SHAPE_REPRESENTATION(${q(name)},(${aax}),${ctx})`);
+    add_(`SHAPE_DEFINITION_REPRESENTATION(${apds},${arep})`);
+
+    // a closed cylinder: two planar caps and the side, bounded by the two end circles
+    function cylinder(a, b, r) {
+      const len = norm(sub(b, a)),
+        w = mul(sub(b, a), 1 / len),
+        u = unit(cross(w, Math.abs(w[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0]));
+      const ring = c0 => {
+        const v = add_(`VERTEX_POINT('',${pt(add(c0, mul(u, r)))})`);
+        return add_(`EDGE_CURVE('',${v},${v},${add_(`CIRCLE('',${place(c0, w, u)},${num(r)})`)},.T.)`);
+      };
+      const e1 = ring(a),
+        e2 = ring(b);
+      const loop = (e, sense) => add_(`EDGE_LOOP('',(${add_(`ORIENTED_EDGE('',*,*,${e},${sense})`)}))`);
+      const bound = (e, sense) => add_(`FACE_BOUND('',${loop(e, sense)},.T.)`);
+      const f1 = add_(`ADVANCED_FACE('',(${bound(e1, ".F.")}),${add_(`PLANE('',${place(a, mul(w, -1), u)})`)},.T.)`),
+        f2 = add_(`ADVANCED_FACE('',(${bound(e2, ".T.")}),${add_(`PLANE('',${place(b, w, u)})`)},.T.)`),
+        f3 = add_(
+          `ADVANCED_FACE('',(${bound(e1, ".T.")},${bound(e2, ".F.")}),${add_(`CYLINDRICAL_SURFACE('',${place(a, w, u)},${num(r)})`)},.T.)`
+        );
+      return add_(`CLOSED_SHELL('',(${f1},${f2},${f3}))`);
+    }
+    // a sphere: one face, bounded by a single vertex at its pole
+    function ball(c, r) {
+      const v = add_(`VERTEX_POINT('',${pt(sub(c, [0, 0, r]))})`);
+      const fb = add_(`FACE_BOUND('',${add_(`VERTEX_LOOP('',${v})`)},.T.)`);
+      return add_(
+        `CLOSED_SHELL('',(${add_(`ADVANCED_FACE('',(${fb}),${add_(`SPHERICAL_SURFACE('',${place(c, [0, 0, 1], [1, 0, 0])},${num(r)})`)},.T.)`)}))`
+      );
+    }
+    let count = 0;
+    for (const bd of g.bodies || []) {
+      if (bd.shape === "cyl" && norm(sub(bd.b, bd.a)) < 1e-9) continue;
+      const shell = bd.shape === "cyl" ? cylinder(bd.a, bd.b, bd.d / 2) : ball(bd.c, bd.d / 2);
+      const solid = add_(`MANIFOLD_SOLID_BREP(${q(bd.name)},${shell})`),
+        pax = place([0, 0, 0], [0, 0, 1], [1, 0, 0]),
+        rep = add_(`ADVANCED_BREP_SHAPE_REPRESENTATION(${q(bd.name)},(${pax},${solid}),${ctx})`);
+      const [pd, pds] = product(bd.name);
+      add_(`SHAPE_DEFINITION_REPRESENTATION(${pds},${rep})`);
+      const nauo = add_(`NEXT_ASSEMBLY_USAGE_OCCURRENCE('${++count}',${q(bd.name)},'',${apd},${pd},$)`);
+      const idt = add_(`ITEM_DEFINED_TRANSFORMATION('','',${pax},${aax})`);
+      const rel = add_(
+        `(REPRESENTATION_RELATIONSHIP('','',${rep},${arep})REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION(${idt})SHAPE_REPRESENTATION_RELATIONSHIP())`
+      );
+      add_(`CONTEXT_DEPENDENT_SHAPE_REPRESENTATION(${rel},${add_(`PRODUCT_DEFINITION_SHAPE('','',${nauo})`)})`);
+    }
+    const ts = (meta.date || new Date()).toISOString().slice(0, 19);
+    return (
+      [
+        "ISO-10303-21;",
+        "HEADER;",
+        `FILE_DESCRIPTION(('Suspension solid bodies from the FSAE Suspension Solver'),'2;1');`,
+        `FILE_NAME(${q(name + ".step")},'${ts}',(''),(''),'FSAE Suspension Solver','FSAE Suspension Solver','');`,
+        `FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'));`,
+        "ENDSEC;",
+        "DATA;",
+        ...L,
+        "ENDSEC;",
+        "END-ISO-10303-21;",
+      ].join("\n") + "\n"
+    );
+  }
+
   // tube bodies at ride height (closed cylinders, real OD) as ASCII STL; STL has no units, so pick the same units on import
   function toSTL(g, meta = {}, seg = 16) {
     const out = [`solid ${(meta.name || "suspension").replace(/\s+/g, "_")}`];
@@ -374,5 +504,5 @@
     return out.join("\n") + "\n";
   }
 
-  root.SuspCAD = { FRAMES, POSES, geometry, toCSV, toIGES, toSTEP, toSTL };
+  root.SuspCAD = { FRAMES, POSES, geometry, toCSV, toIGES, toSTEP, toSTEPSolid, toSTL };
 })(typeof window !== "undefined" ? window : globalThis);

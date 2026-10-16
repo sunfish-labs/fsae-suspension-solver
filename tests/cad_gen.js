@@ -7,6 +7,7 @@ const mk=(ax)=>Object.assign({},raw[ax],{axle:ax,vehicle:Object.assign({},raw[ax
 const corners=raw.front&&raw.rear?['front','rear'].map(a=>({e:Susp.evaluate(mk(a))})):[{e:Susp.evaluate(raw)}];
 const g=SuspCAD.geometry(corners,Object.assign({wheelbase:(raw.vehicle||{}).wheelbase},opts));
 fs.writeFileSync(out+'.igs',SuspCAD.toIGES(g,{name:'car'}));fs.writeFileSync(out+'.step',SuspCAD.toSTEP(g,{name:'car'}));
+fs.writeFileSync(out+'_solid.step',SuspCAD.toSTEPSolid(g,{name:'car'}));
 fs.writeFileSync(out+'.csv',SuspCAD.toCSV(g));fs.writeFileSync(out+'.stl',SuspCAD.toSTL(g,{name:'car'}));
 fs.writeFileSync(out+'.json',JSON.stringify(g));
 console.log('points',g.points.length,'lines',g.lines.length,'layers',g.layers.length);

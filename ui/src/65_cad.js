@@ -1,6 +1,7 @@
 // ---------------------------------------------------------------- 3D for CAD (Export ▾ → 3D for CAD…)
 const CADX = window.SuspCAD;
-const CAD_EXT = { igs: ".igs", step: ".step", csv: "_points.csv", stl: "_tubes.stl" };
+const CAD_EXT = { solid: "_solids.step", igs: ".igs", step: ".step", csv: "_points.csv", stl: "_tubes.stl" };
+const CAD_RIDE_ONLY = new Set(["stl", "solid"]); // body formats: ride height only
 function cadOpts() {
   return {
     fmt: $("#cadFmt").value,
@@ -24,7 +25,7 @@ function cadGeometry(o) {
     X,
     CADX.geometry(
       X.corners.map(k => ({ e: k.e })),
-      { frame: o.frame, origin: o.origin, units: o.units, poses: o.fmt === "stl" ? [] : o.poses, wheelbase: wb }
+      { frame: o.frame, origin: o.origin, units: o.units, poses: CAD_RIDE_ONLY.has(o.fmt) ? [] : o.poses, wheelbase: wb }
     ),
   ];
 }
@@ -36,15 +37,17 @@ function cadRefresh() {
       ? `The whole car: ${X.corners.map(k => k.lab.toLowerCase()).join(" and ")} corners, both sides.`
       : `This ${X.corners[0].lab.toLowerCase()} corner, both sides.`;
     $("#cadInfo").textContent =
-      o.fmt === "stl"
-        ? `${g.lines.filter(l => l.od).length} tubes at ride height.`
-        : `${g.points.length} named points and ${g.lines.length} lines in ${g.layers.length} layers.`;
+      o.fmt === "solid"
+        ? `${g.bodies.length} solid parts at ride height: every link at its tube size, a ball at each joint and the tires. Each imports as its own named part.`
+        : o.fmt === "stl"
+          ? `${g.lines.filter(l => l.od).length} tubes at ride height.`
+          : `${g.points.length} named points and ${g.lines.length} lines in ${g.layers.length} layers.`;
     $("#cadGo").disabled = false;
   } catch (e) {
     $("#cadInfo").textContent = e.message;
     $("#cadGo").disabled = true;
   }
-  $$(".cadposes input").forEach(b => (b.disabled = o.fmt === "stl"));
+  $$(".cadposes input").forEach(b => (b.disabled = CAD_RIDE_ONLY.has(o.fmt)));
   store.set("susp.cad", JSON.stringify(o));
 }
 function openCad() {
@@ -96,13 +99,15 @@ function wireCad() {
       const [X, g] = cadGeometry(o),
         meta = { name: X.name };
       const text =
-        o.fmt === "igs"
-          ? CADX.toIGES(g, meta)
-          : o.fmt === "step"
-            ? CADX.toSTEP(g, meta)
-            : o.fmt === "csv"
-              ? CADX.toCSV(g)
-              : CADX.toSTL(g, meta);
+        o.fmt === "solid"
+          ? CADX.toSTEPSolid(g, meta)
+          : o.fmt === "igs"
+            ? CADX.toIGES(g, meta)
+            : o.fmt === "step"
+              ? CADX.toSTEP(g, meta)
+              : o.fmt === "csv"
+                ? CADX.toCSV(g)
+                : CADX.toSTL(g, meta);
       download(fileBase(X.name) + CAD_EXT[o.fmt], new Blob([text], { type: o.fmt === "csv" ? "text/csv" : "application/octet-stream" }));
       flash(
         `Saved ${fileBase(X.name) + CAD_EXT[o.fmt]} (${o.units}, ${o.frame === "sw" ? "SolidWorks axes" : CADX.FRAMES[o.frame].label.split(":")[0]})`

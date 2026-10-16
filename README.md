@@ -107,6 +107,10 @@ Example:
 ## Exporting to CAD (SolidWorks, Fusion, Onshape)
 In the web app, **Export ▾ → 3D for CAD…** writes the corner (or, in the Car view, the whole car with all four corners)
 as reference geometry for the chassis designer:
+- **STEP solid bodies** (best for Onshape and Fusion): real solids at ride height, one named part each
+  (`FR_tie_rod`, `FR_UCA_front_leg`, `RL_tire`, ...): every link at its tube OD (12 mm rods for the upright and
+  rocker lines), a 22 mm ball at each joint, and each tire as a cylinder of its radius and width. Mate to them,
+  measure from them, section them, or check interference with the frame.
 - **IGES (.igs)** for SolidWorks, Fusion, NX and CATIA; **STEP (.step)** for Onshape, Fusion and SolidWorks. Every
   hardpoint is a named point (`FR_UCA_front_pivot`, `RL_toe_link_inboard`, ...) and every link is a line: wishbone legs,
   tie rod / toe link, upright axis, spin axis, pushrod, rocker and damper. In SolidWorks, open the file and turn on
@@ -118,7 +122,7 @@ as reference geometry for the chassis designer:
   (X rearward, Y right, Z up) or the solver's own frame. Origin at the front axle centerline on the ground, or the
   solver's frame. mm or inch. In a car the rear corner is placed one wheelbase behind the front contact patch.
 - Files are written in the browser; nothing is uploaded. `tests/test_cad.py` reads them back in OpenCascade and checks
-  every point.
+  every point, and that every solid body is a valid closed solid with the right volume in the right place.
 
 ## How loads are calculated (`loads`)
 One config covers both corners of its axle, because the car is symmetric. The solved wheel is the **outer** wheel

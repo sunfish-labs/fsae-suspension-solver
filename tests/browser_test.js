@@ -136,6 +136,8 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   const igs = await cadGrab("igs");
   check("CAD IGES file has all five sections", /S      1\n/.test(igs) && /G      1\n/.test(igs) && /D      1\n/.test(igs) && /P      1\n/.test(igs) && /T      1\n$/.test(igs));
   check("CAD STEP file is ISO-10303-21", /^ISO-10303-21;/.test(await cadGrab("step")));
+  const sol = await cadGrab("solid");
+  check("CAD STEP solids: closed solids and a named part per body", /MANIFOLD_SOLID_BREP/.test(sol) && /PRODUCT\('FR_tie_rod'/.test(sol) && /PRODUCT\('RL_tire'/.test(sol));
   await p.click("#cadClose");
   await p.evaluate(() => { window.showSaveFilePicker = undefined; });   // use the plain download path in the test
   const car = JSON.parse(fs.readFileSync(await grab("#btnDownload", "#xmenu"), "utf8"));

@@ -108,6 +108,50 @@ else:
     ok = StlAPI_Reader().Read(st, base + ".stl")
     check("STL tube bodies read back", ok)
 
+print("\n4. STEP with solid bodies: valid solids, named parts, in the right place")
+try:
+    import re
+    from OCP.STEPControl import STEPControl_Reader
+    from OCP.IFSelect import IFSelect_RetDone
+    from OCP.BRepCheck import BRepCheck_Analyzer
+    from OCP.GProp import GProp_GProps
+    from OCP.BRepGProp import BRepGProp
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopAbs import TopAbs_SOLID
+except ImportError:
+    print("  (skipped: pip install cadquery-ocp)")
+else:
+    for units in ("mm", "in"):
+        base, gg = gen(car, {"frame": "sw", "origin": "axle", "units": units})
+        k = 25.4 if units == "in" else 1.0                    # OpenCascade reports mm
+        text = open(base + "_solid.step").read()
+        rd = STEPControl_Reader()
+        assert rd.ReadFile(base + "_solid.step") == IFSelect_RetDone
+        rd.TransferRoots()
+        sh = rd.OneShape()
+        got = []
+        ex = TopExp_Explorer(sh, TopAbs_SOLID)
+        while ex.More():
+            pr = GProp_GProps()
+            BRepGProp.VolumeProperties_s(ex.Current(), pr)
+            c = pr.CentreOfMass()
+            got.append((pr.Mass(), (c.X(), c.Y(), c.Z())))
+            ex.Next()
+        bodies = gg["bodies"]
+        worst = 0.0
+        for b in bodies:
+            r_ = b["d"] / 2 * k
+            if b["shape"] == "cyl":
+                a, e_ = [v * k for v in b["a"]], [v * k for v in b["b"]]
+                v, c = math.pi * r_ * r_ * math.dist(a, e_), [(x + y) / 2 for x, y in zip(a, e_)]
+            else:
+                v, c = 4 / 3 * math.pi * r_ ** 3, [v * k for v in b["c"]]
+            worst = max(worst, min(abs(gv - v) / v + math.dist(gc, c) for gv, gc in got))
+        names = set(re.findall(r"PRODUCT\('([^']*)'", text))
+        check(f"solids ({units}): {len(bodies)} valid closed solids", BRepCheck_Analyzer(sh).IsValid() and len(got) == len(bodies), f"{len(got)} solids")
+        check(f"solids ({units}): each body has the right volume and sits within 0.001 mm of where the solver puts it", worst < 1e-3, worst)
+        check(f"solids ({units}): one named part per body (e.g. FR_tie_rod, FR_tire)", all(b["name"] in names for b in bodies) and "FR_tire" in names)
+
 bad = results.count(False)
 print(f"\n{len(results) - bad} of {len(results)} CAD export checks passed")
 sys.exit(1 if bad else 0)
