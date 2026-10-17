@@ -657,6 +657,24 @@ ex15 = cockpit_values(json.load(open(os.path.join(ROOT15, "designs", "example_ca
 check("example car: helmet to the hoop line, mm", ex15["helmet_front_line"], 68.3, 0.05, "over 50 mm")
 check("example car: helmet to the brace line, mm", ex15["helmet_brace_line"], 92.9, 0.05, "over 50 mm")
 
+# 16. ground clearance over the body positions the dampers allow (V.1.4.1)
+from susp.rules import ground_planes, ground_clearance, corner_limits  # noqa: E402
+from susp.config import load_car as _lc16  # noqa: E402
+f16, r16, _ = _lc16(os.path.join(ROOT15, "designs", "example_car_layout.json"))
+fe16, re16 = evaluate(f16), evaluate(r16)
+pl16, co16 = ground_planes(f16, fe16, r16, re16, f16["vehicle"]["wheelbase"])
+WB16 = f16["vehicle"]["wheelbase"]
+hiF, loR, hiR = co16[0]["hi"], co16[2]["lo"], co16[2]["hi"]
+g16 = ground_clearance([{"name": "mid", "at": [-WB16 / 2, 0.0, 100.0]}], pl16)
+check("ground: halfway between the axles the body comes down by the mean full bump (both axles bottomed), mm", g16["drop"], (hiF + hiR) / 2, 1e-6,
+      "a rigid body: the drop is linear between the axles")
+g16 = ground_clearance([{"name": "nose", "at": [300.0, 0.0, 100.0]}], pl16)
+check("ground: 300 mm ahead of the front axle it comes down most with the front bottomed and the rear at full droop, mm", g16["drop"],
+      hiF + (hiF - loR) * 300.0 / WB16, 1e-6, "pitch: the line through front full bump and rear full droop, extended")
+lim16 = corner_limits(f16, fe16)
+check("ground: full bump includes the tire squashing under the extra load, mm", hiF, lim16["bump"] + fe16["metrics"]["wheel_rate"] * lim16["bump"] / f16["spring"]["tire_rate"], 1e-9,
+      "wheel rate x bump / tire rate")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)

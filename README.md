@@ -250,6 +250,11 @@ needs and says pass, fail, can't check (an input is missing) or check yourself (
   the braces go forward), 915 mm hip to pedals, the Front Hoop over the steering wheel and at most 250 mm ahead of
   it, braces at most 160 mm below the hoop top. Seat it as F.5.6.6 says and check the head restraint (within 25 mm)
   on the CAD; every team driver must clear the lines too.
+- V.1.4.1 / V.1.4.3 nothing but the tires touches the ground: the car file's `ground_points` (the lowest parts at
+  ride height, driver in: `[{name, at: [x, y, z]}]` in the layout's car frame; Car view → Layout → Lowest points) and
+  every vertex of a loaded frame model, at every body position the dampers allow: the body rigid, each corner from
+  full droop to full bump (the damper's stroke and length, or the sweep's travel) plus the tire squashing under the
+  extra load at full bump, with any pitch and roll in between. The tightest point and the body position are named.
 - a checklist for what it can't measure: open-wheel views, the lower side impact structure height, ground contact,
   visible mounts, fastener locking, steering free play, rack mounting, cockpit shields, mounts on the hoop braces.
 A later rulebook is a new file in `schema/rules/` with the same layout.

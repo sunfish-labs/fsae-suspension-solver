@@ -16,12 +16,15 @@ Values:
         end motion ratio). A bump stop or coil bind that stops it sooner is not counted.
     wheel_front / _rear (rim diameter, mm), bolt_grades, shear_planes, steer_solves (the steering sweep reached the
     full rack travel), rim_margin (links inside the rim barrel over travel and steer, both axles), keepout_hits
-    (layout parts in a tire's fore/aft keep-out zone)."""
+    (layout parts in a tire's fore/aft keep-out zone), ground_clearance (the car file's lowest points against the
+    ground over every body position the suspension allows: see ground_planes)."""
 from __future__ import annotations
 
 import json
 import math
 import os
+
+import numpy as np
 
 from .schema import _DIR
 
@@ -104,7 +107,68 @@ def keepout_hits(lay, fcfg, rcfg, wheelbase):
     return hits
 
 
-def rule_values(fcfg, fev, rcfg, rev, bal=None, layout=None, cockpit=None):
+def corner_limits(cfg, ev):
+    """How far the body can come down (+, bump) and go up (droop) at one corner, mm: the damper's usable travel (or
+    the sweep's travel without stroke and length), plus the tire squashing under the extra load at full bump."""
+    t = usable_travel(cfg, ev)
+    if t:
+        bump, droop = max(t["bump"], t["droop"]), min(t["bump"], t["droop"])
+    else:
+        from .kinematics import travel_range
+        D, B = travel_range(cfg)
+        bump, droop = B, -D
+    kw = ev["metrics"].get("wheel_rate") if ev.get("ride") else None
+    kt = (cfg.get("spring") or {}).get("tire_rate")
+    squash = float(kw) * bump / float(kt) if kw and kt else 0.0
+    return dict(bump=float(bump), droop=float(droop), squash=float(squash))
+
+
+def ground_planes(fcfg, fev, rcfg, rev, wheelbase):
+    """Every extreme body position the four corners allow, as planes: the body comes down by a + b x + c y (mm) at a
+    point (x, y) of the car frame. The body is rigid (heave, pitch, roll), each corner between full droop and full
+    bump (plus tire squash); the lowest a point can get is at one of these vertices (a linear program's corners: three
+    corners at a limit, the fourth inside its range)."""
+    xf = float(fcfg["hardpoints"]["contact_patch"][0])
+    corners = []
+    for cfg, ev, x, ax in ((fcfg, fev, xf, "front"), (rcfg, rev, xf - float(wheelbase), "rear")):
+        lim = corner_limits(cfg, ev)
+        y = float(cfg["hardpoints"]["contact_patch"][1])
+        for side, yy in (("right", y), ("left", -y)):
+            corners.append(dict(name=f"{ax} {side}", x=x, y=yy, lo=lim["droop"], hi=lim["bump"] + lim["squash"]))
+    planes = []
+    import itertools
+    for tri in itertools.combinations(range(4), 3):
+        other = [i for i in range(4) if i not in tri][0]
+        A = np.array([[1.0, corners[i]["x"], corners[i]["y"]] for i in tri])
+        for lims in itertools.product(("lo", "hi"), repeat=3):
+            d = np.array([corners[i][s] for i, s in zip(tri, lims)])
+            try:
+                a, b, c = np.linalg.solve(A, d)
+            except np.linalg.LinAlgError:
+                continue
+            o = corners[other]
+            d4 = a + b * o["x"] + c * o["y"]
+            if o["lo"] - 1e-6 <= d4 <= o["hi"] + 1e-6:
+                state = {corners[i]["name"]: ("full bump" if s == "hi" else "full droop") for i, s in zip(tri, lims)}
+                planes.append(dict(a=float(a), b=float(b), c=float(c), state=state))
+    return planes, corners
+
+
+def ground_clearance(points, planes):
+    """The least clearance (mm) of the given points [{name, at: [x, y, z]}] over the body positions: z minus the
+    largest drop there. {value, point, at, drop, state} or None without points."""
+    best = None
+    for p in points or []:
+        x, y, z = (float(v) for v in p["at"])
+        for pl in planes:
+            dr = pl["a"] + pl["b"] * x + pl["c"] * y
+            cl = z - dr
+            if best is None or cl < best["value"]:
+                best = dict(value=cl, point=p.get("name") or "point", at=[x, y, z], drop=dr, state=pl["state"])
+    return best
+
+
+def rule_values(fcfg, fev, rcfg, rev, bal=None, layout=None, cockpit=None, ground=None):
     veh = fcfg["vehicle"]
     tf, tr = fev["susp"].track, rev["susp"].track
     v = dict(wheelbase=float(veh["wheelbase"]), track_ratio=min(tf, tr) / max(tf, tr))
@@ -125,6 +189,9 @@ def rule_values(fcfg, fev, rcfg, rev, bal=None, layout=None, cockpit=None):
     if cockpit:
         from .cockpit import cockpit_values
         v.update(cockpit_values(cockpit))
+    g = ground_clearance(ground, ground_planes(fcfg, fev, rcfg, rev, float(veh["wheelbase"]))[0]) if ground else None
+    v["ground_clearance"] = g["value"] if g else None
+    v["_ground"] = g
     return v
 
 

@@ -128,7 +128,85 @@ function checkCockpit(ck) {
   if (!(typeof ck.back_angle === "number" && ck.back_angle >= 0 && ck.back_angle < 80))
     throw new SolveError("cockpit.back_angle is the seat back's angle from vertical, 0 to 80 deg");
 }
-function ruleValues(fcfg, fev, rcfg, rev, bal = null, layout = null, cockpit = null) {
+// ---- ground clearance (mirrors rules.corner_limits / ground_planes / ground_clearance)
+function cornerLimits(cfg, ev) {
+  const t = usableTravel(cfg, ev);
+  let bump, droop;
+  if (t) [bump, droop] = [Math.max(t.bump, t.droop), Math.min(t.bump, t.droop)];
+  else {
+    const [D, B] = travelRange(cfg);
+    [bump, droop] = [B, -D];
+  }
+  const kw = ev.ride ? ev.metrics.wheel_rate : null,
+    kt = (cfg.spring || {}).tire_rate,
+    squash = kw && kt ? (+kw * bump) / +kt : 0;
+  return { bump: +bump, droop: +droop, squash: +squash };
+}
+function groundPlanes(fcfg, fev, rcfg, rev, wheelbase) {
+  const xf = +fcfg.hardpoints.contact_patch[0],
+    corners = [];
+  for (const [cfg, ev, x, ax] of [
+    [fcfg, fev, xf, "front"],
+    [rcfg, rev, xf - +wheelbase, "rear"],
+  ]) {
+    const lim = cornerLimits(cfg, ev),
+      y = +cfg.hardpoints.contact_patch[1];
+    for (const [side, yy] of [
+      ["right", y],
+      ["left", -y],
+    ])
+      corners.push({ name: `${ax} ${side}`, x, y: yy, lo: lim.droop, hi: lim.bump + lim.squash });
+  }
+  const planes = [],
+    tris = [
+      [0, 1, 2],
+      [0, 1, 3],
+      [0, 2, 3],
+      [1, 2, 3],
+    ];
+  for (const tri of tris) {
+    const other = [0, 1, 2, 3].find(i => !tri.includes(i)),
+      A = tri.map(i => [1, corners[i].x, corners[i].y]);
+    for (let m = 0; m < 8; m++) {
+      const lims = [0, 1, 2].map(j => ((m >> (2 - j)) & 1 ? "hi" : "lo")),
+        sol = solveLinear(
+          A,
+          tri.map((i, j) => corners[i][lims[j]])
+        );
+      if (!sol) continue;
+      const [a, b, c] = sol,
+        o = corners[other],
+        d4 = a + b * o.x + c * o.y;
+      if (d4 >= o.lo - 1e-6 && d4 <= o.hi + 1e-6) {
+        const state = {};
+        tri.forEach((i, j) => (state[corners[i].name] = lims[j] === "hi" ? "full bump" : "full droop"));
+        planes.push({ a, b, c, state });
+      }
+    }
+  }
+  return [planes, corners];
+}
+function groundClearance(points, planes) {
+  let best = null;
+  for (const p of points || []) {
+    const [x, y, z] = p.at.map(Number);
+    for (const pl of planes) {
+      const dr = pl.a + pl.b * x + pl.c * y,
+        cl = z - dr;
+      if (!best || cl < best.value) best = { value: cl, point: p.name || "point", at: [x, y, z], drop: dr, state: pl.state };
+    }
+  }
+  return best;
+}
+function checkGroundPoints(gp) {
+  if (!Array.isArray(gp)) throw new SolveError("ground_points must be a list of {name, at: [x, y, z]}");
+  gp.forEach((p, i) => {
+    const at = p && p.at;
+    if (!(Array.isArray(at) && at.length === 3 && at.every(v => typeof v === "number" && Number.isFinite(v))))
+      throw new SolveError(`ground_points[${i}] needs at: [x, y, z] in mm`);
+  });
+}
+function ruleValues(fcfg, fev, rcfg, rev, bal = null, layout = null, cockpit = null, ground = null) {
   const veh = fcfg.vehicle,
     tf = fev.susp.track,
     tr = rev.susp.track;
@@ -152,6 +230,9 @@ function ruleValues(fcfg, fev, rcfg, rev, bal = null, layout = null, cockpit = n
   v.rim_margin = rm.every(x => x != null) ? Math.min(...rm) : null;
   v.keepout_hits = keepoutHits(layout, fcfg, rcfg, +veh.wheelbase);
   if (cockpit) Object.assign(v, cockpitValues(cockpit));
+  const g = ground && ground.length ? groundClearance(ground, groundPlanes(fcfg, fev, rcfg, rev, +veh.wheelbase)[0]) : null;
+  v.ground_clearance = g ? g.value : null;
+  v._ground = g;
   return v;
 }
 function checkRules(ruleset, values) {

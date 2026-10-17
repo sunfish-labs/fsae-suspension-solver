@@ -167,7 +167,8 @@ def cmd_rules(a):
     f, r, info = C.load_car(a.car)
     fe, re_ = evaluate(f), evaluate(r)
     bal = car_balance(f, fe, r, re_, None, None, info["arb_f"], info["arb_r"]) if fe.get("ride") and re_.get("ride") else None
-    rows = check_rules(rs, rule_values(f, fe, r, re_, bal, info.get("layout"), info.get("cockpit")))
+    vals = rule_values(f, fe, r, re_, bal, info.get("layout"), info.get("cockpit"), info.get("ground"))
+    rows = check_rules(rs, vals)
     print(f"{rs['name']} ({rs['version']}): rule numbers and paraphrases; read the rulebook for the exact wording.\n")
     mark = {"pass": "PASS ", "fail": "FAIL ", "unknown": "  ?  ", "manual": "CHECK", "na": " n/a "}
     for row in rows:
@@ -181,6 +182,11 @@ def cmd_rules(a):
             print(f"  {mark['na']} {row['rule']:<22} {row['summary']}: doesn't apply ({row['note']})")
             continue
         print(f"  {mark[row['status']]} {row['rule']:<22} {row['summary']}" + (f": {vt}{lim}{est}{extra}" if vt or extra else ""))
+    g = vals.get("_ground")
+    if g:
+        st = ", ".join(f"{k} {v}" for k, v in g["state"].items())
+        print(f"\n  Ground clearance: the tightest point is {g['point']} ({g['value']:.1f} mm), with the body down {g['drop']:.1f} mm "
+              f"there ({st}).")
     n = {s: sum(r_["status"] == s for r_ in rows) for s in mark}
     print(f"\n{n['pass']} pass, {n['fail']} fail, {n['unknown']} can't check (missing inputs), {n['manual']} to check yourself"
           + (f", {n['na']} don't apply" if n["na"] else ""))

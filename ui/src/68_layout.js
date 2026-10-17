@@ -116,6 +116,8 @@ function renderLayoutBox() {
     if (dr && car.drivetrain) dr.innerHTML = drivetrainResultsOnly();
     const cr = $("#ckRes", box);
     if (cr && car.cockpit) cr.innerHTML = cockpitResults();
+    const gr = $("#gpRes", box);
+    if (gr) gr.innerHTML = groundResults();
     return;
   }
   runAccel();
@@ -131,7 +133,8 @@ function renderLayoutBox() {
       <div class="laybtns"><button class="btn small" type="button" id="layStart">Start from a typical first-year layout</button><button class="btn small" type="button" id="layBlank">Start empty</button></div>`
     }
     <h3 class="sub-h">Drivetrain: gearing and the acceleration run</h3><div id="dtBox">${drivetrainHtml()}</div>
-    <h3 class="sub-h">Driver and roll hoops (side view)</h3><div id="ckBox">${cockpitHtml()}</div>`;
+    <h3 class="sub-h">Driver and roll hoops (side view)</h3><div id="ckBox">${cockpitHtml()}</div>
+    <h3 class="sub-h">Lowest points (ground clearance)</h3><div id="gpBox">${groundHtml()}</div>`;
   wireLayout(box);
 }
 function drivetrainResultsOnly() {
@@ -481,5 +484,117 @@ document.addEventListener("input", e => {
   if (j === "x") car.cockpit[k] = +undispPt([v, 0, 0], "car")[0].toFixed(6);
   else if (j === "n") car.cockpit[k] = v;
   else car.cockpit[k] = ckStore(car.cockpit[k] || [0, 0], +j, v);
+  schedule();
+});
+
+// ---- the car's lowest points for the ground clearance rule (car.ground_points), and the frame model's worst point
+const GP_START = [
+  { name: "Front bulkhead, bottom", at: [300, 150, 95] },
+  { name: "Lower side impact tube, lowest", at: [-700, 280, 75] },
+  { name: "Main hoop base, bottom rail", at: [-1300, 260, 80] },
+  { name: "Engine sump or lowest drivetrain part", at: [-1180, 0, 85] },
+  { name: "Rear frame, bottom", at: [-1700, 200, 100] },
+];
+// the points the rules check uses: the car file's, plus the frame model's worst vertex once it's loaded
+const gpCache = { sig: null, pt: null };
+function groundPointsFor(F, R) {
+  const pts = (car && car.ground_points ? car.ground_points : []).slice();
+  if (chassis.base && F && R) {
+    const planes = S.groundPlanes(F.cfg, F, R.cfg, R, +car.vehicle.wheelbase)[0],
+      sig = chSignature() + JSON.stringify(planes.map(p => [p.a, p.b, p.c]));
+    if (gpCache.sig !== sig) {
+      const P = chMoved();
+      let best = null;
+      for (let i = 0; i < P.length; i += 3) {
+        const x = P[i],
+          y = P[i + 1],
+          z = P[i + 2];
+        let dr = -Infinity;
+        for (const pl of planes) dr = Math.max(dr, pl.a + pl.b * x + pl.c * y);
+        const cl = z - dr;
+        if (!best || cl < best[0]) best = [cl, x, y, z];
+      }
+      gpCache.sig = sig;
+      gpCache.pt = best ? { name: "Frame model, lowest point in motion", at: best.slice(1) } : null;
+    }
+    if (gpCache.pt) pts.push(gpCache.pt);
+  }
+  return pts.length ? pts : null;
+}
+function groundResults() {
+  const r = carRes || evalCar();
+  if (!r || !r.F.ev || !r.R.ev) return "";
+  const pts = groundPointsFor(r.F.ev, r.R.ev);
+  if (!pts) return `<p class="note">No points yet.</p>`;
+  let g;
+  try {
+    g = S.groundClearance(pts, S.groundPlanes(r.F.ev.cfg, r.F.ev, r.R.ev.cfg, r.R.ev, +car.vehicle.wheelbase)[0]);
+  } catch (e) {
+    return `<div class="banner bad">${esc(e.message)}</div>`;
+  }
+  const ok = g.value >= 0;
+  return `<div class="kv"><div><span>Tightest point in motion</span><b class="${ok ? "ok-t" : "bad-t"}">${fmt(g.value, 1)} <small>mm · ${esc(g.point)}</small></b></div>
+    <div><span>Body down there</span><b>${fmt(g.drop, 1)} <small>mm (${esc(
+      Object.entries(g.state)
+        .map(([k, s]) => `${k} ${s}`)
+        .join(", ")
+    )})</small></b></div></div>`;
+}
+function groundHtml() {
+  const gp = car.ground_points;
+  const note = `<p class="note">The lowest parts of the car at ride height, driver in: frame rails and nodes, the lower side impact tube, the impact attenuator, engine sump, diff, exhaust, bellypan. The check moves the body to every position the dampers allow (each corner from full droop to full bump, plus the tire squashing at full bump), with pitch and roll, and reports the point that gets closest to the ground (V.1.4.1). A loaded frame model (Open → Chassis model) is checked the same way, every vertex.</p>`;
+  if (!gp || !gp.length)
+    return `${note}<div class="laybtns"><button class="btn small" type="button" id="gpStart">Start from typical points</button></div><div id="gpRes">${groundResults()}</div>`;
+  const hn = frameAxes().names;
+  const rows = gp
+    .map((p, i) => {
+      const d = dispPt(p.at, "car");
+      return `<tr><td><input class="ltext" type="text" data-gp="${i}" data-gj="name" value="${attr(p.name || "")}" aria-label="Point name"></td>${[
+        0, 1, 2,
+      ]
+        .map(
+          j =>
+            `<td class="n"><input class="num lnum" type="number" step="5" data-gp="${i}" data-gj="${j}" value="${attr(+d[j].toFixed(1))}" aria-label="${attr(hn[j])}"></td>`
+        )
+        .join(
+          ""
+        )}<td><button class="btn small" type="button" data-gp-del="${i}" aria-label="Remove ${attr(p.name || "point")}">✕</button></td></tr>`;
+    })
+    .join("");
+  return `${note}<div class="tbl-wrap"><table class="data laytab"><thead><tr><th>Point</th>${hn.map(h => `<th class="n">${esc(h)}, mm</th>`).join("")}<th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="laybtns"><button class="btn small" type="button" id="gpAdd">Add a point</button></div>
+    <div id="gpRes">${groundResults()}</div><p class="note">${frameNote("car")}</p>`;
+}
+document.addEventListener("click", e => {
+  const t = e.target;
+  if (!t || !car) return;
+  if (t.id === "gpStart") {
+    pushHistory();
+    car.ground_points = JSON.parse(JSON.stringify(GP_START));
+    schedule();
+  } else if (t.id === "gpAdd") {
+    pushHistory();
+    car.ground_points.push({ name: "New point", at: [0, 0, 100] });
+    schedule();
+  } else if (t.dataset && t.dataset.gpDel !== undefined) {
+    pushHistory();
+    car.ground_points.splice(+t.dataset.gpDel, 1);
+    if (!car.ground_points.length) car.ground_points = null;
+    schedule();
+  }
+});
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (!el || !el.dataset || el.dataset.gp === undefined || !car || !car.ground_points) return;
+  const p = car.ground_points[+el.dataset.gp];
+  if (!p) return;
+  if (el.dataset.gj === "name") p.name = el.value;
+  else {
+    const v = +el.value;
+    if (el.value === "" || !Number.isFinite(v)) return;
+    const d = dispPt(p.at, "car");
+    d[+el.dataset.gj] = v;
+    p.at = undispPt(d, "car").map(x => +x.toFixed(6));
+  }
   schedule();
 });

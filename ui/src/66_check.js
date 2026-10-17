@@ -353,21 +353,33 @@ function checkList(X) {
       R = X.corners[1] && X.corners[1].e;
     if (F && R && S.RULESETS.fsae_2027_ic) {
       const rs = S.RULESETS.fsae_2027_ic;
-      let rr = [];
+      let rr = [],
+        rvals = null;
       try {
-        rr = S.checkRules(rs, S.ruleValues(F.cfg, F, R.cfg, R, B, car.layout || null, car.cockpit || null));
+        rr = S.checkRules(
+          rs,
+          (rvals = S.ruleValues(F.cfg, F, R.cfg, R, B, car.layout || null, car.cockpit || null, groundPointsFor(F, R)))
+        );
       } catch (x) {
         add("Rules", "Car", "Rules check", "fail", x.message, "", ["car", null]);
       }
       for (const r of rr) {
         if (r.status === "na") continue;
         const st = { pass: "pass", fail: "fail", unknown: "input", manual: "manual" }[r.status] || "manual";
-        const v =
+        let v =
           typeof r.value === "number" && r.unit !== undefined
             ? r.id === "track_ratio"
               ? `${fmt(r.value * 100, 1)} % (min ${fmt(r.limit * 100, 0)} %)`
               : `${fmt(r.value, 1)} ${r.unit} (${r.kind === "max" ? "max" : "min"} ${fmt(r.limit, r.limit % 1 ? 1 : 0)}${r.estimate ? ", estimate" : ""})`
             : r.note || (st === "input" ? "An input it needs is missing." : "");
+        const g = r.id === "ground" && rvals && rvals._ground;
+        if (r.id === "ground")
+          v =
+            g && st !== "input"
+              ? `Tightest: ${g.point}, ${fmt(g.value, 1)} mm, with the body down ${fmt(g.drop, 1)} mm there (${Object.entries(g.state)
+                  .map(([k, s]) => `${k} ${s}`)
+                  .join(", ")})`
+              : "Add the car's lowest points (Car view → Layout → Lowest points) or load the frame model.";
         add(
           "Rules",
           "Car",

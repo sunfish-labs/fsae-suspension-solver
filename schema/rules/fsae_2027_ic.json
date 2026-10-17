@@ -114,6 +114,16 @@
    "unit": "mm"
   },
   {
+   "id": "ground",
+   "rule": "V.1.4.1, V.1.4.3",
+   "summary": "Nothing but the tires touches the ground: the car's lowest points (car file and frame model) at every body position the dampers allow, with pitch, roll and the tires squashed",
+   "kind": "min",
+   "value": "ground_clearance",
+   "limit": 0,
+   "unit": "mm",
+   "estimate": true
+  },
+  {
    "id": "hip_to_pedals",
    "rule": "F.5.6.6",
    "summary": "Driver template's hip circle at least 915 mm behind the rearmost pedal face (seat back, pedals forward)",
@@ -186,12 +196,6 @@
    "id": "m_lower_sis",
    "rule": "V.1.4.2",
    "summary": "Lowest point of the Lower Side Impact Structure 90 mm or less above the ground (75 mm or less recommended), with an opening to measure it",
-   "kind": "manual"
-  },
-  {
-   "id": "m_ground",
-   "rule": "V.1.4.1, V.1.4.3",
-   "summary": "Nothing but the tires touches the ground in the dynamic events (check the lowest point at full bump and pitch)",
    "kind": "manual"
   },
   {

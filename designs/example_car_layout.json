@@ -738,6 +738,15 @@
   "drag_area": 0.9,
   "rolling": 0.015
  },
+ "ground_points": [
+   {"name": "Front bulkhead, bottom", "at": [300, 150, 95]},
+   {"name": "Impact attenuator, bottom front", "at": [620, 0, 120]},
+   {"name": "Lower side impact tube, lowest", "at": [-700, 280, 75]},
+   {"name": "Engine sump", "at": [-1180, 0, 85]},
+   {"name": "Main hoop base, bottom rail", "at": [-1300, 260, 80]},
+   {"name": "Rear frame, bottom", "at": [-1700, 200, 100]},
+   {"name": "Differential, bottom", "at": [-1550, 0, 144]}
+ ],
  "cockpit": {
   "main_hoop_top": [
    -1300.0,

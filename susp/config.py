@@ -63,6 +63,16 @@ def _vec3(v):
     return isinstance(v, (list, tuple)) and len(v) == 3 and all(isinstance(c, (int, float)) and not isinstance(c, bool) for c in v)
 
 
+def check_ground_points(gp, where="ground_points"):
+    """The car's lowest points for the ground clearance rule: [{name, at: [x, y, z]}] in the car frame (mm)."""
+    if not isinstance(gp, list):
+        raise ConfigError(f"{where}: ground_points must be a list of {{name, at: [x, y, z]}}")
+    for i, p in enumerate(gp):
+        at = p.get("at") if isinstance(p, dict) else None
+        if not (isinstance(at, list) and len(at) == 3 and all(isinstance(v, (int, float)) for v in at)):
+            raise ConfigError(f"{where}: ground_points[{i}] needs at: [x, y, z] in mm")
+
+
 SWEEP_STEPS = {"steps": 5, "roll_steps": 3, "rack_steps": 3, "pack_heave_steps": 2, "pack_rack_steps": 2}
 
 
@@ -257,6 +267,9 @@ def load_car(path):
     if raw.get("cockpit") is not None:
         from .cockpit import check_cockpit
         check_cockpit(raw["cockpit"], path)
+    info["ground"] = raw.get("ground_points")
+    if raw.get("ground_points") is not None:
+        check_ground_points(raw["ground_points"], path)
     if raw.get("drivetrain") is not None:
         from .layout import check_drivetrain
         check_drivetrain(raw["drivetrain"], path)

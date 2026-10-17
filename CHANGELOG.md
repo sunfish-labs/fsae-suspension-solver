@@ -3,6 +3,14 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.15.0 - 2026-10-17
+
+- **Ground clearance rule** (V.1.4.1 / V.1.4.3, now automatic): the car's lowest points (car file `ground_points`, Car
+  view → Layout → Lowest points, and every vertex of a loaded frame model) at every body position the dampers allow,
+  the body rigid with each corner between full droop and full bump plus tire squash, pitch and roll included (the
+  extreme positions of that linear program). Names the tightest point and the body position. Python and browser,
+  hand-checked. The example car has typical points (26.5 mm at the lower side impact tube).
+
 ## 1.14.0 - 2026-10-17
 
 - **Design check** (✓ Check in the top bar): every check on the car on one page, grouped (setup, geometry,
