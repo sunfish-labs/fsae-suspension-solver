@@ -219,6 +219,31 @@ print(default_targets(load_config(${JSON.stringify(path.join(tmpd, "design.json"
   await setIn("#in_halfshaft_diff_output_1", ""); await settle(p);
   await p.click('#axleSeg [data-ax="car"]'); await settle(p);
 
+  console.log("\nLayout and drivetrain");
+  await p.setInputFiles("#fileIn", path.join(ROOT, "designs", "example_car_layout.json")); await settle(p);
+  await p.click('#axleSeg [data-ax="car"]'); await settle(p);
+  const pyLay = JSON.parse(require("child_process").execFileSync("python3", ["-c", `import sys, json; sys.path.insert(0, ${JSON.stringify(ROOT)})
+from susp.config import load_car
+from susp.layout import accel_run
+f, r, i = load_car(${JSON.stringify(path.join(ROOT, "designs", "example_car_layout.json"))})
+a = accel_run(i["drivetrain"], f["vehicle"], r["wheel"]["tire_radius"], f["vehicle"]["wheelbase"])
+print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time"]]))`]).toString());
+  const lb = await text(p, "#layBox");
+  check("layout: totals match the Python solver (mass, CG height) and the vehicle block takes them",
+    lb.includes(pyLay[0].toFixed(1)) && lb.includes(pyLay[1].toFixed(0)) && /from the layout/.test(await text(p, "#carIn")), lb.slice(0, 300));
+  check("drivetrain: the 75 m time matches the Python solver", lb.includes(pyLay[2].toFixed(2) + " s") || new RegExp(pyLay[2].toFixed(2) + "\\s*s").test(lb), pyLay[2]);
+  const massCell = () => p.evaluate(() => document.querySelector('#layBox [data-lay="0"][data-lk="mass"]').value);
+  await p.fill('#layBox [data-lay="0"][data-lk="mass"]', "95"); await settle(p); await p.click("#layBox h3"); await settle(p);
+  const lb2 = await text(p, "#layBox");
+  check("a heavier driver raises the total by 20 kg", lb2.includes((pyLay[0] + 20).toFixed(1)), lb2.slice(0, 200));
+  await p.click("#btnUndo"); await settle(p);
+  check("Undo puts the driver back", (await massCell()) === "75");
+  await p.click("#layCheck");
+  await p.waitForFunction(() => /Closest/.test((document.querySelector("#layClear") || {}).textContent || ""), null, { timeout: 60000 });
+  const lc = await text(p, "#layClear");
+  check("clearance to the layout parts runs with no chassis model and names what each link comes closest to", /Closest to/i.test(lc) && /(Driver|Engine|Exhaust|Differential)/.test(lc), lc.slice(0, 300));
+  check("the parts are drawn as boxes and the toggle shows in Display", await p.evaluate(() => { let n = 0; window.__suspView().three.dyn.traverse(o => { if (o.userData && o.userData.layName) n++; }); return n; }) >= 8 && !(await p.$eval("#tgLayout", e => e.hidden)));
+
   console.log("\nSprings as fitted, bar linkage, tires at the limit");
   await p.setInputFiles("#fileIn", path.join(ROOT, "designs", "example_car_bars.json")); await settle(p);
   await p.click('#axleSeg [data-ax="car"]'); await settle(p);

@@ -121,6 +121,39 @@ def _write_fea(a, corners):
     print(f"\nPart loads for FEA written to {a.fea} (right-hand corner, solver frame: X forward, Y right, Z up; mm and N)")
 
 
+def cmd_layout(a):
+    """Layout totals (mass, CG, shares, inertia) and the drivetrain's straight-line run, from a car file."""
+    from susp.layout import accel_run
+    if not C.is_car_file(a.car):
+        sys.exit("layout needs a car file (front and rear corners, a vehicle block and a layout and/or drivetrain block)")
+    f, r, info = C.load_car(a.car)
+    lr = info.get("layout_res")
+    if lr:
+        print(f"Layout: {lr['n']} parts + 4 wheel assemblies ({lr['unsprung']:.1f} kg unsprung)")
+        for g, m in sorted(lr["groups"].items(), key=lambda kv: -kv[1]):
+            print(f"  {g:<14} {m:7.1f} kg")
+        x, y, z = lr["cg"]
+        print(f"  total {lr['mass']:.1f} kg; CG x {x:.0f}, y {y:.0f}, z {z:.0f} mm; front {lr['weight_front'] * 100:.1f} %, "
+              f"left {lr['weight_left'] * 100:.1f} %")
+        print(f"  inertia about the CG: roll {lr['Ixx']:.1f}, pitch {lr['Iyy']:.1f}, yaw {lr['Izz']:.1f} kg m^2")
+        print("  the car's mass and CG come from the layout (layout.apply)" if (info["layout"] or {}).get("apply")
+              else "  not applied: the vehicle block's typed mass and CG are used (set layout.apply to use these)")
+    d = info.get("drivetrain")
+    if d:
+        v = f["vehicle"]
+        ar = accel_run(d, v, r["wheel"]["tire_radius"], v["wheelbase"])
+        print(f"\nDrivetrain{': ' + d['name'] if d.get('name') else ''} ({v['mass']:.0f} kg, mu {ar['mu']:g})")
+        for g in ar["gears"]:
+            print(f"  gear {g['gear']}: overall ratio {g['ratio']:.2f}, {g['top_speed'] * 3.6:.1f} km/h at the redline"
+                  + (f" (drag holds it to {g['max_speed'] * 3.6:.1f})" if g["max_speed"] < g["top_speed"] - 1e-6 else ""))
+        print(f"  {ar['distance']:g} m in {ar['time']:.2f} s, {ar['speed'] * 3.6:.1f} km/h at the line; grip-limited for the first "
+              f"{ar['grip_limited_to']:.1f} m (launch {ar['launch_accel']:.2f} g, grip limit {ar['grip_accel']:.2f} g)")
+        for s in ar["shifts"]:
+            print(f"  shift to {s['gear']} at {s['t']:.2f} s, {s['x']:.1f} m, {s['v'] * 3.6:.1f} km/h")
+    if not lr and not d:
+        print("This car file has no layout or drivetrain block yet. See designs/example_car_layout.json.")
+
+
 def cmd_car(a):
     from susp.car import car_balance
     info = {"arb_f": 0.0, "arb_r": 0.0, "car_targets": {}}
@@ -243,6 +276,9 @@ def main():
     p.add_argument("config")
     p.add_argument("--fea", metavar="FILE.csv", help="also write every force on the upright, wishbones and rocker, per case, for FEA in CAD")
     p.set_defaults(fn=cmd_loads)
+    p = sub.add_parser("layout", help="mass, CG and inertia from a car file's layout, and its drivetrain's straight-line run")
+    p.add_argument("car")
+    p.set_defaults(fn=cmd_layout)
     p = sub.add_parser("car", help="whole-car roll balance from a car file, or a front and a rear config")
     p.add_argument("front", help="car file, or the front config")
     p.add_argument("rear", nargs="?", help="rear config")

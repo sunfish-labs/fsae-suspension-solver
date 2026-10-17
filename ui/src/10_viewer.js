@@ -513,6 +513,12 @@ function updateScene() {
     `<span><b>travel</b> ${fmt(pose.dz, 1)} mm${cfg.axle === "front" ? ` · <b>rack</b> ${fmt(pose.rack, 1)} mm` : ""}</span><span><b>camber</b> ${fmt(o.camber, 2)}°</span><span><b>toe</b> ${fmt(o.toe, 3)}°</span><span><b>caster</b> ${fmt(o.caster, 2)}°</span><span><b>RC</b> ${fmt(o.roll_center, 1)} mm${sp2}</span>`;
   const hb = ($("#hud").offsetHeight || 30) + 18 + "px";
   for (const id of ["#ovcap", "#pvbar", "#vhint"]) $(id).style.bottom = hb;
+  // the car's layout parts, in this corner's frame (a rear corner sits one wheelbase behind the front in the car)
+  if (car && !chal && cfg) {
+    const wb = (car.vehicle || {}).wheelbase || 1550;
+    // car x -> rear corner x: + wheelbase + (rear contact patch x - front contact patch x)
+    drawLayout(dyn, cfg.axle === "rear" ? wb + cfg.hardpoints.contact_patch[0] - car.front.hardpoints.contact_patch[0] : 0);
+  }
   placeChassis();
   three.need = true;
 }

@@ -220,7 +220,19 @@ def load_car(path):
     f, r = (normalize(raw[ax], ax, f"{path} ({ax})", base, raw.get("vehicle"), raw.get("targets_file")) for ax in ("front", "rear"))
     arb = raw.get("arb") or {}
     info = {"name": raw.get("name") or "car", "arb_f": float(arb.get("front") or 0), "arb_r": float(arb.get("rear") or 0),
-            "car_targets": raw.get("car_targets") or {}}
+            "car_targets": raw.get("car_targets") or {}, "layout": raw.get("layout"), "drivetrain": raw.get("drivetrain")}
+    lay = raw.get("layout")
+    if lay is not None:
+        from .layout import apply_layout, check_layout, layout_mass
+        check_layout(lay, path)
+        res = layout_mass(lay, f, r, f["vehicle"]["wheelbase"])
+        info["layout_res"] = res
+        if lay.get("apply"):                       # the car's mass and CG come from the layout
+            for c in (f, r):
+                c["vehicle"] = apply_layout(c["vehicle"], res)
+    if raw.get("drivetrain") is not None:
+        from .layout import check_drivetrain
+        check_drivetrain(raw["drivetrain"], path)
     return f, r, info
 
 

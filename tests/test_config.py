@@ -83,6 +83,19 @@ check("a tab with zero thickness -> ConfigError", raises(ConfigError, lambda: lo
 check("a gusset with no height -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"thickness": 3, "length_in": 50}})))))
 check("a gusset of an unknown type -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"type": "plate"}})))))
 check("a bracket into the node needs no sizes", not raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"type": "to_node"}})))))
+carL = json.load(open(os.path.join(ROOT, "designs", "example_car_layout.json")))
+fL, rL, iL = load_car(os.path.join(ROOT, "designs", "example_car_layout.json"))
+check("layout.apply: both corners take the car's mass, front share and CG height from the layout",
+      all(abs(c["vehicle"][k] - iL["layout_res"][k]) < 1e-5 for c in (fL, rL) for k in ("mass", "weight_front", "cg_height")))
+bad_lay = json.loads(json.dumps(carL))
+bad_lay["layout"]["components"][0]["mass"] = 0
+check("a layout part with no mass -> ConfigError", raises(ConfigError, lambda: load_car(write("cl.json", bad_lay))))
+bad_dt = json.loads(json.dumps(carL))
+bad_dt["drivetrain"]["torque_curve"] = [[5000, 40], [4000, 45]]
+check("a torque curve whose rpm goes down -> ConfigError", raises(ConfigError, lambda: load_car(write("cd.json", bad_dt))))
+bad_dt["drivetrain"]["torque_curve"] = carL["drivetrain"]["torque_curve"]
+bad_dt["drivetrain"]["efficiency"] = 88
+check("drivetrain efficiency given in % -> ConfigError (it is a fraction)", raises(ConfigError, lambda: load_car(write("cd.json", bad_dt))))
 check("negative fatigue cycles -> ConfigError", raises(ConfigError, lambda: load_config(write("q.json", dict(front, loads={"fatigue_cycles": -5})))))
 check("every library error is a SuspError", all(issubclass(e, SuspError) for e in (ConfigError, GoalError, SolveError, UnknownPointError)))
 from susp import tools as T  # noqa: E402

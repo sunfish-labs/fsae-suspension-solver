@@ -26,6 +26,8 @@ function carFrom(raw) {
     car_targets: Object.assign({}, S.CAR_TARGETS, raw.car_targets || {}),
     warn: S.unknownTargetKeys(raw.car_targets, S.CAR_TARGETS, "car", ""),
     src: { front: raw.name || "car file", rear: raw.name || "car file" },
+    layout: raw.layout ? JSON.parse(JSON.stringify(raw.layout)) : null,
+    drivetrain: raw.drivetrain ? JSON.parse(JSON.stringify(raw.drivetrain)) : null,
   };
   for (const ax of ["front", "rear"]) {
     c[ax] = cornerFrom(Object.assign({}, raw[ax], { axle: ax }));
@@ -66,6 +68,8 @@ function exportCar(local = false) {
     vehicle: car.vehicle,
     arb: car.arb,
     car_targets: car.car_targets,
+    ...(car.layout ? { layout: car.layout } : {}),
+    ...(car.drivetrain ? { drivetrain: car.drivetrain } : {}),
     front: strip(car.front),
     rear: strip(car.rear),
   };
@@ -90,6 +94,7 @@ function loadCar(raw, label) {
 // called from run(): keeps the edited corner in its slot and the vehicle block shared by both corners
 function syncCar() {
   if (!car || chal || !cfg) return;
+  syncLayout();
   if (cfg.vehicle !== car.vehicle) {
     Object.assign(car.vehicle, cfg.vehicle);
     cfg.vehicle = car.vehicle;
@@ -119,6 +124,7 @@ function applyViewClasses() {
   $$("#axleSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ax === axleView)));
   $("#carIn").hidden = axleView !== "car" || !!chal;
   $("#carBox").hidden = axleView !== "car";
+  $("#layBox").hidden = axleView !== "car" || !!chal;
   if (axleView === "car") {
     $("#cardsIn").hidden = true;
   } else if (!chal && $("#crail").hidden) $("#cardsIn").hidden = false;
@@ -156,6 +162,7 @@ function carLltdFor(e) {
 }
 function evalCar() {
   if (!car) return null;
+  syncLayout();
   const F = carEvalCorner(car.front),
     R = carEvalCorner(car.rear);
   let bal = null,
@@ -214,8 +221,11 @@ function renderCarIn() {
       ${(car.warn || []).map(m => `<div class="banner warn">${esc(m)}</div>`).join("")}
       <p class="note">Save JSON in this view saves both corners in one car file. Single-corner files still open: they go into the front or rear slot.</p></div></div>
     <div class="card"><div class="hd"><h2>Vehicle</h2><span class="hint">shared by both axles</span></div><div class="body"><div class="fields">
-      ${carField("Car mass with driver", "kg", "vehicle.mass")}${carField("Weight on front", "%", "vehicle.weight_front", { scale: 100, step: 0.5 })}
-      ${carField("CG height", "mm", "vehicle.cg_height")}${carField("Wheelbase", "mm", "vehicle.wheelbase")}
+      ${
+        layRes && car.layout && car.layout.apply
+          ? `<div class="field wide"><label>Mass, front weight, CG height</label><div class="muted"><b>${fmt(car.vehicle.mass, 1)} kg · ${fmt(car.vehicle.weight_front * 100, 1)} % · ${fmt(car.vehicle.cg_height, 0)} mm</b>, from the layout (below the car results)</div></div>`
+          : `${carField("Car mass with driver", "kg", "vehicle.mass")}${carField("Weight on front", "%", "vehicle.weight_front", { scale: 100, step: 0.5 })}${carField("CG height", "mm", "vehicle.cg_height")}`
+      }${carField("Wheelbase", "mm", "vehicle.wheelbase")}
       ${carField("Brake balance (front)", "%", "vehicle.front_brake_share", { scale: 100, step: 1 })}
       ${carField("Brakes", "", "vehicle.brakes", {
         options: [
@@ -585,6 +595,7 @@ function updateCarScene() {
     (B ? `<span><b>roll</b> ${fmt(B.grad, 2)} deg/g</span><span><b>front LLTD</b> ${fmt(B.lltd * 100, 1)} %</span>` : "");
   const hb = ($("#hud").offsetHeight || 30) + 18 + "px";
   for (const id of ["#ovcap", "#pvbar", "#vhint"]) $(id).style.bottom = hb;
+  drawLayout(dyn, 0);
   placeChassis();
   three.need = true;
 }

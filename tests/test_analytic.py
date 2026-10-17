@@ -501,6 +501,35 @@ check("wheel rate with preload = d2E/dz2 of the preloaded spring, N/mm", e12["me
 check("the preload term is the gap to k MR^2, N/mm", e12["metrics"]["wheel_rate_preload"] - e12["metrics"]["wheel_rate"],
       Fs12 * (((Ls12[0.0] - Ls12[h12]) - (Ls12[-h12] - Ls12[0.0])) / h12 ** 2), 2e-2, "static spring force x dMR/dz")
 
+print("\n13. Layout (mass, CG, inertia) and the straight-line run")
+from susp.layout import accel_run, layout_mass  # noqa: E402
+fl, rl = (make_config(dict(copy.deepcopy(TEMPLATE_FRONT), axle=ax, spring=None)) for ax in ("front", "rear"))
+WB13 = 1600.0
+lay13 = {"components": [{"name": "a", "mass": 100.0, "at": [-400.0, 0.0, 300.0], "size": [600.0, 300.0, 200.0]},
+                        {"name": "b", "mass": 50.0, "at": [-1000.0, 100.0, 500.0]}]}
+L13 = layout_mass(lay13, fl, rl, WB13)                       # no spring block: no unsprung mass from the corners
+xf13 = fl["hardpoints"]["contact_patch"][0]
+check("layout total mass, kg", L13["mass"], 150.0, 1e-12, "100 + 50 (no wheels without a spring block)")
+check("layout CG height, mm", L13["cg_height"], (100 * 300 + 50 * 500) / 150, 1e-9, "mass-weighted mean of the Z positions")
+check("layout front share", L13["weight_front"], 1 - (xf13 - (100 * -400 + 50 * -1000) / 150) / WB13, 1e-12, "1 - (CG behind the front axle) / wheelbase")
+cgx, cgz = (100 * -400 + 50 * -1000) / 150 / 1000, (100 * 300 + 50 * 500) / 150 / 1000
+Iyy13 = 100 * (0.6 ** 2 + 0.2 ** 2) / 12 + 100 * ((-0.4 - cgx) ** 2 + (0.3 - cgz) ** 2) + 50 * ((-1.0 - cgx) ** 2 + (0.5 - cgz) ** 2)
+check("pitch inertia about the CG, kg m^2", L13["Iyy"], Iyy13, 1e-9, "box m (l^2 + h^2) / 12 + parallel axis; the second part a point")
+veh13 = {"mass": 250.0, "weight_front": 0.45, "cg_height": 300.0, "tire_mu": 50.0}
+d13 = {"torque_curve": [[1000, 40.0], [12000, 40.0]], "redline": 12000, "launch_rpm": 1000, "primary": 3.0, "gears": [3.0],
+       "final": 3.0, "efficiency": 1.0, "shift_time": 0.0, "mass_factor": 1.0, "drag_area": 0.0, "rolling": 0.0, "distance": 3.0}
+a13 = accel_run(d13, veh13, 250.0, WB13)
+acc = 40.0 * 27 / 0.25 / 250.0
+check("flat torque, no drag, plenty of grip: time to 3 m (below the redline), s", a13["time"], math.sqrt(2 * 3 / acc), 2e-4, "x = a t^2 / 2, a = T x ratio / R / m")
+check("top speed in that gear at the redline, km/h", a13["gears"][0]["top_speed"] * 3.6, 12000 * 2 * math.pi / 60 / 27 * 0.25 * 3.6, 1e-9,
+      "redline (rad/s) / overall ratio x tire radius")
+veh13g = dict(veh13, tire_mu=1.4)
+a13g = accel_run(dict(d13, torque_curve=[[1000, 400.0], [12000, 400.0]]), veh13g, 250.0, WB13)
+ag = 1.4 * 9.81 * 0.55 / (1 - 1.4 * 0.3 / 1.6)
+check("grip-limited launch (rear drive, load transfer onto the rear), g", a13g["grip_accel"], ag / 9.81, 1e-9,
+      "a = mu g (1 - wf) / (1 - mu h / L)")
+check("grip-limited the whole way: time to 3 m, s", a13g["time"], math.sqrt(2 * 3 / ag), 2e-4, "x = a t^2 / 2")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)

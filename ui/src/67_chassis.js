@@ -547,7 +547,7 @@ function chNearest(P, G, p, q, reach, brute = false) {
     }
     const o = t * 9,
       r = chSegTri(p, q, [P[o], P[o + 1], P[o + 2]], [P[o + 3], P[o + 4], P[o + 5]], [P[o + 6], P[o + 7], P[o + 8]]);
-    if (r[0] <= reach && (!best || r[0] < best[0])) best = r;
+    if (r[0] <= reach && (!best || r[0] < best[0])) best = [r[0], r[1], r[2], t];
   };
   if (brute) {
     for (let t = 0; t < P.length / 9; t++) test(t);
@@ -613,7 +613,7 @@ function chTireNearest(P, G, T, reach, brute = false) {
   if (brute) {
     for (let o = 0; o < P.length; o += 9) {
       const r = chTireTri(T, [P[o], P[o + 1], P[o + 2]], [P[o + 3], P[o + 4], P[o + 5]], [P[o + 6], P[o + 7], P[o + 8]]);
-      if (r[0] <= reach && (!best || r[0] < best[0])) best = r;
+      if (r[0] <= reach && (!best || r[0] < best[0])) best = [r[0], r[1], r[2], o / 9];
     }
     return best;
   }
@@ -635,7 +635,7 @@ function chTireNearest(P, G, T, reach, brute = false) {
           if (lb > reach || (best && lb >= best[0])) continue;
           const o = t * 9,
             r = chTireTri(T, [P[o], P[o + 1], P[o + 2]], [P[o + 3], P[o + 4], P[o + 5]], [P[o + 6], P[o + 7], P[o + 8]]);
-          if (r[0] <= reach && (!best || r[0] < best[0])) best = r;
+          if (r[0] <= reach && (!best || r[0] < best[0])) best = [r[0], r[1], r[2], t];
         }
       }
   return best;
@@ -695,12 +695,19 @@ function chCorners() {
   return list.filter(([, e]) => e).map(([ax, e]) => ({ ax, e, dx: ax === "R" ? -wb : 0 })); // dx: corner frame -> car frame
 }
 function chSignature() {
-  return JSON.stringify([chCorners().map(c => c.e.cfg), chassis.name, chassis.tris, chassis.opts]);
+  return JSON.stringify([chCorners().map(c => c.e.cfg), chassis.name, chassis.tris, chassis.opts, car && car.layout]);
 }
 async function chClearance({ brute = false } = {}) {
-  if (!chassis.base) return null;
-  const P = chMoved(),
-    G = chBuildGrid(P, 60),
+  // the chassis model and the layout's boxes together; each triangle remembers what it belongs to
+  const Pc = chassis.base ? chMoved() : new Float32Array(0),
+    [Pl, lnames] = layoutTris();
+  if (!Pc.length && !Pl.length) return null;
+  const P = new Float32Array(Pc.length + Pl.length);
+  P.set(Pc, 0);
+  P.set(Pl, Pc.length);
+  const nC = Pc.length / 9,
+    owner = t => (t == null ? null : t < nC ? "chassis model" : lnames[t - nC]);
+  const G = chBuildGrid(P, 60),
     rows = new Map();
   let n = 0;
   for (const { ax, e, dx } of chCorners()) {
@@ -718,7 +725,18 @@ async function chClearance({ brute = false } = {}) {
             gap = hit ? hit[0] - r : Infinity,
             cur = rows.get(key);
           if (!cur || gap < cur.gap)
-            rows.set(key, { key, corner: ax + side, name, gap, hz, rk: side === "R" ? rk : -rk, a: hit && hit[1], b: hit && hit[2], r });
+            rows.set(key, {
+              key,
+              corner: ax + side,
+              name,
+              gap,
+              hz,
+              rk: side === "R" ? rk : -rk,
+              a: hit && hit[1],
+              b: hit && hit[2],
+              r,
+              with: hit && owner(hit[3]),
+            });
           if (++n % 200 === 0) await new Promise(res => setTimeout(res, 0)); // keep the page responsive
         }
     // the tire over the same travel and steer, both sides
@@ -742,6 +760,7 @@ async function chClearance({ brute = false } = {}) {
             a: hit && hit[1],
             b: hit && hit[2],
             r: 0,
+            with: hit && owner(hit[3]),
           });
         await new Promise(res => setTimeout(res, 0));
       }
@@ -781,8 +800,7 @@ function chDrawHit(hit) {
   three.scene.add(g);
   placeChassis();
 }
-function chRenderClear(res) {
-  const box = $("#fmClear");
+function chRenderClear(res, box = $("#fmClear")) {
   if (!res) return void (box.innerHTML = "");
   const fr = res.rows.some(r => r.corner[0] === "F"),
     near = res.rows.filter(r => r.gap < CH_REACH),
@@ -792,10 +810,10 @@ function chRenderClear(res) {
       ? `<p class="note">Closest: <b class="${res.worst.gap >= res.need ? "ok" : "bad"}">${esc(res.worst.key)}, ${Number.isFinite(res.worst.gap) ? fmt(res.worst.gap, 1) + " mm" : `more than ${CH_REACH} mm`}</b> (needs ${fmt(res.need, 0)} mm, the clearance margin). Gap = tube surface to the model's surface. The tire is the solid drawn in the view (no growth at speed); the upright and rocker are checked as drawn, and real ones are bulkier, so leave room.</p>`
       : "") +
     (near.length
-      ? `<div class="tbl-wrap"><table class="data"><thead><tr><th>Link</th><th class="n">Gap, mm</th><th>At travel${fr ? " / rack" : ""}</th><th></th></tr></thead><tbody>${near
+      ? `<div class="tbl-wrap"><table class="data"><thead><tr><th>Link</th><th>Closest to</th><th class="n">Gap, mm</th><th>At travel${fr ? " / rack" : ""}</th><th></th></tr></thead><tbody>${near
           .map(
             (r, i) =>
-              `<tr><td><button class="lnk" type="button" data-chhit="${i}" title="Show this pose and the closest points">${esc(r.key)}</button></td><td class="n">${r.gap <= -r.r + 1e-9 ? "touches" : fmt(r.gap, 1)}</td><td>${fmt(r.hz, 0)} mm${r.corner[0] === "F" ? `, rack ${fmt(r.rk, 0)} mm` : ""}</td><td>${r.gap >= res.need ? `<span class="pill ok">Clear</span>` : `<span class="pill bad">Too close</span>`}</td></tr>`
+              `<tr><td><button class="lnk" type="button" data-chhit="${i}" title="Show this pose and the closest points">${esc(r.key)}</button></td><td>${esc(r.with || "")}</td><td class="n">${r.gap <= -r.r + 1e-9 ? "touches" : fmt(r.gap, 1)}</td><td>${fmt(r.hz, 0)} mm${r.corner[0] === "F" ? `, rack ${fmt(r.rk, 0)} mm` : ""}</td><td>${r.gap >= res.need ? `<span class="pill ok">Clear</span>` : `<span class="pill bad">Too close</span>`}</td></tr>`
           )
           .join("")}</tbody></table></div>`
       : "") +

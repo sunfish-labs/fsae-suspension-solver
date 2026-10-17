@@ -61,6 +61,13 @@ for f in files:
         fe, re_ = evaluate(fc, steer=False, pack=False), evaluate(rc, steer=False, pack=False)
         cb = car_balance(fc, fe, rc, re_, None, None, info["arb_f"], info["arb_r"], info["car_targets"])
         cars[os.path.relpath(f, root)] = {"raw": raw, "py": {k: v for k, v in cb.items() if isinstance(v, (int, float)) and math.isfinite(v)}}
+        if info.get("layout_res"):
+            lr = info["layout_res"]
+            cars[os.path.relpath(f, root)]["layout"] = [lr["mass"], *lr["cg"], lr["weight_front"], lr["weight_left"], lr["Ixx"], lr["Iyy"], lr["Izz"]]
+        if info.get("drivetrain"):
+            from susp.layout import accel_run
+            ar = accel_run(info["drivetrain"], fc["vehicle"], rc["wheel"]["tire_radius"], fc["vehicle"]["wheelbase"])
+            cars[os.path.relpath(f, root)]["accel"] = [ar["time"], ar["speed"], ar["grip_limited_to"], ar["top_speed"], *[s["t"] for s in ar["shifts"]]]
 tmp = tempfile.mkdtemp()
 json.dump({"cfgs": cfgs, "py": py, "cars": cars}, open(os.path.join(tmp, "d.json"), "w"))
 js = r"""
@@ -86,7 +93,15 @@ for (const [n, raw] of Object.entries(d.cfgs)) {
 }
 for (const [n, c] of Object.entries(d.cars || {})) {
   const veh = c.raw.vehicle || {}, mk = (ax) => Object.assign({}, c.raw[ax], { axle: ax, vehicle: Object.assign({}, c.raw[ax].vehicle || {}, veh) });
-  const fc = mk("front"), rc = mk("rear"), fe = Susp.evaluate(fc, { steer: false, pack: false }), re = Susp.evaluate(rc, { steer: false, pack: false });
+  const fc = mk("front"), rc = mk("rear");
+  if (c.layout) { const lr = Susp.layoutMass(c.raw.layout, Susp.finishConfig(Susp.deepMerge(Susp.DEFAULTS, fc)), Susp.finishConfig(Susp.deepMerge(Susp.DEFAULTS, rc)), Susp.deepMerge(Susp.DEFAULTS.vehicle, fc.vehicle).wheelbase);
+    const js = [lr.mass, ...lr.cg, lr.weight_front, lr.weight_left, lr.Ixx, lr.Iyy, lr.Izz];
+    c.layout.forEach((v, q) => { const r = Math.abs(js[q] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-9) bad.push(`${n} layout ${q}: py ${v} js ${js[q]}`); });
+    if (c.raw.layout.apply) { fc.vehicle = Susp.applyLayout(fc.vehicle, lr); rc.vehicle = Susp.applyLayout(rc.vehicle, lr); } }
+  const fe = Susp.evaluate(fc, { steer: false, pack: false }), re = Susp.evaluate(rc, { steer: false, pack: false });
+  if (c.accel) { const ar = Susp.accelRun(c.raw.drivetrain, fe.cfg.vehicle, re.cfg.wheel.tire_radius, fe.cfg.vehicle.wheelbase), js = [ar.time, ar.speed, ar.grip_limited_to, ar.top_speed, ...ar.shifts.map(s => s.t)];
+    if (js.length !== c.accel.length) bad.push(`${n} accel shifts: py ${c.accel.length} js ${js.length}`);
+    c.accel.forEach((v, q) => { const r = Math.abs(js[q] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-9) bad.push(`${n} accel ${q}: py ${v} js ${js[q]}`); }); }
   const cb = Susp.carBalance(fe.cfg, fe, re.cfg, re, { arbF: (c.raw.arb || {}).front || 0, arbR: (c.raw.arb || {}).rear || 0, targets: c.raw.car_targets });
   for (const [k, v] of Object.entries(c.py)) { const j = cb[k]; if (j == null) { bad.push(n + ' car missing ' + k); continue; }
     const r = Math.abs(j - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} car ${k}: py ${v} js ${j}`); }

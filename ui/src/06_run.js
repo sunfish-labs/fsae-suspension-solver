@@ -43,6 +43,7 @@ function run() {
   if (car && axleView === "car" && !chal) {
     renderCarIn();
     renderCarBox();
+    renderLayoutBox();
   }
   updateScene();
 }

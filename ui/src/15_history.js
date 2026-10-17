@@ -14,6 +14,8 @@ function snapshot() {
           vehicle: car.vehicle,
           arb: car.arb,
           car_targets: car.car_targets,
+          layout: car.layout,
+          drivetrain: car.drivetrain,
           src: car.src,
           front: car.front,
           rear: car.rear,
@@ -91,7 +93,18 @@ function recordEdit(e) {
   const t = e.target;
   if (!t || !t.dataset || hist.restoring) return;
   const d = t.dataset;
-  if (d.path || d.cpath || d.ctg || d.tkey || d.chpath || d.ren !== undefined || t.id === "springOn" || t.id === "rockerOn") pushHistory(t);
+  if (
+    d.path ||
+    d.cpath ||
+    d.ctg ||
+    d.tkey ||
+    d.chpath ||
+    d.ren !== undefined ||
+    d.lay !== undefined ||
+    t.id === "springOn" ||
+    t.id === "rockerOn"
+  )
+    pushHistory(t);
 }
 document.addEventListener("input", recordEdit, true);
 document.addEventListener("change", recordEdit, true);
