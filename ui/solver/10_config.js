@@ -6,7 +6,16 @@ const SCHEMA =
   (() => {
     const path = require("path"),
       dir = path.join(__dirname, "..", "schema");
-    return Object.fromEntries(["defaults", "metrics", "targets", "points", "moves"].map(n => [n, require(path.join(dir, n + ".json"))]));
+    const s = Object.fromEntries(["defaults", "metrics", "targets", "points", "moves"].map(n => [n, require(path.join(dir, n + ".json"))]));
+    const fs = require("fs");
+    s.rules = Object.fromEntries(
+      fs
+        .readdirSync(path.join(dir, "rules"))
+        .filter(f => f.endsWith(".json"))
+        .sort()
+        .map(f => [f.slice(0, -5), require(path.join(dir, "rules", f))])
+    );
+    return s;
   })();
 const HP = Object.fromEntries(SCHEMA.points.hardpoints.map(p => [p.key, p.short]));
 const HP_ORDER = Object.keys(HP);

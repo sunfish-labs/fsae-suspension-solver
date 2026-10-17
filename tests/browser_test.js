@@ -244,6 +244,13 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   check("clearance to the layout parts runs with no chassis model and names what each link comes closest to", /Closest to/i.test(lc) && /(Driver|Engine|Exhaust|Differential)/.test(lc), lc.slice(0, 300));
   check("the parts are drawn as boxes and the toggle shows in Display", await p.evaluate(() => { let n = 0; window.__suspView().three.dyn.traverse(o => { if (o.userData && o.userData.layName) n++; }); return n; }) >= 8 && !(await p.$eval("#tgLayout", e => e.hidden)));
 
+  console.log("\nRules check");
+  const rb = await text(p, "#rulesBox");
+  check("the Car view checks the car against the FSAE 2027 rules by rule number", /Formula SAE 2027/.test(rb) && /V\.1\.2/.test(rb) && /12 pass/.test(rb) && /Check yourself/.test(rb), rb.slice(0, 200));
+  await p.evaluate(() => { const i = document.querySelector('#carIn [data-cpath="vehicle.wheelbase"]'); i.value = "1500"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
+  check("a 1500 mm wheelbase fails V.1.2 and opens the rules list", /1 fail/.test(await text(p, "#rulesBox")) && (await p.$eval("#rulesBox", d => d.open)));
+  await p.click("#btnUndo"); await settle(p);
+
   console.log("\nSprings as fitted, bar linkage, tires at the limit");
   await p.setInputFiles("#fileIn", path.join(ROOT, "designs", "example_car_bars.json")); await settle(p);
   await p.click('#axleSeg [data-ax="car"]'); await settle(p);

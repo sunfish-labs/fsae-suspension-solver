@@ -154,6 +154,34 @@ def cmd_layout(a):
         print("This car file has no layout or drivetrain block yet. See designs/example_car_layout.json.")
 
 
+def cmd_rules(a):
+    """The car against a rulebook (schema/rules/*.json): pass / fail / can't check / check yourself, by rule number."""
+    from susp.car import car_balance
+    from susp.rules import check_rules, rule_values, rulesets
+    sets = rulesets()
+    if a.rules not in sets:
+        sys.exit(f"no rules file '{a.rules}'; available: {', '.join(sets)}")
+    rs = sets[a.rules]
+    if not C.is_car_file(a.car):
+        sys.exit("rules needs a car file (front and rear corners and a vehicle block)")
+    f, r, info = C.load_car(a.car)
+    fe, re_ = evaluate(f), evaluate(r)
+    bal = car_balance(f, fe, r, re_, None, None, info["arb_f"], info["arb_r"]) if fe.get("ride") and re_.get("ride") else None
+    rows = check_rules(rs, rule_values(f, fe, r, re_, bal, info.get("layout")))
+    print(f"{rs['name']} ({rs['version']}): rule numbers and paraphrases; read the rulebook for the exact wording.\n")
+    mark = {"pass": "PASS ", "fail": "FAIL ", "unknown": "  ?  ", "manual": "CHECK"}
+    for row in rows:
+        v = row["value"]
+        vt = (f"{v * 100:.1f} %" if row["id"] == "track_ratio" else f"{v:.1f} {row['unit']}".rstrip()) if isinstance(v, float) else ""
+        lim = ("" if row.get("limit") is None or row["kind"] not in ("min", "max") else
+               f" (limit {row['limit'] * 100:g} %)" if row["id"] == "track_ratio" else f" (limit {row['limit']:g} {row['unit']})".replace(" )", ")"))
+        extra = (("; " if vt else "") + row["note"]) if row["note"] else ""
+        est = " (estimate)" if row["estimate"] else ""
+        print(f"  {mark[row['status']]} {row['rule']:<22} {row['summary']}" + (f": {vt}{lim}{est}{extra}" if vt or extra else ""))
+    n = {s: sum(r_["status"] == s for r_ in rows) for s in mark}
+    print(f"\n{n['pass']} pass, {n['fail']} fail, {n['unknown']} can't check (missing inputs), {n['manual']} to check yourself")
+
+
 def cmd_car(a):
     from susp.car import car_balance
     info = {"arb_f": 0.0, "arb_r": 0.0, "car_targets": {}}
@@ -276,6 +304,10 @@ def main():
     p.add_argument("config")
     p.add_argument("--fea", metavar="FILE.csv", help="also write every force on the upright, wishbones and rocker, per case, for FEA in CAD")
     p.set_defaults(fn=cmd_loads)
+    p = sub.add_parser("rules", help="the car against a rulebook (default: Formula SAE 2027, IC)")
+    p.add_argument("car")
+    p.add_argument("--rules", default="fsae_2027_ic", help="rules file in schema/rules/ (without .json)")
+    p.set_defaults(fn=cmd_rules)
     p = sub.add_parser("layout", help="mass, CG and inertia from a car file's layout, and its drivetrain's straight-line run")
     p.add_argument("car")
     p.set_defaults(fn=cmd_layout)

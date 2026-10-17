@@ -530,6 +530,53 @@ check("grip-limited launch (rear drive, load transfer onto the rear), g", a13g["
       "a = mu g (1 - wf) / (1 - mu h / L)")
 check("grip-limited the whole way: time to 3 m, s", a13g["time"], math.sqrt(2 * 3 / ag), 2e-4, "x = a t^2 / 2")
 
+print("\n14. Rules checks (FSAE 2027 IC): travel, tilt, keep-out")
+from susp.rules import check_rules, keepout_hits, rulesets, tilt_angle, usable_travel  # noqa: E402
+a14, b14 = 186.0, 310.0
+d14 = dict(damper, rod_outboard=[0, 250 + a14, 130], damper_chassis=[0, 250 + a14, 450], damper_stroke=30.0, damper_eye_to_eye=335.0)
+c14 = corner(PAR, d14)
+e14 = evaluate(c14, steer=False, pack=False)
+def L14(th):                                                      # the damper on the arm, the arm turned th
+    return math.hypot(a14 * (1 - math.cos(th)), 320 - a14 * math.sin(th))
+def wheel_at(Lt):                                                 # bisection on the arm angle, wheel rise b sin(th)
+    lo, hi = -0.6, 0.6
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if L14(mid) > Lt else (lo, mid)
+    return b14 * math.sin((lo + hi) / 2)
+want14 = wheel_at(335.0 - 30.0) - wheel_at(335.0)
+check("usable travel from the damper's stroke, mm", usable_travel(c14, e14)["total"], want14, 0.05,
+      "parallelogram: damper on the arm at a = 186 mm, wheel rise 310 sin(theta); damper from 335 to 305 mm")
+fake = {"grad": 1.0, "ms": 200.0, "arm": 250.0}
+veh14 = {"cg_height": 300.0, "wheelbase": 1600.0, "weight_front": 0.5, "mass": 250.0}
+class _S:
+    def __init__(self, t):
+        self.track = t
+ang, info14 = tilt_angle({"vehicle": veh14}, {"susp": _S(1200.0)}, None, {"susp": _S(1100.0)}, fake)
+half14 = (600 + 550) / 2
+lean14 = 200 / 250 * 250 * math.sin(math.radians(1.0 * math.sin(math.radians(60))))
+check("tilt the car survives, deg", ang, math.degrees(math.atan2(half14 - lean14, 300.0)), 1e-9,
+      "atan((half track at the CG - lean) / CG height); lean = ms/m x roll arm x sin(roll gradient x sin 60)")
+lay14 = {"components": [{"name": "wing", "mass": 3, "at": [400.0, 600.0, 300.0], "size": [100.0, 100.0, 50.0]},
+                        {"name": "far", "mass": 3, "at": [400.0, 0.0, 300.0], "size": [100.0, 100.0, 50.0]},
+                        {"name": "spread", "mass": 3, "at": [400.0, 600.0, 300.0], "size": [100.0, 100.0, 50.0], "solid": False}]}
+fk = {"hardpoints": {"contact_patch": [0.0, 610.0, 0.0]}, "wheel": {"tire_radius": 254.0, "tire_width": 190.0}}
+hits = keepout_hits(lay14, fk, fk, 1600.0)
+check("keep-out: a part 400 mm ahead of the front axle, in line with the tire (254 + 75 = 329 mm zone ahead)", 1.0 if hits == [] else 0.0, 1.0, 0,
+      "x from 350 to 450 starts past 329: clear")
+lay14["components"][0]["at"][0] = 380.0
+hits = keepout_hits(lay14, fk, fk, 1600.0)
+check("keep-out: at 380 mm its back edge is 330 mm ahead, just outside the 329 mm zone", 1.0 if hits == [] else 0.0, 1.0, 0, "edge at 330 mm")
+lay14["components"][0]["at"][0] = 370.0
+hits = keepout_hits(lay14, fk, fk, 1600.0)
+check("keep-out: at 370 mm its back edge (320 mm) is in the zone, right front only; centerline and non-solid parts ignored",
+      1.0 if hits == [("wing", "front right")] else 0.0, 1.0, 0, str(hits))
+rows14 = check_rules(rulesets()["fsae_2027_ic"], {"wheelbase": 1520.0, "track_ratio": 0.8, "bolt_grades": ["8.8", "4.6"], "shear_planes": [2, 1]})
+st14 = {r["id"]: r["status"] for r in rows14}
+check("rules: 1520 mm wheelbase fails V.1.2, a 4.6 bolt fails T.8.2.1, single shear asks for a check, missing values can't be checked",
+      1.0 if (st14["wheelbase"], st14["track_ratio"], st14["fastener_grade"], st14["rod_end_shear"], st14["tilt"]) == ("fail", "pass", "fail", "manual", "unknown") else 0.0,
+      1.0, 0, str(st14))
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)

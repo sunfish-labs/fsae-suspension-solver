@@ -3,6 +3,15 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.9.0 - 2026-10-16
+
+- **Rules check against the Formula SAE Rules 2027 (V1.0), IC** (Car view → Rules, `rules car.json`): by rule number,
+  with short paraphrases, pass / fail / can't check / check yourself. Automatic: wheelbase (V.1.2), track ratio
+  (V.1.3.2), the 60° tilt test estimated from the CG and body lean (V.1.3.1, IN.11.2.2), usable wheel travel from
+  the damper (V.3.1.1), wheel diameter (V.4.1), critical-fastener grade (V.3.1.4, T.8.2.1), rod-end shear (V.3.1.5),
+  steering lock-up and rim clearance (V.3.2.4), tire keep-out zones against the layout (V.1.1 c); plus a checklist
+  of nine rules it can't measure. Python and browser, hand-checked.
+
 ## 1.8.0 - 2026-10-16
 
 - **Vehicle layout** (car file `layout`, Car view → Layout, `layout car.json`): parts with mass, position and size give

@@ -351,6 +351,7 @@ function renderCarBox() {
       })
       .join("")}</tbody></table></div>`;
   else html += `<div class="banner warn">${esc(r.why)}</div>`;
+  html += rulesHtml(F, R, B);
   html += `<h3 class="sub-h">Front and rear</h3><div class="tbl-wrap"><table class="data"><thead><tr><th></th><th class="n">Front</th><th class="n">Rear</th><th></th></tr></thead><tbody>
     <tr><td>Targets met</td><td class="n">${met(F)} <button class="btn small" type="button" data-edit="front">Edit</button></td><td class="n">${met(R)} <button class="btn small" type="button" data-edit="rear">Edit</button></td><td></td></tr>
     ${row("Ride frequency", mF.ride_freq, mR.ride_freq, "Hz", 2)}${row("Wheel rate", mF.wheel_rate, mR.wheel_rate, "N/mm")}${row("Motion ratio", mF.motion_ratio, mR.motion_ratio, "", 3)}
@@ -483,6 +484,56 @@ function renderCarBox() {
   wireCornerChecks(box);
   $$("[data-edit]", box).forEach(b => b.addEventListener("click", () => setView(b.dataset.edit)));
 }
+
+// ---------------------------------------------------------------- the rulebook (schema/rules/)
+let rulesOpen = store.get("susp.rulesOpen") === "1";
+function rulesHtml(F, R, B) {
+  const id = "fsae_2027_ic",
+    rs = S.RULESETS[id];
+  if (!rs) return "";
+  let rows;
+  try {
+    rows = S.checkRules(rs, S.ruleValues(F.cfg, F, R.cfg, R, B, car.layout || null));
+  } catch (e) {
+    return `<div class="banner warn">Rules check: ${esc(e.message)}</div>`;
+  }
+  const n = s => rows.filter(r => r.status === s).length,
+    fail = n("fail");
+  const val = r =>
+    r.value == null || typeof r.value === "boolean" || Array.isArray(r.value)
+      ? esc(r.note || "")
+      : r.id === "track_ratio"
+        ? `${fmt(r.value * 100, 1)} % <span class="muted">(min ${fmt(r.limit * 100, 0)} %)</span>`
+        : `${fmt(r.value, 1)} ${esc(r.unit)} <span class="muted">(${r.kind === "max" ? "max" : "min"} ${fmt(r.limit, r.limit % 1 ? 1 : 0)}${r.estimate ? ", estimate" : ""})</span>${r.note ? " · " + esc(r.note) : ""}`;
+  const pill = s =>
+    s === "pass"
+      ? `<span class="pill ok">Pass</span>`
+      : s === "fail"
+        ? `<span class="pill bad">Fail</span>`
+        : s === "unknown"
+          ? `<span class="pill neutral" title="An input this check needs is missing">Can't check</span>`
+          : `<span class="pill neutral" title="The solver can't measure this: check it on the car or the CAD">Check yourself</span>`;
+  const auto = rows.filter(r => r.status !== "manual"),
+    man = rows.filter(r => r.status === "manual");
+  const tr = r =>
+    `<tr><td class="nowrap"><b>${esc(r.rule)}</b></td><td>${esc(r.summary)}</td><td>${val(r)}</td><td>${pill(r.status)}</td></tr>`;
+  return `<details class="rulesbox" id="rulesBox"${rulesOpen || fail ? " open" : ""}><summary><h3 class="sub-h">Rules: ${esc(rs.name)}</h3>
+      <span class="pill ${fail ? "bad" : "ok"}">${n("pass")} pass${fail ? ` · ${fail} fail` : ""}</span>${n("unknown") ? `<span class="pill neutral">${n("unknown")} can't check</span>` : ""}<span class="pill neutral">${man.length} to check yourself</span></summary>
+    <div class="tbl-wrap"><table class="data rtab"><thead><tr><th>Rule</th><th>What it asks</th><th>This car</th><th></th></tr></thead><tbody>${auto.map(tr).join("")}</tbody></table></div>
+    <p class="note">The solver can't measure these; check them on the car or in CAD:</p>
+    <div class="tbl-wrap"><table class="data rtab"><tbody>${man.map(tr).join("")}</tbody></table></div>
+    <p class="note">${esc(rs.version)}. Rule numbers with short paraphrases: read the rulebook for the exact wording, and check later versions and the official Q&amp;A. The tilt is a static estimate from the CG (use the tallest driver and full fluids in the layout). Usable travel comes from the damper's stroke and length. The keep-out check needs a layout; tires against the chassis model come from the clearance check.</p></details>`;
+}
+document.addEventListener(
+  "toggle",
+  e => {
+    if (e.target && e.target.id === "rulesBox") {
+      rulesOpen = e.target.open;
+      store.set("susp.rulesOpen", rulesOpen ? "1" : "0");
+    }
+  },
+  true
+);
 
 // ---------------------------------------------------------------- car 3D scene
 function rad0e(e, dz) {

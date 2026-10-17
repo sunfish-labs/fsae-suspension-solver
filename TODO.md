@@ -3,14 +3,13 @@
 Ordered by importance: things that could mislead a student or block the team first, then accuracy of the model,
 then extra features, then housekeeping. Team-specific design fixes live in `private/` (never published).
 
-1. **Rules checks against the current FSAE rulebook.** Wheelbase, track ratio, wheel travel, ground clearance, and
-   driver-template and hoop clearances on the loaded frame. Pull the current rulebook first; the numbers change
-   yearly.
-2. **Rocker strength.** The rocker is drawn and its pin forces are in the part loads, but nothing checks the plate
+1. **Rocker strength.** The rocker is drawn and its pin forces are in the part loads, but nothing checks the plate
    itself: add the pin bores (bearing, tear-out, like the tabs) and the plate's bending between the pins, with its
    thickness and material as inputs. Until then, check it in FEA with the part loads.
-3. **Frame torsional stiffness** from the frame's tube centerlines (a 3D frame solved in the browser), and what it
+2. **Frame torsional stiffness** from the frame's tube centerlines (a 3D frame solved in the browser), and what it
    does to the LLTD.
+3. **More rules checks** once there is data for them: the lower side impact structure height and the driver
+   templates against a loaded frame (F, T.1 and IN.7), ground clearance at full bump and pitch, and the 2027 Q&A.
 4. **Housekeeping.** Create the missing `v0.9.0` tag on GitHub (Releases -> Draft a new release -> tag `v0.9.0`,
    target commit `e3fee2a`): the tag workflow's token may not tag a commit whose workflow files differ from today's.
    Empty the `_to_delete/` folder on the desktop copy (old sync bundles only).
@@ -27,6 +26,7 @@ then extra features, then housekeeping. Team-specific design fixes live in `priv
 
 ## Done recently
 
+- Rules check against the Formula SAE Rules 2027 (IC) by rule number: twelve automatic checks and a checklist (1.9.0)
 - Vehicle layout (mass, CG, inertia from a parts list, boxes in 3D, clearance to the parts) and the drivetrain's
   acceleration run; a Settings panel with the coordinates as shown, simple / detailed inputs and result tabs (1.8.0)
 - Pushrod mount reinforcement: a gusset plate along the leg (built-up section searched along the leg, plus the

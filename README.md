@@ -31,6 +31,7 @@ It covers the four suspension decisions a team makes before it has a car:
 | Springs and dampers | `run` (with a `spring` block) | **motion ratio**, wheel and ride rate, **ride frequency**, damper stroke used, **spring rate needed for a target frequency** |
 | Tube, rod-end and tab sizing | `loads` | wishbone-leg, tie-rod, pushrod, damper and rocker forces for bump, cornering, braking and combined cases, plus **buckling and yield safety factors** |
 | Whole car | `car front.json rear.json` | front/rear frequencies, **roll gradient**, **LLTD**, and the **anti-roll bar stiffness** needed |
+| Rules | `rules car.json` | the car against the **FSAE 2027 (IC)** rules by rule number: wheelbase, track ratio, tilt test, wheel travel, wheel size, critical fasteners, rod-end shear, steering lock-up, tire keep-out zones, plus a checklist of what it can't measure |
 | Layout and drivetrain | `layout car.json` | **mass, CG height, weight split and inertia** from a parts list; gear speeds, shift points and the **75 m acceleration time** |
 
 ## Browser UI (`ui/index.html`)
@@ -194,6 +195,21 @@ ground, the rear axle one wheelbase behind. The four wheel assemblies come from 
   μ (`vehicle.tire_mu`) × the rear load, which grows with acceleration (m g (1 − weight_front) + m a h / L). Gives
   the 75 m time and speed, top speed per gear (and where drag holds it below the redline), each shift, and how far
   the launch is grip-limited. An estimate: no tire slip curve or wheelspin model.
+
+## Rules check (Car view → Rules, or `rules car.json`)
+`schema/rules/fsae_2027_ic.json` holds each check's rule number (Formula SAE Rules 2027, V1.0), a short paraphrase
+(not the rulebook's text: read the book for the exact wording) and its limit. The solver works out what each check
+needs and says pass, fail, can't check (an input is missing) or check yourself (it can't measure that rule):
+- V.1.2 wheelbase; V.1.3.2 track ratio; V.4.1 wheel diameter
+- V.1.3.1 / IN.11.2.2 the 60° tilt test, estimated: atan((half track at the CG − body lean) / CG height), the body
+  leaning by the roll gradient at the tilt's sideways 0.87 g. Put the tallest driver and full fluids in the layout.
+- V.3.1.1 usable wheel travel per axle from the damper's stroke and eye-to-eye length
+- V.3.1.4 / T.8.2.1 critical-fastener grade; V.3.1.5 rod ends in double shear (single shear: check the washer)
+- V.3.2.4 the steering solves to the full rack travel without locking up, and the rim clears the links at full
+  lock and bump; V.1.1 c no layout part in a tire's keep-out zone
+- a checklist for what it can't measure: open-wheel views, the lower side impact structure height, ground contact,
+  visible mounts, fastener locking, steering free play, rack mounting, cockpit shields, mounts on the hoop braces.
+A later rulebook is a new file in `schema/rules/` with the same layout.
 
 ## Settings and coordinates
 **⚙ Settings** (top bar) keeps per-browser choices: the color theme; **coordinates** (axes: the solver's own, ISO 8855

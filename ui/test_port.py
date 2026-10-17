@@ -64,6 +64,11 @@ for f in files:
         if info.get("layout_res"):
             lr = info["layout_res"]
             cars[os.path.relpath(f, root)]["layout"] = [lr["mass"], *lr["cg"], lr["weight_front"], lr["weight_left"], lr["Ixx"], lr["Iyy"], lr["Izz"]]
+        from susp.rules import check_rules, rule_values, rulesets
+        fe2, re2 = evaluate(fc), evaluate(rc)
+        rv = rule_values(fc, fe2, rc, re2, cb, info.get("layout"))
+        cars[os.path.relpath(f, root)]["rules"] = [[row["id"], row["status"], row["value"] if isinstance(row["value"], (int, float)) and not isinstance(row["value"], bool) else None]
+                                                   for row in check_rules(rulesets()["fsae_2027_ic"], rv)]
         if info.get("drivetrain"):
             from susp.layout import accel_run
             ar = accel_run(info["drivetrain"], fc["vehicle"], rc["wheel"]["tire_radius"], fc["vehicle"]["wheelbase"])
@@ -105,6 +110,10 @@ for (const [n, c] of Object.entries(d.cars || {})) {
   const cb = Susp.carBalance(fe.cfg, fe, re.cfg, re, { arbF: (c.raw.arb || {}).front || 0, arbR: (c.raw.arb || {}).rear || 0, targets: c.raw.car_targets });
   for (const [k, v] of Object.entries(c.py)) { const j = cb[k]; if (j == null) { bad.push(n + ' car missing ' + k); continue; }
     const r = Math.abs(j - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} car ${k}: py ${v} js ${j}`); }
+  if (c.rules) {
+    const fe3 = Susp.evaluate(fc), re3 = Susp.evaluate(rc), rows = Susp.checkRules(Susp.RULESETS.fsae_2027_ic, Susp.ruleValues(fe3.cfg, fe3, re3.cfg, re3, cb, c.raw.layout || null));
+    c.rules.forEach(([id, st, v], q) => { const r = rows[q]; if (!r || r.id !== id || r.status !== st) { bad.push(`${n} rule ${id}: py ${st} js ${r && r.status}`); return; }
+      if (v != null) { const d = Math.abs(r.value - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, d); if (d > 1e-6) bad.push(`${n} rule ${id} value: py ${v} js ${r.value}`); } }); }
 }
 console.log(`compared ${Object.keys(d.cfgs).length} designs and ${Object.keys(d.cars || {}).length} cars, worst relative difference ${worst.toExponential(1)}`);
 if (bad.length) { console.log(bad.slice(0, 20).join('\n')); process.exit(1); } else console.log('BROWSER SOLVER MATCHES PYTHON');

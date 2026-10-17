@@ -453,3 +453,8 @@ body.simple .adv { display: none !important; }
 .setsec { border-top: 1px solid var(--line); padding: 10px 0 6px; }
 .setsec h3 { margin: 0 0 8px; font: 600 12px/1.2 var(--f-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .settabs { display: flex; gap: 14px; flex-wrap: wrap; }
+.rulesbox > summary { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; cursor: pointer; list-style: none; }
+.rulesbox > summary::-webkit-details-marker { display: none; }
+.rulesbox > summary h3 { margin: 0; }
+.rtab td.nowrap { white-space: nowrap; }
+.rtab td:nth-child(2) { white-space: normal; min-width: 14em; }
