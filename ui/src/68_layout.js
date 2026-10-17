@@ -260,7 +260,8 @@ function wireLayout(box) {
       ck.disabled = true;
       ck.textContent = "Checking…";
       try {
-        chRenderClear(await chClearance(), $("#layClear", box));
+        chassis.clear = await chClearance(); // the design check reads it too
+        chRenderClear(chassis.clear, $("#layClear", box));
       } finally {
         ck.disabled = false;
         ck.textContent = "Check link clearance to these parts";

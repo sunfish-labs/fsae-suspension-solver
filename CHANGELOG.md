@@ -3,6 +3,15 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.14.0 - 2026-10-17
+
+- **Design check** (✓ Check in the top bar): every check on the car on one page, grouped (setup, geometry,
+  packaging, strength, car balance, rules, check yourself), each pass / fail / needs input / not run yet / check
+  yourself, with what was found, one line on why it matters, a button to where it's fixed and a link to the term in
+  Learn. It flags results that rest on defaults (the 1/8 in tabs) or missing inputs (rod-end rating, caliper,
+  halfshaft, rocker plates), runs the frame and parts clearance check from the page, and saves a **sign-off report**
+  (every check, passes included, the app version and lines to sign) to print to PDF for design reviews.
+
 ## 1.13.0 - 2026-10-17
 
 - **Points from CAD** (Open ▾ → Points from CAD (SolidWorks)…): paste or open a point table and update the open

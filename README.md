@@ -108,6 +108,16 @@ Bump steer has two parts. **Slope** (deg/in) comes from tie-rod height: fix it w
 Example:
 `optimize front.json --vary trackrod_inboard.y,trackrod_inboard.z --goal bump_steer=0:0.01 --goal bump_steer_curve=0:0.01 --min-clearance 26`
 
+## Design check and sign-off report
+**✓ Check** in the web app's top bar puts every check on the car on one page: input sanity, the geometry targets,
+packaging (links, rim, caliper, halfshaft, joint angles, and the frame model and layout parts once you run that
+check from the page), strength (tubes, rod ends, bolts, tabs, fatigue, the pushrod mount, the rocker, compliance), the
+roll balance and the rules, plus what only CAD, FEA or the car can answer. Each row says pass, fail, needs input (a
+number you haven't entered, or a result that rests on a default such as the 1/8 in tabs), not run yet, or check
+yourself, with what was found, why it matters and a button to where it's fixed. **Save the sign-off report** writes
+an HTML page with every check, passes included, the app version and lines to sign; open it and print to PDF for a
+design review.
+
 ## Points from SolidWorks (or any CAD) into the solver
 In the web app, **Open ▾ → Points from CAD (SolidWorks)…** takes a point table (paste it, or open a CSV or text file)
 and updates the open design's hardpoints and spring points: one corner, or both corners of an open car file.

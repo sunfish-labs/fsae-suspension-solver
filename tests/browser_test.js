@@ -319,6 +319,22 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   }));
   check("the SolidWorks macro is built into the page", await p.evaluate(() => /RefPoint/.test(SW_MACRO) && /GetCoordinateSystemTransformByName/.test(SW_MACRO)).catch(() => false));
 
+  console.log("\nDesign check");
+  await p.setInputFiles("#fileIn", path.join(ROOT, "designs", "example_car_layout.json")); await settle(p);
+  await p.click("#btnCheck"); await p.waitForFunction(() => /pass/.test(document.querySelector("#chkBody").textContent), null, { timeout: 30000 });
+  const ck1 = await text(p, "#chkBody");
+  check("the design check covers setup, geometry, packaging, strength, balance and rules for the whole car", ["Setup", "Geometry", "Packaging", "Strength", "Car balance", "Rules", "Check yourself"].every(g => new RegExp(g, "i").test(ck1)) && /The whole car/.test(ck1), ck1.slice(0, 300));
+  check("it lists what needs input with why it matters (rod-end rating, default tabs)", /Rod ends against their rating/.test(ck1) && /catalog rating/.test(ck1) && /default 1\/8 in tab/.test(ck1));
+  await p.click("#chkRunClear"); await p.waitForFunction(() => !/Not run yet/.test(document.querySelector("#chkBody").textContent), null, { timeout: 60000 });
+  await p.uncheck("#chkOnly"); await settle(p);
+  check("the frame and parts clearance runs from the check and fills its row", /clear the frame and parts/.test(await text(p, "#chkBody")) && /Closest:/.test(await text(p, "#chkBody")));
+  const [ckDl] = await Promise.all([p.waitForEvent("download"), p.click("#chkReport")]);
+  const ckRep = fs.readFileSync(await ckDl.path(), "utf8");
+  check("the sign-off report has every check, passes included, and lines to sign", /Sign-off/.test(ckRep) && /Checked by/.test(ckRep) && /✓ Pass/.test(ckRep) && /Suspension Solver \d+\.\d+\.\d+/.test(ckRep));
+  await p.check("#chkOnly"); await settle(p);
+  await p.click('#chkBody [data-chk-go]'); await settle(p);
+  check("Go there closes the check and opens that place", (await p.$eval("#chkDlg", d => d.hidden)));
+
   console.log("\nSprings as fitted, bar linkage, tires at the limit");
   await p.setInputFiles("#fileIn", path.join(ROOT, "designs", "example_car_bars.json")); await settle(p);
   await p.click('#axleSeg [data-ax="car"]'); await settle(p);

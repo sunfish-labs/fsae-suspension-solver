@@ -1,6 +1,7 @@
 """Build ui/index.html: inline susp.js and the preset designs into app.html (one self-contained file)."""
 import glob
 import json
+import re
 import os
 import sys
 here = os.path.dirname(os.path.abspath(__file__))
@@ -41,7 +42,7 @@ solver = ('/* susp.js - FSAE double-wishbone solver (browser port of the Python 
 with open(os.path.join(here, "susp.js"), "w") as f:
     f.write(solver)
 js = "window.SUSP_SCHEMA = " + json.dumps(schema, ensure_ascii=False, separators=(",", ":")) + ";\n" + solver
-html = html.replace("/*SUSP_JS*/", js).replace("/*CAD_JS*/", cad).replace("/*GLOSSARY_JS*/", glossary).replace("/*PRESETS*/", json.dumps(presets)).replace("/*SW_MACRO*/", json.dumps(open(os.path.join(root, "tools", "solidworks", "ExportHardpoints.bas"), encoding="utf-8").read()).replace("</", "<\\/"))
+html = html.replace("/*SUSP_JS*/", js).replace("/*CAD_JS*/", cad).replace("/*GLOSSARY_JS*/", glossary).replace("/*PRESETS*/", json.dumps(presets)).replace("/*APP_VERSION*/", json.dumps(re.search(r'^version = "([^"]+)"', open(os.path.join(root, "pyproject.toml")).read(), re.M).group(1))).replace("/*SW_MACRO*/", json.dumps(open(os.path.join(root, "tools", "solidworks", "ExportHardpoints.bas"), encoding="utf-8").read()).replace("</", "<\\/"))
 # third-party code and fonts, built in so the page works offline (from a USB stick): ui/vendor/ (see its README)
 import base64  # noqa: E402
 vend = os.path.join(here, "vendor")

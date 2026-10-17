@@ -13,6 +13,7 @@
     <div class="brand"><h1>Suspension Solver</h1><span>FSAE double wishbone · rigid links</span></div>
     <div class="toolbar">
       <div class="seg axseg" id="axleSeg" role="group" aria-label="Which part of the car"><button type="button" data-ax="front" aria-pressed="false">Front</button><button type="button" data-ax="rear" aria-pressed="false">Rear</button><button type="button" data-ax="car" aria-pressed="false">Car</button></div>
+      <button class="btn small" id="btnCheck" type="button" title="Every check on the car on one page, and a sign-off report">✓ Check</button>
       <button class="btn small" id="btnLearn" type="button">Learn</button>
       <button class="btn small" id="btnSettings" type="button" title="Theme, coordinates, which inputs and tabs show, 3D quality">⚙ Settings</button>
       <button class="btn small" id="btnStart" type="button">Start here</button></div>
@@ -139,6 +140,14 @@
   </div>
 </div>
 
+<div class="welcome" id="chkDlg" hidden>
+  <div class="wcard chkcard" role="dialog" aria-modal="true" aria-labelledby="chkTitle">
+    <button class="btn small wclose" type="button" id="chkClose" aria-label="Close">✕</button>
+    <h2 id="chkTitle">Design check</h2>
+    <div id="chkBody" aria-live="polite"></div>
+    <div class="laybtns impfoot"><button class="btn primary" type="button" id="chkReport">Save the sign-off report</button><span class="muted">An HTML page with every check, passes included, and lines to sign: open it and print to PDF.</span></div>
+  </div>
+</div>
 <div class="welcome" id="impDlg" hidden>
   <div class="wcard impcard" role="dialog" aria-modal="true" aria-labelledby="impTitle">
     <button class="btn small wclose" type="button" id="impClose" aria-label="Close">✕</button>
@@ -383,6 +392,7 @@
 <script>
 const PRESETS = /*PRESETS*/;
 const SW_MACRO = /*SW_MACRO*/;
+const APP_VERSION = /*APP_VERSION*/;
 </script>
 <script>
 /*APP_JS*/

@@ -18,7 +18,7 @@ XL 3+ days.
 2. ~~**SolidWorks to solver in one step**~~ (done in 1.13.0; try the macro on the real model). Paste or upload a points table in the browser (today: command line
    only), pick the SolidWorks axes, with sanity checks (swapped points, contact patch off the ground, wrong axle) and a
    one-page how-to for exporting the hardpoints from SolidWorks. Needs: one real export from the team's model.
-3. **Whole-car check page and report** (L). Every check on the car on one page: geometry targets, clearances (links,
+3. ~~**Whole-car check page and report**~~ (done in 1.14.0). Every check on the car on one page: geometry targets, clearances (links,
    rim, caliper, frame STL, layout parts), part strength, rules, roll balance; each pass / fail / needs input / check
    yourself, with one line on why it matters and a link to the glossary. Prints as a sign-off report for design
    reviews and the design event.
@@ -69,6 +69,8 @@ XL 3+ days.
 
 ## Done recently
 
+- Design check: every check on the car on one page with why it matters and where to fix it, and a printable
+  sign-off report (1.14.0)
 - Points from CAD: a SolidWorks point table into the open design, with name matching, axes and units guessed,
   checks before applying, and a SolidWorks macro that writes the table (1.13.0)
 - Guardrails: singular link layouts refused on both statics paths, sweep steps checked, near-parallel arms

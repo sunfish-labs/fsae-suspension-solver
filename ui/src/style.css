@@ -472,3 +472,14 @@ body.simple .adv { display: none !important; }
 .impfoot { position: sticky; bottom: -22px; background: var(--panel); padding: 8px 0; }
 .impchk li { margin: 2px 0; }
 .warn-t { color: var(--warn); }
+/* Design check dialog */
+.chkcard { width: min(920px, 100%); }
+.chkcard h2 { font-size: 24px; }
+.chksum .pill { margin: 0 4px 4px 0; }
+.chktab td { vertical-align: top; }
+.chktab td.chkst { width: 1%; white-space: nowrap; }
+.chktab td.chkgo { width: 1%; white-space: nowrap; text-align: right; }
+.chkdet { margin-top: 2px; }
+.chkwhy { font-size: 12.5px; margin-top: 2px; }
+.chkgn { font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 6px; }
+.chkpill { min-width: 7.5em; }
