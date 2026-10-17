@@ -199,13 +199,21 @@ def rocker_of(cfg):
                 edge=float(rk["edge"]), width=float(rk["width"]), yield_=float(rk.get("yield") or ROCKER_YIELD))
 
 
-def rocker_forces(susp, sp, r, geom):
+def rocker_forces(susp, sp, r, geom, arb=None):
     """The forces on the rocker for member forces r at geometry geom: {end: (point, force)} for the pushrod end, the
-    damper end and the pivot (they add up to zero)."""
+    damper end, the anti-roll bar's link when it's driven from the rocker (arb: arb_loads' result) and the pivot
+    (they add up to zero)."""
     pts, _, _, st = geom
     push = float(r["pushrod"]) * unit(pts["rod_out"] - pts["rod_in"])
     dmp = float(r["damper"]) * unit(sp.dch - st["damper_out"])
-    return {"pushrod": (pts["rod_in"], push), "damper": (st["damper_out"], dmp), "pivot": (sp.c, -(push + dmp))}
+    out = {"pushrod": (pts["rod_in"], push), "damper": (st["damper_out"], dmp)}
+    tot = push + dmp
+    if arb and arb["on"] == "rocker":
+        f = float(r.get("arb_link", 0.0)) * arb["e_link"]
+        out["arb"] = (arb["p_link"], f)
+        tot = tot + f
+    out["pivot"] = (sp.c, -tot)
+    return out
 
 
 def rocker_stress(rk, sp, fr):
@@ -244,7 +252,7 @@ def rocker_stress(rk, sp, fr):
     return holes, arms, oop
 
 
-def rocker_check(cfg, susp, sp, results, deflect=None):
+def rocker_check(cfg, susp, sp, results, deflect=None, arb=None):
     """The rocker's plates against the worst case for each hole and arm (rocker_stress), or None without a rocker or
     members.rocker. sf: the lowest factor of safety of all of them."""
     rk = rocker_of(cfg)
@@ -257,7 +265,7 @@ def rocker_check(cfg, susp, sp, results, deflect=None):
     holes, arms, oop = {}, {}, (0.0, None)
     for name, r in results.items():
         g = _geometry(susp, sp, deflect[name]) if deflect.get(name) else geom0
-        h, a, o = rocker_stress(rk, sp, rocker_forces(susp, sp, r, g))
+        h, a, o = rocker_stress(rk, sp, rocker_forces(susp, sp, r, g, arb))
         if o > oop[0]:
             oop = (o, name)
         for end, v in h.items():

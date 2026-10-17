@@ -38,6 +38,14 @@ raw = json.load(open(os.path.join(root, "designs", "example_front.json")))
 raw["spring"]["rod_on"] = "upright"
 raw["spring"]["rod_outboard"] = [a + b for a, b in zip(raw["hardpoints"]["lower_outboard"], [0.0, -15.0, 40.0])]
 cfgs["example_front + pushrod on the upright"] = raw
+# the anti-roll bar in the cornering cases: the example car's front bar on the rocker (with rocker plates) and rear
+# bar on the lower wishbone, as corners of their own
+from susp.config import load_car as _load_car  # noqa: E402
+_fb, _rb, _ = _load_car(os.path.join(root, "designs", "example_car_bars.json"))
+_fb = json.loads(json.dumps(_fb))
+_fb["members"]["rocker"] = {"thickness": 6.35, "pivot_bore": 22.0, "pivot_edge": 20.0, "edge": 12.0, "width": 30.0}
+cfgs["example_car_bars front (bar on the rocker)"] = _fb
+cfgs["example_car_bars rear (bar on the wishbone)"] = json.loads(json.dumps(_rb))
 # a one-plate 7075 rocker with its own pin size and default yield left out
 raw = json.load(open(os.path.join(root, "designs", "example_rear.json")))
 raw["members"]["rocker"] = {"thickness": 9.0, "plates": 1, "pivot_bore": 19.0, "pivot_edge": 16.0, "pin_dia": 10.0, "edge": 11.0, "width": 26.0}
@@ -55,6 +63,8 @@ for n, raw in cfgs.items():
     py[n] = {"m": m, "loads": L["results"] if L else None,
              "bend": {k: float(v) for k, v in (L["bending_check"] or {}).items() if isinstance(v, (int, float, np.floating)) and math.isfinite(v)} if L else None,
              "comp": [[x["camber"], x["toe"], x["cp_y"]] for x in L["compliance"]["cases"]] if L else None,
+             "arb": ([[r_["case"], r_["link"], r_["tau"]] for r_ in L["arb_check"]["rows"]] + [[L["arb_check"]["share"], L["arb_check"]["sf_bar"], L["arb_check"]["sf_buckle"]]])
+             if L and L.get("arb_check") else None,
              "rocker": ([[k, v["case"], v["governs"], v["force"], v["sf"]] for k, v in L["rocker_check"]["holes"].items()]
                         + [[k, v["case"], "arm", v["moment"], v["sf"]] for k, v in L["rocker_check"]["arms"].items()]
                         + [["all", L["rocker_check"]["governs"], "", L["rocker_check"]["out_of_plane"], L["rocker_check"]["sf"]]])
@@ -98,6 +108,11 @@ for (const [n, raw] of Object.entries(d.cfgs)) {
   if (p.loads) for (const [c, row] of Object.entries(p.loads)) for (const [k, v] of Object.entries(row)) {
     const r = Math.abs(L.results[c][k] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} ${c} ${k}`); }
   if (p.bend) for (const [k, v] of Object.entries(p.bend)) { const r = Math.abs(L.bending_check[k] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} bending ${k}: py ${v} js ${L.bending_check[k]}`); }
+  if (p.arb) { const A = L.arb_check;
+    if (!A) bad.push(`${n} anti-roll bar loads missing in the browser`);
+    else { const j = [...A.rows.map(r => [r.case, r.link, r.tau]), [A.share, A.sf_bar, A.sf_buckle]];
+      p.arb.forEach((row, i) => row.forEach((v, q) => { if (typeof v === "string") { if (j[i][q] !== v) bad.push(`${n} arb ${i} ${q}`); return; }
+        const r = Math.abs(j[i][q] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} arb ${i} ${q}: py ${v} js ${j[i][q]}`); })); } }
   if (p.rocker) { const R = L.rocker_check;
     if (!R) bad.push(`${n} rocker check missing in the browser`);
     else { const j = [...Object.entries(R.holes).map(([k, v]) => [k, v.case, v.governs, v.force, v.sf]), ...Object.entries(R.arms).map(([k, v]) => [k, v.case, "arm", v.moment, v.sf]), ["all", R.governs, "", R.out_of_plane, R.sf]];

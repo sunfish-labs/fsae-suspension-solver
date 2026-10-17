@@ -334,7 +334,7 @@ def print_loads(cfg, ev, L):
               f"{rk['width']:g} mm deep (members.rocker)")
         print("  holes: bearing F/(n t d) vs yield, tear-out F/(2 n t (e - d/2)) vs 0.577 yield; arms: built in at the hub's edge,\n"
               "  6 M/(n t w^2) + axial/(n t w) vs yield. In-plane forces; the worst case for each.")
-        hn = {"pushrod": "Pushrod end", "damper": "Damper end", "pivot": "Pivot"}
+        hn = {"pushrod": "Pushrod end", "damper": "Damper end", "arb": "Bar link", "pivot": "Pivot"}
         rows = [[f"{hn[k]} hole", f"{v['force']:.0f} ({v['case']})", f"bearing {v['stress']['bearing']:.0f}, tear-out {v['stress']['tearout']:.0f}",
                  f_num(v["sf"], 2) + f" ({'bearing' if v['governs'] == 'bearing' else 'tear-out'})", "OK" if v["sf"] >= mem["sf_target"] else "BELOW FOS"]
                 for k, v in rc["holes"].items()]
@@ -350,6 +350,22 @@ def print_loads(cfg, ev, L):
     elif ev.get("spring") is not None and not ev["spring"].direct:
         print("\nRocker: not checked. Describe its plates (members.rocker: thickness, pivot_bore, pivot_edge, edge, width) to check\n"
               "  the holes and the arms, or check it in FEA with the part loads (loads --fea).")
+
+    A = L.get("arb_check")
+    if A:
+        where = {"rocker": "the rocker", "lower": "the lower wishbone", "upper": "the upper wishbone", "upright": "the upright"}[A["on"]]
+        print(f"\nAnti-roll bar in the cornering cases (link on {where}): the bar takes {A['share'] * 100:.0f} % of the roll "
+              f"(bar {A['k_bar']:.1f} N/mm vs spring {A['k_wheel']:.1f} N/mm at the wheel)")
+        table(["case", "bar's share at the wheel N", "drop link N", "bar torque N m", "bar shear MPa"],
+              [[r_["case"], f"{r_['wheel']:+.0f}", f"{r_['link']:+.0f}", f"{r_['torque'] / 1000:.1f}", f"{r_['tau']:.0f}"] for r_ in A["rows"]])
+        sf = min(A["sf_buckle"], A["sf_yield"])
+        print(f"  drop link {A['link_od']:g} x {A['link_wall']:g} tube, {A['link_length']:.0f} mm: FOS {f_num(sf, 1)}"
+              + (f", rod end FOS {f_num(A['sf_rod_end'], 1)}" if A["sf_rod_end"] is not None else ", rod end: enter rod_end_rating")
+              + f"; bar FOS {A['sf_bar']:.2f} ({A['tau_case']}) {'OK' if min(sf, A['sf_bar']) >= mem['sf_target'] else 'BELOW FOS'}")
+        print("  " + ("The damper and the rocker's pivot carry the rest (solved with the bar's link on the rocker)." if A["on"] == "rocker" else
+                      "The pushrod still carries the whole load in these cases (a little conservative). The link's pull on "
+                      "the arm or upright isn't in the arm checks or the part loads yet: check that mount in FEA with the "
+                      "link force above."))
 
     c = L.get("compliance")
     if c:

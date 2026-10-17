@@ -64,8 +64,14 @@ def part_loads(cfg, susp, sp, run):
             ed = unit(sp.dch - st["damper_out"])
             push = T["pushrod"] * unit(pts["rod_out"] - pts["rod_in"])
             dmp = Td * ed
-            parts["rocker"] = [("pushrod end", pts["rod_in"], push), ("damper end", st["damper_out"], dmp),
-                               ("pivot", sp.c, -(push + dmp))]
+            A = run.get("arb_check")
+            rk = [("pushrod end", pts["rod_in"], push), ("damper end", st["damper_out"], dmp)]
+            tot = push + dmp
+            if A and A["on"] == "rocker":
+                fl = float(r.get("arb_link", 0.0)) * A["e_link"]
+                rk.append(("anti-roll bar link", A["p_link"], fl))
+                tot = tot + fl
+            parts["rocker"] = rk + [("pivot", sp.c, -tot)]
         out[name] = {k: [(n, np.array(p, float), np.array(F, float)) for n, p, F in v] for k, v in parts.items()}
     return out
 

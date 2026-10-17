@@ -298,6 +298,31 @@ function checkList(X) {
           "rocker"
         );
     }
+    const AB = L.arb_check;
+    if (AB) {
+      const sfl = Math.min(AB.sf_buckle, AB.sf_yield, AB.sf_bar, AB.sf_rod_end ?? Infinity);
+      add(
+        "Strength",
+        A,
+        "Anti-roll bar and its drop link in the corners",
+        sfl >= need ? (AB.sf_rod_end == null ? "input" : "pass") : "fail",
+        `Bar FOS ${fmt(AB.sf_bar, 2)}, link FOS ${fmt(Math.min(AB.sf_buckle, AB.sf_yield), 1)}${AB.sf_rod_end == null ? ", link rod ends: enter the rating" : `, rod ends ${fmt(AB.sf_rod_end, 1)}`}; the bar takes ${fmt(AB.share * 100, 0)} % of the roll`,
+        "The bar shares the roll with the springs, so its link, its twist and (on a rocker) the rocker's extra pin carry real load in every corner.",
+        [view, "loads"],
+        "arb"
+      );
+    } else if (X.isCar && +((car.arb || {})[ax] || 0) > 0)
+      add(
+        "Strength",
+        A,
+        "Anti-roll bar and its drop link in the corners",
+        "input",
+        `The ${ax} bar is a number (${fmt(+car.arb[ax], 0)} Nm/deg at the wheels) without its linkage.`,
+        "Describe the bar's linkage (link point, arm tip, bar axis and size) to check its link, its twist and what it adds to the rocker or arm; until then the pushrod carries the whole load (a little conservative).",
+        [view, "spring"],
+        "arb"
+      );
+
     const C = L.compliance;
     if (C && (C.toe_limit != null || C.camber_limit != null))
       add(

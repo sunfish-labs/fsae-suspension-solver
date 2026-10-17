@@ -335,6 +335,13 @@ the other way, which can put a different leg into compression. `loads car.json` 
    at, in the same axes, origin and units as the 3D-for-CAD export (so the points land on a model built from it).
    Each part's forces and moments balance (the rocker's about its axis), so a fixed support in FEA should carry close
    to nothing: a check that the loads went in right.
+   **Anti-roll bar in the corners** (with a bar linkage, `arb`): the spring and the bar share the roll by their wheel
+   rates, so in the cornering cases the bar takes k_bar / (k_bar + k_spring) of the spring path's roll load (half the
+   difference between the wheel as the outer and as the inner one). That gives the drop link's force, the bar's
+   torsional stress and, for a bar driven from the rocker, the damper and pivot forces and an extra pin in the rocker
+   check and the part loads. With the link on an arm or the upright, the pushrod still carries the whole load (a
+   little conservative) and the link's mount needs FEA. A bar given only as a number (the car's `arb`) can't be
+   placed, so its link isn't checked.
 8. **Rod ends and bolts:** each member's worst force is checked against `members.rod_end_rating` (N, from your rod end's
    catalog; leave blank to skip) and a bolt in shear: capacity = planes × π/4 × d² × 0.6 × UTS (`bolt_dia` mm,
    `bolt_grade` 8.8 / 10.9 / 12.9 / SAE 5 / SAE 8, `bolt_shear_planes` 1 or 2).

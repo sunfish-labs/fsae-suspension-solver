@@ -125,6 +125,7 @@ function partsHtml(L, label, mem) {
     ${b.offset > 5 ? `The mount sits ${fmt(b.offset, 0)} mm off the leg's centerline, so its bracket also twists the leg (not modeled).` : ""}</p>`;
   }
   h += rockerHtml(L, mem);
+  h += arbLoadsHtml(L, mem);
   const P = L.parts || [];
   if (P.length) {
     const cap = P[0].bolt_capacity,
@@ -155,8 +156,24 @@ function partsHtml(L, label, mem) {
   }
   return h;
 }
+// the anti-roll bar in the cornering cases (mirrors loads/arb.py)
+const ARB_ON = { rocker: "the rocker", lower: "the lower wishbone", upper: "the upper wishbone", upright: "the upright" };
+function arbLoadsHtml(L, mem) {
+  const A = L.arb_check;
+  if (!A) return "";
+  const need = mem.sf_target,
+    sfl = Math.min(A.sf_buckle, A.sf_yield),
+    c = v => `<span class="${v >= need ? "ok-t" : "bad-t"}">${fmt(v, 2)}</span>`;
+  return `<h3 class="sub-h">Anti-roll bar in the corners · link on ${ARB_ON[A.on]} · the bar takes ${fmt(A.share * 100, 0)} % of the roll</h3>
+    <div class="tbl-wrap"><table class="data"><thead><tr><th>Case</th><th class="n">Bar's share at the wheel, N</th><th class="n">Drop link, N</th><th class="n">Bar torque, N m</th><th class="n">Bar shear, MPa</th></tr></thead><tbody>
+    ${A.rows.map(r => `<tr><td>${esc(r.case)}</td><td class="n">${r.wheel > 0 ? "+" : ""}${fmt(r.wheel, 0)}</td><td class="n">${r.link > 0 ? "+" : ""}${fmt(r.link, 0)}</td><td class="n">${fmt(r.torque / 1000, 1)}</td><td class="n">${fmt(r.tau, 0)}</td></tr>`).join("")}</tbody></table></div>
+    <div class="kv"><div><span>Drop link ${fmt(A.link_od, 2)} × ${fmt(A.link_wall, 2)} mm, ${fmt(A.link_length, 0)} mm long</span><b>FOS ${c(sfl)}</b></div>
+      <div><span>Drop link rod ends</span><b>${A.sf_rod_end == null ? `<small>enter the rod-end rating</small>` : `FOS ${c(A.sf_rod_end)}`}</b></div>
+      <div><span>Bar in torsion (${esc(A.tau_case)})</span><b>FOS ${c(A.sf_bar)}</b></div></div>
+    <p class="note">In a corner the spring and the bar share the roll by their wheel rates (bar ${fmt(A.k_bar, 1)} N/mm, spring ${fmt(A.k_wheel, 1)} N/mm). The roll part of the spring path's load is half the difference between this wheel as the outer and as the inner one; the bar takes its share through the drop link (+ = tension). ${A.on === "rocker" ? "With the link on the rocker, the damper and the rocker's pivot carry the rest, and the rocker check includes the link's pin." : "The pushrod still carries the whole load in these cases (a little conservative). The link's pull on the " + ARB_ON[A.on] + " isn't in the arm checks or the part loads yet: check that mount in FEA with the link force above."}</p>`;
+}
 // the rocker's plates (mirrors loads.rocker_check)
-const RK_END = { pushrod: "Pushrod end", damper: "Damper end", pivot: "Pivot" };
+const RK_END = { pushrod: "Pushrod end", damper: "Damper end", arb: "Bar link", pivot: "Pivot" };
 function rockerHtml(L, mem) {
   const R = L.rocker_check,
     need = mem.sf_target;

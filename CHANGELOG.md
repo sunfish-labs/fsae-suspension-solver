@@ -3,6 +3,14 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.17.0 - 2026-10-17
+
+- **Anti-roll bar in the cornering loads**: with a bar linkage, the cornering cases split the roll between the spring
+  and the bar by their wheel rates and report the drop link's force (with its tube and rod-end FOS) and the bar's
+  torsional stress per case. A bar on the rocker also changes the damper and pivot forces, adds its pin to the rocker
+  plate check and appears in the part loads for FEA. In the Loads tab, `loads` and the design check (a bar given only
+  as a number asks for its linkage). Python and browser (parity-tested), hand-checked by virtual work.
+
 ## 1.16.0 - 2026-10-17
 
 - **Frame and harness rules from side-view points** (optional `cockpit` keys, Layout → Driver and roll hoops): the

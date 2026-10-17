@@ -350,6 +350,10 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   await p.click('#axleSeg [data-ax="front"]'); await settle(p);
   await p.click("#tab_spring"); await settle(p);
   const spt = await text(p, "#pn_spring");
+  await p.click("#tab_loads"); await settle(p);
+  const arbL = await text(p, "#pn_loads");
+  check("bar on the rocker: the Loads tab shows its share, drop link force and twist in the corners", /Anti-roll bar in the corners/.test(arbL) && /link on the rocker/.test(arbL) && /Drop link/.test(arbL) && /Bar in torsion/.test(arbL), arbL.slice(0, 200));
+  await p.click("#tab_spring"); await settle(p);
   check("Spring tab: wheel rate at full bump, bump stop travel and the bar's numbers", /Wheel rate at full bump/.test(spt) && /Wheel travel to the bump stop/.test(spt) && /Bar roll stiffness, this axle/.test(spt) && /Wheel rate, N\/mm/.test(spt), spt.slice(0, 300));
   const bsT = parseFloat((spt.match(/Wheel travel to the bump stop\s*([\d.]+)/) || [])[1]);
   await setIn("#in_spring_bumpstop_gap", "20"); await settle(p);

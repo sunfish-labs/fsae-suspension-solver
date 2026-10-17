@@ -321,6 +321,7 @@ function runLoads(cfg, susp, sp, lltd = null) {
   }
   info.wheel_rate = kw;
   info.skipped = skipped;
+  const arb = arbLoads(cfg, susp, sp, results);
   const mem = cfg.members,
     [, inb, outb] = loadGeometry(susp, sp);
   const size = {
@@ -371,7 +372,8 @@ function runLoads(cfg, susp, sp, lltd = null) {
     checks,
     parts: partChecks(cfg, checks),
     bending_check: bendingCheck(cfg, susp, sp, results, deflect),
-    rocker_check: rockerCheck(cfg, susp, sp, results, deflect),
+    rocker_check: rockerCheck(cfg, susp, sp, results, deflect, arb),
+    arb_check: arb,
     compliance: compliance(cfg, susp, sp, results),
     durability: durability(cfg, susp, sp, results, info, deflect),
   };
@@ -591,6 +593,106 @@ function bendingCheck(cfg, susp, sp, results, deflect = {}) {
     worst
   );
 }
+// ---------------------------------------------------------------- the anti-roll bar in the cornering cases (mirrors loads/arb.py)
+const ARB_PAIRS = [
+  ["corner outer", "corner inner"],
+  ["brake+corner outer", "brake+corner inner"],
+];
+function barKt(a) {
+  const od = +a.bar_od,
+    di = a.bar_wall ? Math.max(0, od - 2 * a.bar_wall) : 0,
+    J = (Math.PI / 32) * (od ** 4 - di ** 4),
+    Lb = +(a.bar_length || 2 * Math.abs(a.arm_tip[1]));
+  return [(+(a.bar_G || 79300) * J) / Lb, J];
+}
+function arbLoads(cfg, susp, sp, results) {
+  const a = cfg.arb;
+  if (!a || !sp) return null;
+  const bar = new ArbLink(susp, sp, a),
+    h = 0.5,
+    th = {};
+  for (const z of [-h, 0, h]) {
+    const x = susp.states([z]).get(z);
+    th[z] = bar.theta(x, sp.state(x));
+  }
+  const tp = (th[h] - th[-h]) / (2 * h),
+    [Kt, J] = barKt(a),
+    kB = 2 * Kt * tp * tp,
+    kW = wheelRateAtRide(cfg, susp, sp),
+    s = kW + kB > 1e-12 ? kB / (kW + kB) : 0;
+  const [pts, , , st0] = loadGeometry(susp, sp),
+    xs = { [-h]: susp.states([-h]).get(-h), [h]: susp.states([h]).get(h) },
+    vRod = mul(sub(sp.state(xs[h]).rod_out, sp.state(xs[-h]).rod_out), 1 / (2 * h)),
+    vLink = mul(sub(bar.linkOut(xs[h], sp.state(xs[h])), bar.linkOut(xs[-h], sp.state(xs[-h]))), 1 / (2 * h)),
+    pLink = bar.linkOut(susp.states([0]).get(0), st0),
+    eLink = unit(sub(bar.t0, pLink)),
+    ev = dot(eLink, vLink),
+    rEff = Math.abs(dot(bar.k, cross(sub(bar.t0, bar.c), eLink))),
+    eRod = unit(sub(pts.rod_in, pts.rod_out));
+  for (const r of Object.values(results)) r.arb_link = 0;
+  const W = r => -+r.pushrod * dot(eRod, vRod),
+    rows = [];
+  for (const [o, i] of ARB_PAIRS) {
+    if (!results[o] || !results[i]) continue;
+    const dW = (W(results[o]) - W(results[i])) / 2;
+    for (const [cs, sgn] of [
+      [o, 1],
+      [i, -1],
+    ]) {
+      const Wb = s * sgn * dW,
+        lam = Math.abs(ev) > 1e-9 ? -Wb / ev : 0;
+      results[cs].arb_link = lam;
+      const M = Math.abs(lam) * rEff;
+      rows.push({ case: cs, link: lam, wheel: Wb, torque: M, tau: (M * (+a.bar_od / 2)) / J });
+      if (bar.on === "rocker" && !sp.direct) arbRockerBalance(sp, susp, results[cs], mul(eLink, lam), pLink);
+    }
+  }
+  if (!rows.length) return null;
+  const yld = +(a.bar_yield || cfg.members.yield),
+    [od, wall] = a.link_tube || cfg.members.pushrod,
+    [A, Imom] = tubeProps(+od, +wall),
+    Lk = norm(sub(bar.t0, pLink)),
+    E = cfg.members.E,
+    Sy = cfg.members.yield,
+    peak = Math.max(...rows.map(r => Math.abs(r.link))),
+    comp = Math.max(0, ...rows.filter(r => r.link < 0).map(r => -r.link)),
+    Pcr = (Math.PI ** 2 * E * Imom) / Lk ** 2,
+    rating = cfg.members.rod_end_rating,
+    worst = rows.reduce((b, r) => (r.tau > b.tau ? r : b), rows[0]);
+  return {
+    on: bar.on,
+    share: s,
+    p_link: pLink,
+    e_link: eLink,
+    k_bar: kB,
+    k_wheel: kW,
+    rows,
+    link_length: Lk,
+    link_od: +od,
+    link_wall: +wall,
+    peak,
+    compression: comp,
+    sf_buckle: comp > 1e-9 ? Pcr / comp : Infinity,
+    sf_yield: peak > 1e-9 ? (Sy * A) / peak : Infinity,
+    sf_rod_end: rating ? (peak > 1e-9 ? rating / peak : Infinity) : null,
+    tau: worst.tau,
+    tau_case: worst.case,
+    sf_bar: worst.tau > 1e-9 ? (0.577 * yld) / worst.tau : Infinity,
+  };
+}
+function arbRockerBalance(sp, susp, r, fLink, pLink) {
+  const [pts, , , st] = loadGeometry(susp, sp),
+    c = sp.c,
+    k = sp.k,
+    fRod = mul(unit(sub(pts.rod_out, pts.rod_in)), +r.pushrod),
+    ed = unit(sub(sp.dch, st.damper_out)),
+    mRod = dot(k, cross(sub(pts.rod_in, c), fRod)),
+    mLink = dot(k, cross(sub(pLink, c), fLink)),
+    mD = dot(k, cross(sub(st.damper_out, c), ed)),
+    Td = -(mRod + mLink) / mD;
+  r.damper = Td;
+  r.rocker_pivot = norm(add(add(fRod, mul(ed, Td)), fLink));
+}
 // ---------------------------------------------------------------- the rocker's plates (mirrors loads.rocker_check)
 const ROCKER_YIELD = 241.0;
 function rockerOf(cfg) {
@@ -607,11 +709,19 @@ function rockerOf(cfg) {
     yield_: +(rk.yield || ROCKER_YIELD),
   };
 }
-function rockerForces(susp, sp, r, geom) {
+function rockerForces(susp, sp, r, geom, arb = null) {
   const [pts, , , st] = geom,
     push = mul(unit(sub(pts.rod_out, pts.rod_in)), +r.pushrod),
-    dmp = mul(unit(sub(sp.dch, st.damper_out)), +r.damper);
-  return { pushrod: [pts.rod_in, push], damper: [st.damper_out, dmp], pivot: [sp.c, mul(add(push, dmp), -1)] };
+    dmp = mul(unit(sub(sp.dch, st.damper_out)), +r.damper),
+    out = { pushrod: [pts.rod_in, push], damper: [st.damper_out, dmp] };
+  let tot = add(push, dmp);
+  if (arb && arb.on === "rocker") {
+    const f = mul(arb.e_link, +(r.arb_link || 0));
+    out.arb = [arb.p_link, f];
+    tot = add(tot, f);
+  }
+  out.pivot = [sp.c, mul(tot, -1)];
+  return out;
 }
 function rockerStress(rk, sp, fr) {
   const n = rk.plates,
@@ -640,7 +750,7 @@ function rockerStress(rk, sp, fr) {
   }
   return [holes, arms, oop];
 }
-function rockerCheck(cfg, susp, sp, results, deflect = {}) {
+function rockerCheck(cfg, susp, sp, results, deflect = {}, arb = null) {
   const rk = rockerOf(cfg);
   if (!rk || sp.direct) return null;
   const geom0 = loadGeometry(susp, sp),
@@ -651,7 +761,7 @@ function rockerCheck(cfg, susp, sp, results, deflect = {}) {
   let oop = [0, null];
   for (const [name, r] of Object.entries(results)) {
     const g = deflect[name] ? loadGeometry(susp, sp, deflect[name]) : geom0,
-      [h, a, o] = rockerStress(rk, sp, rockerForces(susp, sp, r, g));
+      [h, a, o] = rockerStress(rk, sp, rockerForces(susp, sp, r, g, arb));
     if (o > oop[0]) oop = [o, name];
     for (const [end, v] of Object.entries(h)) {
       const fos = Object.fromEntries(Object.entries(v.stress).map(([m, s]) => [m, s > 1e-9 ? allow[m] / s : Infinity])),
@@ -728,11 +838,18 @@ function partLoads(cfg, susp, sp, run) {
     if (!sp.direct) {
       const push = mul(unit(sub(pts.rod_out, pts.rod_in)), T("pushrod")),
         dmp = mul(unit(sub(sp.dch, st.damper_out)), +r.damper);
-      ordered.rocker = [
-        ["pushrod end", pts.rod_in, push],
-        ["damper end", st.damper_out, dmp],
-        ["pivot", sp.c, mul(add(push, dmp), -1)],
-      ];
+      const A = run.arb_check,
+        rk = [
+          ["pushrod end", pts.rod_in, push],
+          ["damper end", st.damper_out, dmp],
+        ];
+      let tot = add(push, dmp);
+      if (A && A.on === "rocker") {
+        const fl = mul(A.e_link, +(r.arb_link || 0));
+        rk.push(["anti-roll bar link", A.p_link, fl]);
+        tot = add(tot, fl);
+      }
+      ordered.rocker = rk.concat([["pivot", sp.c, mul(tot, -1)]]);
     }
     out[name] = ordered;
   }

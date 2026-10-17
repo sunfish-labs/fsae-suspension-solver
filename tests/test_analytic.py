@@ -695,6 +695,33 @@ check("harness: lap belt angle to the template's hip, deg", v17["lap_belt_uprigh
 sh17 = t17[1]
 check("harness: shoulder belt below horizontal from the shoulder's top, deg", v17["shoulder_belt_angle"], math.degrees(math.atan2(sh17[1] + 100 - 700.0, abs(sh17[0]))), 1e-9, "")
 
+# 18. the anti-roll bar in the cornering cases (loads/arb.py)
+from susp.loads.arb import arb_loads  # noqa: E402
+fb18, rb18, _ = _lc16(os.path.join(ROOT15, "designs", "example_car_bars.json"))
+e18 = evaluate(fb18, steer=False, pack=False)
+L18 = run_loads(fb18, e18["susp"], e18["spring"])
+A18, s18, sp18 = L18["arb_check"], e18["susp"], e18["spring"]
+check("bar: its wheel rate in roll matches the ride model's (2 K_t theta'^2), N/mm", A18["k_bar"], e18["metrics"]["arb_wheel_rate"], 1e-3 * A18["k_bar"],
+      "finite difference at ride height vs the sweep's gradient")
+check("bar: its share of the roll, k_bar / (k_bar + k_spring)", A18["share"], A18["k_bar"] / (A18["k_bar"] + A18["k_wheel"]), 1e-12, "")
+# virtual work: the damper's and the bar's wheel forces add up to the pushrod's, the pushrod unchanged
+xs18 = {z: s18.states([z])[float(z)] for z in (-0.5, 0.5)}
+mr18 = (sp18.state(xs18[-0.5])["damper_len"] - sp18.state(xs18[0.5])["damper_len"]) / 1.0
+pts18 = _geometry(s18, sp18)[0]
+v_rod18 = (sp18.state(xs18[0.5])["rod_out"] - sp18.state(xs18[-0.5])["rod_out"]) / 1.0
+e_rod18 = (pts18["rod_in"] - pts18["rod_out"]) / np.linalg.norm(pts18["rod_in"] - pts18["rod_out"])
+r18 = L18["results"]["corner outer"]
+W_rod18 = -r18["pushrod"] * float(e_rod18 @ v_rod18)
+W_d18 = -r18["damper"] * mr18
+W_b18 = next(r_ for r_ in A18["rows"] if r_["case"] == "corner outer")["wheel"]
+check("bar on the rocker: damper's + bar's wheel force = the pushrod's (corner outer), N", W_d18 + W_b18, W_rod18, 1e-3 * abs(W_rod18),
+      "virtual work over a mm of bump; the rocker in balance about its axis")
+pl18 = part_loads(fb18, s18, sp18, L18)["corner outer"]["rocker"]
+fs18 = sum(F for _, _, F in pl18)
+mk18 = sum(float(sp18.k @ np.cross(p - sp18.c, F)) for _, p, F in pl18)
+check("bar on the rocker: the rocker's part loads (with the bar's link) balance, N and N m", float(np.linalg.norm(fs18)) + abs(mk18) / 1000, 0.0, 1e-6,
+      "forces sum to zero, and moments about the rocker axis")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)
