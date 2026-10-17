@@ -188,6 +188,22 @@ function buildForm() {
     field("Gusset length toward the ball joint", "mm", "members.gusset.length_out", { step: 5 }),
     field("Gusset-end weld class (blank = by length)", "MPa", "members.gusset.fat", { step: 1, opt: 1 }),
   ].join("");
+  $("#rkFields").innerHTML = [
+    field("Check the rocker", "", "members.rocker.on", {
+      options: [
+        ["0", "Not checked (FEA with the part loads)"],
+        ["1", "Check its plates"],
+      ],
+    }),
+    field("Plate thickness (each)", "mm", "members.rocker.thickness", { step: 0.1 }),
+    field("Plates", "", "members.rocker.plates", { step: 1 }),
+    field("Pivot bore (bearing or bushing OD)", "mm", "members.rocker.pivot_bore", { step: 0.5 }),
+    field("Pivot center to the hub's edge", "mm", "members.rocker.pivot_edge", { step: 0.5 }),
+    field("Pin holes (blank = bolt diameter)", "mm", "members.rocker.pin_dia", { step: 0.1, opt: 1 }),
+    field("Pin hole center to the edge", "mm", "members.rocker.edge", { step: 0.5 }),
+    field("Arm depth (narrowest)", "mm", "members.rocker.width", { step: 0.5 }),
+    field("Plate yield (6061-T6 241, 7075-T6 460)", "MPa", "members.rocker.yield", { step: 5, opt: 1 }),
+  ].join("");
   $("#tabFields").innerHTML = [
     field("Tab thickness", "mm", "members.tab.thickness", { step: 0.1 }),
     field("Tab width", "mm", "members.tab.width", { step: 0.5 }),
@@ -291,6 +307,12 @@ function fillForm() {
         path === "members.gusset.type" ? (g ? g.type || "along_leg" : "none") : g && g[path.slice(15)] != null ? g[path.slice(15)] : "";
       return;
     }
+    if (path.startsWith("members.rocker.")) {
+      const r = cfg.members.rocker,
+        k = path.slice(15);
+      el.value = k === "on" ? (r ? "1" : "0") : r && r[k] != null ? r[k] : "";
+      return;
+    }
     let v = getPath(cfg, path);
     if (v == null) v = getPath(S.DEFAULTS, path);
     if (el.dataset.scale && v != null) v = +(v * +el.dataset.scale).toFixed(6);
@@ -304,6 +326,7 @@ function fillForm() {
   $("#rockerOn").value = cfg.spring && cfg.spring.rocker_pivot == null ? "0" : "1";
   syncRockerRows();
   syncGusset();
+  syncRockerPlates();
   syncAxle();
   syncLegLabels();
 }
@@ -317,6 +340,16 @@ function syncGusset() {
   });
 }
 const GUSSET_START = { type: "along_leg", thickness: 3.0, height: 30.0, length_in: 60.0, length_out: 40.0 };
+// the rocker's plates: only with a rocker; the sizes only once the check is on (a typical pair of 1/4 in 6061-T6 plates)
+const ROCKER_START = { thickness: 6.35, plates: 2, pivot_bore: 22.0, pivot_edge: 20.0, edge: 12.0, width: 30.0, yield: 241.0 };
+function syncRockerPlates() {
+  const rocker = cfg.spring && cfg.spring.rocker_pivot != null,
+    on = !!cfg.members.rocker;
+  $("#rkHead").hidden = !rocker;
+  $$('[data-path^="members.rocker."]').forEach(el => {
+    el.closest(".field").hidden = !rocker || (el.dataset.path !== "members.rocker.on" && !on);
+  });
+}
 function syncRockerRows() {
   const direct = cfg.spring && cfg.spring.rocker_pivot == null;
   ["rocker_pivot", "rocker_axis", "rocker_rod", "rocker_damper"].forEach(k => {
@@ -365,6 +398,19 @@ function onInput(e) {
       if (v == null) delete g[k];
       else g[k] = v;
       cfg.members.gusset = g;
+    }
+    fillForm();
+    schedule();
+    return;
+  }
+  if (path.startsWith("members.rocker.")) {
+    const k = path.slice(15);
+    if (k === "on") cfg.members.rocker = v === "1" ? { ...ROCKER_START } : null;
+    else {
+      const r = { ...(cfg.members.rocker || ROCKER_START) };
+      if (v == null) delete r[k];
+      else r[k] = v;
+      cfg.members.rocker = r;
     }
     fillForm();
     schedule();

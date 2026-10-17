@@ -97,6 +97,21 @@ def _check_extras(cfg, where):
             bad_.append("length_in or length_out")
         if bad_:
             raise ConfigError(f"{where}: members.gusset needs positive numbers for {', '.join(bad_)}")
+    rk = mem.get("rocker")
+    if rk is not None:
+        if not isinstance(rk, dict):
+            raise ConfigError(f"{where}: members.rocker must be {{thickness, pivot_bore, pivot_edge, edge, width}} (mm) or null")
+        bad_ = [k for k in ("thickness", "pivot_bore", "pivot_edge", "edge", "width")
+                if not (isinstance(rk.get(k), (int, float)) and rk[k] > 0)]
+        bad_ += [k for k in ("plates", "pin_dia", "yield") if rk.get(k) is not None
+                 and not (isinstance(rk[k], (int, float)) and rk[k] > 0)]
+        if bad_:
+            raise ConfigError(f"{where}: members.rocker needs positive numbers for {', '.join(bad_)}")
+        d_pin = rk.get("pin_dia") or mem.get("bolt_dia") or 8.0
+        if rk["pivot_edge"] <= rk["pivot_bore"] / 2:
+            raise ConfigError(f"{where}: members.rocker.pivot_edge ({rk['pivot_edge']:g} mm) must be more than half the pivot bore")
+        if rk["edge"] <= d_pin / 2:
+            raise ConfigError(f"{where}: members.rocker.edge ({rk['edge']:g} mm) must be more than half the pin ({d_pin / 2:g} mm)")
     for k in ("fatigue_cycles", "fatigue_bump_cycles"):
         v = lo_.get(k)
         if v is not None and not (isinstance(v, (int, float)) and v >= 1):

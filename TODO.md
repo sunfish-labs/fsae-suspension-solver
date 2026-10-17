@@ -3,11 +3,10 @@
 Ordered by importance: things that could mislead a student or block the team first, then accuracy of the model,
 then extra features, then housekeeping. Team-specific design fixes live in `private/` (never published).
 
-1. **Rocker strength.** The rocker is drawn and its pin forces are in the part loads, but nothing checks the plate
-   itself: add the pin bores (bearing, tear-out, like the tabs) and the plate's bending between the pins, with its
-   thickness and material as inputs. Until then, check it in FEA with the part loads.
-2. **Frame torsional stiffness** from the frame's tube centerlines (a 3D frame solved in the browser), and what it
+1. **Frame torsional stiffness** from the frame's tube centerlines (a 3D frame solved in the browser), and what it
    does to the LLTD.
+2. **Rocker, the next step:** an aluminum fatigue screen (S-N data for 6061-T6 / 7075-T6), the anti-roll bar link's
+   load when the bar is driven from the rocker, and the pivot bearing's own rating.
 3. **More rules checks** once there is data for them: the lower side impact structure height, the 5th percentile
    template and cockpit openings (F, T.1 and IN.7) against a loaded frame, ground clearance at full bump and pitch,
    and the 2027 Q&A.
@@ -27,6 +26,7 @@ then extra features, then housekeeping. Team-specific design fixes live in `priv
 
 ## Done recently
 
+- Rocker strength: pin holes (bearing, tear-out) and arm bending from the plates' sizes and alloy (1.11.0)
 - Driver template and roll hoops in side view: seven more rules checks (F.5.6 to F.5.9) and a drawing (1.10.0)
 - Rules check against the Formula SAE Rules 2027 (IC) by rule number: twelve automatic checks and a checklist (1.9.0)
 - Vehicle layout (mass, CG, inertia from a parts list, boxes in 3D, clearance to the parts) and the drivetrain's

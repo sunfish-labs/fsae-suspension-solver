@@ -60,6 +60,7 @@
   "members.tab": "mm, the pickup tabs (a pair per link end, double shear): thickness, width, edge (hole center to the tab's end), weld_leg, weld_length (per tab), count; defaults are a typical 1/8 in tab, change them to yours",
   "members.tab_yield": "MPa, the tab material's yield (null = members.yield)",
   "members.gusset": "how the pushrod mount is reinforced (null = bare tube): {thickness, height, length_in, length_out} mm for a triangular plate along the leg (height at the mount; fat = its end weld's IIW class, default by length), or {type: to_node} for a bracket into the ball-joint node (check the bracket in FEA)",
+  "members.rocker": "the rocker's plates, to check them (null = not checked): {thickness (each plate), plates (default 2), pivot_bore (bearing or bushing OD), pivot_edge (pivot center to the hub's edge), pin_dia (pushrod and damper bolts; default bolt_dia), edge (those holes' centers to the plate's edge), width (narrowest depth of each arm), yield (MPa, default 241: 6061-T6)} mm",
   "loads.fatigue_cycles": "how many times each driving case (cornering, braking, acceleration) repeats in the fatigue screen; about 10,000 hard events per season, default 100,000 (three seasons with margin)",
   "loads.fatigue_bump_cycles": "how many times the bump case repeats in the fatigue screen (default 10,000)"
  },
@@ -176,7 +177,8 @@
     "count": 2
    },
    "tab_yield": null,
-   "gusset": null
+   "gusset": null,
+   "rocker": null
   },
   "halfshaft": null,
   "arb": null,

@@ -306,6 +306,31 @@ def print_loads(cfg, ev, L):
                   "  to the ball joint, or use a stiffer leg. Check a bracket with FEA: loads design.json --fea loads.csv.")
         if b["offset"] > 5:
             print(f"  The mount is {b['offset']:.0f} mm off the leg's centerline: the bracket also twists the leg (not modeled).")
+    rc = L.get("rocker_check")
+    if rc:
+        rk = rc["rocker"]
+        print(f"\nRocker: {rk['plates']} plate(s) {rk['thickness']:g} mm thick, yield {rk['yield']:g} MPa; pivot bore {rk['pivot_bore']:g} mm "
+              f"with {rk['pivot_edge']:g} mm to the hub's edge, {rk['pin_dia']:g} mm pins {rk['edge']:g} mm from the edge, arms "
+              f"{rk['width']:g} mm deep (members.rocker)")
+        print("  holes: bearing F/(n t d) vs yield, tear-out F/(2 n t (e - d/2)) vs 0.577 yield; arms: built in at the hub's edge,\n"
+              "  6 M/(n t w^2) + axial/(n t w) vs yield. In-plane forces; the worst case for each.")
+        hn = {"pushrod": "Pushrod end", "damper": "Damper end", "pivot": "Pivot"}
+        rows = [[f"{hn[k]} hole", f"{v['force']:.0f} ({v['case']})", f"bearing {v['stress']['bearing']:.0f}, tear-out {v['stress']['tearout']:.0f}",
+                 f_num(v["sf"], 2) + f" ({'bearing' if v['governs'] == 'bearing' else 'tear-out'})", "OK" if v["sf"] >= mem["sf_target"] else "BELOW FOS"]
+                for k, v in rc["holes"].items()]
+        rows += [[f"{hn[k]} arm, {v['length']:.0f} mm", f"{v['across']:.0f} across ({v['case']})",
+                  f"{v['moment'] / 1000:.1f} N m -> {v['stress']:.0f}", f_num(v["sf"], 2), "OK" if v["sf"] >= mem["sf_target"] else "BELOW FOS"]
+                 for k, v in rc["arms"].items()]
+        table(["where", "force N", "stress MPa", "FOS", ""], rows)
+        if rc["out_of_plane"] > 0.1:
+            print(f"  {rc['out_of_plane'] * 100:.0f} % of a pin force runs along the rocker's axis ({rc['oop_case']}): that bends the plates "
+                  "sideways, which this check leaves out. Check the rocker in FEA (loads --fea).")
+        if rc["sf"] < mem["sf_target"]:
+            print("  Below the target: thicker plates or a stronger alloy (7075-T6), deeper arms, more material around the holes.")
+    elif ev.get("spring") is not None and not ev["spring"].direct:
+        print("\nRocker: not checked. Describe its plates (members.rocker: thickness, pivot_bore, pivot_edge, edge, width) to check\n"
+              "  the holes and the arms, or check it in FEA with the part loads (loads --fea).")
+
     c = L.get("compliance")
     if c:
         print(f"\nCompliance: toe and camber change from the links stretching (estimated stiffness: rod ends "

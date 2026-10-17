@@ -273,6 +273,16 @@ the other way, which can put a different leg into compression. `loads car.json` 
      bent. The bracket itself isn't checked: model it in CAD and check it with FEA using the part loads below.
    - Anything else (a cross tube between the legs, a machined mount): model it in CAD and use the part loads.
 
+   **Rocker plates** (`members.rocker`, inputs → Loads & materials → Rocker plates): `thickness` (each plate),
+   `plates` (default 2), `pivot_bore` (the bearing or bushing's OD), `pivot_edge` (pivot center to the hub's edge),
+   `pin_dia` (default `bolt_dia`), `edge` (pin hole center to the plate's edge), `width` (each arm's narrowest depth),
+   `yield` (default 241 MPa, 6061-T6; 7075-T6 is about 460). The forces on the rocker (pushrod end, damper end and
+   pivot, every case at its own geometry) in the rocker's plane give, per hole, bearing F/(n t d) vs yield and
+   tear-out F/(2 n t (e − d/2)) vs 0.577 × yield, and per arm a beam built in at the hub's edge:
+   σ = 6 F⊥ (L − pivot_edge)/(n t w²) + F∥/(n t w). The lowest FOS shows in the summary bar. Left out: force along
+   the rocker's axis (reported when it's over 10 %), pockets and fillets, an anti-roll bar link on the rocker, and
+   fatigue (aluminum has no endurance limit, so keep the FOS up). Check the final shape in FEA with the part loads.
+
    **Part loads for FEA** (Export ▾ → Part loads for FEA…, or `loads design.json --fea loads.csv`): every force on
    the upright, each wishbone and the rocker of the right-hand corner, for each load case, with the point it acts
    at, in the same axes, origin and units as the 3D-for-CAD export (so the points land on a model built from it).

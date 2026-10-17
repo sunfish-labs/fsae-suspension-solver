@@ -1,4 +1,4 @@
-"""Strength: buckling and yield of the links, rod ends and bolts, and the pushrod mount bending its leg."""
+"""Strength: buckling and yield of the links, rod ends and bolts, the pushrod mount bending its leg, and the rocker."""
 from __future__ import annotations
 
 import math
@@ -179,3 +179,98 @@ def bending_check(cfg, susp, sp, results, deflect=None):
     sy = cfg["members"]["yield"]
     return dict(leg=leg, length=Lg, a=a, offset=off, od=od, wall=wall, gusset=gusset_of(cfg),
                 sf=sy / worst["stress"] if worst["stress"] > 1e-9 else float("inf"), **worst)
+
+
+ROCKER_YIELD = 241.0          # MPa, 6061-T6 plate, minimum (Aluminum Design Manual); 7075-T6 is about 460
+
+
+def rocker_of(cfg):
+    """members.rocker, the rocker's plates, or None (not checked):
+      thickness (each plate), plates (default 2, joined by spacers), pivot_bore (the bearing or bushing's outside
+      diameter), pivot_edge (pivot center to the plate's edge around the hub), pin_dia (the pushrod and damper bolts,
+      default members.bolt_dia), edge (those holes' centers to the plate's edge), width (the narrowest depth of each
+      arm between the hub and its end), yield (MPa, default 6061-T6)."""
+    rk = (cfg.get("members") or {}).get("rocker")
+    if not rk:
+        return None
+    mem = cfg["members"]
+    return dict(thickness=float(rk["thickness"]), plates=int(rk.get("plates") or 2), pivot_bore=float(rk["pivot_bore"]),
+                pivot_edge=float(rk["pivot_edge"]), pin_dia=float(rk.get("pin_dia") or mem.get("bolt_dia") or 8.0),
+                edge=float(rk["edge"]), width=float(rk["width"]), yield_=float(rk.get("yield") or ROCKER_YIELD))
+
+
+def rocker_forces(susp, sp, r, geom):
+    """The forces on the rocker for member forces r at geometry geom: {end: (point, force)} for the pushrod end, the
+    damper end and the pivot (they add up to zero)."""
+    pts, _, _, st = geom
+    push = float(r["pushrod"]) * unit(pts["rod_out"] - pts["rod_in"])
+    dmp = float(r["damper"]) * unit(sp.dch - st["damper_out"])
+    return {"pushrod": (pts["rod_in"], push), "damper": (st["damper_out"], dmp), "pivot": (sp.c, -(push + dmp))}
+
+
+def rocker_stress(rk, sp, fr):
+    """Stresses in the rocker's plates for one set of forces fr (rocker_forces). Each hole, like a lug:
+        bearing   F / (n t d)                vs yield
+        tear-out  F / (n 2 t (e - d / 2))    vs 0.577 yield   (the pin shearing out to the plate's edge)
+    with e the edge distance (pivot_edge at the hub). Each arm (pivot to the pushrod or damper hole) as a beam built
+    in at the hub's edge, the pin force's in-plane part across it bending it: M = F_across (L - pivot_edge),
+    stress = 6 M / (n t w^2) + |F_along| / (n t w). The force along the rocker's axis is left out of the plate
+    stresses (the pivot bearing takes it as a couple) and reported as out_of_plane."""
+    n, t, k = rk["plates"], rk["thickness"], sp.k
+    c = np.asarray(sp.c, float)
+    holes, arms, oop = {}, {}, 0.0
+    for end, (p, F) in fr.items():
+        Fm = float(np.linalg.norm(F))
+        Fi = F - (F @ k) * k
+        Fip = float(np.linalg.norm(Fi))
+        if Fm > 1e-9:
+            oop = max(oop, abs(float(F @ k)) / Fm)
+        d, e = (rk["pivot_bore"], rk["pivot_edge"]) if end == "pivot" else (rk["pin_dia"], rk["edge"])
+        st = dict(bearing=Fip / (n * t * d), tearout=Fip / (n * 2 * t * (e - d / 2)))
+        holes[end] = dict(force=Fip, d=d, edge=e, stress=st)
+        if end == "pivot":
+            continue
+        rv = np.asarray(p, float) - c
+        rv = rv - (rv @ k) * k
+        L = float(np.linalg.norm(rv))
+        u = rv / L if L > 1e-9 else rv
+        f_al = float(Fi @ u)
+        f_ac = float(np.linalg.norm(Fi - f_al * u))
+        arm = max(0.0, L - rk["pivot_edge"])
+        w = rk["width"]
+        M = f_ac * arm
+        arms[end] = dict(length=L, lever=arm, across=f_ac, along=f_al, moment=M,
+                         stress=6 * M / (n * t * w * w) + abs(f_al) / (n * t * w))
+    return holes, arms, oop
+
+
+def rocker_check(cfg, susp, sp, results, deflect=None):
+    """The rocker's plates against the worst case for each hole and arm (rocker_stress), or None without a rocker or
+    members.rocker. sf: the lowest factor of safety of all of them."""
+    rk = rocker_of(cfg)
+    if rk is None or sp.direct:
+        return None
+    deflect = deflect or {}
+    geom0 = _geometry(susp, sp)
+    sy = rk["yield_"]
+    allow = dict(bearing=sy, tearout=0.577 * sy)
+    holes, arms, oop = {}, {}, (0.0, None)
+    for name, r in results.items():
+        g = _geometry(susp, sp, deflect[name]) if deflect.get(name) else geom0
+        h, a, o = rocker_stress(rk, sp, rocker_forces(susp, sp, r, g))
+        if o > oop[0]:
+            oop = (o, name)
+        for end, v in h.items():
+            fos = {m: (allow[m] / s if s > 1e-9 else float("inf")) for m, s in v["stress"].items()}
+            gov = min(fos, key=fos.get)
+            if end not in holes or fos[gov] < holes[end]["sf"]:
+                holes[end] = dict(v, case=name, fos=fos, governs=gov, sf=fos[gov])
+        for end, v in a.items():
+            sf = sy / v["stress"] if v["stress"] > 1e-9 else float("inf")
+            if end not in arms or sf < arms[end]["sf"]:
+                arms[end] = dict(v, case=name, sf=sf)
+    sfs = [v["sf"] for v in holes.values()] + [v["sf"] for v in arms.values()]
+    rows = [(f"hole:{k}", v["sf"]) for k, v in holes.items()] + [(f"arm:{k}", v["sf"]) for k, v in arms.items()]
+    gov = min(rows, key=lambda x: x[1])[0] if rows else None
+    return dict(rocker=dict(rk, **{"yield": sy}), holes=holes, arms=arms, out_of_plane=oop[0], oop_case=oop[1],
+                sf=min(sfs) if sfs else float("inf"), governs=gov)

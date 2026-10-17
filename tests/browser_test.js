@@ -87,6 +87,19 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
     && (await p.$eval("#in_members_gusset_height", el => el.closest(".field").hidden)));
   await p.click("#btnUndo"); await settle(p); // both picks in one burst on the same box: one Undo
   check("Undo goes back to the bare tube", Math.abs(parseFloat(await bendFos()) - bare) < 0.005 && (await p.inputValue("#in_members_gusset_type")) === "none");
+  // the rocker's plates: off, then on with the starting sizes, then thinner plates
+  check("without rocker sizes the Loads tab says the rocker isn't checked", /Rocker\s*Not checked/.test(await text(p, "#pn_loads")));
+  const rkPick = v => p.evaluate(v => { const s = document.querySelector("#in_members_rocker_on"); s.value = v; s.dispatchEvent(new Event("input", { bubbles: true })); s.dispatchEvent(new Event("change", { bubbles: true })); }, v);
+  const rkFos = () => p.evaluate(() => parseFloat([...document.querySelectorAll("#pn_loads h3")].find(h => /^Rocker ·/.test(h.textContent)).textContent.split("FOS")[1]));
+  await rkPick("1"); await settle(p);
+  const rk0 = await rkFos(), rkt = await text(p, "#pn_loads");
+  check("checking the rocker: its holes and arms with an FOS, in the summary bar too", rk0 > 0 && /Pushrod end arm/.test(rkt) && /Pivot hole/.test(rkt) && /Rocker FOS/.test(await text(p, "#status"))
+    && !(await p.$eval("#in_members_rocker_width", el => el.closest(".field").hidden)), rkt.slice(0, 200));
+  await p.evaluate(() => { const i = document.querySelector("#in_members_rocker_thickness"); i.value = "3.175"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
+  const rk1 = await rkFos();
+  check("half-thickness plates halve the rocker's FOS", Math.abs(rk1 / rk0 - 0.5) < 0.02, `${rk0} -> ${rk1}`);
+  await p.click("#btnUndo"); await settle(p); await p.click("#btnUndo"); await settle(p);
+  check("Undo takes the rocker check back off", /Rocker\s*Not checked/.test(await text(p, "#pn_loads")) && (await p.inputValue("#in_members_rocker_on")) === "0");
   await p.click("#tab_spring"); await settle(p);
   check("Spring tab shows the wheel rate with the preload term", /Wheel rate with the preload term/.test(await text(p, "#pn_spring")));
   await p.click("#tab_loads"); await settle(p);

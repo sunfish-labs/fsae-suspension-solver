@@ -97,6 +97,7 @@ function partsHtml(L, label, mem) {
     ${ok ? "" : `<b>Overloaded here.</b> ${b.gusset && b.gusset.type === "along_leg" ? (b.where === "gusset end" ? "The gusset moves the peak to where it ends: a longer gusset, or a bracket into the ball-joint node, works better than a taller one. " : "Make the gusset taller or thicker, or carry the load into the ball-joint node with a bracket. ") : "Add a gusset (inputs → Loads & materials → Pushrod mount), carry the load into the ball-joint node with a bracket, move the mount closer to the ball joint, or use a stiffer leg. "}`}
     ${b.offset > 5 ? `The mount sits ${fmt(b.offset, 0)} mm off the leg's centerline, so its bracket also twists the leg (not modeled).` : ""}</p>`;
   }
+  h += rockerHtml(L, mem);
   const P = L.parts || [];
   if (P.length) {
     const cap = P[0].bolt_capacity,
@@ -126,6 +127,36 @@ function partsHtml(L, label, mem) {
     * Bump and impact cases are shown but not held to the limits. The rod-end and tab stiffnesses are estimates (inputs → Loads &amp; materials → Compliance); a stiffer tab or rod end helps most.</p>`;
   }
   return h;
+}
+// the rocker's plates (mirrors loads.rocker_check)
+const RK_END = { pushrod: "Pushrod end", damper: "Damper end", pivot: "Pivot" };
+function rockerHtml(L, mem) {
+  const R = L.rocker_check,
+    need = mem.sf_target;
+  if (!R) {
+    if (!cfg.spring || cfg.spring.rocker_pivot == null) return "";
+    return `<h3 class="sub-h">Rocker</h3><p class="note">Not checked. Describe its plates (inputs → Loads &amp; materials → Rocker plates) to check the holes and the arms here, or check it in FEA with <b>Export ▾ → Part loads for FEA</b>.</p>`;
+  }
+  const rk = R.rocker,
+    c = v => `<td class="n ${v >= need ? "" : "bad-t"}">${fmt(v, 2)}</td>`;
+  const rows =
+    Object.entries(R.holes)
+      .map(
+        ([k, v]) =>
+          `<tr><td>${RK_END[k]} hole, ${fmt(v.d, 1)} mm</td><td class="n">${fmt(v.force, 0)} <span class="muted">(${esc(v.case)})</span></td><td class="n">bearing ${fmt(v.stress.bearing, 0)} · tear-out ${fmt(v.stress.tearout, 0)}</td>${c(v.sf)}<td class="muted">${v.governs === "bearing" ? "bearing" : "tear-out"}</td></tr>`
+      )
+      .join("") +
+    Object.entries(R.arms)
+      .map(
+        ([k, v]) =>
+          `<tr><td>${RK_END[k]} arm, ${fmt(v.length, 0)} mm</td><td class="n">${fmt(v.across, 0)} across <span class="muted">(${esc(v.case)})</span></td><td class="n">${fmt(v.moment / 1000, 1)} N m → ${fmt(v.stress, 0)}</td>${c(v.sf)}<td class="muted">bending + axial</td></tr>`
+      )
+      .join("");
+  return `<h3 class="sub-h">Rocker · ${rk.plates} × ${fmt(rk.thickness, 2)} mm plate${rk.plates > 1 ? "s" : ""} · yield ${fmt(rk.yield, 0)} MPa · FOS <span class="${attr(R.sf >= need ? "ok-t" : "bad-t")}">${fmt(R.sf, 2)}</span></h3>
+    <div class="tbl-wrap"><table class="data"><thead><tr><th>Where</th><th class="n">Force in its plane, N</th><th class="n">Stress, MPa</th><th class="n">FOS</th><th>Governs</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="note">Each hole like a lug: bearing F/(n·t·d) against yield, tear-out F/(2·n·t·(e − d/2)) against 0.577 × yield, e from the hole's center to the plate's edge. Each arm as a beam built in at the hub's edge (${fmt(rk.pivot_edge, 0)} mm from the pivot), the pin force across it bending it: 6M/(n·t·w²) + axial/(n·t·w), w the arm's narrowest depth (${fmt(rk.width, 0)} mm). The worst case for each; forces in the rocker's plane.
+    ${R.out_of_plane > 0.1 ? `<b>${fmt(R.out_of_plane * 100, 0)} % of a pin force runs along the rocker's axis</b> (${esc(R.oop_case)}): it bends the plates sideways, which this check leaves out. ` : ""}
+    ${R.sf >= need ? "" : "<b>Below the target:</b> thicker plates or a stronger alloy (7075-T6), deeper arms, more material around the holes. "}A rocker with pockets or a shaped outline: check the final part in FEA with <b>Export ▾ → Part loads for FEA</b>. Fatigue is not screened here (aluminum has no endurance limit): keep the FOS up.</p>`;
 }
 // pickup tabs (static) and the fatigue screen (mirrors loads/durability.py)
 const DUR_END = { damper: "Damper chassis end", rocker_pivot: "Rocker pivot" };

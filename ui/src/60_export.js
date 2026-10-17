@@ -240,6 +240,12 @@ function reportHtml() {
       const b = k.L.bending_check;
       if (b)
         body += `<p class="note"><b>Pushrod mount bending:</b> ${esc(memLabel(b.leg, e).toLowerCase())} as a beam pinned at both ends, mount ${fmt(b.a, 0)} of ${fmt(b.length, 0)} mm from the pivot and ${fmt(b.offset, 0)} mm off its centerline. Worst case ${esc(b.case)}: ${fmt(b.moment / 1000, 1)} N m, ${fmt(b.stress, 0)} MPa, FOS <b class="${attr(b.sf >= mem.sf_target ? "ok" : "bad")}">${fmt(b.sf, 2)}</b>${b.sf >= mem.sf_target ? "" : " (needs a gusset or bracket at the node, or a stiffer leg)"}.</p>`;
+      const R = k.L.rocker_check;
+      if (R) {
+        const w = Object.entries(R.arms).sort((x, y) => x[1].sf - y[1].sf)[0],
+          h = Object.entries(R.holes).sort((x, y) => x[1].sf - y[1].sf)[0];
+        body += `<p class="note"><b>Rocker:</b> ${R.rocker.plates} × ${fmt(R.rocker.thickness, 2)} mm plates, yield ${fmt(R.rocker.yield, 0)} MPa. Weakest arm: the ${esc(w[0])} arm, ${fmt(w[1].moment / 1000, 1)} N m in ${esc(w[1].case)}, ${fmt(w[1].stress, 0)} MPa, FOS ${fmt(w[1].sf, 2)}. Weakest hole: the ${esc(h[0])} hole in ${h[1].governs === "bearing" ? "bearing" : "tear-out"}, FOS ${fmt(h[1].sf, 2)}. Overall FOS <b class="${attr(R.sf >= mem.sf_target ? "ok" : "bad")}">${fmt(R.sf, 2)}</b>.</p>`;
+      }
       body += tbl(
         [
           "Member",

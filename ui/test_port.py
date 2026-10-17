@@ -33,6 +33,10 @@ for tag, g in (("gusset", {"thickness": 3.0, "height": 30.0, "length_in": 120.0,
     raw = json.load(open(os.path.join(root, "designs", "example_front.json")))
     raw["members"]["gusset"] = g
     cfgs[f"example_front + {tag}"] = raw
+# a one-plate 7075 rocker with its own pin size and default yield left out
+raw = json.load(open(os.path.join(root, "designs", "example_rear.json")))
+raw["members"]["rocker"] = {"thickness": 9.0, "plates": 1, "pivot_bore": 19.0, "pivot_edge": 16.0, "pin_dia": 10.0, "edge": 11.0, "width": 26.0}
+cfgs["example_rear + one-plate rocker"] = raw
 def fin(v):
     return float(v) if math.isfinite(v) else None       # JSON has no Infinity
 
@@ -46,6 +50,10 @@ for n, raw in cfgs.items():
     py[n] = {"m": m, "loads": L["results"] if L else None,
              "bend": {k: float(v) for k, v in (L["bending_check"] or {}).items() if isinstance(v, (int, float, np.floating)) and math.isfinite(v)} if L else None,
              "comp": [[x["camber"], x["toe"], x["cp_y"]] for x in L["compliance"]["cases"]] if L else None,
+             "rocker": ([[k, v["case"], v["governs"], v["force"], v["sf"]] for k, v in L["rocker_check"]["holes"].items()]
+                        + [[k, v["case"], "arm", v["moment"], v["sf"]] for k, v in L["rocker_check"]["arms"].items()]
+                        + [["all", L["rocker_check"]["governs"], "", L["rocker_check"]["out_of_plane"], L["rocker_check"]["sf"]]])
+             if L and L.get("rocker_check") else None,
              "parts": [float(r["sf_bolt"]) for r in L["parts"] if r["sf_bolt"] is not None and math.isfinite(r["sf_bolt"])] if L else None,
              "dur": [[fin(r["sf"]) for r in L["durability"]["tabs"]], [[fin(r["n"]), r["s_a"], r["allow"]] for r in L["durability"]["fatigue"]]] if L else None,
              "fea": [[cs, part, nm, *map(float, pt), *map(float, F)] for cs, parts in part_loads(c, e["susp"], e["spring"], L).items()
@@ -85,6 +93,12 @@ for (const [n, raw] of Object.entries(d.cfgs)) {
   if (p.loads) for (const [c, row] of Object.entries(p.loads)) for (const [k, v] of Object.entries(row)) {
     const r = Math.abs(L.results[c][k] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} ${c} ${k}`); }
   if (p.bend) for (const [k, v] of Object.entries(p.bend)) { const r = Math.abs(L.bending_check[k] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} bending ${k}: py ${v} js ${L.bending_check[k]}`); }
+  if (p.rocker) { const R = L.rocker_check;
+    if (!R) bad.push(`${n} rocker check missing in the browser`);
+    else { const j = [...Object.entries(R.holes).map(([k, v]) => [k, v.case, v.governs, v.force, v.sf]), ...Object.entries(R.arms).map(([k, v]) => [k, v.case, "arm", v.moment, v.sf]), ["all", R.governs, "", R.out_of_plane, R.sf]];
+      if (j.length !== p.rocker.length) bad.push(`${n} rocker rows: py ${p.rocker.length} js ${j.length}`);
+      else p.rocker.forEach((row, i) => row.forEach((v, q) => { if (q < 3) { if (j[i][q] !== v) bad.push(`${n} rocker ${i} ${q}: py ${v} js ${j[i][q]}`); return; }
+        const r = Math.abs(j[i][q] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} rocker ${row[0]} ${q}: py ${v} js ${j[i][q]}`); })); } }
   if (p.comp) p.comp.forEach((row, i) => { const c = L.compliance.cases[i], j = [c.camber, c.toe, c.cp_y];
     row.forEach((v, q) => { const r = Math.abs(j[q] - v); worst = Math.max(worst, r); if (r > 1e-7) bad.push(`${n} compliance ${c.case} ${q}: py ${v} js ${j[q]}`); }); });
   if (p.dur) { const D = L.durability, ck = (a, b, w) => { if (a === null && !isFinite(b)) return; const r = Math.abs(a - b) / Math.max(1, Math.abs(a)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} ${w}: py ${a} js ${b}`); };

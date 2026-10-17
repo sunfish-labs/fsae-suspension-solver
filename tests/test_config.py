@@ -83,6 +83,10 @@ check("a tab with zero thickness -> ConfigError", raises(ConfigError, lambda: lo
 check("a gusset with no height -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"thickness": 3, "length_in": 50}})))))
 check("a gusset of an unknown type -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"type": "plate"}})))))
 check("a bracket into the node needs no sizes", not raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"type": "to_node"}})))))
+rk_ok = {"thickness": 6.35, "pivot_bore": 22, "pivot_edge": 20, "edge": 12, "width": 30}
+check("a rocker with no arm depth -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"rocker": dict(rk_ok, width=None)})))))
+check("a rocker pivot bore wider than its hub -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"rocker": dict(rk_ok, pivot_edge=10)})))))
+check("a rocker with its five sizes is enough", not raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"rocker": rk_ok})))))
 carL = json.load(open(os.path.join(ROOT, "designs", "example_car_layout.json")))
 fL, rL, iL = load_car(os.path.join(ROOT, "designs", "example_car_layout.json"))
 check("layout.apply: both corners take the car's mass, front share and CG height from the layout",

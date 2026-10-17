@@ -3,6 +3,14 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.11.0 - 2026-10-16
+
+- **Rocker strength** (`members.rocker`, inputs → Loads & materials → Rocker plates, Loads tab, `loads`): plate
+  thickness and count, pivot bore and hub size, pin holes and their edge distance, arm depth and alloy give each
+  hole's bearing and tear-out and each arm's bending at the hub, worst case of every load case at its own geometry,
+  with the lowest FOS in the summary bar and the report. Flags pin forces that run along the rocker's axis. The
+  examples now describe a pair of 1/4 in 6061-T6 plates. Python and browser, hand-checked.
+
 ## 1.10.0 - 2026-10-16
 
 - **Driver template and roll hoops** (car file `cockpit`, Car view → Layout → Driver and roll hoops, and the rules

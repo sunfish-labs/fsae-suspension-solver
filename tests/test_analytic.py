@@ -469,6 +469,43 @@ gfat = [r for r in L11["durability"]["fatigue"] if r["item"].startswith("gusset:
 check("gusset-end weld class by length (140 mm: IIW 71 MPa)", gfat[0]["allow"] if gfat else 0, 71.0 * (2e6 / 1e5) ** (1 / 3), 1e-9,
       "longitudinal attachment 50-150 mm long: FAT 71, at 100,000 cycles")
 
+print("\n11b2. Rocker plates: holes like lugs, arms built in at the hub")
+from susp.loads.strength import rocker_forces, rocker_of, rocker_stress  # noqa: E402
+
+
+class _RockerAxis:
+    k = np.array([0.0, 0.0, 1.0])
+    c = np.array([0.0, 0.0, 0.0])
+
+
+rk11 = {"thickness": 5.0, "plates": 2, "pivot_bore": 20.0, "pivot_edge": 15.0, "pin_dia": 8.0, "edge": 10.0, "width": 20.0}
+F_p, F_d = np.array([0.0, 1000.0, 100.0]), np.array([500.0, 0.0, 0.0])
+fr11 = {"pushrod": (np.array([60.0, 0.0, 5.0]), F_p), "damper": (np.array([0.0, 80.0, 0.0]), F_d), "pivot": (np.zeros(3), -(F_p + F_d))}
+h11, a11r, o11 = rocker_stress(rk11, _RockerAxis, fr11)
+check("rocker pin hole bearing, MPa", h11["pushrod"]["stress"]["bearing"], 1000 / (2 * 5 * 8), 1e-9, "in-plane F / (n t d): the 100 N along the axis left out")
+check("rocker pin hole tear-out, MPa", h11["pushrod"]["stress"]["tearout"], 1000 / (2 * 2 * 5 * (10 - 4)), 1e-9, "F / (n 2 t (e - d/2))")
+check("rocker pivot bearing, MPa", h11["pivot"]["stress"]["bearing"], math.hypot(500, 1000) / (2 * 5 * 20), 1e-9, "the in-plane resultant on the bore")
+check("pushrod arm bending at the hub's edge, MPa", a11r["pushrod"]["stress"], 6 * 1000 * (60 - 15) / (2 * 5 * 20 ** 2), 1e-9,
+      "6 F (L - hub) / (n t w^2), the force square to the arm")
+check("damper arm, force across it plus none along, MPa", a11r["damper"]["stress"], 6 * 500 * (80 - 15) / (2 * 5 * 20 ** 2), 1e-9, "")
+fr11b = dict(fr11, damper=(np.array([0.0, 80.0, 0.0]), np.array([300.0, 400.0, 0.0])))
+check("an arm pulled along its length adds F / (n t w), MPa", rocker_stress(rk11, _RockerAxis, fr11b)[1]["damper"]["stress"],
+      6 * 300 * 65 / (2 * 5 * 400) + 400 / (2 * 5 * 20), 1e-9, "bending from 300 N across, axial from 400 N along")
+check("share of a pin force along the rocker's axis", o11, 100 / math.hypot(1000, 100), 1e-12, "|F . k| / |F|")
+raw11r = _json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "designs", "example_front.json")))
+c11r = make_config(raw11r)
+e11r = evaluate(c11r, steer=False, pack=False)
+L11r = run_loads(c11r, e11r["susp"], e11r["spring"])
+R11 = L11r["rocker_check"]
+check("rocker check: the worst arm's FOS is yield / its worst stress over the cases", min(v["sf"] for v in R11["arms"].values()),
+      min(241.0 / rocker_stress(rocker_of(c11r), e11r["spring"],
+                                 rocker_forces(e11r["susp"], e11r["spring"], r_,
+                                               _geometry(e11r["susp"], e11r["spring"], L11r["deflect"].get(n_, 0.0))))[1][k_]["stress"]
+          for n_, r_ in L11r["results"].items() for k_ in ("pushrod", "damper")), 1e-9, "every case at its own geometry")
+check("rocker forces balance: pushrod + damper + pivot = 0, N",
+      max(float(np.linalg.norm(sum(F for _, F in rocker_forces(e11r["susp"], e11r["spring"], r_, _geometry(e11r["susp"], e11r["spring"])).values())))
+          for r_ in L11r["results"].values()), 0.0, 1e-9, "")
+
 print("\n11c. Part loads for FEA: every part's forces balance (forces and moments)")
 from susp.loads.parts import part_loads  # noqa: E402
 imb = 0.0

@@ -86,6 +86,18 @@ function checkExtras(cfg) {
     if (!bad.length && !node && !((gus.length_in || 0) + (gus.length_out || 0) > 0)) bad.push("length_in or length_out");
     if (bad.length) throw new SolveError(`members.gusset needs positive numbers for ${bad.join(", ")}`);
   }
+  const rk = mem.rocker;
+  if (rk != null) {
+    if (typeof rk !== "object" || Array.isArray(rk))
+      throw new SolveError("members.rocker must be {thickness, pivot_bore, pivot_edge, edge, width} (mm) or null");
+    const bad = ["thickness", "pivot_bore", "pivot_edge", "edge", "width"].filter(k => !(num(rk[k]) && rk[k] > 0));
+    bad.push(...["plates", "pin_dia", "yield"].filter(k => rk[k] != null && !(num(rk[k]) && rk[k] > 0)));
+    if (bad.length) throw new SolveError(`members.rocker needs positive numbers for ${bad.join(", ")}`);
+    const dPin = rk.pin_dia || mem.bolt_dia || 8.0;
+    if (rk.pivot_edge <= rk.pivot_bore / 2)
+      throw new SolveError(`members.rocker.pivot_edge (${rk.pivot_edge} mm) must be more than half the pivot bore`);
+    if (rk.edge <= dPin / 2) throw new SolveError(`members.rocker.edge (${rk.edge} mm) must be more than half the pin (${dPin / 2} mm)`);
+  }
   for (const k of ["fatigue_cycles", "fatigue_bump_cycles"])
     if (lo[k] != null && !(num(lo[k]) && lo[k] >= 1)) throw new SolveError(`loads.${k} must be a number of cycles (1 or more)`);
   const cal = cfg.wheel.caliper;

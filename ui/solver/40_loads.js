@@ -363,6 +363,7 @@ function runLoads(cfg, susp, sp, lltd = null) {
     checks,
     parts: partChecks(cfg, checks),
     bending_check: bendingCheck(cfg, susp, sp, results, deflect),
+    rocker_check: rockerCheck(cfg, susp, sp, results, deflect),
     compliance: compliance(cfg, susp, sp, results),
     durability: durability(cfg, susp, sp, results, info, deflect),
   };
@@ -581,6 +582,90 @@ function bendingCheck(cfg, susp, sp, results, deflect = {}) {
     },
     worst
   );
+}
+// ---------------------------------------------------------------- the rocker's plates (mirrors loads.rocker_check)
+const ROCKER_YIELD = 241.0;
+function rockerOf(cfg) {
+  const rk = (cfg.members || {}).rocker;
+  if (!rk) return null;
+  return {
+    thickness: +rk.thickness,
+    plates: Math.trunc(+rk.plates || 2),
+    pivot_bore: +rk.pivot_bore,
+    pivot_edge: +rk.pivot_edge,
+    pin_dia: +(rk.pin_dia || cfg.members.bolt_dia || 8.0),
+    edge: +rk.edge,
+    width: +rk.width,
+    yield_: +(rk.yield || ROCKER_YIELD),
+  };
+}
+function rockerForces(susp, sp, r, geom) {
+  const [pts, , , st] = geom,
+    push = mul(unit(sub(pts.rod_out, pts.rod_in)), +r.pushrod),
+    dmp = mul(unit(sub(sp.dch, st.damper_out)), +r.damper);
+  return { pushrod: [pts.rod_in, push], damper: [st.damper_out, dmp], pivot: [sp.c, mul(add(push, dmp), -1)] };
+}
+function rockerStress(rk, sp, fr) {
+  const n = rk.plates,
+    t = rk.thickness,
+    k = sp.k,
+    holes = {},
+    arms = {};
+  let oop = 0;
+  for (const [end, [p, F]] of Object.entries(fr)) {
+    const Fm = norm(F),
+      Fi = perp(F, k),
+      Fip = norm(Fi);
+    if (Fm > 1e-9) oop = Math.max(oop, Math.abs(dot(F, k)) / Fm);
+    const [d, e] = end === "pivot" ? [rk.pivot_bore, rk.pivot_edge] : [rk.pin_dia, rk.edge];
+    holes[end] = { force: Fip, d, edge: e, stress: { bearing: Fip / (n * t * d), tearout: Fip / (n * 2 * t * (e - d / 2)) } };
+    if (end === "pivot") continue;
+    const rv = perp(sub(p, sp.c), k),
+      L = norm(rv),
+      u = L > 1e-9 ? mul(rv, 1 / L) : rv,
+      fAl = dot(Fi, u),
+      fAc = norm(sub(Fi, mul(u, fAl))),
+      lever = Math.max(0, L - rk.pivot_edge),
+      w = rk.width,
+      M = fAc * lever;
+    arms[end] = { length: L, lever, across: fAc, along: fAl, moment: M, stress: (6 * M) / (n * t * w * w) + Math.abs(fAl) / (n * t * w) };
+  }
+  return [holes, arms, oop];
+}
+function rockerCheck(cfg, susp, sp, results, deflect = {}) {
+  const rk = rockerOf(cfg);
+  if (!rk || sp.direct) return null;
+  const geom0 = loadGeometry(susp, sp),
+    sy = rk.yield_,
+    allow = { bearing: sy, tearout: 0.577 * sy },
+    holes = {},
+    arms = {};
+  let oop = [0, null];
+  for (const [name, r] of Object.entries(results)) {
+    const g = deflect[name] ? loadGeometry(susp, sp, deflect[name]) : geom0,
+      [h, a, o] = rockerStress(rk, sp, rockerForces(susp, sp, r, g));
+    if (o > oop[0]) oop = [o, name];
+    for (const [end, v] of Object.entries(h)) {
+      const fos = Object.fromEntries(Object.entries(v.stress).map(([m, s]) => [m, s > 1e-9 ? allow[m] / s : Infinity])),
+        gov = fos.bearing <= fos.tearout ? "bearing" : "tearout";
+      if (!holes[end] || fos[gov] < holes[end].sf) holes[end] = Object.assign({}, v, { case: name, fos, governs: gov, sf: fos[gov] });
+    }
+    for (const [end, v] of Object.entries(a)) {
+      const sf = v.stress > 1e-9 ? sy / v.stress : Infinity;
+      if (!arms[end] || sf < arms[end].sf) arms[end] = Object.assign({}, v, { case: name, sf });
+    }
+  }
+  const rows = [...Object.entries(holes).map(([k, v]) => [`hole:${k}`, v.sf]), ...Object.entries(arms).map(([k, v]) => [`arm:${k}`, v.sf])];
+  const govRow = rows.reduce((b, x) => (b === null || x[1] < b[1] ? x : b), null);
+  return {
+    rocker: Object.assign({}, rk, { yield: sy }),
+    holes,
+    arms,
+    out_of_plane: oop[0],
+    oop_case: oop[1],
+    sf: rows.length ? Math.min(...rows.map(x => x[1])) : Infinity,
+    governs: govRow ? govRow[0] : null,
+  };
 }
 // ---------------------------------------------------------------- part loads for FEA (mirrors loads/parts.py)
 // every force on the upright, each wishbone and the rocker of the right-hand corner, per case: [name, point, force]

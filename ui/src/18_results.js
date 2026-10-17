@@ -84,6 +84,9 @@ function renderAll(ms) {
     (loads && loads.bending_check
       ? `<span class="pill ${loads.bending_check.sf >= ev.cfg.members.sf_target ? "ok" : "warn"}" title="The pushrod mount bending the wishbone leg (Loads tab)">Mount bending FOS ${fmt(loads.bending_check.sf, 2)}</span>`
       : "") +
+    (loads && loads.rocker_check
+      ? `<span class="pill ${loads.rocker_check.sf >= ev.cfg.members.sf_target ? "ok" : "warn"}" title="The rocker's plates: holes and arms (Loads tab)">Rocker FOS ${fmt(loads.rocker_check.sf, 2)}</span>`
+      : "") +
     (loads && loads.compliance
       ? (() => {
           const c = loads.compliance,
