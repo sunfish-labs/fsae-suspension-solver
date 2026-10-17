@@ -363,6 +363,21 @@ function checkList(X) {
           c.key === "roll_gradient" ? "roll_gradient" : "lltd"
         );
       }
+    if (B)
+      add(
+        "Car balance",
+        "Car",
+        "Frame stiff enough for the suspension",
+        !B.frame_k ? "input" : B.frame_ratio >= 3 ? "pass" : "warn",
+        B.frame_k
+          ? `Frame ${fmt(B.frame_k, 0)} Nm/deg = ${fmt(B.frame_ratio, 1)} × the suspension's roll stiffness; ${fmt(B.frame_bar_effect * 100, 0)} % of a bar change reaches the balance; front LLTD ${fmt(B.lltd_rigid * 100, 1)} % rigid → ${fmt(B.lltd * 100, 1)} %`
+          : "No frame stiffness: the balance assumes a rigid frame.",
+        B.frame_k
+          ? "A frame that twists lets the ends roll apart, so tuning with springs and bars does less than planned; three or more times the suspension's roll stiffness is the usual aim."
+          : "Enter the frame's torsional stiffness (Car view → Frame stiffness), from SolidWorks Simulation or a twist test, to see how much of the suspension tuning reaches the load transfer.",
+        ["car", null],
+        "lltd"
+      );
     else
       add(
         "Car balance",

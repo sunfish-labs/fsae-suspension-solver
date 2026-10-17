@@ -9,6 +9,19 @@ function axleLimit(mu, k, c, F0) {
   if (c * ay > F0) ay = mu * (1 - k);
   return ay;
 }
+// roll with a frame of torsional stiffness Kc between the axles (mirrors car.flex_roll)
+function flexRoll(A, aFront, Kf, Kr, gf, gr, Kc) {
+  const Af = A * aFront,
+    Ar = A * (1 - aFront),
+    [pf, pr] = solveLinear(
+      [
+        [Kf + Kc, -Kc],
+        [-Kc, Kr + Kc],
+      ],
+      [Af + Kf * gf, Ar + Kr * gr]
+    );
+  return [aFront * pf + (1 - aFront) * pr, pf - pr, Kf * (pf - gf), Kr * (pr - gr)];
+}
 function carBalance(fcfg, fev, rcfg, rev, o = {}) {
   const G = 9.81,
     veh = fcfg.vehicle,
@@ -53,12 +66,21 @@ function carBalance(fcfg, fev, rcfg, rev, o = {}) {
     Gr = msr * G * zrr + mur * G * Rr,
     gf = Gf / Ktf,
     gr = Gr / Ktr;
-  const grad = (A + Kf * gf + Kr * gr) / (Kf + Kr),
+  let grad = (A + Kf * gf + Kr * gr) / (Kf + Kr),
     Ef = Kf * (grad - gf),
     Er = Kr * (grad - gr);
-  const dF = (Ef + Gf) / tf,
+  let dF = (Ef + Gf) / tf,
     dR = (Er + Gr) / tr,
     lltd = (dF * tf) / (dF * tf + dR * tr);
+  const lltdRigid = lltd,
+    Kc = veh.frame_k ? +veh.frame_k : null;
+  let twist = 0;
+  if (Kc) {
+    [grad, twist, Ef, Er] = flexRoll(A, msf / ms, Kf, Kr, gf, gr, Kc);
+    dF = (Ef + Gf) / tf;
+    dR = (Er + Gr) / tr;
+    lltd = (dF * tf) / (dF * tf + dR * tr);
+  }
   const out = {
     ms,
     hs: hs * 1000,
@@ -88,7 +110,27 @@ function carBalance(fcfg, fev, rcfg, rev, o = {}) {
     rc_r: zrr * 1000,
     geo_f: Gf / tf,
     geo_r: Gr / tr,
+    frame_k: Kc,
+    lltd_rigid: lltdRigid,
+    frame_twist: twist,
   };
+  if (Kc) {
+    out.frame_ratio = Kc / (Kf + Kr);
+    const lltdWith = (dk, kc) => {
+      const Kf2 = series(Ksf + arbF + dk, Ktf);
+      let eF, eR;
+      if (kc == null) {
+        const g2 = (A + Kf2 * gf + Kr * gr) / (Kf2 + Kr);
+        [eF, eR] = [Kf2 * (g2 - gf), Kr * (g2 - gr)];
+      } else [, , eF, eR] = flexRoll(A, msf / ms, Kf2, Kr, gf, gr, kc);
+      const a_ = (eF + Gf) / tf,
+        b_ = (eR + Gr) / tr;
+      return (a_ * tf) / (a_ * tf + b_ * tr);
+    };
+    const dR0 = lltdWith(10, null) - lltdWith(0, null),
+      dF0 = lltdWith(10, Kc) - lltdWith(0, Kc);
+    out.frame_bar_effect = Math.abs(dR0) > 1e-12 ? dF0 / dR0 : 1;
+  }
   // tire load sensitivity (mirrors car.car_balance): each axle's lateral limit and the LLTD that equalizes them
   const ks = veh.tire_load_sens;
   if (ks != null) {

@@ -123,6 +123,8 @@ function checkExtras(cfg) {
       throw new SolveError("spring.bumpstop_k2 must be a number >= 0 (N/mm^2)");
   }
   const veh = cfg.vehicle;
+  if (veh.frame_k != null && !(num(veh.frame_k) && veh.frame_k > 0))
+    throw new SolveError("vehicle.frame_k must be a positive number (Nm/deg) or null for a rigid frame");
   if (veh.tire_load_sens != null && !(num(veh.tire_load_sens) && veh.tire_load_sens >= 0 && veh.tire_load_sens < 1))
     throw new SolveError("vehicle.tire_load_sens must be between 0 and 1 (typically 0.1-0.3)");
   if (veh.tire_mu != null && !(num(veh.tire_mu) && veh.tire_mu > 0)) throw new SolveError("vehicle.tire_mu must be > 0");

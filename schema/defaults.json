@@ -49,6 +49,7 @@
   "spring.bumpstop_gap": "mm of damper compression beyond ride height before the bump stop touches (optional; 0 = touching at ride height)",
   "spring.bumpstop_k": "N/mm, bump stop rate at first touch (needed with bumpstop_gap)",
   "spring.bumpstop_k2": "N/mm^2, makes the bump stop progressive: force = k d + k2 d^2 for d mm of squash (optional)",
+  "vehicle.frame_k": "Nm/deg, the frame's torsional stiffness between the axles (from SolidWorks Simulation or a twist test); null = a rigid frame. Sets how much of the suspension's roll stiffness and the bars actually reach the load transfer",
   "vehicle.tire_mu": "tire friction coefficient at its static load (for the limit balance; 1.5 if not given)",
   "vehicle.tire_load_sens": "tire load sensitivity k: mu = tire_mu (1 - k (Fz / Fz0 - 1)); fit it to your tire data (e.g. TTC); null = off",
   "arb": "optional anti-roll bar linkage for this axle: {link_on: lower|upper|upright|rocker, link_outboard: [x,y,z] drop link's lower end, arm_tip: [x,y,z] the bar arm's end, bar_pivot: [x,y,z] a point on the bar axis, bar_axis: [0,1,0], bar_od, bar_wall (null = solid), bar_length (active length between arms; null = 2 x |arm_tip y|), bar_G (MPa, 79300 steel), bar_yield (MPa)}; replaces the car's arb number for this axle",
@@ -89,7 +90,8 @@
    "aero_front": null,
    "aero_rear": null,
    "tire_mu": 1.5,
-   "tire_load_sens": null
+   "tire_load_sens": null,
+   "frame_k": null
   },
   "sweep": {
    "travel": 30.0,

@@ -25,8 +25,20 @@ def axle_limit(mu, k, c, F0):
     return ay
 
 
+def flex_roll(A, a_front, Kf, Kr, gf, gr, Kc):
+    """Roll with a frame of torsional stiffness Kc between the axles: the front of the body carries a_front of the
+    sprung roll moment A, the rear the rest. Returns (roll gradient, frame twist phi_f - phi_r, E_f, E_r), the roll
+    weighted by the moment split; with Kc -> infinity it is the rigid result."""
+    import numpy as np
+    Af, Ar = A * a_front, A * (1 - a_front)
+    M = np.array([[Kf + Kc, -Kc], [-Kc, Kr + Kc]])
+    pf, pr = np.linalg.solve(M, [Af + Kf * gf, Ar + Kr * gr])
+    return float(a_front * pf + (1 - a_front) * pr), float(pf - pr), float(Kf * (pf - gf)), float(Kr * (pr - gr))
+
+
 def car_balance(fcfg, fev, rcfg, rev, target_grad=None, target_lltd=None, arb_f=0.0, arb_r=0.0, targets=None):
-    """Roll gradient, LLTD and the anti-roll stiffness needed. Steady-state, rigid chassis, small angles.
+    """Roll gradient, LLTD and the anti-roll stiffness needed. Steady-state, small angles; a rigid chassis unless
+    vehicle.frame_k (Nm/deg, the frame's torsional stiffness between the axles) is given (see flex_roll).
 
     Each axle's roll stiffness is its springs (wheel rate) plus any anti-roll bar, in series with its tires:
     K = 1 / (1 / (K_springs + K_arb) + 1 / K_tires), with K_springs = wheel_rate * t^2 / 2. ARB rates are given
@@ -77,13 +89,38 @@ def car_balance(fcfg, fev, rcfg, rev, target_grad=None, target_lltd=None, arb_f=
     Ef, Er = Kf * (grad - gf), Kr * (grad - gr)
     dF, dR = (Ef + Gf) / tf, (Er + Gr) / tr
     lltd = dF * tf / (dF * tf + dR * tr)    # share of the total lateral load transfer moment at the front
+    lltd_rigid, twist = lltd, 0.0
+    Kc = veh.get("frame_k")
+    if Kc:
+        # a frame that twists: the front and rear of the body roll by phi_f and phi_r, the sprung roll moment split by
+        # the sprung mass at each end, the frame (Kc, Nm/deg) carrying Kc (phi_f - phi_r) from one end to the other
+        Kc = float(Kc)
+        lltd_rigid = lltd
+        grad, twist, Ef, Er = flex_roll(A, msf / ms, Kf, Kr, gf, gr, Kc)
+        dF, dR = (Ef + Gf) / tf, (Er + Gr) / tr
+        lltd = dF * tf / (dF * tf + dR * tr)
     out = dict(ms=ms, hs=hs * 1000, z_ra=z_ra * 1000, arm=d * 1000, Kf=Kf, Kr=Kr, Ksf=Ksf, Ksr=Ksr, Ktf=Ktf, Ktr=Ktr,
                arb_in_f=arb_f, arb_in_r=arb_r, arb_src_f=src_f, arb_src_r=src_r, grad=grad, lltd=lltd,
                K_warp=Kf * Kr / (Kf + Kr) if Kf + Kr > 0 else 0.0,  # twist test on corner scales (see validation/)
                roll_susp_f=Ef / (Ksf + arb_f) if Ksf + arb_f > 0 else float("nan"),
                roll_susp_r=Er / (Ksr + arb_r) if Ksr + arb_r > 0 else float("nan"),
                freq_f=fr["ride_freq"], freq_r=rr["ride_freq"], wf=wf, dFz_f=dF, dFz_r=dR, rc_f=zrf * 1000, rc_r=zrr * 1000,
-               geo_f=Gf / tf, geo_r=Gr / tr)
+               geo_f=Gf / tf, geo_r=Gr / tr, frame_k=float(Kc) if Kc else None, lltd_rigid=lltd_rigid, frame_twist=twist)
+    if Kc:
+        # how stiff the frame is next to the suspension, and how much of a bar change still reaches the balance
+        out["frame_ratio"] = Kc / (Kf + Kr)
+        def lltd_with(dk, kc):
+            Kf2 = _series(Ksf + arb_f + dk, Ktf)
+            if kc is None:
+                g2 = (A + Kf2 * gf + Kr * gr) / (Kf2 + Kr)
+                e_f, e_r = Kf2 * (g2 - gf), Kr * (g2 - gr)
+            else:
+                _, _, e_f, e_r = flex_roll(A, msf / ms, Kf2, Kr, gf, gr, kc)
+            a_, b_ = (e_f + Gf) / tf, (e_r + Gr) / tr
+            return a_ * tf / (a_ * tf + b_ * tr)
+        d_r = lltd_with(10.0, None) - lltd_with(0.0, None)
+        d_f = lltd_with(10.0, Kc) - lltd_with(0.0, Kc)
+        out["frame_bar_effect"] = d_f / d_r if abs(d_r) > 1e-12 else 1.0
     # tire load sensitivity: each axle's lateral limit, and the LLTD that saturates both axles together
     ks = veh.get("tire_load_sens")
     if ks is not None:

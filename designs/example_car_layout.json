@@ -3,6 +3,7 @@
  "name": "Example car with a layout and drivetrain (invented demo geometry and masses)",
  "vehicle": {
   "wheelbase": 1550.0,
+  "frame_k": 3000,
   "track": null,
   "cg_height": 280.0,
   "front_brake_share": 0.6,

@@ -3,6 +3,14 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.18.0 - 2026-10-17
+
+- **Frame stiffness** (`vehicle.frame_k`, Car view → Frame stiffness): the car balance with a frame that twists
+  between the axles: LLTD rigid vs with this frame, the frame's twist per g, its stiffness against the suspension's
+  roll stiffness (3x or more is the usual aim, in the design check) and the share of a bar change that still reaches
+  the balance. Python and browser, hand-checked. The example layout car has 3,000 Nm/deg.
+- Fixes an unused import in the tests that failed the 1.17.0 lint step.
+
 ## 1.17.0 - 2026-10-17
 
 - **Anti-roll bar in the cornering loads**: with a bar linkage, the cornering cases split the roll between the spring

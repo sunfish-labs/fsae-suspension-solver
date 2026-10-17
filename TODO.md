@@ -30,7 +30,7 @@ XL 3+ days.
    points like the roll hoops. Needs: those points off the frame.
 7. ~~**Anti-roll bar in the cornering loads**~~ (done in 1.17.0; the link pulling on an arm or upright is still left to FEA). The bar's share in the cornering cases, so the tube and tab checks
    aren't optimistic with a bar (the simpler version of the full rolled cases below).
-8. **Frame stiffness input** (S). The frame's torsional stiffness as one number: is it stiff enough for the
+8. ~~**Frame stiffness input**~~ (done in 1.18.0). The frame's torsional stiffness as one number: is it stiff enough for the
    suspension's roll stiffness, and what it does to the LLTD. Needs: an estimate from SolidWorks Simulation or a rule
    of thumb.
 
@@ -69,6 +69,7 @@ XL 3+ days.
 
 ## Done recently
 
+- Frame stiffness in the car balance: LLTD with a twisting frame, stiffness ratio, bar effect (1.18.0)
 - Anti-roll bar in the cornering loads: its share, drop link, twist, and the rocker with it (1.17.0)
 - Frame and harness rules from side-view points: 13 more automatic checks (1.16.0)
 - Ground clearance rule over every body position the dampers allow, from the lowest points and the frame model (1.15.0)

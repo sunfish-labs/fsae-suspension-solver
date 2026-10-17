@@ -440,6 +440,12 @@ def print_car(cfg_f, cfg_r, out):
           f"{out['roll_susp_r']:.2f} rear (what damper pots see; the rest is the tires)")
     print(f"LLTD front: {out['lltd'] * 100:.1f} %  (front weight {out['wf'] * 100:.0f} %; front LLTD a few % above "
           "front weight is a common starting point for mild understeer)")
+    if out.get("frame_k"):
+        r_ = out["frame_ratio"]
+        print(f"frame {out['frame_k']:.0f} Nm/deg = {r_:.1f} x the suspension's roll stiffness ({'OK' if r_ >= 3 else 'LOW'}: "
+              f"3 or more is the usual aim); front LLTD {out['lltd_rigid'] * 100:.1f} % with a rigid frame -> "
+              f"{out['lltd'] * 100:.1f} %; {out['frame_bar_effect'] * 100:.0f} % of a bar change reaches the balance; "
+              f"the frame twists {abs(out['frame_twist']):.3f} deg/g")
     if "ay_lim_f" in out:
         b = out["limit_balance"]
         print(f"tires at the limit (mu {out['tire_mu']:g}, load sensitivity {out['tire_load_sens']:g}): front axle "

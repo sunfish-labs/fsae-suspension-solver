@@ -152,6 +152,8 @@ def _check_extras(cfg, where):
         if sp.get("bumpstop_k2") is not None and not (num(sp["bumpstop_k2"]) and sp["bumpstop_k2"] >= 0):
             raise ConfigError(f"{where}: spring.bumpstop_k2 must be a number >= 0 (N/mm^2)")
     veh = cfg["vehicle"]
+    if veh.get("frame_k") is not None and not (num(veh["frame_k"]) and veh["frame_k"] > 0):
+        raise ConfigError(f"{where}: vehicle.frame_k must be a positive number (Nm/deg) or null for a rigid frame")
     if veh.get("tire_load_sens") is not None and not (num(veh["tire_load_sens"]) and 0 <= veh["tire_load_sens"] < 1):
         raise ConfigError(f"{where}: vehicle.tire_load_sens must be between 0 and 1 (typically 0.1-0.3)")
     if veh.get("tire_mu") is not None and not (num(veh["tire_mu"]) and veh["tire_mu"] > 0):

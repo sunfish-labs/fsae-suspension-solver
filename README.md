@@ -230,6 +230,15 @@ ground, the rear axle one wheelbase behind. The four wheel assemblies come from 
   the 75 m time and speed, top speed per gear (and where drag holds it below the redline), each shift, and how far
   the launch is grip-limited. An estimate: no tire slip curve or wheelspin model.
 
+## Frame stiffness (Car view → Frame stiffness, or `vehicle.frame_k`)
+A frame that twists lets the front and rear of the body roll by different amounts, so part of what the springs and
+bars do never reaches the load transfer. With the frame's torsional stiffness K_c (Nm/deg, from SolidWorks Simulation
+or a twist test), the sprung roll moment is split by the sprung mass at each end and the two ends balance:
+(K_f + K_c) φ_f − K_c φ_r = A_f and −K_c φ_f + (K_r + K_c) φ_r = A_r (K_f, K_r the axles' roll stiffness with their
+tires). The car balance reports the LLTD with a rigid frame and with this one, the frame's twist per g, K_c against
+the suspension's total roll stiffness (three times or more is the usual rule of thumb) and how much of a bar change
+still reaches the balance. The anti-roll bar sizes it suggests still assume a rigid frame.
+
 ## Rules check (Car view → Rules, or `rules car.json`)
 `schema/rules/fsae_2027_ic.json` holds each check's rule number (Formula SAE Rules 2027, V1.0), a short paraphrase
 (not the rulebook's text: read the book for the exact wording) and its limit. The solver works out what each check

@@ -696,7 +696,7 @@ sh17 = t17[1]
 check("harness: shoulder belt below horizontal from the shoulder's top, deg", v17["shoulder_belt_angle"], math.degrees(math.atan2(sh17[1] + 100 - 700.0, abs(sh17[0]))), 1e-9, "")
 
 # 18. the anti-roll bar in the cornering cases (loads/arb.py)
-from susp.loads.arb import arb_loads  # noqa: E402
+
 fb18, rb18, _ = _lc16(os.path.join(ROOT15, "designs", "example_car_bars.json"))
 e18 = evaluate(fb18, steer=False, pack=False)
 L18 = run_loads(fb18, e18["susp"], e18["spring"])
@@ -721,6 +721,17 @@ fs18 = sum(F for _, _, F in pl18)
 mk18 = sum(float(sp18.k @ np.cross(p - sp18.c, F)) for _, p, F in pl18)
 check("bar on the rocker: the rocker's part loads (with the bar's link) balance, N and N m", float(np.linalg.norm(fs18)) + abs(mk18) / 1000, 0.0, 1e-6,
       "forces sum to zero, and moments about the rocker axis")
+
+# 19. a frame that twists (vehicle.frame_k)
+from susp.car import flex_roll  # noqa: E402
+g19, tw19, Ef19, Er19 = flex_roll(1000.0, 0.6, 800.0, 400.0, 0.0, 0.0, 1e9)
+check("frame: very stiff -> the rigid split, E_f = A K_f / (K_f + K_r), Nm/g", Ef19, 1000.0 * 800.0 / 1200.0, 1e-3, "springs share the moment by stiffness")
+g19, tw19, Ef19, Er19 = flex_roll(1000.0, 0.6, 800.0, 400.0, 0.0, 0.0, 1e-9)
+check("frame: very soft -> each end carries its own share of the moment, Nm/g", Ef19, 600.0, 1e-3, "front 60 % of the sprung roll moment")
+g19, tw19, Ef19, Er19 = flex_roll(1000.0, 0.6, 800.0, 400.0, 0.0, 0.0, 1000.0)
+pf19 = np.linalg.solve([[1800.0, -1000.0], [-1000.0, 1400.0]], [600.0, 400.0])
+check("frame: 1000 Nm/deg between them, the front's share by the 2x2 balance, Nm/g", Ef19, 800.0 * pf19[0], 1e-9, "(K_f + K_c) p_f - K_c p_r = A_f; -K_c p_f + (K_r + K_c) p_r = A_r")
+check("frame: its twist = front roll - rear roll, deg/g", tw19, pf19[0] - pf19[1], 1e-12, "")
 
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
