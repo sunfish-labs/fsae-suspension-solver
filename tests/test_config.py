@@ -125,6 +125,7 @@ check("a frame point with one coordinate -> ConfigError", raises(ConfigError, la
 bad_gp = json.loads(json.dumps(carL))
 bad_gp["ground_points"] = [{"name": "sump", "at": [0, 85]}]
 check("a ground point with two coordinates -> ConfigError", raises(ConfigError, lambda: load_car(write("gp.json", bad_gp))))
+check("a negative ball-joint rating -> ConfigError", raises(ConfigError, lambda: load_config(write("q.json", dict(front, members={"ball_joint_rating": -5})))))
 check("negative fatigue cycles -> ConfigError", raises(ConfigError, lambda: load_config(write("q.json", dict(front, loads={"fatigue_cycles": -5})))))
 check("every library error is a SuspError", all(issubclass(e, SuspError) for e in (ConfigError, GoalError, SolveError, UnknownPointError)))
 from susp import tools as T  # noqa: E402

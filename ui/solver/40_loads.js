@@ -374,6 +374,7 @@ function runLoads(cfg, susp, sp, lltd = null) {
     bending_check: bendingCheck(cfg, susp, sp, results, deflect),
     rocker_check: rockerCheck(cfg, susp, sp, results, deflect, arb),
     arb_check: arb,
+    bearings: bearingCheck(cfg, susp, sp, results, tire, deflect),
     compliance: compliance(cfg, susp, sp, results),
     durability: durability(cfg, susp, sp, results, info, deflect),
   };
@@ -468,6 +469,45 @@ function partChecks(cfg, rows) {
     rod_end_rating: rating,
     sf_rod_end: rating ? (r.peak > 1e-6 ? rating / r.peak : Infinity) : null,
   }));
+}
+// mirrors strength.ball_joint_forces / bearing_check: bought bearings against their catalog ratings
+const BEARINGS = [
+  ["upper_ball_joint", "Upper ball joint", "ball_joint_rating"],
+  ["lower_ball_joint", "Lower ball joint", "ball_joint_rating"],
+  ["damper_eye", "Damper eye bearings", "damper_eye_rating"],
+  ["rocker_bearing", "Rocker pivot bearing", "rocker_bearing_rating"],
+];
+function ballJointForces(sp, r, F, geom) {
+  const [, inb, outb] = geom,
+    e = k => unit(sub(inb[k], outb[k])),
+    legs = a => add(mul(e(`${a}_front`), r[`${a}_front`]), mul(e(`${a}_rear`), r[`${a}_rear`])),
+    out = {};
+  for (const a of ["upper", "lower"]) {
+    const o = a === "upper" ? "lower" : "upper";
+    out[a] = sp.on === a ? mul(add(add(F, legs(o)), mul(e("tie_rod"), r.tie_rod)), -1) : legs(a);
+  }
+  return out;
+}
+function bearingCheck(cfg, susp, sp, results, tire, deflect = {}) {
+  const mem = cfg.members,
+    geom0 = loadGeometry(susp, sp),
+    worst = {};
+  const keep = (part, v, name) => {
+    if (!(part in worst) || v > worst[part][0]) worst[part] = [v, name];
+  };
+  for (const [name, r] of Object.entries(results)) {
+    const g = deflect[name] ? loadGeometry(susp, sp, deflect[name]) : geom0,
+      bj = ballJointForces(sp, r, tire[name], g);
+    keep("upper_ball_joint", norm(bj.upper), name);
+    keep("lower_ball_joint", norm(bj.lower), name);
+    keep("damper_eye", Math.abs(r.damper), name);
+    if (!sp.direct) keep("rocker_bearing", Math.abs(r.rocker_pivot), name);
+  }
+  return BEARINGS.filter(([part]) => part in worst).map(([part, label, key]) => {
+    const [pk, c] = worst[part],
+      rating = mem[key] || null;
+    return { part, label, rating_key: key, peak: pk, case: c, rating, sf: rating ? (pk > 1e-6 ? rating / pk : Infinity) : null };
+  });
 }
 // mirrors strength.rod_leg: the leg of the arm carrying the rod that the mount sits closest to
 function rodLeg(susp, sp) {

@@ -62,6 +62,60 @@ def part_checks(cfg, rows):
     return out
 
 
+BEARINGS = (("upper_ball_joint", "Upper ball joint", "ball_joint_rating"), ("lower_ball_joint", "Lower ball joint", "ball_joint_rating"),
+            ("damper_eye", "Damper eye bearings", "damper_eye_rating"), ("rocker_bearing", "Rocker pivot bearing", "rocker_bearing_rating"))
+
+
+def ball_joint_forces(sp, r, F, geom):
+    """The force through the upper and lower ball joints (on the upright, N vectors) for member forces r and the tire's net force F on the upright.
+    A wishbone whose legs are two-force members (no pushrod on it) passes the sum of its two leg forces; the arm
+    carrying the pushrod passes whatever the upright's balance leaves: -(F + the other legs + the tie rod)."""
+    _, inb, outb, _ = geom
+    e = {k: unit(inb[k] - outb[k]) for k in ("upper_front", "upper_rear", "lower_front", "lower_rear", "tie_rod")}
+    legs = {a: float(r[f"{a}_front"]) * e[f"{a}_front"] + float(r[f"{a}_rear"]) * e[f"{a}_rear"] for a in ("upper", "lower")}
+    out = {}
+    for a in ("upper", "lower"):
+        if sp.on == a:
+            o = "lower" if a == "upper" else "upper"
+            out[a] = -(np.asarray(F, float) + legs[o] + float(r["tie_rod"]) * e["tie_rod"])
+        else:
+            out[a] = legs[a]
+    return out
+
+
+def bearing_check(cfg, susp, sp, results, tire, deflect=None):
+    """Bought bearings against their catalog ratings (members.ball_joint_rating, damper_eye_rating,
+    rocker_bearing_rating; N, radial static, null = not checked): the worst |force| over all the cases through each
+    ball joint (ball_joint_forces), each damper eye (the damper's force: both eyes carry it) and the rocker's pivot
+    (the resultant on its bearing or bearings together). Rows: part, label, peak, case, rating, sf (None without a
+    rating)."""
+    mem = cfg["members"]
+    deflect = deflect or {}
+    geom0 = _geometry(susp, sp)
+    worst = {}
+
+    def keep(part, v, name):
+        if part not in worst or v > worst[part][0]:
+            worst[part] = (v, name)
+    for name, r in results.items():
+        g = _geometry(susp, sp, deflect[name]) if deflect.get(name) else geom0
+        bj = ball_joint_forces(sp, r, tire[name], g)
+        keep("upper_ball_joint", float(np.linalg.norm(bj["upper"])), name)
+        keep("lower_ball_joint", float(np.linalg.norm(bj["lower"])), name)
+        keep("damper_eye", abs(float(r["damper"])), name)
+        if not sp.direct:
+            keep("rocker_bearing", abs(float(r["rocker_pivot"])), name)
+    rows = []
+    for part, label, key in BEARINGS:
+        if part not in worst:
+            continue
+        pk, case = worst[part]
+        rating = mem.get(key)
+        rows.append(dict(part=part, label=label, rating_key=key, peak=pk, case=case, rating=rating,
+                         sf=(rating / pk if pk > 1e-6 else float("inf")) if rating else None))
+    return rows
+
+
 def rod_leg(susp, sp):
     """The leg of the arm carrying the rod that the rod mount sits closest to: (leg, length, a from pivot, offset)."""
     pts, inb, outb, _ = _geometry(susp, sp)

@@ -737,6 +737,40 @@ pf19 = np.linalg.solve([[1800.0, -1000.0], [-1000.0, 1400.0]], [600.0, 400.0])
 check("frame: 1000 Nm/deg between them, the front's share by the 2x2 balance, Nm/g", Ef19, 800.0 * pf19[0], 1e-9, "(K_f + K_c) p_f - K_c p_r = A_f; -K_c p_f + (K_r + K_c) p_r = A_r")
 check("frame: its twist = front roll - rear roll, deg/g", tw19, pf19[0] - pf19[1], 1e-12, "")
 
+# 20. bought bearings: the force through each ball joint, the damper eyes and the rocker's pivot (strength.bearing_check)
+from types import SimpleNamespace  # noqa: E402
+from susp.loads.strength import ball_joint_forces, bearing_check  # noqa: E402
+o20 = np.zeros(3)
+g20 = ({}, {"upper_front": np.array([100.0, 300.0, 0.0]), "upper_rear": np.array([-100.0, 300.0, 0.0]),
+            "lower_front": np.array([100.0, 300.0, -200.0]), "lower_rear": np.array([-100.0, 300.0, -200.0]),
+            "tie_rod": np.array([50.0, 300.0, -100.0])},
+       {"upper_front": o20, "upper_rear": o20, "lower_front": np.array([0.0, 0.0, -200.0]), "lower_rear": np.array([0.0, 0.0, -200.0]),
+        "tie_rod": np.array([50.0, 0.0, -100.0])}, {})
+bj20 = ball_joint_forces(SimpleNamespace(on="lower"), dict(upper_front=1000.0, upper_rear=1000.0, lower_front=0.0, lower_rear=0.0, tie_rod=0.0),
+                         np.zeros(3), g20)
+check("ball joint on a two-force wishbone: two equal leg tensions T at +/-a from the axle line, N", float(np.linalg.norm(bj20["upper"])),
+      2 * 1000.0 * 300.0 / math.hypot(100.0, 300.0), 1e-9, "2 T cos a")
+check("ball joint on the arm carrying the pushrod: what the upright's balance leaves, N", float(np.linalg.norm(bj20["lower"])),
+      2 * 1000.0 * 300.0 / math.hypot(100.0, 300.0), 1e-9, "no tire load: it holds the upper legs' pull")
+geo20 = _geometry(s18, sp18)
+r20 = L18["results"]["corner outer"]
+bjv20 = ball_joint_forces(sp18, r20, L18["tire"]["corner outer"], geo20)
+arm20 = sp18.on
+bjp20 = geo20[0]["lbj" if arm20 == "lower" else "ubj"]
+a20, u20 = geo20[1][f"{arm20}_front"], (geo20[1][f"{arm20}_rear"] - geo20[1][f"{arm20}_front"])
+u20 = u20 / np.linalg.norm(u20)
+ep20 = (geo20[1]["pushrod"] - geo20[2]["pushrod"]) / np.linalg.norm(geo20[1]["pushrod"] - geo20[2]["pushrod"])
+m20 = float(u20 @ (np.cross(bjp20 - a20, -bjv20[arm20]) + np.cross(geo20[0]["rod_out"] - a20, r20["pushrod"] * ep20)))
+check(f"ball joint on the {arm20} arm (it carries the pushrod) balances that arm about its pivot axis with the pushrod, N m", m20 / 1000, 0.0, 1e-6,
+      "the joint's force from the upright's balance, the pushrod's from the arm's")
+cfg20 = dict(fb18, members=dict(fb18["members"], ball_joint_rating=30000.0, damper_eye_rating=20000.0, rocker_bearing_rating=25000.0))
+B20 = {b["part"]: b for b in bearing_check(cfg20, s18, sp18, L18["results"], L18["tire"], L18["deflect"])}
+check("damper eyes: the worst |damper force| over the cases, N", B20["damper_eye"]["peak"],
+      max(abs(r["damper"]) for r in L18["results"].values()), 1e-9, "both eyes carry the damper's force")
+check("rocker bearing: the worst pivot resultant, FOS = rating / force", B20["rocker_bearing"]["sf"],
+      25000.0 / max(abs(r["rocker_pivot"]) for r in L18["results"].values()), 1e-12, "")
+check("no rating -> not checked (sf None)", float(bearing_check(fb18, s18, sp18, L18["results"], L18["tire"])[0]["sf"] is None), 1.0, 0, "")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)

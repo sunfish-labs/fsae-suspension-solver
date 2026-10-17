@@ -69,7 +69,17 @@ function checkExtras(cfg) {
     lo = cfg.loads || {};
   if (mem.surface != null && !["ground", "machined", "cold-drawn", "hot-rolled", "as-forged"].includes(mem.surface))
     throw new SolveError("members.surface must be ground, machined, cold-drawn, hot-rolled or as-forged");
-  for (const k of ["uts", "fatigue_sf", "weld_fat_tube", "weld_fat_tab", "tab_yield"])
+  for (const k of [
+    "uts",
+    "fatigue_sf",
+    "weld_fat_tube",
+    "weld_fat_tab",
+    "tab_yield",
+    "rod_end_rating",
+    "ball_joint_rating",
+    "damper_eye_rating",
+    "rocker_bearing_rating",
+  ])
     if (mem[k] != null && !(num(mem[k]) && mem[k] > 0)) throw new SolveError(`members.${k} must be a positive number`);
   if (mem.tab != null) {
     const bad =

@@ -69,6 +69,7 @@ for n, raw in cfgs.items():
                         + [[k, v["case"], "arm", v["moment"], v["sf"]] for k, v in L["rocker_check"]["arms"].items()]
                         + [["all", L["rocker_check"]["governs"], "", L["rocker_check"]["out_of_plane"], L["rocker_check"]["sf"]]])
              if L and L.get("rocker_check") else None,
+             "brg": [[r["part"], r["case"], r["peak"]] for r in L["bearings"]] if L else None,
              "parts": [float(r["sf_bolt"]) for r in L["parts"] if r["sf_bolt"] is not None and math.isfinite(r["sf_bolt"])] if L else None,
              "dur": [[fin(r["sf"]) for r in L["durability"]["tabs"]], [[fin(r["n"]), r["s_a"], r["allow"]] for r in L["durability"]["fatigue"]]] if L else None,
              "fea": [[cs, part, nm, *map(float, pt), *map(float, F)] for cs, parts in part_loads(c, e["susp"], e["spring"], L).items()
@@ -128,6 +129,10 @@ for (const [n, raw] of Object.entries(d.cfgs)) {
     if (rows.length !== p.fea.length) bad.push(`${n} FEA rows: py ${p.fea.length} js ${rows.length}`);
     else p.fea.forEach((row, i) => row.forEach((v, q) => { if (q < 3) { if (rows[i][q] !== v) bad.push(`${n} FEA row ${i} ${q}: ${v} vs ${rows[i][q]}`); return; }
       const r = Math.abs(rows[i][q] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} FEA ${row.slice(0, 3).join(" / ")} ${q}: py ${v} js ${rows[i][q]}`); })); }
+  if (p.brg) { const j = L.bearings.map(r => [r.part, r.case, r.peak]);
+    if (j.length !== p.brg.length) bad.push(`${n} bearing rows: py ${p.brg.length} js ${j.length}`);
+    else p.brg.forEach(([part, c, v], i) => { if (j[i][0] !== part || j[i][1] !== c) bad.push(`${n} bearing ${part}: py ${c} js ${j[i][1]}`);
+      const r = Math.abs(j[i][2] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} bearing ${part}: py ${v} js ${j[i][2]}`); }); }
   if (p.parts) { const js = L.parts.map(q => q.sf_bolt).filter(v => v != null && isFinite(v)); p.parts.forEach((v, i) => { const r = Math.abs(js[i] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} bolt ${i}`); }); }
 }
 for (const [n, c] of Object.entries(d.cars || {})) {

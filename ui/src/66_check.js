@@ -241,6 +241,22 @@ function checkList(X) {
         "Each link end's bolt in shear (single or double) against its worst force.",
         [view, "loads"]
       );
+    const BR = L.bearings || [];
+    if (BR.length) {
+      const rated = BR.filter(b => b.sf != null),
+        low = rated.reduce((m, b) => (!m || b.sf < m.sf ? b : m), null),
+        missing = BR.filter(b => b.sf == null).map(b => b.label.toLowerCase());
+      add(
+        "Strength",
+        A,
+        "Ball joints, damper eyes and rocker bearing against their ratings",
+        low && low.sf < need ? "fail" : missing.length ? "input" : "pass",
+        `${low ? `Lowest FOS ${fmt(low.sf, 2)} (${low.label.toLowerCase()})` : ""}${low && missing.length ? "; " : ""}${missing.length ? `no rating for the ${missing.join(", ")}` : ""}`,
+        "Each bought bearing's catalog radial rating against its worst force (Loads & materials → Rod ends and bolts).",
+        [view, "loads"],
+        "rod_end"
+      );
+    }
     const D = L.durability;
     if (D) {
       const dflt = JSON.stringify(mem.tab) === JSON.stringify(S.DEFAULTS.members.tab),
@@ -490,10 +506,10 @@ function checkList(X) {
   add(
     "Check yourself",
     "Car",
-    "Bought parts against their catalog ratings",
+    "Other bought parts against their catalog ratings",
     "manual",
-    "Ball joints, damper eyes, the rocker bearing, spherical bearings.",
-    "Their forces are in the Loads tab; compare with each part's rated load.",
+    "Wheel bearings, the steering rack, CV joints, the anti-roll bar's bushings.",
+    "The rod ends, ball joints, damper eyes and rocker bearing are checked above; these aren't modeled.",
     null
   );
   return out;

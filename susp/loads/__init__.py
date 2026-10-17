@@ -21,7 +21,7 @@ from .compliance import IMPACT_CASES, compliance, link_stiffness
 from .arb import arb_loads
 from .durability import durability
 from .statics import MEMBER_LABEL, MEMBERS, _geometry, arm_reactions, member_label, solve_case, solve_FM, wheel_rate_at_ride
-from .strength import BOLT_UTS, bending_check, member_checks, part_checks, rocker_check, tube_props
+from .strength import BOLT_UTS, bearing_check, bending_check, member_checks, part_checks, rocker_check, tube_props
 
 __all__ = ["G", "load_cases", "IMPACT_CASES", "compliance", "link_stiffness", "MEMBER_LABEL", "MEMBERS", "_geometry",
            "arm_reactions", "member_label", "solve_case", "solve_FM", "wheel_rate_at_ride", "BOLT_UTS", "bending_check",
@@ -66,5 +66,5 @@ def run_loads(cfg, susp, sp, lltd=None):
     return dict(results=res, desc=desc, tire=tire, fz_parts=fz, Fz0=info["Fz0"], info=info, deflect=deflect,
                 checks=checks, parts=part_checks(cfg, checks), bending_check=bending_check(cfg, susp, sp, res, deflect),
                 rocker_check=rocker_check(cfg, susp, sp, res, deflect, arb),
-                arb_check=arb,
+                arb_check=arb, bearings=bearing_check(cfg, susp, sp, res, tire, deflect),
                 compliance=compliance(cfg, susp, sp, res), durability=durability(cfg, susp, sp, res, info, deflect))

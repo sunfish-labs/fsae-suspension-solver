@@ -91,7 +91,8 @@ def _check_extras(cfg, where):
     surf = mem.get("surface")
     if surf is not None and surf not in ("ground", "machined", "cold-drawn", "hot-rolled", "as-forged"):
         raise ConfigError(f"{where}: members.surface must be ground, machined, cold-drawn, hot-rolled or as-forged")
-    for k in ("uts", "fatigue_sf", "weld_fat_tube", "weld_fat_tab", "tab_yield"):
+    for k in ("uts", "fatigue_sf", "weld_fat_tube", "weld_fat_tab", "tab_yield", "rod_end_rating", "ball_joint_rating", "damper_eye_rating",
+              "rocker_bearing_rating"):
         v = mem.get(k)
         if v is not None and not (isinstance(v, (int, float)) and v > 0):
             raise ConfigError(f"{where}: members.{k} must be a positive number")

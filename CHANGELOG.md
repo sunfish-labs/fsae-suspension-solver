@@ -3,6 +3,15 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.20.0 - 2026-10-17
+
+- **Bought bearings against their ratings**: `members.ball_joint_rating`, `damper_eye_rating` and
+  `rocker_bearing_rating` (N, catalog radial static) check each ball joint (the force its wishbone passes to the
+  upright), the damper eyes (the damper's force) and the rocker's pivot (the resultant on its bearings, with the bar
+  link when it's on the rocker) over every load case, like the rod ends. In the Loads tab, `loads`, the report, the
+  CSV export and the design check (which used to leave them as a manual item). Ratings must be positive. Python and
+  browser (parity-tested), hand-checked.
+
 ## 1.19.0 - 2026-10-17
 
 - **Frame-only cockpit**: the `cockpit` block's seat hip point and back angle are optional together, so a frame

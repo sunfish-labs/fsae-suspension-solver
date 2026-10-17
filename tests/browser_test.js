@@ -66,6 +66,11 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   await p.click("#tab_loads"); await settle(p);
   const ld = await text(p, "#pn_loads");
   check("Loads tab has impact cases, mount bending and rod-end / bolt checks", /pothole/.test(ld) && /kerb strike/.test(ld) && /Pushrod mount bending/.test(ld) && /Rod ends and bolts/.test(ld));
+  check("Loads tab lists the ball joints and damper eyes, asking for their ratings", /Ball joints, damper eyes and rocker bearing/.test(ld) && /Upper ball joint/.test(ld) && /Damper eye bearings/.test(ld) && /enter rating/.test(ld));
+  await p.evaluate(() => { const i = document.querySelector("#in_members_ball_joint_rating"); i.value = "100"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
+  const bjRow = await p.evaluate(() => [...document.querySelectorAll("#pn_loads tr")].find(r => /^Upper ball joint/.test(r.textContent)).innerHTML);
+  check("a 100 N ball-joint rating shows a failing FOS for the ball joints", /bad-t/.test(bjRow) && /100/.test(bjRow), bjRow.slice(0, 200));
+  await p.click("#btnUndo"); await settle(p);
   check("Loads tab says the design loads ask for more grip than the tire has, on purpose", /more than its grip/.test(ld) && /on purpose/.test(ld));
   check("the status bar and error box are announced to screen readers", (await p.getAttribute("#status", "role")) === "status" && (await p.getAttribute("#errBox", "role")) === "alert");
   check("Loads tab shows compliance toe and camber per case", /Compliance/.test(ld) && /Toe-in change/.test(ld) && /Worst toe change/.test(ld));
@@ -340,7 +345,7 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   await p.click("#btnCheck"); await p.waitForFunction(() => /pass/.test(document.querySelector("#chkBody").textContent), null, { timeout: 30000 });
   const ck1 = await text(p, "#chkBody");
   check("the design check covers setup, geometry, packaging, strength, balance and rules for the whole car", ["Setup", "Geometry", "Packaging", "Strength", "Car balance", "Rules", "Check yourself"].every(g => new RegExp(g, "i").test(ck1)) && /The whole car/.test(ck1), ck1.slice(0, 300));
-  check("it lists what needs input with why it matters (rod-end rating, default tabs)", /Rod ends against their rating/.test(ck1) && /catalog rating/.test(ck1) && /default 1\/8 in tab/.test(ck1));
+  check("it lists what needs input with why it matters (rod-end rating, default tabs)", /Rod ends against their rating/.test(ck1) && /Ball joints, damper eyes and rocker bearing against their ratings/.test(ck1) && /no rating for the upper ball joint/.test(ck1) && /catalog rating/.test(ck1) && /default 1\/8 in tab/.test(ck1));
   await p.click("#chkRunClear"); await p.waitForFunction(() => !/Not run yet/.test(document.querySelector("#chkBody").textContent), null, { timeout: 60000 });
   await p.uncheck("#chkOnly"); await settle(p);
   check("the frame and parts clearance runs from the check and fills its row", /clear the frame and parts/.test(await text(p, "#chkBody")) && /Closest:/.test(await text(p, "#chkBody")));

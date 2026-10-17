@@ -136,6 +136,15 @@ function partsHtml(L, label, mem) {
     ${P.map(r => `<tr><td>${esc(label(r.member))}</td><td class="n">${fmt(r.peak, 0)} <span class="muted">(${esc(r.p_case)})</span></td>${cell(r.sf_bolt)}${r.sf_rod_end == null ? `<td class="n muted">enter rating</td>` : cell(r.sf_rod_end)}</tr>`).join("")}</tbody></table></div>
     <p class="note">Bolt shear capacity = shear planes × bolt area × 0.6 × tensile strength. Enter your rod end's catalog radial rating (inputs → Loads &amp; materials → Rod ends and bolts) to check it.</p>`;
   }
+  const BR = L.bearings || [];
+  if (BR.length) {
+    const need = mem.sf_target,
+      cell = v => (v == null ? `<td class="n muted">enter rating</td>` : `<td class="n ${v >= need ? "" : "bad-t"}">${fmt(v, 1)}</td>`);
+    h += `<h3 class="sub-h">Ball joints, damper eyes and rocker bearing</h3>
+    <div class="tbl-wrap"><table class="data"><thead><tr><th>Part</th><th class="n">Worst |force|, N</th><th class="n">Rating, N</th><th class="n">FOS</th></tr></thead><tbody>
+    ${BR.map(b => `<tr><td>${esc(b.label)}</td><td class="n">${fmt(b.peak, 0)} <span class="muted">(${esc(b.case)})</span></td><td class="n">${b.rating ? fmt(b.rating, 0) : "–"}</td>${cell(b.sf)}</tr>`).join("")}</tbody></table></div>
+    <p class="note">A ball joint carries what its wishbone passes to the upright (both legs together); the damper's eyes carry the damper's force; the rocker's pivot carries the pushrod, damper${L.arb_check && L.arb_check.on === "rocker" ? ", bar link" : ""} forces' resultant, shared by its bearings. Enter each part's catalog radial static rating (inputs → Loads &amp; materials → Rod ends and bolts); for two bearings in the rocker, enter both together.</p>`;
+  }
   h += durabilityHtml(L, label, mem);
   const C = L.compliance;
   if (C) {

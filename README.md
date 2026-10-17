@@ -355,6 +355,11 @@ the other way, which can put a different leg into compression. `loads car.json` 
 8. **Rod ends and bolts:** each member's worst force is checked against `members.rod_end_rating` (N, from your rod end's
    catalog; leave blank to skip) and a bolt in shear: capacity = planes × π/4 × d² × 0.6 × UTS (`bolt_dia` mm,
    `bolt_grade` 8.8 / 10.9 / 12.9 / SAE 5 / SAE 8, `bolt_shear_planes` 1 or 2).
+   The other bought bearings against their catalog radial static ratings (N, blank to skip): each ball joint
+   (`ball_joint_rating`) carries what its wishbone passes to the upright (the two legs' forces added; for the arm
+   carrying the pushrod, what the upright's balance leaves), the damper eyes (`damper_eye_rating`) the damper's
+   force, and the rocker pivot (`rocker_bearing_rating`, both bearings together) the resultant of the pushrod, damper
+   and bar link forces. Use ratings of the same kind (ultimate or yield) as `sf_target` assumes.
 9. **Compliance:** each link is an axial spring made of two rod ends (`rod_end_k`, N/mm each), the tube (E·A/L) and
    the chassis tab or bracket (`mount_k`) in series; the wishbones, upright, rocker and rack are rigid and the damper
    is held. The link stretches (force ÷ stiffness) move the upright, found with the unit-load method so the work
@@ -450,7 +455,7 @@ rebound given, the Targets list checks ζ bump 0.4–0.9 and rebound 0.5–1.2 (
 - `loads`: g levels for `bump_g`, `corner_g`, `brake_g`, `combined_g`, `accel_g`, `pothole_g`, `kerb_g`; `brake_split`
   (`"bias"` or `"grip"`); optional `lltd_front` (overrides the car's roll balance).
 - `members`: `material` (label), tube `[OD, wall]` (mm) for `wishbone`, `tie_rod` and `pushrod`; `E`, `yield` (MPa); `sf_target`;
-  `rod_end_rating` (N), `bolt_dia` (mm), `bolt_grade`, `bolt_shear_planes`; compliance `rod_end_k`, `mount_k` (N/mm),
+  `rod_end_rating`, `ball_joint_rating`, `damper_eye_rating`, `rocker_bearing_rating` (N), `bolt_dia` (mm), `bolt_grade`, `bolt_shear_planes`; compliance `rod_end_k`, `mount_k` (N/mm),
   `toe_comp_limit`, `camber_comp_limit` (deg); front steering compliance `rack_k` (N/mm, rack and its mounts) and
   `column_k` (N m/deg, column torsion, needs `vehicle.rack_c_factor`), both in series with the tie rod.
 - `sweep`: heave travel (`travel`, or separate `bump_travel` / `droop_travel`), rack travel, roll angle and step

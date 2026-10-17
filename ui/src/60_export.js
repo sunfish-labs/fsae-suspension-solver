@@ -258,6 +258,14 @@ function reportHtml() {
             `<tr><td>${memLabel(q.member, e)}</td><td class="n">${fmt(q.peak, 0)}</td><td class="n">${q.sf_bolt == null ? "–" : fmt(q.sf_bolt, 1)}</td><td class="n">${q.sf_rod_end == null ? "rating not entered" : fmt(q.sf_rod_end, 1)}</td></tr>`
         )
       );
+      if ((k.L.bearings || []).length)
+        body += tbl(
+          ["Bearing", "Worst |force|, N", "Rating, N", "FOS"],
+          k.L.bearings.map(
+            q =>
+              `<tr><td>${esc(q.label)}</td><td class="n">${fmt(q.peak, 0)}</td><td class="n">${q.rating ? fmt(q.rating, 0) : "–"}</td><td class="n">${q.sf == null ? "rating not entered" : `<span class="${attr(q.sf >= mem.sf_target ? "ok" : "bad")}">${fmt(q.sf, 1)}</span>`}</td></tr>`
+          )
+        );
       const D = k.L.durability;
       if (D) {
         const lb = m => DUR_END[m] || memLabel(m, e);
@@ -472,6 +480,9 @@ async function exportXlsx() {
             r4(q.rod_end_rating),
             r4(q.sf_rod_end),
           ]),
+          [],
+          ["Bearings", "worst |force|, N", "case", "rating, N", "FOS"],
+          ...(k.L.bearings || []).map(q => [q.label, r4(q.peak), q.case, r4(q.rating), r4(q.sf)]),
           ...(k.L.bending_check
             ? [
                 [],

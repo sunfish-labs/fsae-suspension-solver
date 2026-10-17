@@ -22,7 +22,7 @@ XL 3+ days.
    rim, caliper, frame STL, layout parts), part strength, rules, roll balance; each pass / fail / needs input / check
    yourself, with one line on why it matters and a link to the glossary. Prints as a sign-off report for design
    reviews and the design event.
-4. **Bought-part ratings** (S-M). Ball joints, damper eyes, the rocker pivot bearing and spherical bearings against
+4. ~~**Bought-part ratings**~~ (done in 1.20.0). Ball joints, damper eyes, the rocker pivot bearing and spherical bearings against
    their catalog ratings, like the rod ends. Needs: part numbers or ratings.
 5. ~~**Ground clearance rule**~~ (done in 1.15.0). No solid part but the tires touches the ground at full bump with braking pitch and
    roll.

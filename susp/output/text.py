@@ -310,6 +310,13 @@ def print_loads(cfg, ev, L):
         table(["member", "worst |force| N", "bolt FOS", "rod-end FOS"],
               [[member_label(r["member"], s), f"{r['peak']:.0f} ({r['p_case']})", f_num(r["sf_bolt"], 1) if r["sf_bolt"] is not None else "-",
                 f_num(r["sf_rod_end"], 1) if r["sf_rod_end"] is not None else "enter rod_end_rating"] for r in pr])
+    br = L.get("bearings") or []
+    if br:
+        print("\nBall joints, damper eyes and rocker bearing (catalog radial rating vs the worst force; two rocker bearings: enter both together)")
+        table(["part", "worst |force| N", "rating N", "FOS", ""],
+              [[b_["label"], f"{b_['peak']:.0f} ({b_['case']})", f"{b_['rating']:.0f}" if b_["rating"] else "-",
+                f_num(b_["sf"], 1) if b_["sf"] is not None else f"enter members.{b_['rating_key']}",
+                "" if b_["sf"] is None else ("OK" if b_["sf"] >= mem["sf_target"] else "BELOW FOS")] for b_ in br])
     b = L.get("bending_check")
     if b:
         ok = b["sf"] >= mem["sf_target"]
