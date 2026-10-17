@@ -3,26 +3,238 @@
  "name": "Formula SAE 2027 (IC)",
  "version": "Rules 2027 V1.0, 1 Sep 2026",
  "checks": [
-  {"id": "wheelbase", "rule": "V.1.2", "summary": "Wheelbase at least 1525 mm", "kind": "min", "value": "wheelbase", "limit": 1525, "unit": "mm"},
-  {"id": "track_ratio", "rule": "V.1.3.2", "summary": "The smaller track is at least 75 % of the larger", "kind": "min", "value": "track_ratio", "limit": 0.75, "unit": "", "scale": 100, "show_unit": "%"},
-  {"id": "tilt", "rule": "V.1.3.1, IN.11.2.2", "summary": "Doesn't roll at a 60° tilt (1.7 g) with the tallest driver and full fluids", "kind": "min", "value": "tilt_angle", "limit": 60, "unit": "deg", "estimate": true},
-  {"id": "travel_front", "rule": "V.3.1.1", "summary": "At least 50 mm of usable wheel travel, front, driver seated", "kind": "min", "value": "travel_front", "limit": 50, "unit": "mm"},
-  {"id": "travel_rear", "rule": "V.3.1.1", "summary": "At least 50 mm of usable wheel travel, rear, driver seated", "kind": "min", "value": "travel_rear", "limit": 50, "unit": "mm"},
-  {"id": "wheel_front", "rule": "V.4.1", "summary": "Wheels at least 203.2 mm (8 in) in diameter, front", "kind": "min", "value": "wheel_front", "limit": 203.2, "unit": "mm"},
-  {"id": "wheel_rear", "rule": "V.4.1", "summary": "Wheels at least 203.2 mm (8 in) in diameter, rear", "kind": "min", "value": "wheel_rear", "limit": 203.2, "unit": "mm"},
-  {"id": "fastener_grade", "rule": "V.3.1.4, V.3.2.8, T.8.2.1", "summary": "Suspension and steering bolts are Critical Fasteners: SAE Grade 5, metric 8.8, AN/MS or better", "kind": "oneof", "value": "bolt_grades", "allowed": ["SAE 5", "SAE 8", "8.8", "10.9", "12.9"]},
-  {"id": "rod_end_shear", "rule": "V.3.1.5, V.3.2.9", "summary": "Rod ends and spherical bearings in double shear, or captured by a bolt head or washer larger than the bearing housing's bore", "kind": "double_shear", "value": "shear_planes"},
-  {"id": "steer_lockup", "rule": "V.3.2.4", "summary": "Steering stops keep the linkage from locking up (the four-bar inverting): the steering solves out to the full rack travel", "kind": "true", "value": "steer_solves"},
-  {"id": "keepout", "rule": "V.1.1 c", "summary": "Nothing in the keep-out zone 75 mm ahead of and behind each tire, between the tire's inner and outer planes, wheels straight", "kind": "none", "value": "keepout_hits"},
-  {"id": "tire_contact", "rule": "V.3.2.4 a", "summary": "Steering stops keep the tires off the suspension, bodywork and chassis: the rim clears the links at full lock and bump", "kind": "min", "value": "rim_margin", "limit": 0, "unit": "mm"},
-  {"id": "m_open_wheel", "rule": "V.1.1 a, b", "summary": "Top half of each tire unobstructed seen from above; wheels unobstructed seen from the side", "kind": "manual"},
-  {"id": "m_lower_sis", "rule": "V.1.4.2", "summary": "Lowest point of the Lower Side Impact Structure 90 mm or less above the ground (75 mm or less recommended), with an opening to measure it", "kind": "manual"},
-  {"id": "m_ground", "rule": "V.1.4.1, V.1.4.3", "summary": "Nothing but the tires touches the ground in the dynamic events (check the lowest point at full bump and pitch)", "kind": "manual"},
-  {"id": "m_mounts_visible", "rule": "V.3.1.3, T.1.3.4", "summary": "Every suspension mounting point visible at inspection (covers removable)", "kind": "manual"},
-  {"id": "m_locking", "rule": "T.8.2.2 to T.8.2.5", "summary": "Critical fasteners: hex or socket head, not countersunk, with a positive locking mechanism (nyloc only below 80 °C) and two full threads past a lock nut", "kind": "manual"},
-  {"id": "m_free_play", "rule": "V.3.2.5", "summary": "Steering free play under 7° total at the steering wheel", "kind": "manual"},
-  {"id": "m_rack", "rule": "V.3.2.6, F.5.14", "summary": "Steering rack mechanically attached to the chassis", "kind": "manual"},
-  {"id": "m_cockpit_shield", "rule": "T.1.3.3", "summary": "Moving suspension and steering parts in the cockpit (from the Front Hoop to 100 mm behind the pedals) covered by a solid shield", "kind": "manual"},
-  {"id": "m_hoop_mounts", "rule": "F.5.11.4", "summary": "Suspension mounts not on the span of the Main Hoop or its braces away from the nodes", "kind": "manual"}
+  {
+   "id": "wheelbase",
+   "rule": "V.1.2",
+   "summary": "Wheelbase at least 1525 mm",
+   "kind": "min",
+   "value": "wheelbase",
+   "limit": 1525,
+   "unit": "mm"
+  },
+  {
+   "id": "track_ratio",
+   "rule": "V.1.3.2",
+   "summary": "The smaller track is at least 75 % of the larger",
+   "kind": "min",
+   "value": "track_ratio",
+   "limit": 0.75,
+   "unit": "",
+   "scale": 100,
+   "show_unit": "%"
+  },
+  {
+   "id": "tilt",
+   "rule": "V.1.3.1, IN.11.2.2",
+   "summary": "Doesn't roll at a 60° tilt (1.7 g) with the tallest driver and full fluids",
+   "kind": "min",
+   "value": "tilt_angle",
+   "limit": 60,
+   "unit": "deg",
+   "estimate": true
+  },
+  {
+   "id": "travel_front",
+   "rule": "V.3.1.1",
+   "summary": "At least 50 mm of usable wheel travel, front, driver seated",
+   "kind": "min",
+   "value": "travel_front",
+   "limit": 50,
+   "unit": "mm"
+  },
+  {
+   "id": "travel_rear",
+   "rule": "V.3.1.1",
+   "summary": "At least 50 mm of usable wheel travel, rear, driver seated",
+   "kind": "min",
+   "value": "travel_rear",
+   "limit": 50,
+   "unit": "mm"
+  },
+  {
+   "id": "wheel_front",
+   "rule": "V.4.1",
+   "summary": "Wheels at least 203.2 mm (8 in) in diameter, front",
+   "kind": "min",
+   "value": "wheel_front",
+   "limit": 203.2,
+   "unit": "mm"
+  },
+  {
+   "id": "wheel_rear",
+   "rule": "V.4.1",
+   "summary": "Wheels at least 203.2 mm (8 in) in diameter, rear",
+   "kind": "min",
+   "value": "wheel_rear",
+   "limit": 203.2,
+   "unit": "mm"
+  },
+  {
+   "id": "fastener_grade",
+   "rule": "V.3.1.4, V.3.2.8, T.8.2.1",
+   "summary": "Suspension and steering bolts are Critical Fasteners: SAE Grade 5, metric 8.8, AN/MS or better",
+   "kind": "oneof",
+   "value": "bolt_grades",
+   "allowed": [
+    "SAE 5",
+    "SAE 8",
+    "8.8",
+    "10.9",
+    "12.9"
+   ]
+  },
+  {
+   "id": "rod_end_shear",
+   "rule": "V.3.1.5, V.3.2.9",
+   "summary": "Rod ends and spherical bearings in double shear, or captured by a bolt head or washer larger than the bearing housing's bore",
+   "kind": "double_shear",
+   "value": "shear_planes"
+  },
+  {
+   "id": "steer_lockup",
+   "rule": "V.3.2.4",
+   "summary": "Steering stops keep the linkage from locking up (the four-bar inverting): the steering solves out to the full rack travel",
+   "kind": "true",
+   "value": "steer_solves"
+  },
+  {
+   "id": "keepout",
+   "rule": "V.1.1 c",
+   "summary": "Nothing in the keep-out zone 75 mm ahead of and behind each tire, between the tire's inner and outer planes, wheels straight",
+   "kind": "none",
+   "value": "keepout_hits"
+  },
+  {
+   "id": "tire_contact",
+   "rule": "V.3.2.4 a",
+   "summary": "Steering stops keep the tires off the suspension, bodywork and chassis: the rim clears the links at full lock and bump",
+   "kind": "min",
+   "value": "rim_margin",
+   "limit": 0,
+   "unit": "mm"
+  },
+  {
+   "id": "hip_to_pedals",
+   "rule": "F.5.6.6",
+   "summary": "Driver template's hip circle at least 915 mm behind the rearmost pedal face (seat back, pedals forward)",
+   "kind": "min",
+   "value": "hip_to_pedals",
+   "limit": 915,
+   "unit": "mm"
+  },
+  {
+   "id": "helmet_front_line",
+   "rule": "F.5.6.4 a",
+   "summary": "95th percentile helmet at least 50 mm below the line from the Main Hoop top to the Front Hoop top",
+   "kind": "min",
+   "value": "helmet_front_line",
+   "limit": 50,
+   "unit": "mm"
+  },
+  {
+   "id": "helmet_brace_line",
+   "rule": "F.5.6.4 b",
+   "summary": "With rearward bracing: helmet at least 50 mm from the line from the Main Hoop top to the bracing's lower end",
+   "kind": "min",
+   "value": "helmet_brace_line",
+   "limit": 50,
+   "unit": "mm"
+  },
+  {
+   "id": "helmet_behind_hoop",
+   "rule": "F.5.6.4 c",
+   "summary": "With forward bracing: helmet no further back than the Main Hoop",
+   "kind": "min",
+   "value": "helmet_behind_hoop",
+   "limit": 0,
+   "unit": "mm"
+  },
+  {
+   "id": "front_hoop_over_wheel",
+   "rule": "F.5.7.4",
+   "summary": "Front Hoop top no lower than the top of the steering wheel at any angle",
+   "kind": "min",
+   "value": "front_hoop_over_wheel",
+   "limit": 0,
+   "unit": "mm"
+  },
+  {
+   "id": "front_hoop_ahead_of_wheel",
+   "rule": "F.5.7.5",
+   "summary": "Front Hoop no more than 250 mm ahead of the steering wheel rim (horizontal, on the centerline, straight ahead)",
+   "kind": "max",
+   "value": "front_hoop_ahead_of_wheel",
+   "limit": 250,
+   "unit": "mm"
+  },
+  {
+   "id": "brace_drop",
+   "rule": "F.5.9.4",
+   "summary": "Main Hoop Braces attached 160 mm or less below the Main Hoop's top-most surface",
+   "kind": "max",
+   "value": "brace_drop",
+   "limit": 160,
+   "unit": "mm"
+  },
+  {
+   "id": "m_open_wheel",
+   "rule": "V.1.1 a, b",
+   "summary": "Top half of each tire unobstructed seen from above; wheels unobstructed seen from the side",
+   "kind": "manual"
+  },
+  {
+   "id": "m_lower_sis",
+   "rule": "V.1.4.2",
+   "summary": "Lowest point of the Lower Side Impact Structure 90 mm or less above the ground (75 mm or less recommended), with an opening to measure it",
+   "kind": "manual"
+  },
+  {
+   "id": "m_ground",
+   "rule": "V.1.4.1, V.1.4.3",
+   "summary": "Nothing but the tires touches the ground in the dynamic events (check the lowest point at full bump and pitch)",
+   "kind": "manual"
+  },
+  {
+   "id": "m_mounts_visible",
+   "rule": "V.3.1.3, T.1.3.4",
+   "summary": "Every suspension mounting point visible at inspection (covers removable)",
+   "kind": "manual"
+  },
+  {
+   "id": "m_locking",
+   "rule": "T.8.2.2 to T.8.2.5",
+   "summary": "Critical fasteners: hex or socket head, not countersunk, with a positive locking mechanism (nyloc only below 80 °C) and two full threads past a lock nut",
+   "kind": "manual"
+  },
+  {
+   "id": "m_free_play",
+   "rule": "V.3.2.5",
+   "summary": "Steering free play under 7° total at the steering wheel",
+   "kind": "manual"
+  },
+  {
+   "id": "m_rack",
+   "rule": "V.3.2.6, F.5.14",
+   "summary": "Steering rack mechanically attached to the chassis",
+   "kind": "manual"
+  },
+  {
+   "id": "m_cockpit_shield",
+   "rule": "T.1.3.3",
+   "summary": "Moving suspension and steering parts in the cockpit (from the Front Hoop to 100 mm behind the pedals) covered by a solid shield",
+   "kind": "manual"
+  },
+  {
+   "id": "m_hoop_mounts",
+   "rule": "F.5.11.4",
+   "summary": "Suspension mounts not on the span of the Main Hoop or its braces away from the nodes",
+   "kind": "manual"
+  },
+  {
+   "id": "m_template_head",
+   "rule": "F.5.6.6",
+   "summary": "Template head circle within 25 mm of the head restraint; all the team's drivers also clear the hoop lines by 50 mm",
+   "kind": "manual"
+  }
  ]
 }

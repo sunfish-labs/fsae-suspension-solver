@@ -104,7 +104,7 @@ def keepout_hits(lay, fcfg, rcfg, wheelbase):
     return hits
 
 
-def rule_values(fcfg, fev, rcfg, rev, bal=None, layout=None):
+def rule_values(fcfg, fev, rcfg, rev, bal=None, layout=None, cockpit=None):
     veh = fcfg["vehicle"]
     tf, tr = fev["susp"].track, rev["susp"].track
     v = dict(wheelbase=float(veh["wheelbase"]), track_ratio=min(tf, tr) / max(tf, tr))
@@ -122,11 +122,14 @@ def rule_values(fcfg, fev, rcfg, rev, bal=None, layout=None):
     rm = [e["metrics"].get("rim_margin") for e in (fev, rev)]
     v["rim_margin"] = min(rm) if all(x is not None for x in rm) else None
     v["keepout_hits"] = keepout_hits(layout, fcfg, rcfg, float(veh["wheelbase"]))
+    if cockpit:
+        from .cockpit import cockpit_values
+        v.update(cockpit_values(cockpit))
     return v
 
 
 def check_rules(ruleset, values):
-    """Rows {id, rule, summary, status (pass | fail | unknown | manual), value, limit, note} for each check."""
+    """Rows {id, rule, summary, status (pass | fail | unknown | manual | na), value, limit, note} for each check."""
     rows = []
     for c in ruleset["checks"]:
         k, val = c["kind"], values.get(c.get("value", ""))
@@ -134,6 +137,8 @@ def check_rules(ruleset, values):
                    unit=c.get("unit", ""), estimate=bool(c.get("estimate")), note="")
         if k == "manual":
             row["status"] = "manual"
+        elif isinstance(val, dict) and "na" in val:
+            row["status"], row["note"], row["value"] = "na", val["na"], None
         elif val is None:
             row["status"] = "unknown"
         elif k == "min":

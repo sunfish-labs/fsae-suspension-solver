@@ -28,6 +28,7 @@ function carFrom(raw) {
     src: { front: raw.name || "car file", rear: raw.name || "car file" },
     layout: raw.layout ? JSON.parse(JSON.stringify(raw.layout)) : null,
     drivetrain: raw.drivetrain ? JSON.parse(JSON.stringify(raw.drivetrain)) : null,
+    cockpit: raw.cockpit ? JSON.parse(JSON.stringify(raw.cockpit)) : null,
   };
   for (const ax of ["front", "rear"]) {
     c[ax] = cornerFrom(Object.assign({}, raw[ax], { axle: ax }));
@@ -70,6 +71,7 @@ function exportCar(local = false) {
     car_targets: car.car_targets,
     ...(car.layout ? { layout: car.layout } : {}),
     ...(car.drivetrain ? { drivetrain: car.drivetrain } : {}),
+    ...(car.cockpit ? { cockpit: car.cockpit } : {}),
     front: strip(car.front),
     rear: strip(car.rear),
   };
@@ -493,7 +495,7 @@ function rulesHtml(F, R, B) {
   if (!rs) return "";
   let rows;
   try {
-    rows = S.checkRules(rs, S.ruleValues(F.cfg, F, R.cfg, R, B, car.layout || null));
+    rows = S.checkRules(rs, S.ruleValues(F.cfg, F, R.cfg, R, B, car.layout || null, car.cockpit || null));
   } catch (e) {
     return `<div class="banner warn">Rules check: ${esc(e.message)}</div>`;
   }
@@ -510,9 +512,11 @@ function rulesHtml(F, R, B) {
       ? `<span class="pill ok">Pass</span>`
       : s === "fail"
         ? `<span class="pill bad">Fail</span>`
-        : s === "unknown"
-          ? `<span class="pill neutral" title="An input this check needs is missing">Can't check</span>`
-          : `<span class="pill neutral" title="The solver can't measure this: check it on the car or the CAD">Check yourself</span>`;
+        : s === "na"
+          ? `<span class="pill neutral" title="This rule doesn't apply to this car">Doesn't apply</span>`
+          : s === "unknown"
+            ? `<span class="pill neutral" title="An input this check needs is missing">Can't check</span>`
+            : `<span class="pill neutral" title="The solver can't measure this: check it on the car or the CAD">Check yourself</span>`;
   const auto = rows.filter(r => r.status !== "manual"),
     man = rows.filter(r => r.status === "manual");
   const tr = r =>
@@ -522,7 +526,7 @@ function rulesHtml(F, R, B) {
     <div class="tbl-wrap"><table class="data rtab"><thead><tr><th>Rule</th><th>What it asks</th><th>This car</th><th></th></tr></thead><tbody>${auto.map(tr).join("")}</tbody></table></div>
     <p class="note">The solver can't measure these; check them on the car or in CAD:</p>
     <div class="tbl-wrap"><table class="data rtab"><tbody>${man.map(tr).join("")}</tbody></table></div>
-    <p class="note">${esc(rs.version)}. Rule numbers with short paraphrases: read the rulebook for the exact wording, and check later versions and the official Q&amp;A. The tilt is a static estimate from the CG (use the tallest driver and full fluids in the layout). Usable travel comes from the damper's stroke and length. The keep-out check needs a layout; tires against the chassis model come from the clearance check.</p></details>`;
+    <p class="note">${esc(rs.version)}. Rule numbers with short paraphrases: read the rulebook for the exact wording, and check later versions and the official Q&amp;A. The tilt is a static estimate from the CG (use the tallest driver and full fluids in the layout). Usable travel comes from the damper's stroke and length. The keep-out check needs a layout, and the hoop and driver-template checks need the side-view points (Layout → Driver and roll hoops); tires against the chassis model come from the clearance check.</p></details>`;
 }
 document.addEventListener(
   "toggle",

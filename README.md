@@ -31,7 +31,7 @@ It covers the four suspension decisions a team makes before it has a car:
 | Springs and dampers | `run` (with a `spring` block) | **motion ratio**, wheel and ride rate, **ride frequency**, damper stroke used, **spring rate needed for a target frequency** |
 | Tube, rod-end and tab sizing | `loads` | wishbone-leg, tie-rod, pushrod, damper and rocker forces for bump, cornering, braking and combined cases, plus **buckling and yield safety factors** |
 | Whole car | `car front.json rear.json` | front/rear frequencies, **roll gradient**, **LLTD**, and the **anti-roll bar stiffness** needed |
-| Rules | `rules car.json` | the car against the **FSAE 2027 (IC)** rules by rule number: wheelbase, track ratio, tilt test, wheel travel, wheel size, critical fasteners, rod-end shear, steering lock-up, tire keep-out zones, plus a checklist of what it can't measure |
+| Rules | `rules car.json` | the car against the **FSAE 2027 (IC)** rules by rule number: wheelbase, track ratio, tilt test, wheel travel, wheel size, critical fasteners, rod-end shear, steering lock-up, tire keep-out zones, driver template and roll hoops in side view, plus a checklist of what it can't measure |
 | Layout and drivetrain | `layout car.json` | **mass, CG height, weight split and inertia** from a parts list; gear speeds, shift points and the **75 m acceleration time** |
 
 ## Browser UI (`ui/index.html`)
@@ -207,6 +207,15 @@ needs and says pass, fail, can't check (an input is missing) or check yourself (
 - V.3.1.4 / T.8.2.1 critical-fastener grade; V.3.1.5 rod ends in double shear (single shear: check the washer)
 - V.3.2.4 the steering solves to the full rack travel without locking up, and the rim clears the links at full
   lock and bump; V.1.1 c no layout part in a tire's keep-out zone
+- F.5.6.4 a/b/c, F.5.6.6, F.5.7.4, F.5.7.5, F.5.9.4 the driver template and roll hoops in side view, from a car file
+  `cockpit` block (Car view → Layout → Driver and roll hoops): `main_hoop_top`, `front_hoop_top`, `brace_upper`,
+  `brace_lower` and `hip` as [x, z] in the layout's car frame, `back_angle` (seat back from vertical), optional
+  `neck_angle`, `pedal_face_x`, `wheel_top_z`, `wheel_front_x`. The 95th percentile template (200 mm hip and
+  shoulder circles 490 mm apart, a 300 mm head circle 280 mm on) sits on the seat back from the hip point; checked:
+  helmet 50 mm under the hoop-to-hoop line and on the right side of the brace line (or ahead of the Main Hoop when
+  the braces go forward), 915 mm hip to pedals, the Front Hoop over the steering wheel and at most 250 mm ahead of
+  it, braces at most 160 mm below the hoop top. Seat it as F.5.6.6 says and check the head restraint (within 25 mm)
+  on the CAD; every team driver must clear the lines too.
 - a checklist for what it can't measure: open-wheel views, the lower side impact structure height, ground contact,
   visible mounts, fastener locking, steering free play, rack mounting, cockpit shields, mounts on the hoop braces.
 A later rulebook is a new file in `schema/rules/` with the same layout.

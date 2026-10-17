@@ -8,8 +8,9 @@ then extra features, then housekeeping. Team-specific design fixes live in `priv
    thickness and material as inputs. Until then, check it in FEA with the part loads.
 2. **Frame torsional stiffness** from the frame's tube centerlines (a 3D frame solved in the browser), and what it
    does to the LLTD.
-3. **More rules checks** once there is data for them: the lower side impact structure height and the driver
-   templates against a loaded frame (F, T.1 and IN.7), ground clearance at full bump and pitch, and the 2027 Q&A.
+3. **More rules checks** once there is data for them: the lower side impact structure height, the 5th percentile
+   template and cockpit openings (F, T.1 and IN.7) against a loaded frame, ground clearance at full bump and pitch,
+   and the 2027 Q&A.
 4. **Housekeeping.** Create the missing `v0.9.0` tag on GitHub (Releases -> Draft a new release -> tag `v0.9.0`,
    target commit `e3fee2a`): the tag workflow's token may not tag a commit whose workflow files differ from today's.
    Empty the `_to_delete/` folder on the desktop copy (old sync bundles only).
@@ -26,6 +27,7 @@ then extra features, then housekeeping. Team-specific design fixes live in `priv
 
 ## Done recently
 
+- Driver template and roll hoops in side view: seven more rules checks (F.5.6 to F.5.9) and a drawing (1.10.0)
 - Rules check against the Formula SAE Rules 2027 (IC) by rule number: twelve automatic checks and a checklist (1.9.0)
 - Vehicle layout (mass, CG, inertia from a parts list, boxes in 3D, clearance to the parts) and the drivetrain's
   acceleration run; a Settings panel with the coordinates as shown, simple / detailed inputs and result tabs (1.8.0)

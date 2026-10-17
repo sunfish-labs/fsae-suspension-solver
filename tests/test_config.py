@@ -96,6 +96,12 @@ check("a torque curve whose rpm goes down -> ConfigError", raises(ConfigError, l
 bad_dt["drivetrain"]["torque_curve"] = carL["drivetrain"]["torque_curve"]
 bad_dt["drivetrain"]["efficiency"] = 88
 check("drivetrain efficiency given in % -> ConfigError (it is a fraction)", raises(ConfigError, lambda: load_car(write("cd.json", bad_dt))))
+bad_ck = json.loads(json.dumps(carL))
+bad_ck["cockpit"]["hip"] = [-800]
+check("a cockpit point with one coordinate -> ConfigError", raises(ConfigError, lambda: load_car(write("ck.json", bad_ck))))
+bad_ck["cockpit"]["hip"] = carL["cockpit"]["hip"]
+bad_ck["cockpit"]["back_angle"] = 95
+check("a seat back angle past 80 deg -> ConfigError", raises(ConfigError, lambda: load_car(write("ck.json", bad_ck))))
 check("negative fatigue cycles -> ConfigError", raises(ConfigError, lambda: load_config(write("q.json", dict(front, loads={"fatigue_cycles": -5})))))
 check("every library error is a SuspError", all(issubclass(e, SuspError) for e in (ConfigError, GoalError, SolveError, UnknownPointError)))
 from susp import tools as T  # noqa: E402

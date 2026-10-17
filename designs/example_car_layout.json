@@ -735,5 +735,32 @@
   "mass_factor": 1.05,
   "drag_area": 0.9,
   "rolling": 0.015
+ },
+ "cockpit": {
+  "main_hoop_top": [
+   -1300.0,
+   1160.0
+  ],
+  "front_hoop_top": [
+   -300.0,
+   700.0
+  ],
+  "brace_lower": [
+   -1750.0,
+   350.0
+  ],
+  "brace_upper": [
+   -1315.0,
+   1040.0
+  ],
+  "hip": [
+   -800.0,
+   200.0
+  ],
+  "back_angle": 30.0,
+  "neck_angle": 0.0,
+  "pedal_face_x": 150.0,
+  "wheel_top_z": 650.0,
+  "wheel_front_x": -420.0
  }
 }

@@ -230,6 +230,10 @@ def load_car(path):
         if lay.get("apply"):                       # the car's mass and CG come from the layout
             for c in (f, r):
                 c["vehicle"] = apply_layout(c["vehicle"], res)
+    info["cockpit"] = raw.get("cockpit")
+    if raw.get("cockpit") is not None:
+        from .cockpit import check_cockpit
+        check_cockpit(raw["cockpit"], path)
     if raw.get("drivetrain") is not None:
         from .layout import check_drivetrain
         check_drivetrain(raw["drivetrain"], path)

@@ -16,6 +16,7 @@ function snapshot() {
           car_targets: car.car_targets,
           layout: car.layout,
           drivetrain: car.drivetrain,
+          cockpit: car.cockpit,
           src: car.src,
           front: car.front,
           rear: car.rear,
@@ -101,6 +102,7 @@ function recordEdit(e) {
     d.chpath ||
     d.ren !== undefined ||
     d.lay !== undefined ||
+    d.ck !== undefined ||
     t.id === "springOn" ||
     t.id === "rockerOn"
   )

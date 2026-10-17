@@ -167,9 +167,9 @@ def cmd_rules(a):
     f, r, info = C.load_car(a.car)
     fe, re_ = evaluate(f), evaluate(r)
     bal = car_balance(f, fe, r, re_, None, None, info["arb_f"], info["arb_r"]) if fe.get("ride") and re_.get("ride") else None
-    rows = check_rules(rs, rule_values(f, fe, r, re_, bal, info.get("layout")))
+    rows = check_rules(rs, rule_values(f, fe, r, re_, bal, info.get("layout"), info.get("cockpit")))
     print(f"{rs['name']} ({rs['version']}): rule numbers and paraphrases; read the rulebook for the exact wording.\n")
-    mark = {"pass": "PASS ", "fail": "FAIL ", "unknown": "  ?  ", "manual": "CHECK"}
+    mark = {"pass": "PASS ", "fail": "FAIL ", "unknown": "  ?  ", "manual": "CHECK", "na": " n/a "}
     for row in rows:
         v = row["value"]
         vt = (f"{v * 100:.1f} %" if row["id"] == "track_ratio" else f"{v:.1f} {row['unit']}".rstrip()) if isinstance(v, float) else ""
@@ -177,9 +177,13 @@ def cmd_rules(a):
                f" (limit {row['limit'] * 100:g} %)" if row["id"] == "track_ratio" else f" (limit {row['limit']:g} {row['unit']})".replace(" )", ")"))
         extra = (("; " if vt else "") + row["note"]) if row["note"] else ""
         est = " (estimate)" if row["estimate"] else ""
+        if row["status"] == "na":
+            print(f"  {mark['na']} {row['rule']:<22} {row['summary']}: doesn't apply ({row['note']})")
+            continue
         print(f"  {mark[row['status']]} {row['rule']:<22} {row['summary']}" + (f": {vt}{lim}{est}{extra}" if vt or extra else ""))
     n = {s: sum(r_["status"] == s for r_ in rows) for s in mark}
-    print(f"\n{n['pass']} pass, {n['fail']} fail, {n['unknown']} can't check (missing inputs), {n['manual']} to check yourself")
+    print(f"\n{n['pass']} pass, {n['fail']} fail, {n['unknown']} can't check (missing inputs), {n['manual']} to check yourself"
+          + (f", {n['na']} don't apply" if n["na"] else ""))
 
 
 def cmd_car(a):

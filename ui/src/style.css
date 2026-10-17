@@ -458,3 +458,4 @@ body.simple .adv { display: none !important; }
 .rulesbox > summary h3 { margin: 0; }
 .rtab td.nowrap { white-space: nowrap; }
 .rtab td:nth-child(2) { white-space: normal; min-width: 14em; }
+.cksvg { width: 100%; max-width: 640px; height: auto; display: block; margin: 8px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }

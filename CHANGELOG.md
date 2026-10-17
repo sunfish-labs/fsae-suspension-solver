@@ -3,6 +3,14 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.10.0 - 2026-10-16
+
+- **Driver template and roll hoops** (car file `cockpit`, Car view → Layout → Driver and roll hoops, and the rules
+  check): ten side-view numbers off the frame CAD place the 95th percentile template and check F.5.6.4 a/b/c (helmet
+  50 mm under the hoop and brace lines), F.5.6.6 (915 mm hip to pedals), F.5.7.4 and F.5.7.5 (Front Hoop over and
+  near the steering wheel) and F.5.9.4 (brace attachment within 160 mm of the top). Drawn in side view with each
+  clearance; the example car passes all of them. Python and browser, hand-checked.
+
 ## 1.9.0 - 2026-10-16
 
 - **Rules check against the Formula SAE Rules 2027 (V1.0), IC** (Car view → Rules, `rules car.json`): by rule number,

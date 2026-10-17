@@ -66,7 +66,69 @@ function keepoutHits(lay, fcfg, rcfg, wheelbase) {
   }
   return hits;
 }
-function ruleValues(fcfg, fev, rcfg, rev, bal = null, layout = null) {
+// ---- driver template and roll hoops in side view (mirrors cockpit.py); points [x, z] in the car frame
+function cockpitTemplate(ck) {
+  const [hx, hz] = ck.hip,
+    b = (+ck.back_angle * Math.PI) / 180,
+    n = b + (+(ck.neck_angle || 0) * Math.PI) / 180,
+    sx = hx - 490 * Math.sin(b),
+    sz = hz + 490 * Math.cos(b);
+  return [
+    [hx, hz],
+    [sx, sz],
+    [sx - 280 * Math.sin(n), sz + 280 * Math.cos(n)],
+  ];
+}
+function sideDist(p, a, b) {
+  const dx = b[0] - a[0],
+    dz = b[1] - a[1],
+    L = Math.hypot(dx, dz),
+    s = ((p[0] - a[0]) * dz - (p[1] - a[1]) * dx) / L,
+    mx = (a[0] + b[0]) / 2,
+    mz = (a[1] + b[1]) / 2 - 1000,
+    ref = (mx - a[0]) * dz - (mz - a[1]) * dx;
+  return ref > 0 ? s : -s;
+}
+function xOnLine(a, b, z) {
+  if (Math.abs(b[1] - a[1]) < 1e-9) return Math.min(a[0], b[0]);
+  return a[0] + ((z - a[1]) * (b[0] - a[0])) / (b[1] - a[1]);
+}
+function cockpitValues(ck) {
+  if (!ck) return {};
+  const [hip, sh, head] = cockpitTemplate(ck),
+    mh = ck.main_hoop_top,
+    fh = ck.front_hoop_top,
+    v = { _template: { hip, shoulder: sh, head } };
+  v.helmet_front_line = sideDist(head, mh, fh) - 150;
+  const bl = ck.brace_lower;
+  if (bl) {
+    if (bl[0] < mh[0]) {
+      const d = sideDist(head, mh, bl);
+      v.helmet_brace_line = (head[0] > xOnLine(mh, bl, head[1]) ? Math.abs(d) : -Math.abs(d)) - 150;
+      v.helmet_behind_hoop = { na: "braces extend rearwards" };
+    } else {
+      v.helmet_brace_line = { na: "braces extend forwards" };
+      v.helmet_behind_hoop = head[0] - 150 - mh[0];
+    }
+  }
+  if (ck.pedal_face_x != null) v.hip_to_pedals = +ck.pedal_face_x - hip[0];
+  if (ck.wheel_top_z != null) v.front_hoop_over_wheel = fh[1] - +ck.wheel_top_z;
+  if (ck.wheel_front_x != null) v.front_hoop_ahead_of_wheel = fh[0] - +ck.wheel_front_x;
+  if (ck.brace_upper) v.brace_drop = mh[1] - ck.brace_upper[1];
+  return v;
+}
+function checkCockpit(ck) {
+  if (!ck || typeof ck !== "object") throw new SolveError("cockpit must be an object of side-view points");
+  for (const k of ["main_hoop_top", "front_hoop_top", "brace_lower", "brace_upper", "hip"]) {
+    const p = ck[k];
+    if (p == null && (k === "brace_lower" || k === "brace_upper")) continue;
+    if (!(Array.isArray(p) && p.length === 2 && p.every(q => typeof q === "number" && Number.isFinite(q))))
+      throw new SolveError(`cockpit.${k} needs [x, z] in mm`);
+  }
+  if (!(typeof ck.back_angle === "number" && ck.back_angle >= 0 && ck.back_angle < 80))
+    throw new SolveError("cockpit.back_angle is the seat back's angle from vertical, 0 to 80 deg");
+}
+function ruleValues(fcfg, fev, rcfg, rev, bal = null, layout = null, cockpit = null) {
   const veh = fcfg.vehicle,
     tf = fev.susp.track,
     tr = rev.susp.track;
@@ -89,6 +151,7 @@ function ruleValues(fcfg, fev, rcfg, rev, bal = null, layout = null) {
   const rm = [fev, rev].map(e => e.metrics.rim_margin);
   v.rim_margin = rm.every(x => x != null) ? Math.min(...rm) : null;
   v.keepout_hits = keepoutHits(layout, fcfg, rcfg, +veh.wheelbase);
+  if (cockpit) Object.assign(v, cockpitValues(cockpit));
   return v;
 }
 function checkRules(ruleset, values) {
@@ -107,7 +170,11 @@ function checkRules(ruleset, values) {
         note: "",
       };
     if (k === "manual") row.status = "manual";
-    else if (val == null) row.status = "unknown";
+    else if (val && typeof val === "object" && !Array.isArray(val) && "na" in val) {
+      row.status = "na";
+      row.note = val.na;
+      row.value = null;
+    } else if (val == null) row.status = "unknown";
     else if (k === "min") row.status = val >= c.limit ? "pass" : "fail";
     else if (k === "max") row.status = val <= c.limit ? "pass" : "fail";
     else if (k === "oneof") {

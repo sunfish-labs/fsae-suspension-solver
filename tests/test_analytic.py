@@ -577,6 +577,30 @@ check("rules: 1520 mm wheelbase fails V.1.2, a 4.6 bolt fails T.8.2.1, single sh
       1.0 if (st14["wheelbase"], st14["track_ratio"], st14["fastener_grade"], st14["rod_end_shear"], st14["tilt"]) == ("fail", "pass", "fail", "manual", "unknown") else 0.0,
       1.0, 0, str(st14))
 
+# 15. driver template and roll hoops in side view (F.5.6 to F.5.9)
+import json  # noqa: E402
+from susp.cockpit import template, side_dist, cockpit_values  # noqa: E402
+ROOT15 = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ck15 = {"hip": [0.0, 0.0], "back_angle": 0.0, "main_hoop_top": [-200.0, 1100.0], "front_hoop_top": [800.0, 1100.0],
+        "brace_lower": [-700.0, 300.0], "brace_upper": [-200.0, 1000.0], "pedal_face_x": 950.0, "wheel_top_z": 650.0, "wheel_front_x": 600.0}
+h15, s15, hd15 = template(ck15)
+check("template upright: head center height, mm", hd15[1], 490.0 + 280.0, 1e-9, "200 mm hip and shoulder circles 490 mm apart, head 280 mm on (F.5.6.5)")
+ck15b = dict(ck15, back_angle=30.0)
+check("template at a 30 deg back: head center x, mm", template(ck15b)[2][0], -770.0 * math.sin(math.radians(30)), 1e-9, "770 mm along the back, leaning rearward")
+check("side distance below a horizontal line, mm", side_dist([0.0, 100.0], [-1.0, 300.0], [1.0, 300.0]), 200.0, 1e-9, "positive under the line")
+check("side distance above it, mm", side_dist([0.0, 500.0], [1.0, 300.0], [-1.0, 300.0]), -200.0, 1e-9, "sign doesn't depend on the order of the ends")
+v15 = cockpit_values(ck15)
+check("helmet below a level hoop line, mm", v15["helmet_front_line"], 1100.0 - 770.0 - 150.0, 1e-9, "line height - head center - 150 mm head radius")
+d15 = abs((hd15[0] + 200.0) * -800.0 - (hd15[1] - 1100.0) * -500.0) / math.hypot(500.0, 800.0)  # line hoop top -> brace end
+check("helmet ahead of the rearward brace line, mm", v15["helmet_brace_line"], d15 - 150.0, 1e-9, "point-to-line distance less the head radius")
+for k15, w15 in (("hip_to_pedals", 950.0), ("brace_drop", 100.0), ("front_hoop_over_wheel", 450.0), ("front_hoop_ahead_of_wheel", 200.0)):
+    check(f"{k15.replace('_', ' ')}, mm", v15[k15], w15, 1e-9, "difference of the inputs")
+check("braces extending forward: the brace-line check doesn't apply and the helmet must be ahead of the Main Hoop",
+      1.0 if "na" in cockpit_values(dict(ck15, brace_lower=[300.0, 300.0]))["helmet_brace_line"] else 0.0, 1.0, 0, "F.5.6.4 b vs c")
+ex15 = cockpit_values(json.load(open(os.path.join(ROOT15, "designs", "example_car_layout.json")))["cockpit"])
+check("example car: helmet to the hoop line, mm", ex15["helmet_front_line"], 68.3, 0.05, "over 50 mm")
+check("example car: helmet to the brace line, mm", ex15["helmet_brace_line"], 92.9, 0.05, "over 50 mm")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)
