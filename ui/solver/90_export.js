@@ -44,6 +44,8 @@ root.Susp = {
   accelRun,
   gearingSweep,
   tolerance,
+  setupValues,
+  THREADS,
   tolClass,
   TOL_CAP,
   RULESETS,

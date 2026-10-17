@@ -3,6 +3,13 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.25.0 - 2026-10-17
+
+- **Competition setup sheet** (Export menu, and `setup car.json`): what to set each corner to (camber, toe, corner
+  weight, spring, damper eye to eye, pushrod and tie rod lengths at ride height), what one adjustment does (camber per
+  mm of shim, toe and ride height per turn of a left/right-hand rod), the car's lowest point and bar settings, and
+  boxes to fill in at the track. Python and browser (parity-tested), hand-checked.
+
 ## 1.24.0 - 2026-10-17
 
 - **Jig and tolerance sheet** (Export menu, and `tolerance design.json`): how far each pickup may be off, per axis,

@@ -243,6 +243,25 @@ def cmd_tolerance(a):
     T.print_tolerance(cfg, T.tolerance(cfg, a.tol))
 
 
+def cmd_setup(a):
+    from susp.setup import THREADS, setup_values
+    cfgs = list(C.load_car(a.config)[:2]) if C.is_car_file(a.config) else [load(a.config, warn=False)]
+    pitch = THREADS[a.thread]
+    for c in cfgs:
+        v = setup_values(c, evaluate(c))
+        print(f"\n{c['axle'].capitalize()} corner: set to")
+        print(f"  camber {v['camber']:.2f} deg, toe {v['toe']:.2f} deg per wheel (+ = in); caster {v['caster']:.1f}, KPI {v['kpi']:.1f} deg")
+        print(f"  corner weight {v['corner_kg']:.1f} kg (driver in); tie rod / toe link {v['tie_rod_len']:.1f} mm center to center")
+        if "damper_len" in v:
+            print(f"  spring {v['spring_rate']:.1f} N/mm; damper eye to eye {v['damper_len']:.1f} mm and pushrod {v['pushrod_len']:.1f} mm "
+                  f"at ride height; ride frequency {v['ride_freq']:.2f} Hz")
+        print(f"  camber per 1 mm shim at the upper ball joint: {v['camber_per_mm']:.2f} deg")
+        print(f"  toe per mm of tie rod: {v['toe_per_mm']:.2f} deg; per turn of a LH/RH {a.thread} tie rod: {v['toe_per_mm'] * 2 * pitch:.2f} deg")
+        if v.get("ride_per_mm"):
+            print(f"  ride height per mm of pushrod: {v['ride_per_mm']:.2f} mm; per turn of a LH/RH {a.thread} pushrod: "
+                  f"{v['ride_per_mm'] * 2 * pitch:.2f} mm")
+
+
 def cmd_compare(a):
     cfgs = [load(a.a, warn=False), load(a.b, warn=False)]
     evs = [evaluate(c) for c in cfgs]
@@ -361,6 +380,10 @@ def main():
     p.add_argument("config")
     p.add_argument("--tol", type=float, default=1.0, help="the error to test each coordinate with, mm (default 1)")
     p.set_defaults(fn=cmd_tolerance)
+    p = sub.add_parser("setup", help="setup sheet values: what to set each corner to and what one turn of each adjuster does")
+    p.add_argument("config", help="a design or a car file")
+    p.add_argument("--thread", default="3/8-24 UNF", choices=["3/8-24 UNF", "5/16-24 UNF", "1/4-28 UNF", "M8x1.25", "M10x1.25", "M10x1.5"])
+    p.set_defaults(fn=cmd_setup)
     p = sub.add_parser("compare", help="side-by-side metrics for two configs")
     p.add_argument("a")
     p.add_argument("b")

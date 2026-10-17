@@ -34,6 +34,7 @@ It covers the four suspension decisions a team makes before it has a car:
 | Rules | `rules car.json` | the car against the **FSAE 2027 (IC)** rules by rule number: wheelbase, track ratio, tilt test, wheel travel, wheel size, critical fasteners, rod-end shear, steering lock-up, tire keep-out zones, driver template and roll hoops in side view, plus a checklist of what it can't measure |
 | Layout and drivetrain | `layout car.json` | **mass, CG height, weight split and inertia** from a parts list; gear speeds, shift points, the **75 m acceleration time** and a **final drive sweep** |
 | Building it | `tolerance front.json`, Export → Jig and tolerance sheet | how far each pickup may be off (per axis) before a target is lost: which points need a **precise jig** |
+| At the track | `setup car.json`, Export → Setup sheet | what to set each corner to (camber, toe, corner weights, damper, pushrod and tie rod lengths) and **what one turn of each adjuster does** |
 
 ## Browser UI (`ui/index.html`)
 A KineSolver-style interface for the same solver. Use the hosted link above, or build it with
@@ -247,6 +248,14 @@ metric that sets it. Under ±0.5 mm: a precise jig and a check after welding; un
 or more: ordinary care. Per target it also gives the likely miss (RSS) and the worst case with every point ±1 mm.
 Static camber and toe are left out (shimmed at alignment); a second allowance assumes bump steer is shimmed after the
 build too (a shim stack at the tie rod's outer end), which usually loosens the tie-rod and ball-joint heights.
+
+## Setup sheet (`setup car.json`, or Export → Setup sheet)
+A printable page per car (or corner): static camber and toe, caster and KPI, corner weight with the driver in, spring
+rate, and the lengths to build to at ride height (damper eye to eye, pushrod and tie rod center to center), then what
+one adjustment does: camber per 1 mm of shim at the upper ball joint (1 ÷ the ball-joint spacing), toe per mm and per
+turn of a left/right-hand tie rod (1 ÷ the tie rod's arm about the steering axis; one turn = two thread pitches), and
+ride height per mm and per turn of the pushrod (1 ÷ its installation ratio). Boxes for tire pressures, temperatures,
+damper clicks and measured values to fill in at the track. `--thread` picks the rod-end thread (default 3/8-24 UNF).
 
 ## Frame stiffness (Car view → Frame stiffness, or `vehicle.frame_k`)
 A frame that twists lets the front and rear of the body roll by different amounts, so part of what the springs and

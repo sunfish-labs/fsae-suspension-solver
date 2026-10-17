@@ -69,7 +69,7 @@ const REPORT_CSS = `:root{--s1:#2F5D7C;--s2:#9E7E38;--s3:#4C7A5A;--base:#9a9ca0;
     body{font:13px/1.45 "IBM Plex Sans",system-ui,sans-serif;color:#15212b;margin:24px auto;max-width:1000px;padding:0 16px}
     h1{font-size:26px;margin:0}header p{color:#5a6876;margin:2px 0 10px}h2{font-size:19px;margin:26px 0 8px;border-bottom:2px solid #15212b;padding-bottom:3px}h3{font-size:14px;margin:16px 0 6px}
     table{border-collapse:collapse;width:100%;margin:6px 0 10px}th,td{border-bottom:1px solid #d9dee3;padding:4px 6px;text-align:left;vertical-align:top}.jtab td:nth-child(2){min-width:220px}th{font-size:11px;text-transform:uppercase;color:#5a6876}td.n{text-align:right;font-family:"IBM Plex Mono",ui-monospace,monospace}
-    .ok{color:#1f7a46;font-weight:600}.bad{color:#b42318;font-weight:600}.warnc{color:#9a6700;font-weight:600}.pill{display:inline-block;border-radius:99px;padding:2px 10px;font-weight:600}.okb{background:#dcf1e4;color:#1f7a46}.badb{background:#fbe3df;color:#b42318}
+    .ok{color:#1f7a46;font-weight:600}.bad{color:#b42318;font-weight:600}.warnc{color:#9a6700;font-weight:600}.setup td.fill{height:22px;border:1px solid #c9ced3}.setup td{border:1px solid #d9dee3}.pill{display:inline-block;border-radius:99px;padding:2px 10px;font-weight:600}.okb{background:#dcf1e4;color:#1f7a46}.badb{background:#fbe3df;color:#b42318}
     .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin:6px 0}.kv div{border:1px solid #d9dee3;border-radius:6px;padding:5px 8px}.kv span{display:block;font-size:11px;color:#5a6876}
     .charts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.chart{border:1px solid #d9dee3;border-radius:6px;padding:6px;break-inside:avoid}.chart h3{margin:0 0 2px;font-size:12px}.chart .cap{display:none}
     .note{color:#5a6876}footer{margin-top:24px;color:#5a6876;font-size:11.5px;border-top:1px solid #d9dee3;padding-top:8px}
@@ -655,6 +655,62 @@ function toleranceHtml() {
   return reportPage(`${X.name} · jig and tolerance`, body);
 }
 
+// ---------------------------------------------------------------- competition setup sheet (values: S.setupValues)
+function setupHtml() {
+  const X = exportScope(),
+    pitch = S.THREADS["3/8-24 UNF"],
+    cols = X.corners.map(k => ({ lab: k.lab, v: S.setupValues(k.e.cfg, k.e) })),
+    blank = '<td class="fill"></td>'.repeat(cols.length * 2),
+    row = (lab, f, unit = "") =>
+      `<tr><td>${lab}</td>${cols.map(c => `<td class="n" colspan="2">${f(c.v) == null ? "–" : f(c.v)}${unit ? " " + unit : ""}</td>`).join("")}</tr>`,
+    fill = lab => `<tr><td>${lab}</td>${blank}</tr>`,
+    head = `<tr><th></th>${cols.map(c => `<th colspan="2">${esc(c.lab)}: left · right</th>`).join("")}</tr>`;
+  let lowest = null;
+  if (X.isCar && car.ground_points && car.ground_points.length) {
+    const p = car.ground_points.reduce((a, q) => (q.at[2] < a.at[2] ? q : a));
+    lowest = `<p class="note">Ride height check: <b>${esc(p.name)}</b> sits ${fmt(p.at[2], 0)} mm off the ground at this setup (the car's lowest point, driver in).</p>`;
+  }
+  const arb = X.isCar
+    ? `<p class="note">Anti-roll bars: front ${fmt(+car.arb.front || 0, 0)}, rear ${fmt(+car.arb.rear || 0, 0)} N/mm at the wheel${car.front.arb || car.rear.arb ? " (linkage in the car file)" : ""}.</p>`
+    : "";
+  const body = `<header><h1>${esc(X.name)}</h1><p>Setup sheet · printed ${esc(new Date().toLocaleDateString())} · Event ________ · Driver ________ · Track temp ____</p></header>
+    <h2>Set to</h2>
+    <table class="setup"><thead>${head}</thead><tbody>
+    ${row("Static camber", v => fmt(v.camber, 2), "°")}
+    ${row("Toe per wheel (+ = in)", v => fmt(v.toe, 2), "°")}
+    ${row("Caster / KPI (fixed)", v => `${fmt(v.caster, 1)} / ${fmt(v.kpi, 1)}`, "°")}
+    ${row("Corner weight, driver in", v => fmt(v.corner_kg, 1), "kg")}
+    ${row("Spring rate", v => (v.spring_rate ? `${fmt(v.spring_rate, 1)} N/mm (${fmt(v.spring_rate / 0.175127, 0)} lb/in)` : null))}
+    ${row("Damper eye to eye at ride height", v => (v.damper_len ? fmt(v.damper_len, 1) : null), "mm")}
+    ${row("Pushrod, center to center", v => (v.pushrod_len ? fmt(v.pushrod_len, 1) : null), "mm")}
+    ${row("Tie rod / toe link, center to center", v => fmt(v.tie_rod_len, 1), "mm")}
+    ${row("Ride frequency", v => (v.ride_freq ? fmt(v.ride_freq, 2) : null), "Hz")}
+    </tbody></table>${lowest || ""}${arb}
+    <h2>What one adjustment does</h2>
+    <table class="setup"><thead>${head}</thead><tbody>
+    ${row("Camber per 1 mm shim at the upper ball joint", v => fmt(v.camber_per_mm, 2), "°")}
+    ${row("Toe per mm of tie rod length", v => fmt(v.toe_per_mm, 2), "°")}
+    ${row("Toe per turn of a LH/RH tie rod (3/8-24: 2 × 1.06 mm)", v => fmt(v.toe_per_mm * 2 * pitch, 2), "°")}
+    ${row("Ride height per mm of pushrod length", v => (v.ride_per_mm ? fmt(v.ride_per_mm, 2) : null), "mm")}
+    ${row("Ride height per turn of a LH/RH pushrod (3/8-24)", v => (v.ride_per_mm ? fmt(v.ride_per_mm * 2 * pitch, 2) : null), "mm")}
+    </tbody></table>
+    <p class="note">Small changes, at ride height. A longer pushrod raises the car; more shim at the upper ball joint gives more negative camber only if the shim pushes the joint inboard: check your upright. Set camber first, then toe (camber changes toe), then ride height and corner weights, then toe again.</p>
+    <h2>At the track</h2>
+    <table class="setup"><thead>${head}</thead><tbody>
+    ${fill("Tire pressure cold / hot, kPa or psi")}
+    ${fill("Tire temperature in / mid / out")}
+    ${fill("Damper clicks: bump / rebound")}
+    ${fill("Measured camber, °")}
+    ${fill("Measured toe, °")}
+    ${fill("Measured ride height, mm")}
+    ${fill("Measured corner weight, kg")}
+    ${fill("Notes")}
+    </tbody></table>
+    <p class="note">Cross weight (front left + rear right) ÷ total should be 50 % for a car that turns the same both ways. Signed off: ______________</p>
+    <footer>Values from the design at ride height; rigid links. Generated by the FSAE Suspension Solver.</footer>`;
+  return reportPage(`${X.name} · setup sheet`, body);
+}
+
 // ---------------------------------------------------------------- menu
 function wireExport() {
   const menu = $("#xmenu");
@@ -682,6 +738,14 @@ function wireExport() {
   $("#xMis").addEventListener("click", () => {
     ex.open = false;
     download(fileBase(exportScope().name) + "_misalignment.html", new Blob([misalignHtml()], { type: "text/html" }));
+  });
+  $("#xSetup").addEventListener("click", () => {
+    ex.open = false;
+    try {
+      download(fileBase(exportScope().name) + "_setup_sheet.html", new Blob([setupHtml()], { type: "text/html" }));
+    } catch (x) {
+      $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner bad">Setup sheet failed: ${esc(x.message)}</div>`);
+    }
   });
   $("#xTol").addEventListener("click", () => {
     ex.open = false;

@@ -815,6 +815,18 @@ check("tolerance: allowance = tol x margin / (effect x sqrt(N)), mm", r23["allow
 check("tolerance: RSS <= worst case for every target", float(all(m["rss"] <= m["worst"] + 1e-12 for m in T23["metrics"])), 1.0, 0, "")
 check("tolerance: with bump-steer shims the tie rod height loosens", float(r23["allowed_shim"] > 5 * r23["allowed"]), 1.0, 0, "")
 
+# 24. setup sheet values (susp/setup.py)
+from susp.setup import setup_values  # noqa: E402
+e24 = evaluate(c23)
+v24 = setup_values(c23, e24)
+h24 = e24["susp"].h
+check("setup: camber per mm of shim = 1 / ball-joint spacing, deg", v24["camber_per_mm"], math.degrees(1 / np.linalg.norm(h24["ubj"] - h24["lbj"])), 1e-12, "small angle")
+check("setup: corner weight = mass x front share / 2, kg", v24["corner_kg"], c23["vehicle"]["mass"] * c23["vehicle"]["weight_front"] / 2, 1e-12, "")
+xs24 = e24["susp"].states([-1.0, 1.0])
+L24 = [np.linalg.norm(e24["spring"].state(xs24[d])["rod_out"] - e24["spring"].static()["rod_in"]) for d in (-1.0, 1.0)]
+check("setup: the pushrod's installation ratio ~ how its length to the static rocker end changes per mm of travel", v24["pushrod_ratio"],
+      abs(L24[1] - L24[0]) / 2, 2e-3, "finite difference with the rocker held")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)

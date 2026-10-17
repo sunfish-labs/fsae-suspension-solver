@@ -440,6 +440,10 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   const [td] = await Promise.all([p.waitForEvent("download", { timeout: 60000 }), p.click("#xTol")]);
   const tf = path.join(os.tmpdir(), td.suggestedFilename()); await td.saveAs(tf); const tol = fs.readFileSync(tf, "utf8");
   check("Jig and tolerance sheet: every pickup with an allowance per axis and what it needs", /jig and tolerance<\/title>/.test(tol) && /Tie rod/i.test(tol) && /precise jig|jig|shop tolerance/.test(tol) && /Likely miss/.test(tol), td.suggestedFilename());
+  await p.click("#exMenu summary"); await settle(p);
+  const [sd] = await Promise.all([p.waitForEvent("download"), p.click("#xSetup")]);
+  const sf = path.join(os.tmpdir(), sd.suggestedFilename()); await sd.saveAs(sf); const sup = fs.readFileSync(sf, "utf8");
+  check("Setup sheet: what to set, what one turn does, and boxes for the track", /setup sheet<\/title>/.test(sup) && /Toe per turn of a LH\/RH tie rod/.test(sup) && /Damper clicks/.test(sup), sd.suggestedFilename());
 
   console.log("\nChassis model");
   {
