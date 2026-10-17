@@ -15,7 +15,7 @@ XL 3+ days.
    are nearly parallel (the roll center jumps around); a note when a bump case is skipped because the wheel can't
    reach that travel; a note that the combined design loads ask for more grip than the tire has, on purpose; the
    small accessibility fixes (accent contrast, live status and error regions, a mark on failing cells besides color).
-2. **SolidWorks to solver in one step** (M). Paste or upload a points table in the browser (today: command line
+2. ~~**SolidWorks to solver in one step**~~ (done in 1.13.0; try the macro on the real model). Paste or upload a points table in the browser (today: command line
    only), pick the SolidWorks axes, with sanity checks (swapped points, contact patch off the ground, wrong axle) and a
    one-page how-to for exporting the hardpoints from SolidWorks. Needs: one real export from the team's model.
 3. **Whole-car check page and report** (L). Every check on the car on one page: geometry targets, clearances (links,
@@ -69,6 +69,8 @@ XL 3+ days.
 
 ## Done recently
 
+- Points from CAD: a SolidWorks point table into the open design, with name matching, axes and units guessed,
+  checks before applying, and a SolidWorks macro that writes the table (1.13.0)
 - Guardrails: singular link layouts refused on both statics paths, sweep steps checked, near-parallel arms
   warned, skipped bump cases and over-grip design loads noted, accessibility fixes (1.12.0)
 - Rocker strength: pin holes (bearing, tear-out) and arm bending from the plates' sizes and alloy (1.11.0)

@@ -139,6 +139,35 @@
   </div>
 </div>
 
+<div class="welcome" id="impDlg" hidden>
+  <div class="wcard impcard" role="dialog" aria-modal="true" aria-labelledby="impTitle">
+    <button class="btn small wclose" type="button" id="impClose" aria-label="Close">✕</button>
+    <h2 id="impTitle">Points from CAD</h2>
+    <p class="note">Paste or open a point table from SolidWorks (or any CAD): one point per line, a name and its X, Y, Z. It updates the hardpoints of the design that's open, so check the results after. Read in your browser, never uploaded.</p>
+    <textarea id="impText" class="imptext" rows="7" spellcheck="false" aria-label="Point table" placeholder="FR upper ball joint, -8.8, 534.5, 603.3&#10;FR lower ball joint, 0, 135, 587&#10;..."></textarea>
+    <div class="laybtns"><button class="btn small" type="button" id="impPick">Open a CSV or text file…</button><input id="impFile" type="file" accept=".csv,.txt,.tsv,text/csv,text/plain" hidden>
+      <button class="btn small" type="button" id="impMacro">Download the SolidWorks macro</button></div>
+    <details class="cadhelp"><summary>How to get the points out of SolidWorks</summary>
+      <ol>
+        <li><b>Make each hardpoint a reference point</b> (Insert → Reference Geometry → Point) at the top level of a part or assembly, a skeleton part works well, and <b>rename it</b> so the solver can tell what it is: <span class="mono">FR upper ball joint</span>, <span class="mono">FR lower inboard front</span>, <span class="mono">FR tie rod outboard</span>, <span class="mono">FR contact patch</span> (or <span class="mono">FR wheel center</span>), <span class="mono">FR rocker pivot</span>, <span class="mono">RR damper chassis</span>… FR / RR / FL / RL (or front / rear) say the axle and side.</li>
+        <li><b>Run the macro</b> (the button above; Tools → Macro → New, paste its code, run). It writes <span class="mono">yourmodel_hardpoints.csv</span> next to the model, in mm, measured from a coordinate system you name or the model's origin.</li>
+        <li><b>Open that file here.</b> Check the axes the solver guessed and what each point was matched to, then Apply.</li>
+      </ol>
+      <p class="note">No macro? Use Tools → Evaluate → Measure on each point and type a line per point here: <span class="mono">name, X, Y, Z</span>. Units are guessed from the size of the numbers (you can change them).</p></details>
+    <div class="fields impopts">
+      <div class="field"><label for="impUnits">Units in the table</label><select id="impUnits"><option value="mm">mm</option><option value="m">m</option><option value="in">inches</option><option value="cm">cm</option></select></div>
+      <div class="field"><label for="impFwd">Forward is your</label><select id="impFwd"></select></div>
+      <div class="field"><label for="impUp">Up is your</label><select id="impUp"></select></div>
+      <div class="field"><label for="impRight">Right (outboard) is your</label><select id="impRight"></select></div>
+      <div class="field"><label for="impAxle">Points with no axle in the name are</label><select id="impAxle"><option value="front">Front</option><option value="rear">Rear</option></select></div>
+    </div>
+    <div class="laybtns"><button class="btn small" type="button" id="impGuess">Guess the axes from the points</button>
+      <label class="small-check"><input type="checkbox" id="impGround" checked> Put each axle's contact patch on the ground at X = 0 (as the solver keeps them)</label></div>
+    <div id="impChecks"></div>
+    <div id="impTable"></div>
+    <div class="laybtns impfoot"><button class="btn primary" type="button" id="impApply" disabled>Apply to the design</button><button class="btn" type="button" id="impCancel">Cancel</button></div>
+  </div>
+</div>
 <div class="welcome" id="cadDlg" hidden>
   <div class="wcard cadcard" role="dialog" aria-modal="true" aria-labelledby="cadTitle">
     <button class="btn small wclose" type="button" id="cadClose" aria-label="Close">✕</button>
@@ -353,6 +382,7 @@
 </script>
 <script>
 const PRESETS = /*PRESETS*/;
+const SW_MACRO = /*SW_MACRO*/;
 </script>
 <script>
 /*APP_JS*/

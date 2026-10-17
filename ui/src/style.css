@@ -461,3 +461,14 @@ body.simple .adv { display: none !important; }
 .rtab td.nowrap { white-space: nowrap; }
 .rtab td:nth-child(2) { white-space: normal; min-width: 14em; }
 .cksvg { width: 100%; max-width: 640px; height: auto; display: block; margin: 8px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+/* Points from CAD dialog */
+.impcard { width: min(880px, 100%); }
+.impcard h2 { font-size: 24px; }
+.imptext { width: 100%; min-height: 130px; height: 130px; font-family: var(--mono, "IBM Plex Mono", monospace); font-size: 12.5px; resize: vertical; }
+.impopts { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.impopts select { width: 100%; }
+#impTable select { width: 100%; min-width: 150px; font-size: 12.5px; }
+#impTable td.unmatched { color: var(--warn); }
+.impfoot { position: sticky; bottom: -22px; background: var(--panel); padding: 8px 0; }
+.impchk li { margin: 2px 0; }
+.warn-t { color: var(--warn); }

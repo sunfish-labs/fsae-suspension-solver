@@ -7,6 +7,6 @@ module.exports = [
   { files: [".lint/susp.js", ".lint/cad.js", ".lint/glossary.js"], languageOptions: { ecmaVersion: 2022, sourceType: "script",
       globals: { ...globals.browser, ...globals.node } }, rules },
   { files: [".lint/app.js"], languageOptions: { ecmaVersion: 2022, sourceType: "script",
-      globals: { ...globals.browser, THREE: "readonly", XLSX: "readonly", PRESETS: "readonly" } }, rules },
+      globals: { ...globals.browser, THREE: "readonly", XLSX: "readonly", PRESETS: "readonly", SW_MACRO: "readonly" } }, rules },
   { files: ["*.js"], ignores: [".lint/**"], languageOptions: { ecmaVersion: 2022, sourceType: "commonjs", globals: { ...globals.node, ...globals.browser } }, rules },
 ];

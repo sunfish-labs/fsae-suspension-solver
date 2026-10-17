@@ -3,6 +3,19 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.13.0 - 2026-10-17
+
+- **Points from CAD** (Open ▾ → Points from CAD (SolidWorks)…): paste or open a point table and update the open
+  design's hardpoints and spring points, one corner or both corners of a car. Names are matched in words (FR upper
+  ball joint, LCA front, toe link inner, rocker damper…) and can be reassigned in a table; units (mm, m, inches) and
+  the CAD's axes are guessed from the points (up from the ball joints, outboard from the pivots, forward from the
+  front wheels or front/rear-named pivots); left-hand points are mirrored; the contact patch goes on the ground at
+  X = 0 (or the wheel center less the tire radius); the rocker axis comes from a second point on it. The checks on the
+  result, its roll center, camber gain, caster, KPI and track, and the CAD's wheelbase show before you apply, and a
+  reversed forward axis is caught. Undo takes it back.
+- A SolidWorks macro, `tools/solidworks/ExportHardpoints.bas` (also downloadable from the dialog), writes every
+  reference point of the open part or assembly to that table, in mm, from a chosen coordinate system.
+
 ## 1.12.0 - 2026-10-17
 
 - **Guardrails.** A link layout that can't hold the wheel (two links on one line) is refused with a plain message on

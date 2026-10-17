@@ -108,6 +108,30 @@ Bump steer has two parts. **Slope** (deg/in) comes from tie-rod height: fix it w
 Example:
 `optimize front.json --vary trackrod_inboard.y,trackrod_inboard.z --goal bump_steer=0:0.01 --goal bump_steer_curve=0:0.01 --min-clearance 26`
 
+## Points from SolidWorks (or any CAD) into the solver
+In the web app, **Open ▾ → Points from CAD (SolidWorks)…** takes a point table (paste it, or open a CSV or text file)
+and updates the open design's hardpoints and spring points: one corner, or both corners of an open car file.
+1. In SolidWorks, make each hardpoint a reference point (Insert → Reference Geometry → Point) at the top level of a
+   part or assembly (a skeleton part works well) and rename it so it can be told apart: `FR upper ball joint`,
+   `FR lower inboard front`, `FR tie rod outboard`, `FR contact patch` (or `FR wheel center`), `FR pushrod outboard`,
+   `FR rocker pivot`, `FR rocker axis` (a second point on the pivot bolt's axis), `FR rocker pushrod`,
+   `FR rocker damper`, `FR damper chassis`; RR for the rear, FL / RL for left-hand points (or the words front, rear,
+   left, right). UCA / LCA, BJ, inner / outer, toe link, shock and bellcrank are understood too.
+2. Run the macro `tools/solidworks/ExportHardpoints.bas` (also a download button in the import dialog): it writes
+   `yourmodel_hardpoints.csv` next to the model, in mm, from a coordinate system you name or the model's origin. No
+   macro: Tools → Evaluate → Measure on each point and type `name, X, Y, Z` per line. The macro hasn't been run by us
+   on SolidWorks yet, so tell us if it trips.
+3. In the dialog, check what each point was matched to (change any in the table) and the axes it guessed: up from the
+   ball joints, outboard from the inboard pivots to the wheel, forward from the front wheels being ahead of the rear
+   or from pivots named front and rear. Units are guessed from the size of the numbers (mm, m, inches). Left-hand
+   points are mirrored to the right-hand corner the solver uses; the contact patch is put on the ground at X = 0 (the
+   wheel center less the tire radius if there's no contact patch point). Before you apply, it shows the checks on
+   the result (swapped ball joints, a reversed forward axis caught by negative caster or the pivots' names) and its
+   roll center, camber gain, caster, KPI and track, and the wheelbase from the CAD for a car. Undo takes it back.
+
+The command line's `import pts.csv --axle front --map "z,x,y"` still builds a new design from a `name,x,y,z` table
+that uses the solver's own point names.
+
 ## Exporting to CAD (SolidWorks, Fusion, Onshape)
 In the web app, **Export ▾ → 3D for CAD…** writes the corner (or, in the Car view, the whole car with all four corners)
 as reference geometry for the chassis designer:
