@@ -43,8 +43,8 @@ XL 3+ days.
 
 ## This season, if there's time
 
-9. **Jig and tolerance report** (M). Which hardpoints need precise fixturing for the team's fabrication tolerance.
-10. **Competition setup sheet** (M). Alignment, ride height, spring preload and bar setting per corner, printable.
+9. ~~**Jig and tolerance report**~~ (done in 1.24.0) (M). Which hardpoints need precise fixturing for the team's fabrication tolerance.
+10. ~~**Competition setup sheet**~~ (done in 1.25.0) (M). Alignment, ride height, spring preload and bar setting per corner, printable.
 11. **"Start here" tour** (S). Five minutes on reading the check page and what each area means.
 12. **Housekeeping** (XS, done by hand). Create the missing `v0.9.0` tag on GitHub (Releases -> Draft a new release ->
     tag `v0.9.0`, target commit `e3fee2a`); delete the old desktop copy (the GitHub Desktop clone replaces it).
