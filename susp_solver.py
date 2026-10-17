@@ -238,6 +238,11 @@ def cmd_sens(a):
     T.print_sens(cfg, a.delta, cols, rows, base, a.metric, a.top)
 
 
+def cmd_tolerance(a):
+    cfg = load(a.config, warn=False)
+    T.print_tolerance(cfg, T.tolerance(cfg, a.tol))
+
+
 def cmd_compare(a):
     cfgs = [load(a.a, warn=False), load(a.b, warn=False)]
     evs = [evaluate(c) for c in cfgs]
@@ -352,6 +357,10 @@ def main():
     p.add_argument("--top", type=int)
     p.add_argument("--spring", action="store_true", help="vary the pushrod/rocker/damper points instead")
     p.set_defaults(fn=cmd_sens)
+    p = sub.add_parser("tolerance", help="build tolerance: how far each pickup may be off before a target is lost (for the jig)")
+    p.add_argument("config")
+    p.add_argument("--tol", type=float, default=1.0, help="the error to test each coordinate with, mm (default 1)")
+    p.set_defaults(fn=cmd_tolerance)
     p = sub.add_parser("compare", help="side-by-side metrics for two configs")
     p.add_argument("a")
     p.add_argument("b")

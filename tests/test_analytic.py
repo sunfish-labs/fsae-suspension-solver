@@ -802,6 +802,19 @@ check("gearing: each row is the acceleration run with that final drive, s", row2
 check("gearing: best = the quickest final whose top speed reaches the need", float(sw22["best"]["time"] == min(r["time"] for r in sw22["rows"] if r["reaches"])
       and all(r["reaches"] == (r["top_speed"] * 3.6 >= 105 - 1e-9) for r in sw22["rows"])), 1.0, 0, "105 km/h, D.12.2.2")
 
+# 23. build tolerance (tools/tolerance.py): each coordinate's allowance from its effect and the target's room
+from susp.tools import tolerance as _tol23  # noqa: E402
+c23 = load_config(os.path.join(ROOT15, "designs", "example_front.json"))
+T23 = _tol23(c23, 1.0)
+m23 = {m["key"]: m for m in T23["metrics"]}
+r23 = next(r for r in T23["coords"] if r["point"] == "trackrod_inboard" and r["axis"] == "z")
+e23 = r23["effects"]["bump_steer"]
+check("tolerance: the tie rod's inner end height is limited by bump steer", float(r23["limit"] == "bump_steer"), 1.0, 0, "the classic one")
+check("tolerance: allowance = tol x margin / (effect x sqrt(N)), mm", r23["allowed"],
+      1.0 * m23["bump_steer"]["margin"] / (e23 * math.sqrt(m23["bump_steer"]["n"])), 1e-12, "RSS share of the room to the target")
+check("tolerance: RSS <= worst case for every target", float(all(m["rss"] <= m["worst"] + 1e-12 for m in T23["metrics"])), 1.0, 0, "")
+check("tolerance: with bump-steer shims the tie rod height loosens", float(r23["allowed_shim"] > 5 * r23["allowed"]), 1.0, 0, "")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)

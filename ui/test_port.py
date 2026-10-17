@@ -69,6 +69,7 @@ for n, raw in cfgs.items():
                         + [[k, v["case"], "arm", v["moment"], v["sf"]] for k, v in L["rocker_check"]["arms"].items()]
                         + [["all", L["rocker_check"]["governs"], "", L["rocker_check"]["out_of_plane"], L["rocker_check"]["sf"]]])
              if L and L.get("rocker_check") else None,
+             "tol": [[r["point"], r["axis"], fin(r["allowed"]), fin(r["allowed_shim"])] for r in __import__("susp.tools", fromlist=["tolerance"]).tolerance(c, 1.0)["coords"]] if n.startswith("example_front") else None,
              "brg": [[r["part"], r["case"], r["peak"]] for r in L["bearings"]] if L else None,
              "parts": [float(r["sf_bolt"]) for r in L["parts"] if r["sf_bolt"] is not None and math.isfinite(r["sf_bolt"])] if L else None,
              "dur": [[fin(r["sf"]) for r in L["durability"]["tabs"]], [[fin(r["n"]), r["s_a"], r["allow"]] for r in L["durability"]["fatigue"]]] if L else None,
@@ -132,6 +133,9 @@ for (const [n, raw] of Object.entries(d.cfgs)) {
     if (rows.length !== p.fea.length) bad.push(`${n} FEA rows: py ${p.fea.length} js ${rows.length}`);
     else p.fea.forEach((row, i) => row.forEach((v, q) => { if (q < 3) { if (rows[i][q] !== v) bad.push(`${n} FEA row ${i} ${q}: ${v} vs ${rows[i][q]}`); return; }
       const r = Math.abs(rows[i][q] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} FEA ${row.slice(0, 3).join(" / ")} ${q}: py ${v} js ${rows[i][q]}`); })); }
+  if (p.tol) { const j = Susp.tolerance(raw, 1).coords;
+    p.tol.forEach(([pt, ax, a, sh], i) => { const r = j[i]; if (!r || r.point !== pt || r.axis !== ax) { bad.push(`${n} tolerance row ${i}`); return; }
+      for (const [v, w] of [[a, r.allowed], [sh, r.allowed_shim]]) { if (v === null && !isFinite(w)) continue; const d = Math.abs(w - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, d); if (d > 1e-6) bad.push(`${n} tolerance ${pt}.${ax}: py ${v} js ${w}`); } }); }
   if (p.brg) { const j = L.bearings.map(r => [r.part, r.case, r.peak]);
     if (j.length !== p.brg.length) bad.push(`${n} bearing rows: py ${p.brg.length} js ${j.length}`);
     else p.brg.forEach(([part, c, v], i) => { if (j[i][0] !== part || j[i][1] !== c) bad.push(`${n} bearing ${part}: py ${c} js ${j[i][1]}`);

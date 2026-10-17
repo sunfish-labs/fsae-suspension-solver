@@ -436,6 +436,10 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   const [rd] = await Promise.all([p.waitForEvent("download"), p.click("#xReport")]);
   const rf = path.join(os.tmpdir(), rd.suggestedFilename()); await rd.saveAs(rf);
   check("the design report has it as its own section", /<h2 class="pb">Rod ends and bearings: misalignment<\/h2>/.test(fs.readFileSync(rf, "utf8")));
+  await p.click("#exMenu summary"); await settle(p);
+  const [td] = await Promise.all([p.waitForEvent("download", { timeout: 60000 }), p.click("#xTol")]);
+  const tf = path.join(os.tmpdir(), td.suggestedFilename()); await td.saveAs(tf); const tol = fs.readFileSync(tf, "utf8");
+  check("Jig and tolerance sheet: every pickup with an allowance per axis and what it needs", /jig and tolerance<\/title>/.test(tol) && /Tie rod/i.test(tol) && /precise jig|jig|shop tolerance/.test(tol) && /Likely miss/.test(tol), td.suggestedFilename());
 
   console.log("\nChassis model");
   {

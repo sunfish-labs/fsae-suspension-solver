@@ -69,7 +69,7 @@ const REPORT_CSS = `:root{--s1:#2F5D7C;--s2:#9E7E38;--s3:#4C7A5A;--base:#9a9ca0;
     body{font:13px/1.45 "IBM Plex Sans",system-ui,sans-serif;color:#15212b;margin:24px auto;max-width:1000px;padding:0 16px}
     h1{font-size:26px;margin:0}header p{color:#5a6876;margin:2px 0 10px}h2{font-size:19px;margin:26px 0 8px;border-bottom:2px solid #15212b;padding-bottom:3px}h3{font-size:14px;margin:16px 0 6px}
     table{border-collapse:collapse;width:100%;margin:6px 0 10px}th,td{border-bottom:1px solid #d9dee3;padding:4px 6px;text-align:left;vertical-align:top}.jtab td:nth-child(2){min-width:220px}th{font-size:11px;text-transform:uppercase;color:#5a6876}td.n{text-align:right;font-family:"IBM Plex Mono",ui-monospace,monospace}
-    .ok{color:#1f7a46;font-weight:600}.bad{color:#b42318;font-weight:600}.pill{display:inline-block;border-radius:99px;padding:2px 10px;font-weight:600}.okb{background:#dcf1e4;color:#1f7a46}.badb{background:#fbe3df;color:#b42318}
+    .ok{color:#1f7a46;font-weight:600}.bad{color:#b42318;font-weight:600}.warnc{color:#9a6700;font-weight:600}.pill{display:inline-block;border-radius:99px;padding:2px 10px;font-weight:600}.okb{background:#dcf1e4;color:#1f7a46}.badb{background:#fbe3df;color:#b42318}
     .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin:6px 0}.kv div{border:1px solid #d9dee3;border-radius:6px;padding:5px 8px}.kv span{display:block;font-size:11px;color:#5a6876}
     .charts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.chart{border:1px solid #d9dee3;border-radius:6px;padding:6px;break-inside:avoid}.chart h3{margin:0 0 2px;font-size:12px}.chart .cap{display:none}
     .note{color:#5a6876}footer{margin-top:24px;color:#5a6876;font-size:11.5px;border-top:1px solid #d9dee3;padding-top:8px}
@@ -607,6 +607,54 @@ async function exportXlsx() {
   XL.writeFile(wb, fileBase(X.name) + ".xlsx");
 }
 
+// ---------------------------------------------------------------- jig and tolerance sheet (mirrors susp/tools/tolerance.py)
+function toleranceSection(lab, c) {
+  const T = S.tolerance(c, 1),
+    mm = v => (v >= S.TOL_CAP ? `±${S.TOL_CAP}+` : `±${fmt(v, 1)}`),
+    cls = v => (v < 0.5 ? "bad" : v < 1 ? "warnc" : ""),
+    by = {};
+  for (const r of T.coords) (by[r.point] = by[r.point] || {})[r.axis] = r;
+  const pts = Object.entries(by).sort(
+    (a, b) => Math.min(...Object.values(a[1]).map(r => r.allowed)) - Math.min(...Object.values(b[1]).map(r => r.allowed))
+  );
+  const nm = p => pointName(p.startsWith("spring.") ? p : "hardpoints." + p);
+  let h = `<h2>${esc(lab)}${c.name ? ": " + esc(c.name) : ""}</h2>
+    <table><thead><tr><th>Point</th><th>Built in</th><th class="n">Fore-aft (X)</th><th class="n">In-out (Y)</th><th class="n">Up-down (Z)</th><th>Needs</th><th>Limited by</th><th class="n">With bump-steer shims</th></tr></thead><tbody>
+    ${pts
+      .map(([p, d]) => {
+        const lim = Object.values(d).reduce((a, r) => (r.allowed < a.allowed ? r : a)),
+          sh = Math.min(...Object.values(d).map(r => r.allowed_shim));
+        return `<tr><td>${esc(nm(p))}</td><td>${d.x.where === "upright" ? "upright (machined)" : "chassis (jig)"}</td>${["x", "y", "z"].map(a => `<td class="n ${cls(d[a].allowed)}">${mm(d[a].allowed)}</td>`).join("")}<td class="${cls(lim.allowed)}">${esc(S.tolClass(lim.allowed))}</td><td>${lim.limit ? esc(metricLabel(lim.limit)[0]) : "–"}</td><td class="n">${mm(sh)}</td></tr>`;
+      })
+      .join("")}</tbody></table>
+    <h3>Targets and how a ±1 mm build moves them</h3>
+    <table><thead><tr><th>Metric</th><th class="n">Now</th><th class="n">Room to its target</th><th class="n">Likely miss (RSS)</th><th class="n">Worst case</th><th></th></tr></thead><tbody>
+    ${T.metrics
+      .map(m => {
+        const [l, u, dd] = metricLabel(m.key),
+          st =
+            m.margin <= 0
+              ? ["already off target", "bad"]
+              : m.worst <= m.margin
+                ? ["fine", "ok"]
+                : m.rss <= m.margin
+                  ? ["fine (likely)", "ok"]
+                  : ["at risk", "bad"];
+        return `<tr><td>${esc(l)}</td><td class="n">${fmt(m.value, dd)} ${esc(u)}</td><td class="n">${fmt(m.margin, dd)}</td><td class="n">${fmt(m.rss, dd)}</td><td class="n">${fmt(m.worst, dd)}</td><td class="${st[1]}">${st[0]}</td></tr>`;
+      })
+      .join("")}</tbody></table>`;
+  return h;
+}
+function toleranceHtml() {
+  const X = exportScope();
+  const body =
+    `<header><h1>${esc(X.name)}</h1><p>Jig and build tolerance · ${esc(new Date().toLocaleString())}</p></header>
+    <p class="note">How far each pickup may be off before a target is lost. Each coordinate was moved ±1 mm and the corner re-solved; its allowance shares each target's room with every other point that moves it (root sum of squares), so the allowances hold together, not just one at a time. <b>Precise jig</b> (under ±0.5 mm): fixture it and measure it after welding. <b>Jig</b> (under ±1 mm): hold it in the jig. <b>Shop tolerance</b> (±2 mm or more): ordinary care. Static camber and toe are left out (set with shims at alignment). With a shim stack at the tie rod's outer end, bump steer can be tuned after the build: the last column is the tightest allowance then.</p>` +
+    X.corners.map(k => toleranceSection(k.lab, k.c)).join("") +
+    `<footer>Linear estimate from ±1 mm moves of each coordinate; rigid links. Generated by the FSAE Suspension Solver.</footer>`;
+  return reportPage(`${X.name} · jig and tolerance`, body);
+}
+
 // ---------------------------------------------------------------- menu
 function wireExport() {
   const menu = $("#xmenu");
@@ -634,6 +682,19 @@ function wireExport() {
   $("#xMis").addEventListener("click", () => {
     ex.open = false;
     download(fileBase(exportScope().name) + "_misalignment.html", new Blob([misalignHtml()], { type: "text/html" }));
+  });
+  $("#xTol").addEventListener("click", () => {
+    ex.open = false;
+    busyN++;
+    setTimeout(() => {
+      try {
+        download(fileBase(exportScope().name) + "_jig_tolerance.html", new Blob([toleranceHtml()], { type: "text/html" }));
+      } catch (x) {
+        $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner bad">Tolerance sheet failed: ${esc(x.message)}</div>`);
+      } finally {
+        busyN--;
+      }
+    }, 0);
   });
   $("#xXlsx").addEventListener("click", async () => {
     ex.open = false;

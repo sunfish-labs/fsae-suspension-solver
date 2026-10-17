@@ -5,7 +5,8 @@ from .history import HIST_METRICS, hp_flat, log_run, show_history
 from .importer import _ALIASES, _SPRING_ALIASES, import_csv
 from .optimize import optimize, parse_goal, parse_vary
 from .sens import compute_sens, print_sens, sens_cols, spring_cols
+from .tolerance import print_tolerance, tol_class, tolerance
 
 __all__ = ["advise", "print_advice", "TOL", "_fails", "quick", "set_coord", "HIST_METRICS", "hp_flat", "log_run", "show_history",
            "_ALIASES", "_SPRING_ALIASES", "import_csv", "optimize", "parse_goal", "parse_vary", "point_ref",
-           "compute_sens", "print_sens", "sens_cols", "spring_cols"]
+           "compute_sens", "print_sens", "sens_cols", "spring_cols", "tolerance", "print_tolerance", "tol_class"]

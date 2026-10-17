@@ -3,6 +3,14 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.24.0 - 2026-10-17
+
+- **Jig and tolerance sheet** (Export menu, and `tolerance design.json`): how far each pickup may be off, per axis,
+  before a target is lost, from ±1 mm moves of every coordinate and a root-sum-of-squares share of each target's
+  room; which points need a precise jig, a jig or ordinary care, the metric that limits each, the likely and
+  worst-case miss per target, and the allowances if bump steer is shimmed after the build. Python and browser
+  (parity-tested), hand-checked.
+
 ## 1.23.0 - 2026-10-17
 
 - **Final drive sweep** (Car view → Layout → Drivetrain, and `layout`): the acceleration run for finals from 75 to

@@ -32,7 +32,8 @@ It covers the four suspension decisions a team makes before it has a car:
 | Tube, rod-end and tab sizing | `loads` | wishbone-leg, tie-rod, pushrod, damper and rocker forces for bump, cornering, braking and combined cases, plus **buckling and yield safety factors** |
 | Whole car | `car front.json rear.json` | front/rear frequencies, **roll gradient**, **LLTD**, and the **anti-roll bar stiffness** needed |
 | Rules | `rules car.json` | the car against the **FSAE 2027 (IC)** rules by rule number: wheelbase, track ratio, tilt test, wheel travel, wheel size, critical fasteners, rod-end shear, steering lock-up, tire keep-out zones, driver template and roll hoops in side view, plus a checklist of what it can't measure |
-| Layout and drivetrain | `layout car.json` | **mass, CG height, weight split and inertia** from a parts list; gear speeds, shift points and the **75 m acceleration time** |
+| Layout and drivetrain | `layout car.json` | **mass, CG height, weight split and inertia** from a parts list; gear speeds, shift points, the **75 m acceleration time** and a **final drive sweep** |
+| Building it | `tolerance front.json`, Export → Jig and tolerance sheet | how far each pickup may be off (per axis) before a target is lost: which points need a **precise jig** |
 
 ## Browser UI (`ui/index.html`)
 A KineSolver-style interface for the same solver. Use the hosted link above, or build it with
@@ -236,6 +237,16 @@ ground, the rear axle one wheelbase behind. The four wheel assemblies come from 
 - **Final drive sweep**: the same run for finals from 75 to 125 % of yours, with each one's top speed, and the
   quickest final that still reaches `top_speed_need` (km/h, default 105: endurance courses are laid out for top
   speeds of about 105 km/h, D.12.2.2). A final whose top speed falls short hits the rev limiter on the course.
+
+## Build tolerance (`tolerance design.json`, or Export → Jig and tolerance sheet)
+Which pickups the jig must hold precisely. Each coordinate of each hardpoint (and the rocker pivot and damper mount)
+is moved ±1 mm and the corner re-solved; its effect on each targeted metric is the larger change. A target's room is
+how far it sits inside its range. Each coordinate's allowance shares that room with every other coordinate that moves
+the metric (root sum of squares): allowed = 1 mm × room ÷ (effect × √N), the smallest over the metrics, with the
+metric that sets it. Under ±0.5 mm: a precise jig and a check after welding; under ±1 mm: hold it in the jig; ±2 mm
+or more: ordinary care. Per target it also gives the likely miss (RSS) and the worst case with every point ±1 mm.
+Static camber and toe are left out (shimmed at alignment); a second allowance assumes bump steer is shimmed after the
+build too (a shim stack at the tie rod's outer end), which usually loosens the tie-rod and ball-joint heights.
 
 ## Frame stiffness (Car view → Frame stiffness, or `vehicle.frame_k`)
 A frame that twists lets the front and rear of the body roll by different amounts, so part of what the springs and
@@ -551,7 +562,7 @@ tries). Change a label or a default there once.
 | `kinematics.py` | the rigid-link solver: heave, roll and steering sweeps, all geometry metrics |
 | `ride.py`, `car.py` | pushrod/rocker/damper, motion ratio, ride and damping; whole-car roll balance |
 | `loads/` | `cases.py`, `statics.py` (incl. the rigid pushrod arm), `strength.py`, `compliance.py` |
-| `tools/` | `sens.py`, `advise.py`, `optimize.py`, `history.py`, `importer.py` |
+| `tools/` | `sens.py`, `advise.py`, `optimize.py`, `history.py`, `importer.py`, `tolerance.py` |
 | `output/` | `text.py` (printouts), `plots.py`, `report.py` + `templates/report.html.j2` (Jinja) |
 | `errors.py` | `SuspError` and its subclasses; the command line prints them as one line |
 
