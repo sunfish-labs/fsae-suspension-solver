@@ -150,8 +150,12 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   await p.click('#axleSeg [data-ax="front"]'); await settle(p);
 
   console.log("\nChallenges solved by following the hints only");
-  for (const id of ["rc", "bs"]) {
+  for (const id of ["rc", "bs", "axis", "dive", "rocker"]) {
     await p.click("#btnStart"); await p.click("#wChal"); await p.click(`[data-ch="${id}"]`); await settle(p);
+    check(`challenge "${id}" starts with goals to fix`, /✗/.test(await text(p, "#chGoals")) && !/Solved/.test(await text(p, "#chDone")), (await text(p, "#chGoals")).slice(0, 200));
+    if (id === "rc") {
+      check("challenge mode: no design check button and no \"What moves this?\" in Targets", !(await p.isVisible("#btnCheck")) && !(await p.$("#pn_checks [data-fixgo]")));
+    }
     for (let i = 0; i < 3; i++) await p.click("#chHint");
     let solved = false;
     for (let step = 0; step < 6 && !solved; step++) {
@@ -162,6 +166,7 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
       solved = /Solved/.test(await text(p, "#chDone"));
     }
     check(`challenge "${id}" solved from the hints`, solved);
+    if (solved) check(`challenge "${id}": hint 3 caps it at 2 stars`, (await p.$$eval("#chDone .chwinh .stars .on", e => e.length)) <= 2);
     await p.click("#chExit"); await settle(p);
   }
   check("leaving a challenge returns to the previous view", ["car", "front"].includes(await pressed(p)));

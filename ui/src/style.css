@@ -304,7 +304,7 @@ table.lvt th.lv-focus { color: var(--ink); } table.lvt td.lv-focus { box-shadow:
 .chwin { border: 2px solid var(--ok); background: var(--ok-bg); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
 .chwin p { margin: 0; font-size: 13px; }
 .chwinh { font: 700 20px/1 var(--f-display); text-transform: uppercase; color: var(--ok); display: flex; gap: 10px; align-items: center; }
-body.chal .rk { display: none; }
+body.chal .rk, body.chal #btnCheck { display: none; }
 body.chal.focus #status, body.chal.focus #errBox, body.chal.focus #tabs, body.chal.focus #panels { display: none; }
 .focusbox { display: flex; flex-direction: column; gap: 8px; }
 .focushd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

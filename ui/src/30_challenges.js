@@ -105,7 +105,162 @@ const CHALLENGES = [
       { name: "Outer end outboard", mv: [["hardpoints.trackrod_outboard", 1, 1]] },
     ],
   },
+  {
+    id: "axis",
+    n: 3,
+    title: "Set the steering axis",
+    stage: "Stage 3 · upright ball joints",
+    start: "Case study 4",
+    mods: [
+      ["hardpoints.lower_outboard", 0, 10],
+      ["hardpoints.lower_outboard", 1, -10],
+    ],
+    tab: "checks",
+    overlay: "kingpin",
+    par: 16,
+    brief:
+      "The upright designer moved the lower ball joint to clear the brake caliper, and now the steering axis is off everywhere: KPI 2°, scrub radius 35 mm, caster 8° and 34 mm of trail. The steering will be heavy and kick back over bumps. Move only the two ball joints, fore/aft (X) and in/out (Y), until KPI, scrub, caster and trail are all in range.",
+    unlock: ["hardpoints.upper_outboard", "hardpoints.lower_outboard"],
+    axes: [0, 1],
+    goals: ["kpi", "scrub", "caster", "trail"],
+    bonus: {
+      fn: (c, c0, e) => !!e && e.metrics.scrub <= 15,
+      text: "Scrub radius 15 mm or less (lighter steering, less kickback)",
+    },
+    concept: [
+      "Click Show me below: the steering axis is the line through the two ball joints. The wheel turns about it, so its tilt decides how the steering feels.",
+      "Seen from the front, the axis leans in at the top: that is KPI. Where it meets the ground, measured to the middle of the tire, is the scrub radius. Seen from the side, the axis leans back at the top: that is caster, and the distance on the ground from the axis to the contact patch is the trail.",
+      "So the side-view (X) moves set caster and trail, and the front-view (Y) moves set KPI and scrub, almost independently. Moving the top and the bottom joint the same way slides the whole axis (mostly scrub or trail); moving them opposite ways tilts it (mostly KPI or caster).",
+    ],
+    show: "kingpin",
+    step: 2,
+    levers: [
+      { name: "Lower ball joint forward", neg: "Lower ball joint rearward", mv: [["hardpoints.lower_outboard", 0, 1]] },
+      { name: "Lower ball joint outboard", mv: [["hardpoints.lower_outboard", 1, 1]] },
+      { name: "Upper ball joint forward", neg: "Upper ball joint rearward", mv: [["hardpoints.upper_outboard", 0, 1]] },
+      { name: "Upper ball joint outboard", mv: [["hardpoints.upper_outboard", 1, 1]] },
+    ],
+  },
+  {
+    id: "dive",
+    n: 4,
+    title: "Stop the nose dive",
+    stage: "Stage 4 · side view",
+    start: "Case study 4",
+    mods: [
+      ["hardpoints.lower_inboard_front", 2, -10],
+      ["hardpoints.lower_inboard_rear", 2, 10],
+      ["hardpoints.upper_inboard_front", 2, 5],
+      ["hardpoints.upper_inboard_rear", 2, -5],
+    ],
+    tab: "heave",
+    overlay: "anti",
+    par: 26,
+    brief:
+      "This corner's front view is good (the roll center is where you put it in challenge 1), but its anti-dive is −20 %: under braking the nose dives even harder than a car with no anti geometry at all. Move only the four inboard pivots, up and down (Z), until anti-dive is 5–20 %, without losing the roll center or adding bump steer.",
+    unlock: [
+      "hardpoints.upper_inboard_front",
+      "hardpoints.upper_inboard_rear",
+      "hardpoints.lower_inboard_front",
+      "hardpoints.lower_inboard_rear",
+    ],
+    axes: [2],
+    goals: ["antidive", "roll_center", "bump_steer"],
+    bonus: {
+      fn: (c, c0, e) => !!e && !!chal && !!chal.rc0 && Math.abs(e.metrics.roll_center - chal.rc0) <= 2,
+      text: "Keep the roll center within 2 mm of where it started",
+    },
+    concept: [
+      "Click Show me below: the view turns to the side. Extend the two wishbones' pivot axes (side view) until they cross: that is the side-view instant center. A line from the tire's contact patch through it, compared with the line to the car's CG, gives the anti-dive.",
+      "Anti-dive comes from the pivot axes' tilt in the side view, not from their height. Raising both pivots of one arm by the same amount mostly moves the roll center; raising one end and lowering the other tilts the axis and mostly changes the anti-dive.",
+      "So tilt the arms. Tilting them so the axes converge toward the car's middle raises anti-dive. Then check the roll center and the bump steer: a tilt that isn't quite equal and opposite moves them a little.",
+    ],
+    show: "anti",
+    step: 2,
+    levers: [
+      {
+        name: "Tilt lower arm (front down, rear up)",
+        neg: "Tilt lower arm (front up, rear down)",
+        mv: [
+          ["hardpoints.lower_inboard_rear", 2, -1],
+          ["hardpoints.lower_inboard_front", 2, 1],
+        ],
+      },
+      {
+        name: "Tilt upper arm (front up, rear down)",
+        neg: "Tilt upper arm (front down, rear up)",
+        mv: [
+          ["hardpoints.upper_inboard_rear", 2, 1],
+          ["hardpoints.upper_inboard_front", 2, -1],
+        ],
+      },
+      {
+        name: "Lower arm up",
+        mv: [
+          ["hardpoints.lower_inboard_front", 2, 1],
+          ["hardpoints.lower_inboard_rear", 2, 1],
+        ],
+      },
+      {
+        name: "Upper arm up",
+        mv: [
+          ["hardpoints.upper_inboard_front", 2, 1],
+          ["hardpoints.upper_inboard_rear", 2, 1],
+        ],
+      },
+    ],
+  },
+  {
+    id: "rocker",
+    n: 5,
+    title: "Fit the cheap spring",
+    stage: "Stage 5 · rocker and damper",
+    start: "Case study 4",
+    mods: [
+      ["spring.rocker_damper", 2, 15],
+      ["spring.rocker_rod", 1, -5],
+      ["spring.rocker_rod", 2, -5],
+    ],
+    targets: { ride_freq: [3.3, 3.7], mr_progression: [0, 10] },
+    tab: "spring",
+    overlay: "motion_ratio",
+    par: 20,
+    brief:
+      "The team bought the cheapest coil-over in the catalog, and its 300 lb/in (52.5 N/mm) spring can't change. On this rocker the corner rides at 4.2 Hz (target 3.3–3.7) and the damper runs out of stroke at both ends. Move only the rocker's two pin holes, the pushrod end and the damper end, in their plane (Y and Z), until the ride frequency is in range, the damper keeps 2 mm spare at full bump and full droop, and the pushrod still pushes at a good angle.",
+    unlock: ["spring.rocker_rod", "spring.rocker_damper"],
+    axes: [1, 2],
+    goals: ["ride_freq", "damper_bottomout", "damper_topout", "trans_min"],
+    bonus: { key: "mr_progression", text: "Motion ratio rising 0–10 % over the travel" },
+    concept: [
+      "Click Show me below: the rocker turns as the wheel moves, and the damper is squeezed by the damper-end pin. The motion ratio is damper travel per wheel travel.",
+      "The wheel feels the spring as spring rate × motion ratio², so a 10 % smaller motion ratio makes the wheel rate about 20 % softer and the ride frequency about 10 % lower. A damper pin closer to the rocker's pivot (shorter lever) gives a smaller motion ratio; a pushrod pin closer to the pivot gives a larger one.",
+      "The same ratio sets how much of the damper's stroke the wheel travel uses, so a smaller ratio also gives more spare stroke. How the ratio changes over the travel (progression) comes from the angles between the rocker arms and the pushrod and damper.",
+    ],
+    show: "motion_ratio",
+    step: 2,
+    levers: [
+      { name: "Damper pin up", mv: [["spring.rocker_damper", 2, 1]] },
+      { name: "Damper pin outboard", mv: [["spring.rocker_damper", 1, 1]] },
+      { name: "Pushrod pin up", mv: [["spring.rocker_rod", 2, 1]] },
+      { name: "Pushrod pin outboard", mv: [["spring.rocker_rod", 1, 1]] },
+    ],
+  },
 ];
+// a challenge's starting design: a case study, then the challenge's moves and target changes
+function chalStart(def) {
+  const c = presetCfg(def.start);
+  if (!c) return null;
+  for (const [p, ax, d] of def.mods || []) {
+    const pt = getPath(c, p);
+    pt[ax] = +(pt[ax] + d).toFixed(2);
+  }
+  if (def.targets) c.targets = { ...(c.targets || {}), ...def.targets };
+  return c;
+}
+// the move's name the other way round
+const SWAP = { " up": " down", " inboard": " outboard", " outboard": " inboard", " forward": " rearward", " rearward": " forward" };
+const leverNeg = lv =>
+  lv.neg || lv.name.replace(/ (up|inboard|outboard|forward|rearward)/, m => SWAP[m]).replace("front down, rear up", "front up, rear down");
 let chal = null; // { def, start, prev, hint, done }
 const chalStore = () => {
   try {
@@ -136,8 +291,9 @@ function openChallenges() {
   $("#crail").innerHTML =
     `<div class="card crail-card"><div class="crhead"><h2>Challenges</h2><button class="btn small" type="button" id="chClose">Close</button></div>
     <p class="note">Short exercises on real geometry. Only the points named in each challenge can move, the goals update live, and hints unlock one at a time. Your current design is put back when you leave.</p>
+    <p class="note"><b>Challenge mode turns the helpers off:</b> no "What moves this?", no influence panel and no design check. The hints are the only help: hint 1 explains the idea, hint 2 shows what each move does, and hint 3 (which also opens the influence panel) suggests a step but limits you to 2 stars.</p>
     ${CHALLENGES.map(d => `<button class="chpick" type="button" data-ch="${attr(d.id)}"><span class="chn">${d.n}</span><span><b>${esc(d.title)}</b><small>${esc(d.stage)}</small></span>${starsHtml(best[d.id] || 0)}</button>`).join("")}
-    <p class="note">Stars: ★ goals met · ★ bonus · ★ moved no more than par (the total millimeters of a good solution).</p></div>`;
+    <p class="note">Stars: ★ goals met · ★ bonus · ★ moved no more than par (the total millimeters of a good solution), without hint 3.</p></div>`;
   $("#chClose").onclick = closeRail;
   $$("#crail [data-ch]").forEach(b => b.addEventListener("click", () => startChallenge(b.dataset.ch)));
   $("#crail").scrollIntoView({ block: "nearest" });
@@ -149,11 +305,11 @@ function closeRail() {
 }
 function startChallenge(id) {
   const def = CHALLENGES.find(d => d.id === id),
-    start = presetCfg(def.start);
+    start = chalStart(def);
   if (!start) return;
   const prev = chal ? chal.prev : JSON.parse(JSON.stringify(cfg));
   const prevView = chal ? chal.prevView : axleView;
-  chal = { def, start: JSON.parse(JSON.stringify(start)), prev, prevView, hint: 0, done: false, par: chalPar(def) };
+  chal = { def, start: JSON.parse(JSON.stringify(start)), prev, prevView, hint: 0, done: false, par: chalPar(def), rc0: null };
   axleView = "front";
   applyViewClasses();
   document.body.classList.add("chal", "focus");
@@ -167,6 +323,7 @@ function startChallenge(id) {
   resetHistory();
   base = ev;
   baseName = "challenge start";
+  chal.rc0 = ev && ev.metrics ? ev.metrics.roll_center : null;
   tab = def.tab;
   buildRail();
   renderAll(0);
@@ -236,7 +393,7 @@ function buildRail() {
   $("#chExit").onclick = () => exitChallenge();
   $("#chReset").onclick = () => {
     chal.done = false;
-    chal.hint = chal.hint;
+    chal.hint = 0; // a clean start, so the third star is back on offer
     view.target = null;
     loadCfg(JSON.parse(JSON.stringify(chal.start)));
     base = ev;
@@ -343,6 +500,67 @@ function meterChart(key, probe = false) {
       band: tg[1] != null ? [-tg[1], tg[1]] : null,
       series: [...(B ? [{ ...ser(B, r => r.dz, toe(B), false) }] : []), ser(R, r => r.dz, toe(R), true)],
     }),
+    ...Object.fromEntries(
+      [
+        ["kpi", "KPI vs wheel travel, deg"],
+        ["scrub", "Scrub radius vs wheel travel, mm"],
+        ["caster", "Caster vs wheel travel, deg"],
+        ["trail", "Mechanical trail vs wheel travel, mm"],
+      ].map(([k, title]) => [
+        k,
+        () => ({
+          title,
+          cap: "the value at 0 mm (ride height) is the one checked",
+          xlabel: "wheel travel, mm",
+          band: tg,
+          series: two(
+            R,
+            B,
+            r => r.dz,
+            r => r[k]
+          ),
+        }),
+      ])
+    ),
+    mr_progression: () => ({
+      title: "Motion ratio vs wheel travel",
+      cap: "damper travel per wheel travel; its rise over the travel is the progression",
+      xlabel: "wheel travel, mm",
+      series: two(
+        R,
+        B,
+        r => r.dz,
+        r => r.motion_ratio
+      ),
+    }),
+    ride_freq: () => ({
+      title: "Wheel rate vs wheel travel, N/mm",
+      cap: "spring rate × motion ratio²: the ride frequency follows its square root",
+      xlabel: "wheel travel, mm",
+      series: two(
+        R,
+        B,
+        r => r.dz,
+        r => r.wheel_rate
+      ),
+    }),
+    damper_bottomout: () => {
+      const sp = ev.cfg.spring || {},
+        L = sp.damper_eye_to_eye,
+        st = sp.damper_stroke;
+      return {
+        title: "Damper length vs wheel travel, mm",
+        cap: "stay inside the damper's stroke, 2 mm clear of each end",
+        xlabel: "wheel travel, mm",
+        band: L && st ? [L - st + 2, L - 2] : null,
+        series: two(
+          R,
+          B,
+          r => r.dz,
+          r => r.damper_len
+        ),
+      };
+    },
     ackermann: () =>
       ev.steer && {
         title: "Ackermann vs outer wheel angle, %",
@@ -371,7 +589,7 @@ function renderFocus() {
     fb.innerHTML = `<div class="focushd"><h3>Your goals as curves</h3><button class="btn small" type="button" id="fbToggle">Show full results</button></div>
     <div class="charts">${chal.def.goals
       .concat(chal.def.bonus.key ? [chal.def.bonus.key] : [])
-      .filter((k, i, a) => meterChart(k, true) && !(k === "bump_steer" && a.includes("bump_steer_max")))
+      .filter((k, i, a) => meterChart(k, true) && !(k === "bump_steer" && a.includes("bump_steer_max")) && k !== "damper_topout")
       .map(k => meterChart(k))
       .join("")}</div>
     <p class="note">Dashed = where you started. Drag the Travel slider to see the corner move along these curves.</p>`;
@@ -399,7 +617,7 @@ function updateRail() {
       bonusHtml = meter(d.bonus.key, c, "Bonus · " + lab, unit, dec);
     }
   } else {
-    bonusOk = d.bonus.fn(cfg, chal.start);
+    bonusOk = d.bonus.fn(cfg, chal.start, ev);
     bonusHtml = `<div class="meter ${bonusOk ? "ok" : "neutral"}"><div class="mtop"><span>Bonus · ${esc(d.bonus.text)}</span><b>${bonusOk ? (goalsOkPre ? "✓" : "✓ so far") : "✗"}</b></div></div>`;
   }
   $("#chGoals").innerHTML =
@@ -424,7 +642,8 @@ function updateRail() {
     })
   );
   renderHints();
-  const stars = goalsOk ? 1 + (bonusOk ? 1 : 0) + (par && moved <= par + 0.5 ? 1 : 0) : 0;
+  // the suggested step (hint 3) does part of the thinking for you, so it costs the third star
+  const stars = goalsOk ? Math.min(chal.hint >= 3 ? 2 : 3, 1 + (bonusOk ? 1 : 0) + (par && moved <= par + 0.5 ? 1 : 0)) : 0;
   if (goalsOk) {
     const best = chalStore();
     if ((best[d.id] || 0) < stars) {
@@ -433,7 +652,7 @@ function updateRail() {
     }
     const next = CHALLENGES.find(q => q.n === d.n + 1);
     $("#chDone").innerHTML = `<div class="chwin"><div class="chwinh">Solved ${starsHtml(stars)}</div>
-      <p>${bonusOk ? "Bonus met." : `Bonus not yet: ${esc(d.bonus.key ? metricLabel(d.bonus.key)[0] : d.bonus.text)}.`} ${par ? (moved <= par + 0.5 ? `You moved ${fmt(moved, 0)} mm, within par.` : `You moved ${fmt(moved, 0)} mm; par is ${fmt(par, 0)} mm. Can you get there with smaller moves?`) : ""}</p>
+      <p>${bonusOk ? "Bonus met." : `Bonus not yet: ${esc(d.bonus.key ? metricLabel(d.bonus.key)[0] : d.bonus.text)}.`} ${par ? (moved <= par + 0.5 ? `You moved ${fmt(moved, 0)} mm, within par.` : `You moved ${fmt(moved, 0)} mm; par is ${fmt(par, 0)} mm. Can you get there with smaller moves?`) : ""}${chal.hint >= 3 ? " Hint 3 was used, so the best here is 2 stars: Start over without it for the third." : ""}</p>
       <div class="tact"><button class="btn small" type="button" id="chCmp">Compare start vs. yours</button>${next ? `<button class="btn small primary" type="button" id="chNext">Next challenge</button>` : ""}<button class="btn small" type="button" id="chKeep">Finish and keep this design</button></div></div>`;
     $("#chCmp").onclick = () => {
       cmpAdd(`${d.title}: start`, chal.start);
@@ -528,12 +747,7 @@ function leverTable() {
       prevMm = mm;
       prevV = vk;
     }
-    const nm =
-      sgn > 0
-        ? lv.name
-        : lv.name
-            .replace(/ (up|inboard|outboard)/, m => ({ " up": " down", " inboard": " outboard", " outboard": " inboard" })[m])
-            .replace("front down, rear up", "front up, rear down");
+    const nm = sgn > 0 ? lv.name : leverNeg(lv);
     rows.push({ nm, e1, need, best });
   }
   rows.sort((a, b) => a.need - b.need || a.best.v - b.best.v);
@@ -569,11 +783,13 @@ function leverTable() {
     <p class="note">Values are re-solved from your current geometry after one ${st} mm step. <span class="lv-good lvk" style="--s:1">green</span> = that goal gets closer to its target, <span class="lv-bad lvk" style="--s:1">red</span> = further away; stronger color = bigger change. "Fixes … after" walks along each move with the solver: a number means that move alone gets the goal into range; "not alone" means it helps but stalls, so combine it with another move. A big number is not wrong; it just takes a large change.</p>`;
 }
 const stepCache = new Map();
+// what a suggestion depends on: the points a challenge can move (hardpoints and the rocker's) and which challenge
+const chalSig = () => JSON.stringify([cfg.hardpoints, cfg.spring]) + chal.def.id;
 async function nextStep(box) {
   busyN++;
   try {
     const d = chal.def,
-      sig = JSON.stringify(cfg.hardpoints) + d.id;
+      sig = chalSig();
     if (stepCache.has(sig)) {
       box.innerHTML = stepCache.get(sig);
       wireStep(box);
@@ -583,7 +799,7 @@ async function nextStep(box) {
       bonusKeys = d.bonus.key ? [d.bonus.key] : [],
       ks = [-4, -3, -2, -1, 1, 2, 3, 4],
       L = d.levers.filter(l => !l.bonusOnly);
-    const score = (e, c) => chalViol(e, keys) + 0.25 * chalViol(e, bonusKeys) + (d.bonus.fn && !d.bonus.fn(c, chal.start) ? 1 : 0);
+    const score = (e, c) => chalViol(e, keys) + 0.25 * chalViol(e, bonusKeys) + (d.bonus.fn && !d.bonus.fn(c, chal.start, e) ? 1 : 0);
     let best = null,
       n = 0;
     const c0 = JSON.parse(JSON.stringify(cfg));
@@ -636,12 +852,7 @@ async function nextStep(box) {
     if (!best.moves.length)
       html = `<p class="chint"><b>Hint 3.</b> No combination of two of these moves improves things from here. Try <b>Start over</b>, and change pairs of pivots together.</p>`;
     else {
-      const txt = best.moves
-        .map(
-          ([lv, k]) =>
-            `<b>${esc(lv.name.replace(/ (up|inboard|outboard)/, m => (k > 0 ? m : { " up": " down", " inboard": " outboard", " outboard": " inboard" }[m])))} ${Math.abs(k) * d.step} mm</b>`
-        )
-        .join(" and ");
+      const txt = best.moves.map(([lv, k]) => `<b>${esc(k > 0 ? lv.name : leverNeg(lv))} ${Math.abs(k) * d.step} mm</b>`).join(" and ");
       const res = keys
         .map(k => {
           const c = best.e.checks.find(r => r.key === k),
@@ -663,7 +874,7 @@ async function nextStep(box) {
 }
 function wireStep(box) {
   const b = $("#chStepPv", box),
-    c = stepCfg.get(JSON.stringify(cfg.hardpoints) + chal.def.id);
+    c = stepCfg.get(chalSig());
   if (b && c) b.onclick = () => startPreview(c, "suggested next step");
   else if (b) b.hidden = true;
 }
@@ -677,16 +888,16 @@ function renderHints() {
     html += `<div class="chint"><b>Hint 1.</b> ${d.concept.map(p => `<p>${esc(p)}</p>`).join("")}<button class="btn small" type="button" id="chHintShow">Show me ${esc(OVERLAYS[d.show].name.toLowerCase())}</button></div>`;
   if (chal.hint >= 2) html += `<div class="chint"><b>Hint 2. What each move does right now.</b>${leverTable()}</div>`;
   if (chal.hint >= 3) {
-    const sig = JSON.stringify(cfg.hardpoints) + d.id;
+    const sig = chalSig();
     html += `<div id="chStep">${stepCache.get(sig) || `<button class="btn small primary" type="button" id="chStepGo">Hint 3: suggest a next step from here</button><p class="note">The solver tries every move in the table above, and every pair of them, at 1 to 4 steps either way (416 combinations). It scores how far each goal is from its target and shows the best one. It is a plain search, not AI: the same geometry always gets the same suggestion.</p>`}</div><p class="note">The influence panel is unlocked: click any of your points in the 3D view.</p>`;
   }
   const labels = [
     "Show hint 1",
     "Show hint 2: what each move does",
-    "Show hint 3: a suggested next step (also unlocks the influence panel)",
+    "Show hint 3: a suggested next step (also unlocks the influence panel; best score 2 stars)",
   ];
   if (chal.hint < 3) html += `<button class="btn small" type="button" id="chHint">${labels[chal.hint]}</button>`;
-  if (chal.hint === 3 && !stepCache.has(JSON.stringify(cfg.hardpoints) + d.id)) {
+  if (chal.hint === 3 && !stepCache.has(chalSig())) {
     /* step search runs on request */
   }
   H.innerHTML = html;

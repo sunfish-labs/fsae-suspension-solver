@@ -266,6 +266,7 @@ function setLock(v) {
 }
 const openRows = new Set();
 function openFixRow(key) {
+  if (chal) return flash("Not in a challenge: use its hints.");
   tab = "checks";
   store.set("susp.tab", tab);
   renderTabs();

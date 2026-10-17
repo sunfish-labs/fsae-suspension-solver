@@ -31,7 +31,7 @@ function panelLearn() {
         <p>${esc(t.def)}</p>
         ${t.conv ? `<p class="kv2"><b>Sign:</b> ${esc(t.conv)}</p>` : ""}
         ${t.moves ? `<p class="kv2"><b>What moves it:</b> ${esc(t.moves)}</p>` : ""}
-        <div class="tact">${termValue(t)}${t.show ? `<button class="btn small" type="button" data-show="${attr(t.show)}">Show me</button>` : ""}${t.metric && ev && ev.checks.some(r => r.key === t.metric) ? `<button class="btn small" type="button" data-fixkey="${attr(t.metric)}">What moves this?</button>` : ""}</div>
+        <div class="tact">${termValue(t)}${t.show ? `<button class="btn small" type="button" data-show="${attr(t.show)}">Show me</button>` : ""}${t.metric && !chal && ev && ev.checks.some(r => r.key === t.metric) ? `<button class="btn small" type="button" data-fixkey="${attr(t.metric)}">What moves this?</button>` : ""}</div>
       </article>`
             )
             .join("")}</div></section>`

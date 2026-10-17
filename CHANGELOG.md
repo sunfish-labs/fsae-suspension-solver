@@ -3,6 +3,18 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.21.0 - 2026-10-17
+
+- **Three new challenges** (five in all), each practicing something the first two don't: **Set the steering axis**
+  (move the ball joints until KPI, scrub, caster and trail are in range), **Stop the nose dive** (tilt the pivot axes
+  in side view for anti-dive without moving the roll center) and **Fit the cheap spring** (move the rocker's pin
+  holes for the ride frequency and damper stroke with a spring you can't change). Each has its own goal curves,
+  hints and solver-checked par, and each is solved from its hints in the browser tests.
+- **Challenge mode keeps the helpers off**: no "What moves this?" (Targets or Learn), no design check, and the
+  influence panel stays locked until hint 3. Hint 3 (a solver-suggested step) now limits the score to 2 stars, and
+  Start over clears the hints so the third star is back on offer.
+- Fixes hint 3 repeating a stale suggestion when the moved points are the rocker's.
+
 ## 1.20.0 - 2026-10-17
 
 - **Bought bearings against their ratings**: `members.ball_joint_rating`, `damper_eye_rating` and
