@@ -27,10 +27,11 @@ function exportScope() {
   };
 }
 const fileBase = n => (n || "design").replace(/[^\w.-]+/g, "_");
-function download(name, blob) {
+// plain: never stamped (settings.enc); every other file from an experiment gets _EXPERIMENT in its name (03_team.js)
+function download(name, blob, opts = {}) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = name;
+  a.download = opts.plain ? name : stampFile(name);
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -72,10 +73,11 @@ const REPORT_CSS = `:root{--s1:#2F5D7C;--s2:#9E7E38;--s3:#4C7A5A;--base:#9a9ca0;
     .ok{color:#1f7a46;font-weight:600}.bad{color:#b42318;font-weight:600}.warnc{color:#9a6700;font-weight:600}.setup td.fill{height:22px;border:1px solid #c9ced3}.setup td{border:1px solid #d9dee3}.pill{display:inline-block;border-radius:99px;padding:2px 10px;font-weight:600}.okb{background:#dcf1e4;color:#1f7a46}.badb{background:#fbe3df;color:#b42318}
     .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin:6px 0}.kv div{border:1px solid #d9dee3;border-radius:6px;padding:5px 8px}.kv span{display:block;font-size:11px;color:#5a6876}
     .charts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.chart{border:1px solid #d9dee3;border-radius:6px;padding:6px;break-inside:avoid}.chart h3{margin:0 0 2px;font-size:12px}.chart .cap{display:none}
+    .stamp{border:2px solid #b3261e;color:#b3261e;font-weight:700;letter-spacing:.06em;text-align:center;padding:6px;margin-bottom:12px}
     .note{color:#5a6876}footer{margin-top:24px;color:#5a6876;font-size:11.5px;border-top:1px solid #d9dee3;padding-top:8px}
     @media print{body{margin:0}.pb{break-before:page}}`;
 const reportPage = (title, body) =>
-  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${REPORT_CSS}</style></head><body>${body}</body></html>`;
+  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${REPORT_CSS}</style></head><body>${teamStamp() ? `<div class="stamp">${esc(teamStamp())}</div>` : ""}${body}</body></html>`;
 // the misalignment check as its own section: the last part of the design report, or a document on its own
 function misalignSection(X, inReport) {
   const corners = X.corners.filter(k => k.e.joints);
@@ -604,7 +606,7 @@ async function exportXlsx() {
       ],
       [8, 34, 16, 60, 10, 10, 10, 10, 9, 10, 8, 28, 10]
     );
-  XL.writeFile(wb, fileBase(X.name) + ".xlsx");
+  XL.writeFile(wb, stampFile(fileBase(X.name) + ".xlsx"));
 }
 
 // ---------------------------------------------------------------- jig and tolerance sheet (mirrors susp/tools/tolerance.py)
@@ -748,11 +750,12 @@ function wireExport() {
         fileBase(X.name) + "_solidworks_equations.txt",
         new Blob(
           [
-            S.equationsText(
-              X.name,
-              X.corners.map(k => [k.e.cfg, k.e]),
-              wb
-            ),
+            (teamStamp() ? `' ${teamStamp()}\n` : "") +
+              S.equationsText(
+                X.name,
+                X.corners.map(k => [k.e.cfg, k.e]),
+                wb
+              ),
           ],
           { type: "text/plain" }
         )

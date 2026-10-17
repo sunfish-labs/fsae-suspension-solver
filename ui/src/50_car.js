@@ -101,6 +101,7 @@ function exportCar(local = false) {
 }
 function loadCar(raw, label) {
   pushHistory();
+  teamFileOpened();
   try {
     car = carFrom(raw);
   } catch (e) {

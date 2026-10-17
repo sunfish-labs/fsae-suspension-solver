@@ -483,3 +483,19 @@ body.simple .adv { display: none !important; }
 .chkwhy { font-size: 12.5px; margin-top: 2px; }
 .chkgn { font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 6px; }
 .chkpill { min-width: 7.5em; }
+
+/* ---- team settings (03_team.js): learning mode, released designs, banner */
+body.learning:not(.chal) [data-apply], body.learning:not(.chal) [data-apply-spring], body.learning:not(.chal) #pvApply { display: none !important; }
+body.learning:not(.chal) .pvbtns::before { content: "Learning mode: to keep it, type the change into the table"; font-size: 12px; color: var(--muted); margin-right: 6px; }
+body.rel-lock [data-apply], body.rel-lock [data-apply-spring], body.rel-lock #pvApply, body.rel-lock #btnApplyJson { display: none !important; }
+body.rel-lock #cardsIn, body.rel-lock #carIn, body.rel-lock #layBox { opacity: .72; }
+.teambanner { background: var(--warn-bg); color: var(--ink); border-bottom: 1px solid var(--line); padding: 6px 16px; font-size: 13px; }
+.relbar { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 6px 16px; font-size: 13px; border-bottom: 1px solid var(--line); }
+.relbar[hidden] { display: none; }
+.relbar.rel { background: var(--ok-bg); }
+.relbar.exp { background: var(--panel-2); color: var(--muted); }
+.relbar > span { margin-right: auto; }
+#teamBody h4 { margin: 10px 0 4px; font-size: 13px; }
+.tmrel { margin: 4px 0; padding-left: 18px; font-size: 13px; }
+.tmrel li { margin: 2px 0; }
+.teamnew summary { cursor: pointer; font-size: 13px; margin: 6px 0; }

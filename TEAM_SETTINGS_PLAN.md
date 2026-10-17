@@ -1,34 +1,45 @@
-# Team settings and feature switches (on hold)
+# Team settings (built in 1.28.0)
 
-A plan for letting the team lead switch big features on and off for the team, and lock team values, without a
-server. Proposed 2026-10-17 and on hold. Open questions are at the end.
+What shipped, after narrowing the original plan with the team lead on 2026-10-17. The goal: students get help from
+the app without one-click buttons that change the design for them, and the official design can't be changed by
+accident. The full switchboard below was the first proposal; only the parts marked **built** were made.
 
-## Goal
+## What it does
 
-- The team lead changes settings for everyone else quickly, without changing their own view.
-- The settings are hidden from other teams, because the site is public.
-- No login server (OAuth would need a backend to run and secure all season).
+- **Learning mode** (on by default): for the team, the one-click **Apply** buttons are hidden (the fix tables under
+  "What moves this?", the spring-rate fix, the Apply in the preview bar). Hints, the "What moves this?" tables, the
+  influence drawer and **Preview** stay; to keep a change, the student types it into the table. Challenges are
+  unchanged. The admin keeps everything.
+- **Released designs:** the admin opens the official design and clicks *Release the design on screen*. The release
+  records the design's content (a hash of everything in the file except its name), not the file. Anyone who opens
+  that exact design sees it read-only, with **Make a copy to experiment**. Anything else is an *experiment*: a strip
+  under the header says so, and every export from it is stamped "EXPERIMENT — not released" (in the page, in the
+  SolidWorks equations as a comment line, and `_EXPERIMENT` in the file name).
+- **Banner:** an optional one-line message at the top for the team.
+- Team values (targets, FOS, ratings) stay editable, as before.
 
-## Approach: an encrypted team file
+## How it works
 
-- `team/settings.enc` is committed to the public repo, encrypted in the browser with WebCrypto (PBKDF2 key from a
-  team passphrase, AES-GCM). Anyone can download it, but it's unreadable without the passphrase.
-- Teammates enter the team passphrase once; their browser remembers it and the site unlocks the team settings on
-  load.
-- An **admin page**, opened with a separate admin passphrase:
-  - shows every switch and team value;
-  - writes a new `team/settings.enc` to commit from GitHub Desktop (live for everyone in about 2 min, after the
-    Pages rebuild and a reload);
-  - turns on **admin mode** in that browser only (everything visible and editable, team switches ignored);
-  - changes either passphrase (re-encrypts the file). Change the team passphrase when someone leaves.
-- No passphrase (for example, another team): everything is On, exactly as the public tool is today.
-- Precedence: team switches > each person's own ⚙ Settings > defaults. When a team value disagrees with a loaded
-  file, the team value wins and the page says so.
-- **Limit:** this hides and greys out features but can't enforce anything, because the code is public. It stops
-  casual changes; someone using the browser's developer tools or their own copy can get around it. Switch 4 (the
-  JSON editor) closes the easy workaround.
+- `team/settings.enc` in the public repo, encrypted in the browser with WebCrypto: a key from the **team
+  passphrase** by PBKDF2-SHA256 (200,000 rounds), then AES-GCM. `ui/build.py` builds it into the page. Anyone can
+  download it; without the passphrase it's noise.
+- Each teammate enters the team passphrase once (⚙ Settings → Team); the browser remembers it.
+- The **admin passphrase** is a separate one; its salted PBKDF2 hash is inside the encrypted settings. Signing in
+  as admin is remembered on that browser only.
+- The admin changes settings in ⚙ Settings → Team, clicks **Download settings.enc**, puts it in the repo at
+  `team/settings.enc`, commits and pushes. Until then only the admin's browser sees the change (a local copy that
+  wins while it is newer).
+- No passphrase (another team, or no settings file): everything is on, exactly as before.
+- Change the team passphrase when someone leaves (Team → Change the passphrases), then commit the new file.
+- Code: `ui/src/03_team.js` (and the CSS at the end of `ui/src/style.css`). Tests: "Team settings" in
+  `tests/browser_test.js`.
 
-## Switches
+**Limit:** this is a guardrail, not security. The code is public: someone can skip the passphrase, clear their
+browser or use the developer tools. It keeps the team's own copy calm and the official design safe from slips.
+
+## The original proposal (not built)
+
+### Switches
 
 Each switch has three positions:
 - **On:** works as normal.

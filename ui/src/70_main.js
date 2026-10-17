@@ -1,6 +1,7 @@
 // ------------------------------------------------------------------ toolbar
 function loadCfg(raw, name, opts = {}) {
   pushHistory();
+  teamFileOpened();
   try {
     S.finishConfig(raw);
   } catch (e) {
@@ -283,6 +284,7 @@ $("#dmChassis").addEventListener("click", () => {
   });
 }
 wireSettings();
+teamBoot();
 // boot: the saved car if there is one; else an old single-corner draft inside the example car; else the example car
 {
   const ex = exampleCarRaw(),

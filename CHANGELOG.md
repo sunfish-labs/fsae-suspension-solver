@@ -3,6 +3,17 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.28.0 - 2026-10-17
+
+- **Team settings** (⚙ Settings → Team), set by the team's admin and stored encrypted in the repo
+  (`team/settings.enc`, AES-GCM with a key from the team passphrase), so only the team can read them:
+  - **Learning mode:** the one-click Apply buttons are hidden for the team; hints, "What moves this?", the influence
+    drawer and Preview stay, and challenges are unchanged. The admin keeps everything.
+  - **Released designs:** the official design opens read-only with *Make a copy to experiment*; any other design is
+    an experiment, and its exports are stamped "EXPERIMENT — not released".
+  - An optional banner for the team.
+  Without the passphrase (or without a settings file) the app is exactly as before. A guardrail, not security.
+
 ## 1.27.0 - 2026-10-17
 
 - **SolidWorks equations export** (Export menu, and `equations car.json`): every hardpoint and spring point as a

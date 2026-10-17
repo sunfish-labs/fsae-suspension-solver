@@ -337,6 +337,21 @@ ride height, the tracks and the wheelbase. In SolidWorks: Tools → Equations �
 units in mm; dimension a hardpoint layout sketch (from the team-frame coordinate system) to the variables once, and
 re-export and rebuild after a geometry change to move every pickup. The names never change, so sketches stay linked.
 
+## Team settings (learning mode, released designs)
+
+The team's admin can set, in ⚙ Settings → Team:
+- **Learning mode:** hides the one-click Apply buttons for the team, so a change is typed into the table on purpose.
+  Hints, "What moves this?", Preview and the challenges stay.
+- **Released designs:** the official design opens read-only, with *Make a copy to experiment*; exports from any
+  other design are stamped "EXPERIMENT — not released".
+- A banner message for the team.
+
+The settings are encrypted with a team passphrase and committed as `team/settings.enc`, so the public site carries
+them but other teams can't read them; without the passphrase the app works as normal. Setting up (admin): ⚙ Settings
+→ Team → Create team settings, then Download settings.enc, put it at `team/settings.enc`, commit and push. Teammates
+enter the team passphrase once. It is a guardrail against slips, not security: see
+[TEAM_SETTINGS_PLAN.md](TEAM_SETTINGS_PLAN.md).
+
 ## Settings and coordinates
 **⚙ Settings** (top bar) keeps per-browser choices: the color theme; **coordinates** (axes: the team frame, ISO 8855,
 by default; or the solver's own, SolidWorks with Y up, or X rearward; origin: the ground under the front axle (team

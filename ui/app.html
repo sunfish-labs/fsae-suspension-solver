@@ -47,6 +47,8 @@
     </div>
   </div>
 </header>
+<div class="teambanner" id="teamBanner" role="note" hidden></div>
+<div class="relbar" id="relBar" role="status" hidden></div>
 <div class="toast" id="toast" role="status" hidden></div>
 <div class="welcome" id="welcome" hidden>
   <div class="wcard" role="dialog" aria-modal="true" aria-labelledby="wTitle">
@@ -137,6 +139,7 @@
       <div class="fields"><div class="field"><label for="setQuality">Quality</label><select id="setQuality">
         <option value="high">Sharp (high-resolution screens)</option><option value="normal">Normal</option><option value="low">Fast (slow laptops)</option></select></div></div>
       <label class="small-check"><input type="checkbox" id="setTips"> Show X Y Z when hovering over a joint or the chassis</label></div>
+    <div class="setsec" id="teamSec"><h3>Team</h3><div id="teamBody"></div></div>
     <div class="setsec"><h3>Saved in this browser</h3>
       <div class="laybtns"><button class="btn small" type="button" id="setReset">Reset these settings</button><button class="btn small" type="button" id="setClear">Clear everything saved here…</button></div>
       <p class="note">Clearing removes the design you're working on, the chassis model and these settings from this browser (save your JSON first).</p></div>
@@ -396,6 +399,7 @@
 const PRESETS = /*PRESETS*/;
 const SW_MACRO = /*SW_MACRO*/;
 const APP_VERSION = /*APP_VERSION*/;
+const TEAM_ENC = /*TEAM_ENC*/;
 </script>
 <script>
 /*APP_JS*/

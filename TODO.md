@@ -10,10 +10,8 @@ XL 3+ days.
 
 ## On hold
 
-- **Team settings and feature switches** (about a day, M-L). The team lead turns big features on, read-only or
-  hidden for the team (hardpoint editing, JSON editor, advanced mode, tabs, exports, sign-off) and locks team
-  values, through an encrypted team file in the public repo, with an admin mode. About 8-12 hours of work. Waiting
-  on three decisions: see [TEAM_SETTINGS_PLAN.md](TEAM_SETTINGS_PLAN.md).
+- Nothing on hold. (Team settings shipped in 1.28.0: learning mode, released designs, banner; see
+  [TEAM_SETTINGS_PLAN.md](TEAM_SETTINGS_PLAN.md).)
 
 ## This season: needed for a passing car
 

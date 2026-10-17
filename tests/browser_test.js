@@ -638,6 +638,53 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   check("the 3D view runs with the built-in three.js", await p.evaluate(() => typeof THREE !== "undefined" && !!document.querySelector("canvas")));
   await p.context().close();
 
+  console.log("\nTeam settings");
+  p = await newPage(browser); await closeWelcome(p);
+  const dl = async (fn) => { const [d] = await Promise.all([p.waitForEvent("download"), fn()]); const f = path.join(os.tmpdir(), "susp_" + d.suggestedFilename()); await d.saveAs(f); return { name: d.suggestedFilename(), body: fs.readFileSync(f, "utf8") }; };
+  const isShown = (sel) => p.evaluate(s => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== "none"; }, sel);
+  await p.evaluate(() => document.body.insertAdjacentHTML("beforeend", '<div class="pvbtns" id="tApplyBox"><button data-apply="0" id="tApply">Apply</button><button data-preview="0" id="tPreview">Preview</button></div>'));
+  await p.click("#btnSettings");
+  check("no team settings: the app is fully open and says so", /No team settings/.test(await text(p, "#teamBody")) && !(await p.evaluate(() => document.body.classList.contains("team"))));
+  await p.fill("#tmNewTeam", "short"); await p.fill("#tmNewAdmin", "admin-pass-456"); await p.click("#tmCreate"); await settle(p);
+  check("too-short passphrases are refused", /at least 8/.test(await text(p, "#teamBody")));
+  await p.fill("#tmNewTeam", "team-pass-123"); await p.fill("#tmNewAdmin", "admin-pass-456"); await p.click("#tmCreate"); await settle(p);
+  check("creating team settings signs this browser in as admin", /Admin/.test(await text(p, "#teamBody")) && (await p.isChecked("#tmLearning")));
+  check("the admin keeps the Apply buttons in learning mode", await isShown("#tApply"));
+  await p.fill("#tmBanner", "Design freeze Friday"); await p.press("#tmBanner", "Tab"); await settle(p);
+  check("the admin's banner shows", (await text(p, "#teamBanner")) === "Design freeze Friday");
+  check("an unreleased design is an experiment", /Experiment/.test(await text(p, "#relBar")));
+  await p.click("#tmRelease"); await settle(p);
+  check("releasing the design on screen lists it and locks it", (await p.$$("#teamBody .tmrel li")).length === 1 && /Released design/.test(await text(p, "#relBar")) && (await p.$eval("#cardsIn", e => e.inert)));
+  const enc = await dl(() => p.click("#tmDownload"));
+  const encJ = JSON.parse(enc.body);
+  check("Download settings.enc: encrypted, nothing readable in it", enc.name === "settings.enc" && encJ.ct && encJ.iter >= 100000 && !/Design freeze|released|learning/.test(enc.body));
+  await p.click("#tmSignOut"); await settle(p);
+  await p.click("#setClose"); await p.reload(); await settle(p); await closeWelcome(p);
+  check("after a reload the team sees learning mode, the banner and the released design read-only",
+    (await p.evaluate(() => document.body.classList.contains("learning"))) && (await text(p, "#teamBanner")) === "Design freeze Friday" && /Released design/.test(await text(p, "#relBar")) && (await p.$eval("#cardsIn", e => e.inert)));
+  await p.evaluate(() => document.body.insertAdjacentHTML("beforeend", '<div class="pvbtns" id="tApplyBox"><button data-apply="0" id="tApply">Apply</button><button data-preview="0" id="tPreview">Preview</button></div>'));
+  check("learning mode hides Apply but keeps Preview", !(await isShown("#tApply")) && (await isShown("#tPreview")));
+  const r0 = await dl(async () => { await p.click("#exMenu summary"); await p.click("#xReport"); });
+  check("exports of the released design are not stamped", !/EXPERIMENT/.test(r0.name) && !/EXPERIMENT/.test(r0.body));
+  await p.click("#relCopy"); await settle(p);
+  check("Make a copy to experiment unlocks it and renames it", /Experiment/.test(await text(p, "#relBar")) && !(await p.$eval("#cardsIn", e => e.inert)) && /\(experiment\)$/.test(await p.evaluate(() => JSON.parse(localStorage.getItem("susp.car")).name)));
+  const r1 = await dl(async () => { await p.click("#exMenu summary"); await p.click("#xReport"); });
+  check("exports of an experiment are stamped in name and content", /_EXPERIMENT\.html$/.test(r1.name) && /EXPERIMENT — not released/.test(r1.body), r1.name);
+  const eq = await dl(async () => { await p.click("#exMenu summary"); await p.click("#xEq"); });
+  check("the SolidWorks equations of an experiment carry the stamp", /^' EXPERIMENT/.test(eq.body) && /_EXPERIMENT\.txt$/.test(eq.name));
+  await p.click("#btnSettings");
+  await p.fill("#tmAdmin", "wrong-pass-000"); await p.click("#tmAdminGo"); await settle(p);
+  check("a wrong admin passphrase is refused", /wrong admin passphrase/.test(await text(p, "#teamBody")));
+  await p.click("#tmForget"); await settle(p);
+  check("forgetting the team passphrase turns the team features off", !(await p.evaluate(() => document.body.classList.contains("team"))) && (await isShown("#tApply")) && (await p.$eval("#relBar", e => e.hidden)));
+  await p.fill("#tmPass", "nope-nope-nope"); await p.click("#tmUnlock"); await settle(p);
+  check("a wrong team passphrase does not unlock", /doesn't open/.test(await text(p, "#teamBody")));
+  await p.fill("#tmPass", "team-pass-123"); await p.click("#tmUnlock"); await settle(p);
+  await p.fill("#tmAdmin", "admin-pass-456"); await p.click("#tmAdminGo"); await settle(p);
+  check("the team passphrase unlocks and the admin passphrase signs in", /Admin/.test(await text(p, "#teamBody")) && !(await p.evaluate(() => document.body.classList.contains("learning"))));
+  check("no script errors in the team settings pass", p.errors.length === 0, p.errors.slice(0, 5).join(" | "));
+  await p.context().close();
+
   console.log("\nPhone width");
   p = await newPage(browser, { viewport: { width: 400, height: 850 } }); await closeWelcome(p);
   for (const v of ["car", "front"]) {

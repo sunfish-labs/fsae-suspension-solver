@@ -37,6 +37,7 @@ function run() {
   pose.rack = cfg.axle === "rear" ? 0 : Math.max(-Rk, Math.min(Rk, pose.rack));
   pz.value = pose.dz;
   pr.value = pose.rack;
+  teamCheck();
   renderAll(ms);
   showCurName();
   syncLegLabels();
