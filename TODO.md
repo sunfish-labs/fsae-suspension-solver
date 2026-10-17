@@ -8,6 +8,13 @@ published).
 Effort is working time including tests, docs and shipping: XS under 1 h, S 1-3 h, M half a day, L 1-2 days,
 XL 3+ days.
 
+## On hold
+
+- **Team settings and feature switches** (about a day, M-L). The team lead turns big features on, read-only or
+  hidden for the team (hardpoint editing, JSON editor, advanced mode, tabs, exports, sign-off) and locks team
+  values, through an encrypted team file in the public repo, with an admin mode. Waiting on three decisions: see
+  [TEAM_SETTINGS_PLAN.md](TEAM_SETTINGS_PLAN.md).
+
 ## This season: needed for a passing car
 
 1. ~~**Guardrails**~~ (done in 1.12.0). A clear message when a design can't be solved, including the pushrod-on-upright path; the
