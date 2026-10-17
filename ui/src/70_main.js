@@ -281,26 +281,7 @@ $("#dmChassis").addEventListener("click", () => {
     if (dm.open && !dm.contains(e.target)) dm.open = false;
   });
 }
-// color theme: Auto follows the computer; Light / Dark are remembered in this browser
-{
-  const tm = $("#themeMenu"),
-    cur = () => document.documentElement.getAttribute("data-theme") || "";
-  const sync = () => $$("#themeMenu [data-theme-set]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.themeSet === cur())));
-  document.addEventListener("click", e => {
-    if (tm.open && !tm.contains(e.target)) tm.open = false;
-  });
-  $$("#themeMenu [data-theme-set]").forEach(b =>
-    b.addEventListener("click", () => {
-      const t = b.dataset.themeSet;
-      if (t) document.documentElement.setAttribute("data-theme", t);
-      else document.documentElement.removeAttribute("data-theme");
-      store.set("susp.theme", t);
-      sync();
-      tm.open = false;
-    })
-  );
-  sync();
-}
+wireSettings();
 // boot: the saved car if there is one; else an old single-corner draft inside the example car; else the example car
 {
   const ex = exampleCarRaw(),

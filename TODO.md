@@ -3,10 +3,15 @@
 Ordered by importance: things that could mislead a student or block the team first, then accuracy of the model,
 then extra features, then housekeeping. Team-specific design fixes live in `private/` (never published).
 
-1. **Rocker strength.** The rocker is drawn and its pin forces are in the part loads, but nothing checks the plate
+1. **Rules checks against the current FSAE rulebook.** Wheelbase, track ratio, wheel travel, ground clearance, and
+   driver-template and hoop clearances on the loaded frame. Pull the current rulebook first; the numbers change
+   yearly.
+2. **Rocker strength.** The rocker is drawn and its pin forces are in the part loads, but nothing checks the plate
    itself: add the pin bores (bearing, tear-out, like the tabs) and the plate's bending between the pins, with its
    thickness and material as inputs. Until then, check it in FEA with the part loads.
-2. **Housekeeping.** Create the missing `v0.9.0` tag on GitHub (Releases -> Draft a new release -> tag `v0.9.0`,
+3. **Frame torsional stiffness** from the frame's tube centerlines (a 3D frame solved in the browser), and what it
+   does to the LLTD.
+4. **Housekeeping.** Create the missing `v0.9.0` tag on GitHub (Releases -> Draft a new release -> tag `v0.9.0`,
    target commit `e3fee2a`): the tag workflow's token may not tag a commit whose workflow files differ from today's.
    Empty the `_to_delete/` folder on the desktop copy (old sync bundles only).
 
@@ -22,6 +27,8 @@ then extra features, then housekeeping. Team-specific design fixes live in `priv
 
 ## Done recently
 
+- Vehicle layout (mass, CG, inertia from a parts list, boxes in 3D, clearance to the parts) and the drivetrain's
+  acceleration run; a Settings panel with the coordinates as shown, simple / detailed inputs and result tabs (1.8.0)
 - Pushrod mount reinforcement: a gusset plate along the leg (built-up section searched along the leg, plus the
   weld where it ends in the fatigue screen) or a bracket into the ball-joint node; part loads for FEA (every force
   on the upright, wishbones and rocker, per case, in the CAD axes) from the app and the command line (1.7.0)

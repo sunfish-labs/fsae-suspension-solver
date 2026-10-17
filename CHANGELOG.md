@@ -3,6 +3,19 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.8.0 - 2026-10-16
+
+- **Vehicle layout** (car file `layout`, Car view → Layout, `layout car.json`): parts with mass, position and size give
+  the car's mass, CG, front and left weight shares and roll / pitch / yaw inertia; `layout.apply` makes the whole
+  solver use them. Solid parts are drawn as boxes in 3D and join the clearance check (links, tires, upright, rocker
+  against each part, named), with no chassis model needed.
+- **Drivetrain** (car file `drivetrain`): torque curve and ratios give gear speeds, shift points and the 75 m
+  acceleration time, grip-limited at the launch with load transfer onto the rear tires. Hand-checked.
+- New example: `designs/example_car_layout.json`, a typical first-year single-cylinder car (invented numbers).
+- **Settings** (⚙ in the top bar): theme (moved from the top bar); coordinates as shown (axes and origin, matching
+  your CAD); detailed inputs on or off (new visitors start with the essentials); which result tabs show; 3D quality;
+  hover readouts; reset and clear what the browser saved.
+
 ## 1.7.0 - 2026-10-16
 
 - **Pushrod mount reinforcement** (`members.gusset`, inputs → Loads & materials → Pushrod mount on the wishbone): a

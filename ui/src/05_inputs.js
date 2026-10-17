@@ -276,6 +276,15 @@ function fillForm() {
       el.value = v == null ? "" : v;
       return;
     }
+    const fp = framePath(path);
+    if (fp && !frameIsDefault()) {
+      const base = getPath(cfg, fp.base);
+      if (Array.isArray(base) && base.length === 3) {
+        const d = fp.kind === "pt" ? dispPt(base, cfg.axle) : dispDir(base);
+        el.value = +d[fp.j].toFixed(6);
+        return;
+      }
+    }
     if (path.startsWith("members.gusset.")) {
       const g = cfg.members.gusset;
       el.value =
@@ -374,6 +383,24 @@ function onInput(e) {
     const cp = cfg.hardpoints.contact_patch,
       R = cfg.wheel.tire_radius;
     cfg.halfshaft = { diff_output: [cp[0], 150, R], cv_outboard: [cp[0], cp[1] - 60, R] };
+  }
+  const fp = framePath(path);
+  if (fp && !frameIsDefault() && v != null) {
+    // a coordinate typed in the shown frame: change that one shown axis and store the point back in the solver frame
+    const base = getPath(cfg, fp.base);
+    if (Array.isArray(base) && base.length === 3) {
+      const d = fp.kind === "pt" ? dispPt(base, cfg.axle) : dispDir(base);
+      d[fp.j] = v;
+      setPath(
+        cfg,
+        fp.base,
+        (fp.kind === "pt" ? undispPt(d, cfg.axle) : undispDir(d)).map(q => +q.toFixed(9))
+      );
+      if (blk) fillForm();
+      if (path === "axle") syncAxle();
+      schedule();
+      return;
+    }
   }
   setPath(cfg, path, v);
   if (blk) fillForm();

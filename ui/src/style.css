@@ -447,3 +447,9 @@ table.data.fatab td:first-child { max-width: 13em; white-space: normal; }
 .laytc { width: 100%; font: 12.5px/1.4 var(--f-mono); padding: 6px; }
 .laybtns { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
 .laygroups { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+body.simple .adv { display: none !important; }
+.advhint { margin: 10px 4px; }
+.setcard { max-width: 620px; }
+.setsec { border-top: 1px solid var(--line); padding: 10px 0 6px; }
+.setsec h3 { margin: 0 0 8px; font: 600 12px/1.2 var(--f-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.settabs { display: flex; gap: 14px; flex-wrap: wrap; }

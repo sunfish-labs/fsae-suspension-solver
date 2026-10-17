@@ -23,7 +23,7 @@ function initThree() {
   const T = window.THREE,
     cv = $("#cv");
   const renderer = new T.WebGLRenderer({ canvas: cv, antialias: true });
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.setPixelRatio(qualityRatio());
   const scene = new T.Scene(),
     cam = new T.PerspectiveCamera(35, 1, 5, 40000);
   scene.add(new T.HemisphereLight(0xffffff, 0x8899aa, 0.85));
@@ -150,13 +150,17 @@ function makeTriad() {
     s.scale.set(1.5, 0.75, 1);
     return s;
   };
-  // vehicle X forward = three +X, vehicle Y right = three +Z, vehicle Z up = three +Y (as in toT)
-  for (const [d, color, name] of [
-    [[1, 0, 0], "#d1342f", "X"],
-    [[0, 0, 1], "#2e9e44", "Y"],
-    [[0, 1, 0], "#2f6fd6", "Z"],
+  // the axes as shown (Settings → Coordinates): each shown axis is a solver direction u, drawn as three (u0, u2, u1)
+  // like toT (vehicle X forward = three +X, Y right = three +Z, Z up = three +Y)
+  for (const [j, color, name] of [
+    [0, "#d1342f", "X"],
+    [1, "#2e9e44", "Y"],
+    [2, "#2f6fd6", "Z"],
   ]) {
-    const v = new T.Vector3(...d),
+    const e = [0, 0, 0];
+    e[j] = 1;
+    const u = undispDir(e),
+      v = new T.Vector3(u[0], u[2], u[1]),
       mat = new T.MeshBasicMaterial({ color: new T.Color(color) }),
       arrow = new T.Group(),
       shaft = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 0.75, 12), mat),
@@ -222,9 +226,11 @@ function hoverPick(e) {
       name = "Chassis surface";
     }
   }
-  if (!p) return void (tip.hidden = true);
-  const frame = car && axleView === "car" && !chal ? "car frame (front corner's X)" : `${cfg.axle} corner's frame`;
-  tip.innerHTML = `<b>${esc(name)}</b><span><i class="ax x">X</i> ${fmt(p[0], 1)}</span><span><i class="ax y">Y</i> ${fmt(p[1], 1)}</span><span><i class="ax z">Z</i> ${fmt(p[2], 1)}</span><small>mm, ${esc(frame)}</small>`;
+  if (!p || !SET.tips) return void (tip.hidden = true);
+  const carV = car && axleView === "car" && !chal,
+    frame = SET.origin === "car" ? "car frame (front axle)" : carV ? "car frame (front corner's X)" : `${cfg.axle} corner's frame`;
+  p = dispPt(p, carV ? "car" : cfg.axle);
+  tip.innerHTML = `<b>${esc(name)}</b><span><i class="ax x">X</i> ${fmt(p[0], 1)}</span><span><i class="ax y">Y</i> ${fmt(p[1], 1)}</span><span><i class="ax z">Z</i> ${fmt(p[2], 1)}</span><small>mm, ${esc(frame)}, ${esc(frameShort())}</small>`;
   const vr = $("#viewer").getBoundingClientRect();
   tip.hidden = false;
   const tw = tip.offsetWidth,

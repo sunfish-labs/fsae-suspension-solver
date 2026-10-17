@@ -447,8 +447,37 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   check("hovering a joint shows its name and X Y Z", !(await p.$eval("#vtip", e => e.hidden)) && nums.length >= 3 && nums.slice(0, 3).every((v, i) => Math.abs(v - at[2 + i]) < 0.06), tip);
   await p.mouse.move(5, 5);
 
+  console.log("\nSettings");
+  await p.setInputFiles("#fileIn", path.join(ROOT, "designs", "example_car.json")); await settle(p);
+  await p.click('#axleSeg [data-ax="front"]'); await settle(p);
+  const exCar = JSON.parse(fs.readFileSync(path.join(ROOT, "designs", "example_car.json"), "utf8"));
+  const hpVal = (k, j) => p.inputValue(`#in_hardpoints_${k}_${j}`).then(Number);
+  await p.click("#btnSettings"); await settle(p);
+  check("Settings opens from the top bar", !(await p.$eval("#setDlg", d => d.hidden)));
+  await p.selectOption("#setAxes", "iso"); await settle(p);
+  check("ISO axes: the right-hand corner's Y shows negative, X and Z unchanged", (await hpVal("upper_outboard", 1)) === -exCar.front.hardpoints.upper_outboard[1]
+    && (await hpVal("upper_outboard", 0)) === exCar.front.hardpoints.upper_outboard[0] && /Y left/.test(await text(p, "#hpHint")));
+  await p.evaluate(() => { const i = document.querySelector("#in_hardpoints_upper_outboard_1"); i.value = "-570"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
+  const savedY = await p.evaluate(() => JSON.parse(document.querySelector("#jsonBox").value).hardpoints.upper_outboard[1]);
+  check("typing -570 in the ISO frame stores Y = +570 in the solver frame (the files don't change frame)", savedY === 570, savedY);
+  await p.evaluate(() => document.querySelector("#btnUndo").click()); await settle(p);
+  await p.selectOption("#setAxes", "sw"); await p.selectOption("#setOrigin", "car"); await settle(p);
+  await p.click("#setClose"); await p.click('#axleSeg [data-ax="rear"]'); await settle(p);
+  const wbE = exCar.vehicle.wheelbase, rh = exCar.rear.hardpoints;
+  check("SolidWorks axes, car origin: the rear ball joint shows X - wheelbase, its height as Y and its Y as Z",
+    (await hpVal("upper_outboard", 0)) === rh.upper_outboard[0] - rh.contact_patch[0] - wbE && (await hpVal("upper_outboard", 1)) === rh.upper_outboard[2]
+    && (await hpVal("upper_outboard", 2)) === rh.upper_outboard[1]);
+  await p.click("#btnSettings"); await p.selectOption("#setAxes", "solver"); await p.selectOption("#setOrigin", "corner"); await settle(p);
+  await p.uncheck("#setAdv"); await settle(p);
+  check("simple inputs: the detailed sections hide and a line says how to show them",
+    (await p.$eval("#in_members_weld_fat_tube", e => e.offsetParent === null)) && !(await p.$eval("#advHint", e => e.hidden)));
+  await p.check("#setAdv"); await settle(p);
+  check("detailed inputs come back", (await p.$eval("#advHint", e => e.hidden)));
+  await p.uncheck('[data-settab="compare"]'); await settle(p);
+  check("a result tab can be hidden", !(await p.$("#tab_compare")));
+  await p.check('[data-settab="compare"]'); await settle(p);
   console.log("\nTheme");
-  await p.click("#themeMenu summary"); await p.click('[data-theme-set="dark"]'); await settle(p);
+  await p.click('#setDlg [data-theme-set="dark"]'); await settle(p);
   await p.reload(); await settle(p);
   check("dark theme is remembered", (await p.evaluate(() => document.documentElement.getAttribute("data-theme"))) === "dark");
   check("no script errors on the desktop pass", p.errors.length === 0, p.errors.slice(0, 5).join(" | "));

@@ -31,6 +31,7 @@ It covers the four suspension decisions a team makes before it has a car:
 | Springs and dampers | `run` (with a `spring` block) | **motion ratio**, wheel and ride rate, **ride frequency**, damper stroke used, **spring rate needed for a target frequency** |
 | Tube, rod-end and tab sizing | `loads` | wishbone-leg, tie-rod, pushrod, damper and rocker forces for bump, cornering, braking and combined cases, plus **buckling and yield safety factors** |
 | Whole car | `car front.json rear.json` | front/rear frequencies, **roll gradient**, **LLTD**, and the **anti-roll bar stiffness** needed |
+| Layout and drivetrain | `layout car.json` | **mass, CG height, weight split and inertia** from a parts list; gear speeds, shift points and the **75 m acceleration time** |
 
 ## Browser UI (`ui/index.html`)
 A KineSolver-style interface for the same solver. Use the hosted link above, or build it with
@@ -173,6 +174,35 @@ crosses the model shows "touches". It checks surfaces, so a link entirely inside
 Y right (green), Z up (blue); ground at Z = 0, car centerline at Y = 0, in mm. Hover over any joint to read its
 coordinates. That frame is left-handed, so it is drawn as a mirror of three.js's own axes; the right-hand corner is
 drawn on the car's right.
+
+## Layout and drivetrain (Car view, or `layout car.json`)
+A car file can list the car's parts (`layout.components`: name, group, mass in kg, `at` = the part's CG in mm, `size` =
+length × width × height of a box around it, `solid`), in the car frame: the front corner's X, Y right, Z up from the
+ground, the rear axle one wheelbase behind. The four wheel assemblies come from each corner's `spring.unsprung_mass`.
+- **Totals:** mass, CG (X, Y, Z), front and left weight shares, and the roll, pitch and yaw inertia about the CG (each
+  part a solid box). With `layout.apply: true` the car's `vehicle.mass`, `weight_front` and `cg_height` come from the
+  layout, so the ride, loads and roll balance all use it. In the app: Car view → Layout, with *Start from a typical
+  first-year layout* (`designs/example_car_layout.json`, invented numbers).
+- **In 3D and the clearance check:** solid parts are drawn as see-through boxes (Display ▾ → Layout parts) and the
+  clearance check (Layout → *Check link clearance to these parts*, or the chassis panel) finds how close every link,
+  the tire, the upright and the rocker come to them over travel and steer, naming the part. Untick *Solid* for mass
+  spread over the car (frame, wiring, bodywork): it counts for the totals and the inertia only.
+- **Drivetrain** (`drivetrain`): torque curve (`[[rpm, N m], …]`), `redline`, `launch_rpm`, `primary`, `gears`,
+  `final` (rear sprocket ÷ front sprocket), `efficiency`, `shift_time` (s), `mass_factor` (spinning parts as extra
+  mass), `drag_area` (Cd·A, m²), `rolling`. A straight-line run from rest, rear-wheel drive, shifting at the redline:
+  wheel force = torque × primary × gear × final × efficiency ÷ tire radius, capped by the rear tires' grip
+  μ (`vehicle.tire_mu`) × the rear load, which grows with acceleration (m g (1 − weight_front) + m a h / L). Gives
+  the 75 m time and speed, top speed per gear (and where drag holds it below the redline), each shift, and how far
+  the launch is grip-limited. An estimate: no tire slip curve or wheelspin model.
+
+## Settings and coordinates
+**⚙ Settings** (top bar) keeps per-browser choices: the color theme; **coordinates** (axes: the solver's own, ISO 8855
+with Y left, SolidWorks with Y up, or X rearward; origin: each axle from its own zero, or one car frame from the
+ground under the front axle) used by the hardpoint tables, the layout, the 3D axes and the hover readout; whether the
+**detailed inputs** show (first visits start without damping, spring-as-fitted, bar linkage, tabs, fatigue,
+compliance, clearance margins, sweep ranges and the JSON box); which **result tabs** show; **3D quality** for slow
+laptops; and hover readouts. Files, reports and exports always use the solver's frame (X forward, Y right, Z up, each
+axle from its own zero); the 3D-for-CAD export has its own axes choice.
 
 ## How loads are calculated (`loads`)
 One config covers both corners of its axle, because the car is symmetric. The solved wheel is the **outer** wheel

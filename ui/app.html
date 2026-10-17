@@ -14,11 +14,7 @@
     <div class="toolbar">
       <div class="seg axseg" id="axleSeg" role="group" aria-label="Which part of the car"><button type="button" data-ax="front" aria-pressed="false">Front</button><button type="button" data-ax="rear" aria-pressed="false">Rear</button><button type="button" data-ax="car" aria-pressed="false">Car</button></div>
       <button class="btn small" id="btnLearn" type="button">Learn</button>
-      <details class="xmenu thmenu" id="themeMenu"><summary class="btn small" title="Light, dark or follow your computer">Theme ▾</summary>
-        <div class="xpop" role="menu"><p class="note">Color theme</p>
-          <button type="button" class="tg" data-theme-set="" aria-pressed="true"><b>Auto</b><span>Follow your computer's light or dark setting</span></button>
-          <button type="button" class="tg" data-theme-set="light" aria-pressed="false"><b>Light</b></button>
-          <button type="button" class="tg" data-theme-set="dark" aria-pressed="false"><b>Dark</b></button></div></details>
+      <button class="btn small" id="btnSettings" type="button" title="Theme, coordinates, which inputs and tabs show, 3D quality">⚙ Settings</button>
       <button class="btn small" id="btnStart" type="button">Start here</button></div>
   </div>
   <div class="toprow">
@@ -110,6 +106,39 @@
   </div>
 </div>
 
+<div class="welcome" id="setDlg" hidden>
+  <div class="wcard setcard" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <button class="btn small wclose" type="button" id="setClose" aria-label="Close">✕</button>
+    <h2 id="setTitle">Settings</h2>
+    <p class="note">Kept in this browser. They change what you see, never the design or its files.</p>
+    <div class="setsec"><h3>Theme</h3><div class="seg" role="group" aria-label="Color theme">
+      <button type="button" data-theme-set="" aria-pressed="true">Auto</button><button type="button" data-theme-set="light" aria-pressed="false">Light</button><button type="button" data-theme-set="dark" aria-pressed="false">Dark</button></div></div>
+    <div class="setsec"><h3>Coordinates</h3>
+      <div class="fields">
+        <div class="field wide"><label for="setAxes">Axes</label><select id="setAxes"></select></div>
+        <div class="field wide"><label for="setOrigin">Origin</label><select id="setOrigin">
+          <option value="corner">Each axle from its own zero (as in the files)</option>
+          <option value="car">One car frame: the ground under the front axle, on the centerline</option></select></div></div>
+      <p class="note">Used by the hardpoint tables, the layout, the 3D axes and the hover readout, so the numbers match your CAD. Files, reports and exports keep the solver's frame (X forward, Y right, Z up, each axle from its own zero); the 3D-for-CAD export has its own axes choice. With Y to the left, the right-hand corner's Y values are negative.</p></div>
+    <div class="setsec"><h3>Inputs</h3>
+      <label class="small-check"><input type="checkbox" id="setAdv"> Show the detailed inputs (damping, spring as fitted, bar linkage, tabs, fatigue, compliance, clearances, sweep ranges, JSON)</label></div>
+    <div class="setsec"><h3>Result tabs</h3><div class="settabs">
+      <label class="small-check"><input type="checkbox" data-settab="motion"> Motion</label>
+      <label class="small-check"><input type="checkbox" data-settab="spring"> Spring &amp; damper</label>
+      <label class="small-check"><input type="checkbox" data-settab="loads"> Loads</label>
+      <label class="small-check"><input type="checkbox" data-settab="pack"> Packaging</label>
+      <label class="small-check"><input type="checkbox" data-settab="compare"> Compare</label></div>
+      <p class="note">Targets always shows.</p></div>
+    <div class="setsec"><h3>3D view</h3>
+      <div class="fields"><div class="field"><label for="setQuality">Quality</label><select id="setQuality">
+        <option value="high">Sharp (high-resolution screens)</option><option value="normal">Normal</option><option value="low">Fast (slow laptops)</option></select></div></div>
+      <label class="small-check"><input type="checkbox" id="setTips"> Show X Y Z when hovering over a joint or the chassis</label></div>
+    <div class="setsec"><h3>Saved in this browser</h3>
+      <div class="laybtns"><button class="btn small" type="button" id="setReset">Reset these settings</button><button class="btn small" type="button" id="setClear">Clear everything saved here…</button></div>
+      <p class="note">Clearing removes the design you're working on, the chassis model and these settings from this browser (save your JSON first).</p></div>
+  </div>
+</div>
+
 <div class="welcome" id="cadDlg" hidden>
   <div class="wcard cadcard" role="dialog" aria-modal="true" aria-labelledby="cadTitle">
     <button class="btn small wclose" type="button" id="cadClose" aria-label="Close">✕</button>
@@ -153,7 +182,7 @@
   <!-- ================= INPUTS ================= -->
   <section class="inputs" id="cardsIn" aria-label="Inputs">
     <details class="card" open id="cardHp">
-      <summary><h2>Double wishbone</h2><span class="hint">mm · X fwd, Y out, Z up</span></summary>
+      <summary><h2>Double wishbone</h2><span class="hint" id="hpHint">mm · X fwd, Y out, Z up</span></summary>
       <div class="body">
         <div class="field"><label for="in_name">Design name</label><input id="in_name" class="num" style="text-align:left;font-family:var(--f-body)" data-path="name" data-type="text"></div>
         <table class="pt" id="hpTable"><thead><tr><th>Hardpoint</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody></tbody></table>
@@ -170,7 +199,7 @@
       </div>
     </details>
 
-    <details class="card">
+    <details class="card adv">
       <summary><h2>Simulation</h2><span class="hint">sweep ranges</span></summary>
       <div class="body"><div class="fields" id="simFields"></div></div>
     </details>
@@ -189,10 +218,11 @@
           <table class="pt" id="spTable"><thead><tr><th>Point</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody></tbody></table>
           <div class="sub-h" style="margin-top:8px">Spring, damper &amp; tire</div>
           <div class="fields" id="spFields"></div>
-          <div class="sub-h" style="margin-top:8px">Damping <span class="muted" style="text-transform:none;letter-spacing:0">(optional · damper dyno slopes, N per m/s at the shaft)</span></div>
+          <div class="adv"><div class="sub-h" style="margin-top:8px">Damping <span class="muted" style="text-transform:none;letter-spacing:0">(optional · damper dyno slopes, N per m/s at the shaft)</span></div>
           <div class="fields" id="dampFields"></div>
           <div class="sub-h" style="margin-top:8px">Spring as fitted <span class="muted" style="text-transform:none;letter-spacing:0">(optional · dual-rate spring, bump stop; damper mm beyond ride height)</span></div>
-          <div class="fields" id="progFields"></div>
+          <div class="fields" id="progFields"></div></div>
+          <div class="adv">
           <div class="sub-h" style="margin-top:8px">Anti-roll bar linkage</div>
           <label class="check"><input type="checkbox" id="arbOn"> Model this axle's bar and drop link (replaces the bar number in the Car view)</label>
           <div id="arbBody" hidden>
@@ -201,7 +231,7 @@
                 <select id="arb_link_on" data-path="arb.link_on" data-type="select"><option value="lower">Lower wishbone</option><option value="upper">Upper wishbone</option><option value="upright">Upright</option><option value="rocker">The rocker</option></select></div></div>
             <table class="pt" id="arbTable"><thead><tr><th>Point</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody></tbody></table>
             <div class="fields" id="arbFields"></div>
-          </div>
+          </div></div>
         </div>
       </div>
     </details>
@@ -218,6 +248,7 @@
         <div class="fields" id="partFields"></div>
         <div class="sub-h">Pushrod mount on the wishbone</div>
         <div class="fields" id="gusFields"></div>
+        <div class="adv">
         <div class="sub-h">Pickup tabs (a pair per link end)</div>
         <div class="fields" id="tabFields"></div>
         <div class="sub-h">Fatigue screen</div>
@@ -226,16 +257,18 @@
         <div class="fields" id="compFields"></div>
         <div class="sub-h">Packaging clearances</div>
         <div class="fields" id="clrFields"></div>
+        </div>
       </div>
     </details>
 
-    <details class="card" id="cardJson">
+    <details class="card adv" id="cardJson">
       <summary><h2>Config JSON</h2><span class="hint">same format as susp_solver.py</span></summary>
       <div class="body">
         <textarea class="json" id="jsonBox" spellcheck="false" aria-label="Configuration JSON"></textarea>
         <div class="toolbar"><button class="btn small" id="btnApplyJson" type="button">Apply JSON</button><span class="note" id="jsonMsg"></span></div>
       </div>
     </details>
+    <p class="note advhint" id="advHint">Some detailed inputs are hidden (damping, spring as fitted, bar linkage, tabs, fatigue, compliance, clearances, sweep ranges, JSON). <button class="lnk" type="button" id="advShow">Show them</button> · or in ⚙ Settings.</p>
   </section>
 
   <section class="inputs crail" id="crail" hidden aria-label="Challenge"></section>
@@ -272,7 +305,7 @@
         <div class="vhint" id="vhint" hidden>Tip: click any joint to see what moving it does</div>
         <div class="hud" id="hud"></div>
         <div class="vtip" id="vtip" hidden></div>
-        <div class="vaxkey" title="The solver's axes: X forward, Y to the right (outboard on the right wheels), Z up, ground at Z = 0, car centerline at Y = 0, all in mm. Hover over any joint or the chassis to read its coordinates.">X forward · Y right · Z up</div>
+        <div class="vaxkey" id="vaxkey" title="The solver's axes: X forward, Y to the right (outboard on the right wheels), Z up, ground at Z = 0, car centerline at Y = 0, all in mm. Hover over any joint or the chassis to read its coordinates.">X forward · Y right · Z up</div>
         <div class="v-msg" id="vmsg" hidden></div>
       </div>
       <aside class="drawer" id="drawer" hidden aria-label="What moving this point does"></aside>

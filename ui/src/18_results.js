@@ -25,7 +25,9 @@ function renderTabs() {
   const fails = ev && !err ? ev.checks.filter(c => c.status === "FAIL").length : 0,
     cur = MOTION.includes(tab) ? "motion" : tab;
   if (MOTION.includes(tab)) lastMotion = tab;
-  const bar = TAB_BAR.concat(tab === "learn" ? [["learn", "Learn"]] : []);
+  const bar = TAB_BAR.filter(([k]) => k === "checks" || SET.tabs[k] !== false || k === cur).concat(
+    tab === "learn" ? [["learn", "Learn"]] : []
+  );
   $("#tabs").innerHTML = bar
     .map(
       ([k, t]) =>
