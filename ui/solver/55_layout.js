@@ -37,10 +37,21 @@ function checkDrivetrain(d) {
   if (!(Array.isArray(d.gears) && d.gears.length && d.gears.every(g => isNum(g))))
     throw new SolveError("drivetrain.gears needs one or more positive ratios");
   if (!isNum(d.final)) throw new SolveError("drivetrain.final needs a positive ratio (rear sprocket / front sprocket)");
-  for (const k of ["primary", "efficiency", "shift_time", "mass_factor", "drag_area", "rolling", "redline", "launch_rpm", "distance"]) {
+  for (const k of [
+    "primary",
+    "efficiency",
+    "shift_time",
+    "mass_factor",
+    "drag_area",
+    "rolling",
+    "redline",
+    "launch_rpm",
+    "distance",
+    "top_speed_need",
+  ]) {
     const v = d[k];
     if (v == null) continue;
-    const strict = ["primary", "efficiency", "mass_factor", "redline", "launch_rpm", "distance"].includes(k);
+    const strict = ["primary", "efficiency", "mass_factor", "redline", "launch_rpm", "distance", "top_speed_need"].includes(k);
     if (!isNum(v, false) || v < 0 || (strict && v === 0))
       throw new SolveError(`drivetrain.${k} must be a ${strict ? "positive" : "non-negative"} number`);
   }
@@ -225,4 +236,26 @@ function accelRun(dIn, veh, tireRadius, wheelbase, dt = 1e-3) {
     launch_accel: accel(0, 0)[0] / G,
     grip_accel: capDen > 0 ? (mu * m * G * (1 - wf) - resist(0)) / capDen / G : Infinity,
   };
+}
+// mirrors layout.gearing_sweep: the acceleration run over a range of final drives
+const TOP_SPEED_NEED = 105; // km/h, D.12.2.2
+function gearingSweep(d, veh, tireRadius, wheelbase, finals = null, needKph = null) {
+  const base = +d.final;
+  finals = finals || Array.from({ length: 11 }, (_, i) => Math.round(base * (0.75 + 0.05 * i) * 1e4) / 1e4);
+  const need = +(needKph || d.top_speed_need || TOP_SPEED_NEED);
+  const rows = finals.map(f => {
+    const r = accelRun({ ...d, final: f }, veh, tireRadius, wheelbase);
+    return {
+      final: f,
+      time: r.time,
+      speed: r.speed,
+      top_speed: r.top_speed,
+      shifts: r.shifts.length,
+      reaches: r.top_speed * 3.6 >= need - 1e-9,
+    };
+  });
+  const ok = rows.filter(r => r.reaches),
+    best = (ok.length ? ok : rows).reduce((a, r) => (r.time < a.time ? r : a)),
+    cur = accelRun(d, veh, tireRadius, wheelbase);
+  return { rows, need_kph: need, best, current: { final: base, time: cur.time, top_speed: cur.top_speed }, gain: cur.time - best.time };
 }

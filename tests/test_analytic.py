@@ -791,6 +791,17 @@ r21b = brake_sizing(dict(b21, bias=r21["bias_ideal"]), v21, 250.0, 1500.0)
 check("brakes: at the ideal balance bar both axles lock at the same pedal force, N", r21b["pedal_lock_front"] - r21b["pedal_lock_rear"], 0.0, 1e-9, "")
 check("brakes: line pressure with 2000 N on the pedal, bar", r21["p_2000"], 0.5 * 2000 * 5 / (math.pi / 4 * 20 ** 2) * 10, 1e-9, "the busier master cylinder")
 
+# 22. the final-drive sweep (layout.gearing_sweep)
+from susp.layout import accel_run, gearing_sweep  # noqa: E402
+_f22, _r22, _i22 = load_car(os.path.join(ROOT15, "designs", "example_car_layout.json"))
+d22, v22 = _i22["drivetrain"], _f22["vehicle"]
+sw22 = gearing_sweep(d22, v22, _r22["wheel"]["tire_radius"], v22["wheelbase"])
+row22 = sw22["rows"][3]
+check("gearing: each row is the acceleration run with that final drive, s", row22["time"],
+      accel_run(dict(d22, final=row22["final"]), v22, _r22["wheel"]["tire_radius"], v22["wheelbase"])["time"], 1e-12, "")
+check("gearing: best = the quickest final whose top speed reaches the need", float(sw22["best"]["time"] == min(r["time"] for r in sw22["rows"] if r["reaches"])
+      and all(r["reaches"] == (r["top_speed"] * 3.6 >= 105 - 1e-9) for r in sw22["rows"])), 1.0, 0, "105 km/h, D.12.2.2")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)

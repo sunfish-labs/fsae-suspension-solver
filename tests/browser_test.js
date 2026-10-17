@@ -259,6 +259,7 @@ f, r, i = load_car(${JSON.stringify(path.join(ROOT, "designs", "example_car_layo
 a = accel_run(i["drivetrain"], f["vehicle"], r["wheel"]["tire_radius"], f["vehicle"]["wheelbase"])
 print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time"]]))`]).toString());
   const lb = await text(p, "#layBox");
+  check("drivetrain: the final-drive sweep names the quickest final that reaches 105 km/h", /Quickest final that still reaches 105 km\/h/.test(lb), lb.slice(0, 200));
   check("layout: totals match the Python solver (mass, CG height) and the vehicle block takes them",
     lb.includes(pyLay[0].toFixed(1)) && lb.includes(pyLay[1].toFixed(0)) && /from the layout/.test(await text(p, "#carIn")), lb.slice(0, 300));
   check("drivetrain: the 75 m time matches the Python solver", lb.includes(pyLay[2].toFixed(2) + " s") || new RegExp(pyLay[2].toFixed(2) + "\\s*s").test(lb), pyLay[2]);

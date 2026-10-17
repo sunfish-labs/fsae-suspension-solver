@@ -233,6 +233,9 @@ ground, the rear axle one wheelbase behind. The four wheel assemblies come from 
   μ (`vehicle.tire_mu`) × the rear load, which grows with acceleration (m g (1 − weight_front) + m a h / L). Gives
   the 75 m time and speed, top speed per gear (and where drag holds it below the redline), each shift, and how far
   the launch is grip-limited. An estimate: no tire slip curve or wheelspin model.
+- **Final drive sweep**: the same run for finals from 75 to 125 % of yours, with each one's top speed, and the
+  quickest final that still reaches `top_speed_need` (km/h, default 105: endurance courses are laid out for top
+  speeds of about 105 km/h, D.12.2.2). A final whose top speed falls short hits the rev limiter on the course.
 
 ## Frame stiffness (Car view → Frame stiffness, or `vehicle.frame_k`)
 A frame that twists lets the front and rear of the body roll by different amounts, so part of what the springs and

@@ -3,6 +3,13 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.23.0 - 2026-10-17
+
+- **Final drive sweep** (Car view → Layout → Drivetrain, and `layout`): the acceleration run for finals from 75 to
+  125 % of yours, with the speed at the line and top speed for each, and the quickest final that still reaches the
+  endurance course's design top speed (105 km/h by default, D.12.2.2; `drivetrain.top_speed_need`). Python and
+  browser (parity-tested).
+
 ## 1.22.0 - 2026-10-17
 
 - **Brake sizing** (`brake_system` in the car file; Car view → Layout → Brakes): whether the driver can lock all

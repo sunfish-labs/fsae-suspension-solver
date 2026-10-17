@@ -150,6 +150,14 @@ def cmd_layout(a):
               f"{ar['grip_limited_to']:.1f} m (launch {ar['launch_accel']:.2f} g, grip limit {ar['grip_accel']:.2f} g)")
         for s in ar["shifts"]:
             print(f"  shift to {s['gear']} at {s['t']:.2f} s, {s['x']:.1f} m, {s['v'] * 3.6:.1f} km/h")
+        from susp.layout import gearing_sweep
+        sw = gearing_sweep(d, v, r["wheel"]["tire_radius"], v["wheelbase"])
+        print(f"\n  Final drive sweep (top speed needed: {sw['need_kph']:g} km/h, the endurance course's design top speed, D.12.2.2):")
+        for row in sw["rows"]:
+            tag = (" <- quickest that reaches it" if row is sw["best"] else "") + ("" if row["reaches"] else " (rev limiter before the top speed)")
+            print(f"    final {row['final']:.3f}: {row['time']:.3f} s, top speed {row['top_speed'] * 3.6:.1f} km/h{tag}")
+        print(f"  yours ({sw['current']['final']:g}) is {sw['gain']:.3f} s slower than the best" if sw["gain"] > 1e-4
+              else "  yours is the quickest final in this range that reaches it")
     if not lr and not d:
         print("This car file has no layout or drivetrain block yet. See designs/example_car_layout.json.")
 

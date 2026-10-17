@@ -62,11 +62,11 @@ def check_drivetrain(d, where="drivetrain"):
         raise ConfigError(f"{where}: drivetrain.gears needs one or more positive ratios")
     if not _num(d.get("final")):
         raise ConfigError(f"{where}: drivetrain.final needs a positive ratio (rear sprocket / front sprocket)")
-    for k in ("primary", "efficiency", "shift_time", "mass_factor", "drag_area", "rolling", "redline", "launch_rpm", "distance"):
+    for k in ("primary", "efficiency", "shift_time", "mass_factor", "drag_area", "rolling", "redline", "launch_rpm", "distance", "top_speed_need"):
         v = d.get(k)
         if v is None:
             continue
-        strict = k in ("primary", "efficiency", "mass_factor", "redline", "launch_rpm", "distance")
+        strict = k in ("primary", "efficiency", "mass_factor", "redline", "launch_rpm", "distance", "top_speed_need")
         if not _num(v, False) or v < 0 or (strict and v == 0):
             raise ConfigError(f"{where}: drivetrain.{k} must be a {'positive' if strict else 'non-negative'} number")
     if d.get("efficiency") is not None and d["efficiency"] > 1:
@@ -210,3 +210,27 @@ def accel_run(d, veh, tire_radius, wheelbase, dt=1e-3):
                 top_speed=max(vmax), trace=trace, mass=m, mu=mu,
                 launch_accel=accel(0.0, 0)[0] / G, grip_accel=(mu * m * G * (1 - wf) - resist(0.0)) / (me - mu * m * h / L) / G
                 if me > mu * m * h / L else float("inf"))
+
+
+TOP_SPEED_NEED = 105.0     # km/h: D.12.2.2, endurance courses are laid out for top speeds of about 105 km/h
+
+
+def gearing_sweep(d, veh, tire_radius, wheelbase, finals=None, need_kph=None):
+    """The acceleration run (accel_run) for a range of final drives: 75 m time, speed at the line and the drag-limited
+    top speed for each. Finals default to 75-125 % of the drivetrain's own in 11 steps. need_kph (default
+    drivetrain.top_speed_need or 105 km/h, the endurance course's design top speed, D.12.2.2): a final whose top speed
+    falls short of it would hit the rev limiter on the course. best: the quickest final that reaches it."""
+    base = float(d["final"])
+    finals = finals or [round(base * (0.75 + 0.05 * i), 4) for i in range(11)]
+    need = float(need_kph or d.get("top_speed_need") or TOP_SPEED_NEED)
+    rows = []
+    for f in finals:
+        r = accel_run(dict(d, final=f), veh, tire_radius, wheelbase)
+        rows.append(dict(final=f, time=r["time"], speed=r["speed"], top_speed=r["top_speed"], shifts=len(r["shifts"]),
+                         reaches=r["top_speed"] * 3.6 >= need - 1e-9))
+    ok = [r for r in rows if r["reaches"]]
+    best = min(ok or rows, key=lambda r: r["time"])
+    cur = accel_run(d, veh, tire_radius, wheelbase)
+    return dict(rows=rows, need_kph=need, best=best, current=dict(final=base, time=cur["time"], top_speed=cur["top_speed"]),
+                gain=cur["time"] - best["time"])
+

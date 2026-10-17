@@ -91,7 +91,7 @@ function drivetrainHtml() {
         title: "Engine torque, N m",
         xlabel: "rpm",
         series: [{ name: "torque", x: d.torque_curve.map(p => p[0]), y: d.torque_curve.map(p => p[1]), color: "var(--s2)" }],
-      })}</div>`;
+      })}</div>${gearingHtml(A.sweep)}`;
   }
   return `<div class="fields">
       <div class="field wide"><label>Name</label><input class="ltext" type="text" data-lay="dt" data-lk="name" value="${attr(d.name || "")}" aria-label="Drivetrain name"></div>
@@ -101,9 +101,24 @@ function drivetrainHtml() {
       ${f("Redline", "rpm", "redline", 100)}${f("Launch (clutch) rpm", "rpm", "launch_rpm", 100)}
       ${f("Drivetrain efficiency", "0–1", "efficiency", 0.01)}${f("Shift time", "s", "shift_time", 0.01)}
       ${f("Spinning parts as extra mass", "× mass", "mass_factor", 0.01)}${f("Drag area (Cd × A)", "m²", "drag_area", 0.05)}
-      ${f("Rolling resistance", "", "rolling", 0.001)}</div>
+      ${f("Rolling resistance", "", "rolling", 0.001)}${f("Top speed the gearing must reach (blank = 105, D.12.2.2)", "km/h", "top_speed_need", 1)}</div>
     <p class="note">Rear-wheel drive from rest, shifting at the redline. Wheel force = torque × primary × gear × final × efficiency ÷ tire radius, capped by the rear tires' grip (μ ${fmt(+(car.vehicle.tire_mu || 1.5), 2)} from Tires at the limit), which grows as the load moves back. Below the launch rpm the clutch slips and the engine gives its torque there. A straight-line estimate: no wheelspin model or tire curve.</p>
     ${res}`;
+}
+// the final-drive sweep (mirrors layout.gearing_sweep)
+function gearingHtml(G) {
+  if (!G) return "";
+  const best = G.best;
+  return `<h4 class="sub-h">Final drive: quicker acceleration vs top speed</h4>
+    <div class="kv"><div><span>Quickest final that still reaches ${fmt(G.need_kph, 0)} km/h</span><b class="${G.gain > 0.005 ? "bad-t" : "ok-t"}">${fmt(best.final, 2)} <small>(${fmt(best.time, 3)} s; yours ${fmt(G.current.final, 2)}: ${G.gain > 1e-4 ? `${fmt(G.gain, 3)} s slower` : "the quickest"})</small></b></div></div>
+    <div class="tbl-wrap"><table class="data"><thead><tr><th class="n">Final drive</th><th class="n">${fmt(+(car.drivetrain.distance || 75), 0)} m, s</th><th class="n">Speed at the line, km/h</th><th class="n">Top speed, km/h</th><th class="n">Shifts</th></tr></thead><tbody>
+    ${G.rows
+      .map(
+        r =>
+          `<tr${r === best ? ' class="lv-now"' : ""}><td class="n">${fmt(r.final, 2)}${r === best ? " ★" : ""}</td><td class="n">${fmt(r.time, 3)}</td><td class="n">${fmt(r.speed * 3.6, 1)}</td><td class="n ${r.reaches ? "" : "bad-t"}">${fmt(r.top_speed * 3.6, 1)}</td><td class="n">${r.shifts}</td></tr>`
+      )
+      .join("")}</tbody></table></div>
+    <p class="note">A shorter gearing (a bigger final drive) accelerates harder until the grip or the shifts take over, but hits the rev limiter sooner. The endurance course is laid out for top speeds of about ${fmt(G.need_kph, 0)} km/h (D.12.2.2), so a final whose top speed is below that (red) loses time on the straights. ★ = the quickest final that still reaches it. Same straight-line model as above: check it against the autocross and endurance courses' corner speeds too.</p>`;
 }
 function renderLayoutBox() {
   const box = $("#layBox");
@@ -155,6 +170,7 @@ function runAccel() {
       veh = car.vehicle,
       R = (r && r.R.ev ? r.R.ev.cfg.wheel.tire_radius : car.rear.wheel.tire_radius) || 254;
     layAccel = S.accelRun(car.drivetrain, veh, R, veh.wheelbase);
+    layAccel.sweep = S.gearingSweep(car.drivetrain, veh, R, veh.wheelbase);
   } catch (e) {
     layAccel = { err: e.message };
   }

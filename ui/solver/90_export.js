@@ -42,6 +42,7 @@ root.Susp = {
   layoutMass,
   applyLayout,
   accelRun,
+  gearingSweep,
   RULESETS,
   ruleValues,
   checkRules,
