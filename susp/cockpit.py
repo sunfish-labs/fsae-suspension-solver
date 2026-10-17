@@ -9,6 +9,7 @@ on the car's centerline.
     brace_upper        where the Main Hoop Braces attach to the hoop
     hip                center of the template's 200 mm hip circle on the seat bottom, seat in its rearmost position
     back_angle         seat back angle from vertical, deg (the shoulder circle sits on the back)
+                       (hip and back_angle together, or neither: without them only the frame checks run)
     neck_angle         extra recline of the neck line, deg (0 = in line with the back)
     pedal_face_x       rearmost face of the pedals in their most forward position
     wheel_top_z        top of the steering wheel at any angle
@@ -64,22 +65,25 @@ def cockpit_values(ck):
     brace attachment drop. A check that doesn't apply (braces forwards, or backwards) gets {"na": reason}."""
     if not ck:
         return {}
-    hip, sh, head = template(ck)
     mh, fh = ck["main_hoop_top"], ck["front_hoop_top"]
-    v = {"_template": dict(hip=hip, shoulder=sh, head=head)}
-    v["helmet_front_line"] = side_dist(head, mh, fh) - 150.0
-    bl = ck.get("brace_lower")
-    if bl:
-        if bl[0] < mh[0]:                                          # braces extend rearwards
-            # the head must be on the front side of the line from the hoop top down to the brace's lower end
-            d = side_dist(head, mh, bl)
-            v["helmet_brace_line"] = (abs(d) if head[0] > _x_on(mh, bl, head[1]) else -abs(d)) - 150.0
-            v["helmet_behind_hoop"] = {"na": "braces extend rearwards"}
-        else:                                                      # braces forwards: helmet not behind the hoop
-            v["helmet_brace_line"] = {"na": "braces extend forwards"}
-            v["helmet_behind_hoop"] = head[0] - 150.0 - mh[0]
-    if ck.get("pedal_face_x") is not None:
-        v["hip_to_pedals"] = float(ck["pedal_face_x"]) - hip[0]
+    driver = ck.get("hip") is not None and ck.get("back_angle") is not None
+    tpl = template(ck) if driver else None
+    v = {"_template": dict(hip=tpl[0], shoulder=tpl[1], head=tpl[2]) if tpl else None}
+    if driver:
+        hip, sh, head = tpl
+        v["helmet_front_line"] = side_dist(head, mh, fh) - 150.0
+        bl = ck.get("brace_lower")
+        if bl:
+            if bl[0] < mh[0]:                                          # braces extend rearwards
+                # the head must be on the front side of the line from the hoop top down to the brace's lower end
+                d = side_dist(head, mh, bl)
+                v["helmet_brace_line"] = (abs(d) if head[0] > _x_on(mh, bl, head[1]) else -abs(d)) - 150.0
+                v["helmet_behind_hoop"] = {"na": "braces extend rearwards"}
+            else:                                                      # braces forwards: helmet not behind the hoop
+                v["helmet_brace_line"] = {"na": "braces extend forwards"}
+                v["helmet_behind_hoop"] = head[0] - 150.0 - mh[0]
+        if ck.get("pedal_face_x") is not None:
+            v["hip_to_pedals"] = float(ck["pedal_face_x"]) - hip[0]
     if ck.get("wheel_top_z") is not None:
         v["front_hoop_over_wheel"] = fh[1] - float(ck["wheel_top_z"])
     if ck.get("wheel_front_x") is not None:
@@ -87,7 +91,7 @@ def cockpit_values(ck):
     bu = ck.get("brace_upper")
     if bu:
         v["brace_drop"] = mh[1] - bu[1]
-    v.update(frame_values(ck, (hip, sh, head)))
+    v.update(frame_values(ck, tpl))
     return v
 
 
@@ -131,6 +135,10 @@ def frame_values(ck, template_pts):
             side = "rearward" if bl[0] < bu[0] else "forward"
             v["brace_side"] = {"v": lean == "vertical" or lean == side,
                                "note": f"hoop {('leans ' + lean) if lean != 'vertical' else 'vertical'}, braces {side}"}
+    if template_pts is None:                                     # no driver template: no belt angles
+        if g("shoulder_belt_spacing") is not None:
+            v["shoulder_belt_spacing"] = float(ck["shoulder_belt_spacing"])
+        return v
     hip, sh, _ = template_pts
     upright = float(ck["back_angle"]) <= 30
     if g("lap_belt_mount"):
@@ -160,11 +168,13 @@ def check_cockpit(ck, where="cockpit"):
         raise ConfigError(f"{where}: cockpit must be an object of side-view points")
     for k in KEYS_PT:
         p = ck.get(k)
-        if p is None and k in ("brace_lower", "brace_upper"):
+        if p is None and k in ("brace_lower", "brace_upper", "hip"):
             continue
         if not (isinstance(p, list) and len(p) == 2 and all(isinstance(q, (int, float)) for q in p)):
             raise ConfigError(f"{where}: cockpit.{k} needs [x, z] in mm")
-    if not isinstance(ck.get("back_angle"), (int, float)) or not 0 <= ck["back_angle"] < 80:
+    if (ck.get("hip") is None) != (ck.get("back_angle") is None):
+        raise ConfigError(f"{where}: cockpit needs both hip and back_angle for the driver template, or neither")
+    if ck.get("back_angle") is not None and (not isinstance(ck["back_angle"], (int, float)) or not 0 <= ck["back_angle"] < 80):
         raise ConfigError(f"{where}: cockpit.back_angle is the seat back's angle from vertical, 0 to 80 deg")
     for k in KEYS_OPT:
         p = ck.get(k)

@@ -115,6 +115,11 @@ bad_ck["cockpit"]["hip"] = carL["cockpit"]["hip"]
 bad_ck["cockpit"]["back_angle"] = 95
 check("a seat back angle past 80 deg -> ConfigError", raises(ConfigError, lambda: load_car(write("ck.json", bad_ck))))
 bad_ck["cockpit"]["back_angle"] = 30
+bad_ck["cockpit"].pop("back_angle")
+check("a seat hip point without its back angle -> ConfigError", raises(ConfigError, lambda: load_car(write("ck.json", bad_ck))))
+bad_ck["cockpit"].pop("hip")
+check("a frame-only cockpit (no hip, no back angle) loads", not raises(ConfigError, lambda: load_car(write("ck.json", bad_ck))))
+bad_ck["cockpit"].update(hip=carL["cockpit"]["hip"], back_angle=30)
 bad_ck["cockpit"]["lap_belt_mount"] = [-870]
 check("a frame point with one coordinate -> ConfigError", raises(ConfigError, lambda: load_car(write("ck.json", bad_ck))))
 bad_gp = json.loads(json.dumps(carL))

@@ -694,6 +694,10 @@ check("frame: hoop to brace included angle, deg", v17["brace_angle"], math.degre
 check("harness: lap belt angle to the template's hip, deg", v17["lap_belt_upright"], math.degrees(math.atan2(100.0, 100.0)), 1e-9, "mount 100 mm behind and below the hip: 45 deg")
 sh17 = t17[1]
 check("harness: shoulder belt below horizontal from the shoulder's top, deg", v17["shoulder_belt_angle"], math.degrees(math.atan2(sh17[1] + 100 - 700.0, abs(sh17[0]))), 1e-9, "")
+fo17 = cockpit_values({k: v for k, v in ck17.items() if k not in ("hip", "back_angle")})
+check("frame only (no seat yet): the frame rules still run, no template or helmet values",
+      float(fo17["_template"] is None and "helmet_front_line" not in fo17 and "lap_belt_upright" not in fo17
+            and abs(fo17["upper_sis_low"] - 300.0) < 1e-12), 1.0, 0, "hip and back_angle left out together")
 
 # 18. the anti-roll bar in the cornering cases (loads/arb.py)
 

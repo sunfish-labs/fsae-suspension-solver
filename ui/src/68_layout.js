@@ -444,9 +444,7 @@ function cockpitResults() {
       ck.front_hoop_top,
       ck.brace_lower,
       ck.brace_upper,
-      T.hip,
-      T.shoulder,
-      T.head,
+      ...(T ? [T.hip, T.shoulder, T.head] : []),
       ...CK_OPT.map(([k]) => ck[k]),
     ].filter(Boolean);
   const lo = [Math.min(...pts.map(p => p[0])) - 250, -40],
@@ -487,13 +485,15 @@ function cockpitResults() {
     );
   if (ck.sis_lower_low)
     s += `<circle cx="${X(ck.sis_lower_low[0])}" cy="${Y(ck.sis_lower_low[1])}" r="4" fill="${ok(v.lsis_height && v.lsis_height.v, 90, true)}"/>`;
-  if (ck.lap_belt_mount) s += line(ck.lap_belt_mount, T.hip, "#8a5a00", 1.5, "3 3");
-  if (ck.shoulder_belt_mount) s += line(ck.shoulder_belt_mount, [T.shoulder[0], T.shoulder[1] + 100], "#8a5a00", 1.5, "3 3");
+  if (ck.lap_belt_mount && T) s += line(ck.lap_belt_mount, T.hip, "#8a5a00", 1.5, "3 3");
+  if (ck.shoulder_belt_mount && T) s += line(ck.shoulder_belt_mount, [T.shoulder[0], T.shoulder[1] + 100], "#8a5a00", 1.5, "3 3");
   s += line(ck.main_hoop_top, ck.front_hoop_top, ok(v.helmet_front_line, 50), 2, "6 4");
   if (ck.brace_lower)
     s += line(ck.main_hoop_top, ck.brace_lower, typeof v.helmet_brace_line === "number" ? ok(v.helmet_brace_line, 50) : "var(--ink)", 2);
-  s += circ(T.hip, 100, "#2f6fd6") + circ(T.shoulder, 100, "#2f6fd6") + circ(T.head, 150, "#2f6fd6");
-  s += line(T.hip, T.shoulder, "#2f6fd6", 1.5) + line(T.shoulder, T.head, "#2f6fd6", 1.5);
+  if (T) {
+    s += circ(T.hip, 100, "#2f6fd6") + circ(T.shoulder, 100, "#2f6fd6") + circ(T.head, 150, "#2f6fd6");
+    s += line(T.hip, T.shoulder, "#2f6fd6", 1.5) + line(T.shoulder, T.head, "#2f6fd6", 1.5);
+  }
   if (ck.pedal_face_x != null) s += line([ck.pedal_face_x, 0], [ck.pedal_face_x, 350], ok(v.hip_to_pedals, 915), 2);
   if (ck.wheel_top_z != null && ck.wheel_front_x != null)
     s += `<circle cx="${X(ck.wheel_front_x)}" cy="${Y(ck.wheel_top_z)}" r="4" fill="${ok(v.front_hoop_over_wheel, 0)}"/>`;
@@ -503,7 +503,10 @@ function cockpitResults() {
     `<div><span>${lab}</span><b class="${a >= lo && b <= hi ? "ok-t" : "bad-t"}">${a === b ? fmt(a, 0) : `${fmt(a, 0)}–${fmt(b, 0)}`} <small>${unit} (${lo} to ${hi})</small></b></div>`;
   const kv = (lab, val, lim, max, unit = "mm") =>
     `<div><span>${lab}</span><b class="${typeof val !== "number" ? "" : (max ? val <= lim : val >= lim) ? "ok-t" : "bad-t"}">${typeof val === "number" ? fmt(val, 0) : "–"} <small>${unit} (${max ? "max" : "min"} ${lim})</small></b></div>`;
-  return `${s}<div class="kv">${kv("Helmet below the hoop line (F.5.6.4 a)", v.helmet_front_line, 50)}${typeof v.helmet_brace_line === "number" ? kv("Helmet from the brace line (F.5.6.4 b)", v.helmet_brace_line, 50) : ""}${typeof v.helmet_behind_hoop === "number" ? kv("Helmet ahead of the Main Hoop (F.5.6.4 c)", v.helmet_behind_hoop, 0) : ""}${kv("Hip to pedals (F.5.6.6)", v.hip_to_pedals, 915)}${kv("Front Hoop over the wheel (F.5.7.4)", v.front_hoop_over_wheel, 0)}${kv("Front Hoop ahead of the wheel (F.5.7.5)", v.front_hoop_ahead_of_wheel, 250, true)}${kv("Brace attachment below the top (F.5.9.4)", v.brace_drop, 160, true)}${
+  const noDriver = T
+    ? ""
+    : `<p class="note">No seat hip point and back angle yet, so the driver template, the helmet clearances and the hip-to-pedal length aren't checked; the frame points still are.</p>`;
+  return `${s}${noDriver}<div class="kv">${T ? kv("Helmet below the hoop line (F.5.6.4 a)", v.helmet_front_line, 50) : ""}${typeof v.helmet_brace_line === "number" ? kv("Helmet from the brace line (F.5.6.4 b)", v.helmet_brace_line, 50) : ""}${typeof v.helmet_behind_hoop === "number" ? kv("Helmet ahead of the Main Hoop (F.5.6.4 c)", v.helmet_behind_hoop, 0) : ""}${T ? kv("Hip to pedals (F.5.6.6)", v.hip_to_pedals, 915) : ""}${kv("Front Hoop over the wheel (F.5.7.4)", v.front_hoop_over_wheel, 0)}${kv("Front Hoop ahead of the wheel (F.5.7.5)", v.front_hoop_ahead_of_wheel, 250, true)}${kv("Brace attachment below the top (F.5.9.4)", v.brace_drop, 160, true)}${
     v.lsis_height ? kv("Lower side impact member above the ground (V.1.4.2)", v.lsis_height.v, 90, true) : ""
   }${typeof v.upper_sis_low === "number" ? kvb("Upper side impact member above it (F.6.4.4 b)", v.upper_sis_low, v.upper_sis_high, 290, 345, "mm") : ""}${
     typeof v.front_hoop_incline === "number" ? kv("Front Hoop from vertical, above (F.5.7.6)", v.front_hoop_incline, 20, true, "°") : ""
@@ -533,7 +536,10 @@ document.addEventListener("input", e => {
     j = el.dataset.cj,
     v = +el.value;
   if (el.value === "" || !Number.isFinite(v)) {
-    if (el.value === "" && (j === "x" || j === "n" || k.startsWith("brace") || CK_OPT.some(([q]) => q === k))) {
+    if (
+      el.value === "" &&
+      (j === "x" || j === "n" || k.startsWith("brace") || k === "hip" || k === "back_angle" || CK_OPT.some(([q]) => q === k))
+    ) {
       delete car.cockpit[k];
       schedule();
     }

@@ -95,27 +95,31 @@ function xOnLine(a, b, z) {
 }
 function cockpitValues(ck) {
   if (!ck) return {};
-  const [hip, sh, head] = cockpitTemplate(ck),
-    mh = ck.main_hoop_top,
+  const mh = ck.main_hoop_top,
     fh = ck.front_hoop_top,
-    v = { _template: { hip, shoulder: sh, head } };
-  v.helmet_front_line = sideDist(head, mh, fh) - 150;
-  const bl = ck.brace_lower;
-  if (bl) {
-    if (bl[0] < mh[0]) {
-      const d = sideDist(head, mh, bl);
-      v.helmet_brace_line = (head[0] > xOnLine(mh, bl, head[1]) ? Math.abs(d) : -Math.abs(d)) - 150;
-      v.helmet_behind_hoop = { na: "braces extend rearwards" };
-    } else {
-      v.helmet_brace_line = { na: "braces extend forwards" };
-      v.helmet_behind_hoop = head[0] - 150 - mh[0];
+    driver = ck.hip != null && ck.back_angle != null,
+    tpl = driver ? cockpitTemplate(ck) : null,
+    v = { _template: tpl ? { hip: tpl[0], shoulder: tpl[1], head: tpl[2] } : null };
+  if (driver) {
+    const [hip, , head] = tpl;
+    v.helmet_front_line = sideDist(head, mh, fh) - 150;
+    const bl = ck.brace_lower;
+    if (bl) {
+      if (bl[0] < mh[0]) {
+        const d = sideDist(head, mh, bl);
+        v.helmet_brace_line = (head[0] > xOnLine(mh, bl, head[1]) ? Math.abs(d) : -Math.abs(d)) - 150;
+        v.helmet_behind_hoop = { na: "braces extend rearwards" };
+      } else {
+        v.helmet_brace_line = { na: "braces extend forwards" };
+        v.helmet_behind_hoop = head[0] - 150 - mh[0];
+      }
     }
+    if (ck.pedal_face_x != null) v.hip_to_pedals = +ck.pedal_face_x - hip[0];
   }
-  if (ck.pedal_face_x != null) v.hip_to_pedals = +ck.pedal_face_x - hip[0];
   if (ck.wheel_top_z != null) v.front_hoop_over_wheel = fh[1] - +ck.wheel_top_z;
   if (ck.wheel_front_x != null) v.front_hoop_ahead_of_wheel = fh[0] - +ck.wheel_front_x;
   if (ck.brace_upper) v.brace_drop = mh[1] - ck.brace_upper[1];
-  Object.assign(v, frameValues(ck, [hip, sh, head]));
+  Object.assign(v, frameValues(ck, tpl));
   return v;
 }
 // optional frame and harness points (mirrors cockpit.frame_values)
@@ -132,7 +136,7 @@ const COCKPIT_OPT = [
 function inclineDeg(lo, hi) {
   return deg(Math.atan2(-(hi[0] - lo[0]), hi[1] - lo[1]));
 }
-function frameValues(ck, [hip, sh]) {
+function frameValues(ck, tpl) {
   const v = {},
     fh = ck.front_hoop_top,
     mh = ck.main_hoop_top;
@@ -169,7 +173,13 @@ function frameValues(ck, [hip, sh]) {
       };
     }
   }
-  const upright = +ck.back_angle <= 30;
+  if (!tpl) {
+    // no driver template: no belt angles
+    if (ck.shoulder_belt_spacing != null) v.shoulder_belt_spacing = +ck.shoulder_belt_spacing;
+    return v;
+  }
+  const [hip, sh] = tpl,
+    upright = +ck.back_angle <= 30;
   if (ck.lap_belt_mount) {
     const m = ck.lap_belt_mount,
       ang = deg(Math.atan2(Math.abs(hip[1] - m[1]), Math.abs(hip[0] - m[0])));
@@ -188,7 +198,7 @@ function checkCockpit(ck) {
   if (!ck || typeof ck !== "object") throw new SolveError("cockpit must be an object of side-view points");
   for (const k of ["main_hoop_top", "front_hoop_top", "brace_lower", "brace_upper", "hip"]) {
     const p = ck[k];
-    if (p == null && (k === "brace_lower" || k === "brace_upper")) continue;
+    if (p == null && (k === "brace_lower" || k === "brace_upper" || k === "hip")) continue;
     if (!(Array.isArray(p) && p.length === 2 && p.every(q => typeof q === "number" && Number.isFinite(q))))
       throw new SolveError(`cockpit.${k} needs [x, z] in mm`);
   }
@@ -199,7 +209,9 @@ function checkCockpit(ck) {
   }
   if (ck.shoulder_belt_spacing != null && typeof ck.shoulder_belt_spacing !== "number")
     throw new SolveError("cockpit.shoulder_belt_spacing must be a number (mm)");
-  if (!(typeof ck.back_angle === "number" && ck.back_angle >= 0 && ck.back_angle < 80))
+  if ((ck.hip == null) !== (ck.back_angle == null))
+    throw new SolveError("cockpit needs both hip and back_angle for the driver template, or neither");
+  if (ck.back_angle != null && !(typeof ck.back_angle === "number" && ck.back_angle >= 0 && ck.back_angle < 80))
     throw new SolveError("cockpit.back_angle is the seat back's angle from vertical, 0 to 80 deg");
 }
 // ---- ground clearance (mirrors rules.corner_limits / ground_planes / ground_clearance)

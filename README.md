@@ -258,7 +258,8 @@ needs and says pass, fail, can't check (an input is missing) or check yourself (
   helmet 50 mm under the hoop-to-hoop line and on the right side of the brace line (or ahead of the Main Hoop when
   the braces go forward), 915 mm hip to pedals, the Front Hoop over the steering wheel and at most 250 mm ahead of
   it, braces at most 160 mm below the hoop top. Seat it as F.5.6.6 says and check the head restraint (within 25 mm)
-  on the CAD; every team driver must clear the lines too.
+  on the CAD; every team driver must clear the lines too. `hip` and `back_angle` can be left out together while the
+  seat isn't placed yet: the frame and side impact rules below still run, the template ones wait.
 - V.1.4.1 / V.1.4.3 nothing but the tires touches the ground: the car file's `ground_points` (the lowest parts at
   ride height, driver in: `[{name, at: [x, y, z]}]` in the layout's car frame; Car view → Layout → Lowest points) and
   every vertex of a loaded frame model, at every body position the dampers allow: the body rigid, each corner from

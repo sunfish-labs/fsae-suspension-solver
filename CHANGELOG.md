@@ -3,6 +3,13 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.19.0 - 2026-10-17
+
+- **Frame-only cockpit**: the `cockpit` block's seat hip point and back angle are optional together, so a frame
+  drawn before the seat is placed can be checked against the hoop, brace and side impact rules (F.5.7.6 to F.6.4.4,
+  V.1.4.2). The template, helmet and belt-angle rules show as missing inputs until the seat is in. Giving only one of
+  the two is an error. Python and browser.
+
 ## 1.18.0 - 2026-10-17
 
 - **Frame stiffness** (`vehicle.frame_k`, Car view → Frame stiffness): the car balance with a frame that twists

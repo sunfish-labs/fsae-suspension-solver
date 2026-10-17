@@ -266,6 +266,13 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   check("lowering the Main Hoop 100 mm fails the helmet line (F.5.6.4 a)", /fail/i.test(await text(p, "#rulesBox")) && /F\.5\.6\.4/.test(await text(p, "#rulesBox")));
   await p.click("#btnUndo"); await settle(p);
   check("Undo puts the hoop back", (await p.$eval('#ckBox [data-ck="main_hoop_top"][data-cj="1"]', e => e.value)) === "1160");
+  const clearCk = (k, j) => p.evaluate(([k, j]) => { const i = document.querySelector(`#ckBox [data-ck="${k}"][data-cj="${j}"]`); i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); }, [k, j]);
+  await clearCk("hip", "0"); await settle(p);
+  await clearCk("back_angle", "n"); await settle(p);
+  const ckf = (await text(p, "#ckBox")).replace(/\s+/g, " ");
+  check("frame only: without a seat hip point and back angle the template isn't drawn but the frame rules still are", /No seat hip point/.test(ckf) && /Brace attachment below the top/.test(ckf) && !/Helmet below the hoop line/.test(ckf), ckf.slice(0, 300));
+  await p.click("#btnUndo"); await settle(p); await p.click("#btnUndo"); await settle(p);
+  check("Undo brings the seat back", /Helmet below the hoop line/.test(await text(p, "#ckBox")));
 
   const gpb = await text(p, "#gpBox");
   check("ground clearance: the example's lowest points in motion, the tightest named with the body position", /Tightest point in motion/.test(gpb) && /26\.5/.test(gpb) && /Lower side impact tube/.test(gpb), gpb.slice(0, 300));
