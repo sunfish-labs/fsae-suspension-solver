@@ -11,6 +11,7 @@ function loadCfg(raw, name, opts = {}) {
   for (const k of ["wheel", "vehicle", "sweep", "clearance", "loads", "members"]) cfg[k] = S.deepMerge(S.DEFAULTS[k], cfg[k] || {});
   if (!cfg.rack_direction) cfg.rack_direction = [0, 1, 0];
   if (cfg.spring) cfg.spring = S.deepMerge(S.SPRING_DEFAULTS, cfg.spring);
+  S.cornerIn(cfg); // a team-frame file into the solver's frame (no-op for one already in it)
   savedSpring = null;
   savedRocker = null;
   if (car && !chal) {

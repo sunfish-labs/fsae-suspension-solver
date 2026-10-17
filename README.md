@@ -211,15 +211,15 @@ halfshaft. The table lists the closest links against `clearance.margin`;
 click one to jump to that pose and mark the two closest points in red. Gaps over 150 mm are not listed. A link that
 crosses the model shows "touches". It checks surfaces, so a link entirely inside a closed shape isn't caught.
 
-**Axes in the 3D view.** The triad in the corner shows the solver's axes as the view turns: X forward (red),
-Y right (green), Z up (blue); ground at Z = 0, car centerline at Y = 0, in mm. Hover over any joint to read its
-coordinates. That frame is left-handed, so it is drawn as a mirror of three.js's own axes; the right-hand corner is
-drawn on the car's right.
+**Axes in the 3D view.** The triad in the corner shows the axes chosen in Settings (the team frame by default) as the
+view turns: X forward (red), Y (green), Z up (blue); ground at Z = 0, car centerline at Y = 0, in mm. In the car view
+Y points left, as on the car; in a corner view it points outboard, as the corner's numbers do (the left-hand corner).
+Hover over any joint to read its coordinates. The corner is drawn on the car's right.
 
 ## Layout and drivetrain (Car view, or `layout car.json`)
 A car file can list the car's parts (`layout.components`: name, group, mass in kg, `at` = the part's CG in mm, `size` =
-length × width × height of a box around it, `solid`), in the car frame: the front corner's X, Y right, Z up from the
-ground, the rear axle one wheelbase behind. The four wheel assemblies come from each corner's `spring.unsprung_mass`.
+length × width × height of a box around it, `solid`), in the team frame (ISO 8855, origin on the ground under the
+front axle; a part on the right has negative Y). The four wheel assemblies come from each corner's `spring.unsprung_mass`.
 - **Totals:** mass, CG (X, Y, Z), front and left weight shares, and the roll, pitch and yaw inertia about the CG (each
   part a solid box). With `layout.apply: true` the car's `vehicle.mass`, `weight_front` and `cg_height` come from the
   layout, so the ride, loads and roll balance all use it. In the app: Car view → Layout, with *Start from a typical
@@ -314,14 +314,30 @@ needs and says pass, fail, can't check (an input is missing) or check yourself (
   visible mounts, fastener locking, steering free play, rack mounting, cockpit shields, mounts on the hoop braces.
 A later rulebook is a new file in `schema/rules/` with the same layout.
 
+## The team frame (coordinates)
+Files, the screen and the exports share one frame: **ISO 8855** vehicle axes (X forward, Y left, Z up, mm, the
+international vehicle dynamics standard) with the **origin on the ground plane, on the car's centerline, under the
+front axle** (the front tires' contact patches at ride height, driver in). A file says so with `"frame": "iso8855"`.
+- **Corners** are given as the car's **left-hand** corner, so Y is positive outboard; the rear corner's X is about minus
+  the wheelbase. (The car is symmetric: the right-hand corner is the same with Y negated.)
+- **Car-level points** (layout parts, ground points, the driver and roll hoops) are where they physically are: a part
+  on the right has negative Y.
+- **In SolidWorks**, add a Coordinate System feature (for example `ISO8855`) on the ground under the front axle, on the
+  centerline, X forward, Z up, and measure and export everything from it (the hardpoint macro takes its name). Then the
+  CAD, the files and the screen show the same numbers.
+- **Older files** (no `"frame"`) are in the solver's own frame and still open unchanged; the app saves them in the
+  team frame, and `python3 susp_solver.py to-team old.json` rewrites one. Results don't change: only the numbers move.
+- **Inside**, the solver keeps its own frame (X forward, Y outboard on the right-hand corner, Z up, each corner from its
+  own zero; see Conventions) and converts only when a file is read or written (`susp/frame.py`, `ui/solver/05_frame.js`).
+
 ## Settings and coordinates
-**⚙ Settings** (top bar) keeps per-browser choices: the color theme; **coordinates** (axes: the solver's own, ISO 8855
-with Y left, SolidWorks with Y up, or X rearward; origin: each axle from its own zero, or one car frame from the
-ground under the front axle) used by the hardpoint tables, the layout, the 3D axes and the hover readout; whether the
+**⚙ Settings** (top bar) keeps per-browser choices: the color theme; **coordinates** (axes: the team frame, ISO 8855,
+by default; or the solver's own, SolidWorks with Y up, or X rearward; origin: the ground under the front axle (team
+frame), or each axle from its own zero) used by the hardpoint tables, the layout, the 3D axes and the hover readout; whether the
 **detailed inputs** show (first visits start without damping, spring-as-fitted, bar linkage, tabs, fatigue,
 compliance, clearance margins, sweep ranges and the JSON box); which **result tabs** show; **3D quality** for slow
-laptops; and hover readouts. Files, reports and exports always use the solver's frame (X forward, Y right, Z up, each
-axle from its own zero); the 3D-for-CAD export has its own axes choice.
+laptops; and hover readouts. Files are always saved in the team frame; picking other axes here changes only what this
+browser shows. The 3D-for-CAD and FEA exports have their own axes choice (the team frame by default).
 
 ## How loads are calculated (`loads`)
 One config covers both corners of its axle, because the car is symmetric. The solved wheel is the **outer** wheel
@@ -509,7 +525,8 @@ The built-in defaults are deliberately broad sanity ranges (see the guide's targ
 goals with `targets` or `targets_file`. `designs/case_study/` shows how the case-study car does it.
 
 ## Conventions
-X forward, Y outboard, Z up, right-hand wheel, ground at Z = 0. Toe + = toe-in. Camber - = top leaning in.
+Files: the team frame above. Inside the solver (and in the older files without `"frame"`): X forward, Y outboard,
+Z up, right-hand wheel, ground at Z = 0. Toe + = toe-in. Camber - = top leaning in.
 In roll, the right wheel is the outer wheel (in bump) and camber is measured **relative to the ground**.
 Roll camber 1.0 = the wheel leans with the body, 0 = it stays at static camber.
 Member forces: + = tension.

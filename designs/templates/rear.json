@@ -1,4 +1,5 @@
 {
+  "frame": "iso8855",
   "name": "Example rear (invented demo geometry)",
   "axle": "rear",
   "wheel": {
@@ -44,12 +45,12 @@
   "spring": {
     "rod_on": "lower",
     "rod_outboard": [
-      -5.0,
+      -1555.0,
       545.0,
       150.0
     ],
     "rocker_pivot": [
-      -5.0,
+      -1555.0,
       205.0,
       380.0
     ],
@@ -59,17 +60,17 @@
       0.0
     ],
     "rocker_rod": [
-      -5.0,
+      -1555.0,
       246.0,
       427.0
     ],
     "rocker_damper": [
-      -5.0,
+      -1555.0,
       201.9,
       459.6
     ],
     "damper_chassis": [
-      -5.0,
+      -1555.0,
       31.0,
       445.0
     ],
@@ -108,47 +109,47 @@
   },
   "hardpoints": {
     "upper_inboard_front": [
-      -230.0,
+      -1780.0,
       258.3,
       323.3
     ],
     "upper_inboard_rear": [
-      210.0,
+      -1340.0,
       258.3,
       355.3
     ],
     "lower_inboard_front": [
-      -230.0,
+      -1780.0,
       200.0,
       149.9
     ],
     "lower_inboard_rear": [
-      230.0,
+      -1320.0,
       200.0,
       163.8
     ],
     "upper_outboard": [
-      -15.0,
+      -1565.0,
       562.0,
       345.0
     ],
     "lower_outboard": [
-      5.0,
+      -1545.0,
       580.0,
       135.0
     ],
     "trackrod_inboard": [
-      -64.6,
+      -1614.6,
       214.1,
       189.3
     ],
     "trackrod_outboard": [
-      -60.0,
+      -1610.0,
       567.5,
       173.7
     ],
     "contact_patch": [
-      0.0,
+      -1550.0,
       610.0,
       0.0
     ]

@@ -159,7 +159,7 @@ function makeTriad() {
   ]) {
     const e = [0, 0, 0];
     e[j] = 1;
-    const u = undispDir(e),
+    const u = undispDir(e, car && axleView === "car" && !chal ? "car" : "corner"),
       v = new T.Vector3(u[0], u[2], u[1]),
       mat = new T.MeshBasicMaterial({ color: new T.Color(color) }),
       arrow = new T.Group(),

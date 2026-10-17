@@ -145,14 +145,19 @@ def report_context(cfg, ev, baseline=None, delta=5.0, sens=None, adv=None, loads
                  ride=f"{r['ride']:.1f}", worst=f"{r['worst']:.1f}", at=f"{r['at'][0]:+.0f}" + (f" / {r['at'][1]:+.0f}" if cfg["axle"] == "front" else ""),
                  allow=f"{r['allow']:.1f}", margin=f"{r['margin']:+.1f}", ok=r["margin"] >= 0, best=best_text(r)) for r in J["rows"]])
     hps = []
+    from ..frame import FRAME, corner_out
+    shown = corner_out(cfg)["hardpoints"] if cfg.get("_frame") == FRAME else cfg["hardpoints"]   # as in the file
     for k in HP_ORDER:
-        v = cfg["hardpoints"][k]
+        v = shown[k]
         row = dict(name=k, xyz=[f"{x:.2f}" for x in v])
         if baseline:
-            dv = [a - b for a, b in zip(v, baseline["hardpoints"][k])]
+            dv = [a - b for a, b in zip(cfg["hardpoints"][k], baseline["hardpoints"][k])]
             row["delta"] = ", ".join(f"{n}{x:+.1f}" for n, x in zip("XYZ", dv) if abs(x) > 1e-9) or "-"
         hps.append(row)
     ctx["hardpoints"], ctx["has_baseline_points"] = hps, bool(baseline)
+    from ..frame import FRAME_LABEL
+    ctx["frame_label"] = (FRAME_LABEL + "; this corner shown as the left-hand one") if cfg.get("_frame") == FRAME else \
+        "The solver's own frame: X forward, Y outboard, Z up, mm, X from this corner's own zero"
     if sens:
         cols, srows = sens
         mx = [max(abs(r[1][j]) for r in srows) or 1.0 for j in range(len(cols))]

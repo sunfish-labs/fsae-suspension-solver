@@ -133,6 +133,17 @@ bad_gp["ground_points"] = [{"name": "sump", "at": [0, 85]}]
 check("a ground point with two coordinates -> ConfigError", raises(ConfigError, lambda: load_car(write("gp.json", bad_gp))))
 check("a negative ball-joint rating -> ConfigError", raises(ConfigError, lambda: load_config(write("q.json", dict(front, members={"ball_joint_rating": -5})))))
 check("negative fatigue cycles -> ConfigError", raises(ConfigError, lambda: load_config(write("q.json", dict(front, loads={"fatigue_cycles": -5})))))
+# the team frame (frame.py): files in ISO 8855 with the origin under the front axle
+from susp.frame import raw_to_team  # noqa: E402
+from susp.config import cfg_to_json  # noqa: E402
+rr = json.load(open(os.path.join(ROOT, "designs", "example_rear.json")))
+cr = load_config(os.path.join(ROOT, "designs", "example_rear.json"))
+back = cfg_to_json(cr)
+check("team frame: a rear corner saves back to exactly the numbers in its file", back["frame"] == "iso8855" and all(
+    abs(a - b) < 1e-9 for k in rr["hardpoints"] for a, b in zip(back["hardpoints"][k], rr["hardpoints"][k])))
+check("team frame: the rear corner sits about a wheelbase behind the front axle in the file", rr["hardpoints"]["contact_patch"][0] == -rr["vehicle"]["wheelbase"])
+check("an unknown frame name -> ConfigError", raises(ConfigError, lambda: load_config(write("fr.json", dict(rr, frame="sae")))))
+check("a file already in the team frame converts to itself", raw_to_team(rr, 1550.0) == rr)
 check("every library error is a SuspError", all(issubclass(e, SuspError) for e in (ConfigError, GoalError, SolveError, UnknownPointError)))
 from susp import tools as T  # noqa: E402
 cfg = make_config(front)

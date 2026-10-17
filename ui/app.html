@@ -120,9 +120,9 @@
       <div class="fields">
         <div class="field wide"><label for="setAxes">Axes</label><select id="setAxes"></select></div>
         <div class="field wide"><label for="setOrigin">Origin</label><select id="setOrigin">
-          <option value="corner">Each axle from its own zero (as in the files)</option>
-          <option value="car">One car frame: the ground under the front axle, on the centerline</option></select></div></div>
-      <p class="note">Used by the hardpoint tables, the layout, the 3D axes and the hover readout, so the numbers match your CAD. Files, reports and exports keep the solver's frame (X forward, Y right, Z up, each axle from its own zero); the 3D-for-CAD export has its own axes choice. With Y to the left, the right-hand corner's Y values are negative.</p></div>
+          <option value="car">The ground under the front axle, on the centerline (the team frame)</option>
+          <option value="corner">Each axle from its own zero (the solver's own)</option></select></div></div>
+      <p class="note">The team frame is ISO 8855 (X forward, Y left, Z up) with the origin on the ground under the front axle, on the centerline. Files are saved in it, so with the team frame chosen here the screen, the files and your CAD (build it around a coordinate system placed the same way) all show the same numbers. Each corner is given as the car's left-hand one, so its Y values are positive; the layout and ground points are where they really are (right side negative). Other axes here change only what this browser shows. Files from before the team frame still open, and are saved in it.</p></div>
     <div class="setsec"><h3>Inputs</h3>
       <label class="small-check"><input type="checkbox" id="setAdv"> Show the detailed inputs (damping, spring as fitted, bar linkage, tabs, fatigue, compliance, clearances, sweep ranges, JSON)</label></div>
     <div class="setsec"><h3>Result tabs</h3><div class="settabs">

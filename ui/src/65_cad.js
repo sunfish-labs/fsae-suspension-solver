@@ -60,9 +60,11 @@ function cadRefresh() {
   store.set("susp.cad", JSON.stringify(o));
 }
 function openCad(fmt = null) {
-  $("#cadFrame").innerHTML = Object.entries(CADX.FRAMES)
+  $("#cadFrame").innerHTML = ["iso", "sw", "adams", "solver"]
+    .map(k => [k, CADX.FRAMES[k]])
     .map(([k, f]) => `<option value="${attr(k)}">${esc(f.label)}</option>`)
     .join("");
+  $("#cadFrame").value = "iso"; // the team frame unless this browser picked another
   let saved = {};
   try {
     saved = JSON.parse(store.get("susp.cad") || "{}") || {};

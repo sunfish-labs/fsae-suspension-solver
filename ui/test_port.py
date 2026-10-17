@@ -145,8 +145,9 @@ for (const [n, raw] of Object.entries(d.cfgs)) {
       const r = Math.abs(j[i][2] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} bearing ${part}: py ${v} js ${j[i][2]}`); }); }
   if (p.parts) { const js = L.parts.map(q => q.sf_bolt).filter(v => v != null && isFinite(v)); p.parts.forEach((v, i) => { const r = Math.abs(js[i] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-6) bad.push(`${n} bolt ${i}`); }); }
 }
-for (const [n, c] of Object.entries(d.cars || {})) {
-  const veh = c.raw.vehicle || {}, mk = (ax) => Object.assign({}, c.raw[ax], { axle: ax, vehicle: Object.assign({}, c.raw[ax].vehicle || {}, veh) });
+for (const [n, c0] of Object.entries(d.cars || {})) {
+  const c = Object.assign({}, c0, { raw: Susp.carIn(c0.raw) });
+  const veh = c.raw.vehicle || {}, mk = (ax) => Object.assign({ frame: c.raw.frame }, c.raw[ax], { axle: ax, vehicle: Object.assign({}, c.raw[ax].vehicle || {}, veh) });
   const fc = mk("front"), rc = mk("rear");
   if (c.layout) { const lr = Susp.layoutMass(c.raw.layout, Susp.finishConfig(Susp.deepMerge(Susp.DEFAULTS, fc)), Susp.finishConfig(Susp.deepMerge(Susp.DEFAULTS, rc)), Susp.deepMerge(Susp.DEFAULTS.vehicle, fc.vehicle).wheelbase);
     const js = [lr.mass, ...lr.cg, lr.weight_front, lr.weight_left, lr.Ixx, lr.Iyy, lr.Izz];

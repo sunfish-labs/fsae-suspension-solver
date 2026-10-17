@@ -17,7 +17,7 @@ function syncSettingsForm() {
 function applySettings({ rerun = true } = {}) {
   document.body.classList.toggle("simple", !SET.advanced);
   $("#advHint").hidden = !!SET.advanced;
-  $("#hpHint").textContent = "mm · " + frameShort();
+  $("#hpHint").textContent = "mm · " + frameShort() + (frameIsTeam() ? " · as in the files" : " · this screen only (files: ISO 8855)");
   const k = $("#vaxkey");
   if (k) {
     k.textContent = frameAxes().names.join(" · ");
@@ -53,7 +53,8 @@ function openSettings() {
   setTimeout(() => $("#setClose").focus(), 0);
 }
 function wireSettings() {
-  $("#setAxes").innerHTML = Object.entries(FRAME_AXES)
+  $("#setAxes").innerHTML = ["iso", "solver", "sw", "adams"]
+    .map(k => [k, FRAME_AXES[k]])
     .map(([k, f]) => `<option value="${attr(k)}">${esc(f.label)}</option>`)
     .join("");
   $("#btnSettings").addEventListener("click", openSettings);

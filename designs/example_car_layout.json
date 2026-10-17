@@ -1,4 +1,5 @@
 {
+ "frame": "iso8855",
  "type": "car",
  "name": "Example car with a layout and drivetrain (invented demo geometry and masses)",
  "vehicle": {
@@ -117,7 +118,15 @@
    "lltd_front": null
   },
   "members": {
-    "rocker": {"thickness": 6.35, "plates": 2, "pivot_bore": 22.0, "pivot_edge": 20.0, "edge": 12.0, "width": 30.0, "yield": 241.0},
+   "rocker": {
+    "thickness": 6.35,
+    "plates": 2,
+    "pivot_bore": 22.0,
+    "pivot_edge": 20.0,
+    "edge": 12.0,
+    "width": 30.0,
+    "yield": 241.0
+   },
    "material": "4130 chromoly steel, normalized (yield is lower next to welds)",
    "wishbone": [
     15.88,
@@ -275,12 +284,12 @@
   "spring": {
    "rod_on": "lower",
    "rod_outboard": [
-    -5.0,
+    -1555.0,
     545.0,
     150.0
    ],
    "rocker_pivot": [
-    -5.0,
+    -1555.0,
     205.0,
     380.0
    ],
@@ -290,17 +299,17 @@
     0.0
    ],
    "rocker_rod": [
-    -5.0,
+    -1555.0,
     246.4,
     427.0
    ],
    "rocker_damper": [
-    -5.0,
+    -1555.0,
     201.5,
     459.7
    ],
    "damper_chassis": [
-    -5.0,
+    -1555.0,
     30.5,
     446.3
    ],
@@ -327,7 +336,15 @@
    "lltd_front": null
   },
   "members": {
-    "rocker": {"thickness": 6.35, "plates": 2, "pivot_bore": 22.0, "pivot_edge": 20.0, "edge": 12.0, "width": 30.0, "yield": 241.0},
+   "rocker": {
+    "thickness": 6.35,
+    "plates": 2,
+    "pivot_bore": 22.0,
+    "pivot_edge": 20.0,
+    "edge": 12.0,
+    "width": 30.0,
+    "yield": 241.0
+   },
    "material": "4130 chromoly steel, normalized (yield is lower next to welds)",
    "wishbone": [
     15.88,
@@ -347,47 +364,47 @@
   },
   "hardpoints": {
    "upper_inboard_front": [
-    -230.0,
+    -1780.0,
     289.2,
     323.4
    ],
    "upper_inboard_rear": [
-    210.0,
+    -1340.0,
     287.7,
     355.0
    ],
    "lower_inboard_front": [
-    -230.0,
+    -1780.0,
     166.6,
     149.2
    ],
    "lower_inboard_rear": [
-    230.0,
+    -1320.0,
     166.1,
     163.5
    ],
    "upper_outboard": [
-    -15.0,
+    -1565.0,
     562.0,
     345.0
    ],
    "lower_outboard": [
-    5.0,
+    -1545.0,
     580.0,
     135.0
    ],
    "trackrod_inboard": [
-    -80.0,
+    -1630.0,
     192.0,
     178.7
    ],
    "trackrod_outboard": [
-    -75.0,
+    -1625.0,
     567.9,
     162.6
    ],
    "contact_patch": [
-    0.0,
+    -1550.0,
     610.0,
     0.0
    ]
@@ -532,7 +549,7 @@
     "mass": 5.0,
     "at": [
      -1350.0,
-     -120.0,
+     120.0,
      330.0
     ],
     "size": [
@@ -562,7 +579,7 @@
     "mass": 1.5,
     "at": [
      -1360.0,
-     60.0,
+     -60.0,
      280.0
     ],
     "size": [
@@ -593,7 +610,7 @@
     "mass": 6.0,
     "at": [
      -900.0,
-     -360.0,
+     360.0,
      360.0
     ],
     "size": [
@@ -608,7 +625,7 @@
     "mass": 3.0,
     "at": [
      -930.0,
-     170.0,
+     -170.0,
      190.0
     ],
     "size": [
@@ -740,13 +757,62 @@
   "rolling": 0.015
  },
  "ground_points": [
-   {"name": "Front bulkhead, bottom", "at": [300, 150, 95]},
-   {"name": "Impact attenuator, bottom front", "at": [620, 0, 120]},
-   {"name": "Lower side impact tube, lowest", "at": [-700, 280, 75]},
-   {"name": "Engine sump", "at": [-1180, 0, 85]},
-   {"name": "Main hoop base, bottom rail", "at": [-1300, 260, 80]},
-   {"name": "Rear frame, bottom", "at": [-1700, 200, 100]},
-   {"name": "Differential, bottom", "at": [-1550, 0, 144]}
+  {
+   "name": "Front bulkhead, bottom",
+   "at": [
+    300.0,
+    -150.0,
+    95.0
+   ]
+  },
+  {
+   "name": "Impact attenuator, bottom front",
+   "at": [
+    620.0,
+    0.0,
+    120.0
+   ]
+  },
+  {
+   "name": "Lower side impact tube, lowest",
+   "at": [
+    -700.0,
+    -280.0,
+    75.0
+   ]
+  },
+  {
+   "name": "Engine sump",
+   "at": [
+    -1180.0,
+    0.0,
+    85.0
+   ]
+  },
+  {
+   "name": "Main hoop base, bottom rail",
+   "at": [
+    -1300.0,
+    -260.0,
+    80.0
+   ]
+  },
+  {
+   "name": "Rear frame, bottom",
+   "at": [
+    -1700.0,
+    -200.0,
+    100.0
+   ]
+  },
+  {
+   "name": "Differential, bottom",
+   "at": [
+    -1550.0,
+    0.0,
+    144.0
+   ]
+  }
  ],
  "cockpit": {
   "main_hoop_top": [
@@ -774,14 +840,38 @@
   "pedal_face_x": 150.0,
   "wheel_top_z": 650.0,
   "wheel_front_x": -420.0,
-  "sis_upper_front": [-330, 395],
-  "sis_upper_rear": [-1270, 390],
-  "sis_lower_low": [-800, 75],
-  "front_hoop_at_sis": [-320, 395],
-  "main_hoop_at_sis": [-1280, 390],
-  "main_hoop_bottom": [-1270, 60],
-  "lap_belt_mount": [-870, 100],
-  "shoulder_belt_mount": [-1250, 690],
+  "sis_upper_front": [
+   -330.0,
+   395.0
+  ],
+  "sis_upper_rear": [
+   -1270.0,
+   390.0
+  ],
+  "sis_lower_low": [
+   -800.0,
+   75.0
+  ],
+  "front_hoop_at_sis": [
+   -320.0,
+   395.0
+  ],
+  "main_hoop_at_sis": [
+   -1280.0,
+   390.0
+  ],
+  "main_hoop_bottom": [
+   -1270.0,
+   60.0
+  ],
+  "lap_belt_mount": [
+   -870.0,
+   100.0
+  ],
+  "shoulder_belt_mount": [
+   -1250.0,
+   690.0
+  ],
   "shoulder_belt_spacing": 200
  }
 }

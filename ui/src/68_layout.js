@@ -22,7 +22,7 @@ function syncLayout() {
 }
 function layoutStarter() {
   const p = PRESETS.find(q => q.cfg && q.cfg.layout);
-  return p ? JSON.parse(JSON.stringify({ layout: p.cfg.layout, drivetrain: p.cfg.drivetrain })) : null;
+  return p ? S.carIn({ frame: p.cfg.frame, layout: p.cfg.layout, drivetrain: p.cfg.drivetrain }) : null;
 }
 function layNum(i, k, j, v, opts = {}) {
   return `<input class="num lnum" type="number" step="${attr(opts.step ?? "any")}" data-lay="${attr(i)}" data-lk="${attr(k)}"${j != null ? ` data-lj="${attr(j)}"` : ""} value="${attr(v ?? "")}" aria-label="${attr(opts.aria || k)}">`;
@@ -417,7 +417,7 @@ function ckStore(old, j, v) {
 }
 function cockpitStarter() {
   const p = PRESETS.find(q => q.cfg && q.cfg.cockpit);
-  return p ? JSON.parse(JSON.stringify(p.cfg.cockpit)) : null;
+  return p ? S.carIn({ frame: p.cfg.frame, cockpit: p.cfg.cockpit }).cockpit : null;
 }
 function cockpitHtml() {
   const ck = car.cockpit;

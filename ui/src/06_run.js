@@ -72,8 +72,13 @@ function exportCfg() {
     "spring",
     "loads",
     "members",
+    "arb",
+    "halfshaft",
+    "joints",
   ];
-  const o = {};
-  for (const k of keys) if (cfg[k] != null) o[k] = cfg[k];
+  // saved in the team frame (ISO 8855, origin under the front axle): see 05_frame.js
+  const c = S.cornerOut(cfg),
+    o = { frame: S.FRAME };
+  for (const k of keys) if (c[k] != null) o[k] = c[k];
   return o;
 }

@@ -36,6 +36,7 @@ function deepMerge(base, over) {
 
 function finishConfig(raw) {
   const cfg = deepMerge(DEFAULTS, raw);
+  cornerIn(cfg); // a team-frame file (05_frame.js) into the solver's frame
   const hp = cfg.hardpoints || {};
   const missing = HP_ORDER.filter(k => !hp[k]);
   if (missing.length) throw new SolveError("Missing hardpoints: " + missing.join(", "));

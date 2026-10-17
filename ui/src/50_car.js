@@ -12,12 +12,16 @@ const springTemplate = () => {
 function cornerFrom(raw) {
   S.finishConfig(JSON.parse(JSON.stringify(raw)));
   const c = JSON.parse(JSON.stringify(raw));
+  delete c.frame; // converted in carFrom / loadCfg, once the wheelbase is known
   for (const k of ["wheel", "vehicle", "sweep", "clearance", "loads", "members"]) c[k] = S.deepMerge(S.DEFAULTS[k], c[k] || {});
   if (!c.rack_direction) c.rack_direction = [0, 1, 0];
   if (c.spring) c.spring = S.deepMerge(S.SPRING_DEFAULTS, c.spring);
   return c;
 }
-function carFrom(raw) {
+function carFrom(raw0) {
+  // a team-frame file (frame.py / 05_frame.js): car-level points into the solver's car frame here, corners below
+  const raw = S.carIn(raw0),
+    fileFrame = raw.frame === S.FRAME;
   const veh = S.deepMerge(S.DEFAULTS.vehicle, Object.assign({}, raw.front.vehicle || {}, raw.vehicle || {}));
   const c = {
     name: raw.name || "Car",
@@ -33,9 +37,11 @@ function carFrom(raw) {
     brake_system: raw.brake_system ? JSON.parse(JSON.stringify(raw.brake_system)) : null,
   };
   if (c.brake_system) S.checkBrakes(c.brake_system);
+  c._frame = fileFrame ? S.FRAME : raw._frame || null;
   for (const ax of ["front", "rear"]) {
     c[ax] = cornerFrom(Object.assign({}, raw[ax], { axle: ax }));
     c[ax].vehicle = veh;
+    if (fileFrame || raw[ax].frame === S.FRAME) S.cornerIn(Object.assign(c[ax], { frame: S.FRAME }));
   }
   return c;
 }
@@ -61,24 +67,36 @@ function exportCar(local = false) {
       "spring",
       "loads",
       "members",
+      "arb",
+      "halfshaft",
+      "joints",
     ])
       if (c[k] != null) o[k] = c[k];
     if (local && c._team_targets) o._team_targets = c._team_targets;
     return o;
   };
+  // the file is in the team frame (ISO 8855, origin under the front axle): corners and car-level points converted
+  const fromTeam = car._frame === S.FRAME,
+    pts = S.carOut(
+      JSON.parse(JSON.stringify({ layout: car.layout, cockpit: car.cockpit, ground_points: car.ground_points })),
+      car.front,
+      fromTeam
+    );
+  const team = c => S.cornerOut(c);
   return {
+    frame: S.FRAME,
     type: "car",
     name: car.name,
     vehicle: car.vehicle,
     arb: car.arb,
     car_targets: car.car_targets,
-    ...(car.layout ? { layout: car.layout } : {}),
+    ...(car.layout ? { layout: pts.layout } : {}),
     ...(car.drivetrain ? { drivetrain: car.drivetrain } : {}),
-    ...(car.cockpit ? { cockpit: car.cockpit } : {}),
-    ...(car.ground_points && car.ground_points.length ? { ground_points: car.ground_points } : {}),
+    ...(car.cockpit ? { cockpit: pts.cockpit } : {}),
+    ...(car.ground_points && car.ground_points.length ? { ground_points: pts.ground_points } : {}),
     ...(car.brake_system ? { brake_system: car.brake_system } : {}),
-    front: strip(car.front),
-    rear: strip(car.rear),
+    front: strip(team(car.front)),
+    rear: strip(team(car.rear)),
   };
 }
 function loadCar(raw, label) {
@@ -128,6 +146,7 @@ function setView(v, opts = {}) {
 }
 function applyViewClasses() {
   document.body.classList.toggle("carview", axleView === "car");
+  if (typeof three !== "undefined" && three && typeof makeTriad === "function") makeTriad(); // ISO Y: left in the car view, outboard on a corner
   $$("#axleSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ax === axleView)));
   $("#carIn").hidden = axleView !== "car" || !!chal;
   $("#carBox").hidden = axleView !== "car";

@@ -3,6 +3,20 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.26.0 - 2026-10-17
+
+- **One team frame for files, the screen and the exports: ISO 8855** (X forward, Y left, Z up, mm) with the origin on
+  the ground under the front axle, on the centerline. Files say so with `"frame": "iso8855"`; corners are given as the
+  left-hand one (Y positive), the rear about a wheelbase behind, and car-level points (layout, ground points, driver
+  and hoops) where they physically are. The app saves in it and shows it by default, so the screen, the JSON and a
+  SolidWorks model built around a matching coordinate system show the same numbers; the note that files used other
+  numbers is gone. The solver keeps its internal frame and converts only on reading and writing (Python
+  `susp/frame.py`, browser `05_frame.js`), so no result changes (checked on full cars: metrics, loads, rules, ground
+  clearance). Older files still open; `to-team` rewrites one. The examples, case study and templates are converted.
+  The 3D-for-CAD and FEA exports default to it.
+- Saving a car or corner from the app now keeps the bar linkage, halfshaft and joint settings, which were dropped.
+- The CLI's `import` writes the team frame; the design report labels its hardpoint table with the frame.
+
 ## 1.25.0 - 2026-10-17
 
 - **Competition setup sheet** (Export menu, and `setup car.json`): what to set each corner to (camber, toe, corner

@@ -12,7 +12,7 @@
   // corners on the right of the car.
   const FRAMES = {
     sw: { label: "SolidWorks default: X forward, Y up, Z right", f: ([x, y, z]) => [x, z, y] },
-    iso: { label: "X forward, Y left, Z up (ISO 8855 vehicle axes)", f: ([x, y, z]) => [x, -y, z] },
+    iso: { label: "ISO 8855: X forward, Y left, Z up (the team frame; right-hand corners at negative Y)", f: ([x, y, z]) => [x, -y, z] },
     adams: { label: "X rearward, Y right, Z up (ADAMS / Liu et al.)", f: ([x, y, z]) => [-x, y, z] },
     solver: { label: "As in the solver: X forward, Y right, Z up (left-handed: right corners land on CAD's left)", f: p => p.slice() },
   };

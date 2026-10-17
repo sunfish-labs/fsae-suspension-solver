@@ -326,7 +326,7 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
     upper_outboard: "upper ball joint", lower_outboard: "lower BJ", trackrod_inboard: "tie rod inboard", trackrod_outboard: "tie rod outboard", contact_patch: "contact patch",
     rod_outboard: "pushrod outboard", rocker_pivot: "rocker pivot", rocker_rod: "rocker pushrod", rocker_damper: "rocker damper", damper_chassis: "damper chassis" };
   const swTable = (fwdSign = 1) => ["name,x,y,z", ...["front", "rear"].flatMap(ax => {
-    const c = swCar[ax], dx = ax === "front" ? 0 : -swCar.vehicle.wheelbase, pre = ax === "front" ? "FL" : "RL";
+    const c = swCar[ax], dx = 0, pre = ax === "front" ? "FL" : "RL"; // the file is in the team frame: X from the front axle already
     const pts = Object.entries(swNames).map(([k, n]) => [n, c.hardpoints[k] || c.spring[k]]);
     pts.push(["rocker axis", c.spring.rocker_pivot.map((v, i) => v + 20 * c.spring.rocker_axis[i])]);
     return pts.map(([n, q]) => `${pre} ${n},${(fwdSign * (q[0] + dx + 500) / 1000).toFixed(6)},${((q[2] - 100) / 1000).toFixed(6)},${(-q[1] / 1000).toFixed(6)}`);
@@ -599,12 +599,15 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   const hpVal = (k, j) => p.inputValue(`#in_hardpoints_${k}_${j}`).then(Number);
   await p.click("#btnSettings"); await settle(p);
   check("Settings opens from the top bar", !(await p.$eval("#setDlg", d => d.hidden)));
-  await p.selectOption("#setAxes", "iso"); await settle(p);
-  check("ISO axes: the right-hand corner's Y shows negative, X and Z unchanged", (await hpVal("upper_outboard", 1)) === -exCar.front.hardpoints.upper_outboard[1]
+  check("the team frame is the default: ISO 8855, origin under the front axle", (await p.inputValue("#setAxes")) === "iso" && (await p.inputValue("#setOrigin")) === "car");
+  check("team frame: the screen shows the file's own numbers (the left-hand corner, Y positive)", (await hpVal("upper_outboard", 1)) === exCar.front.hardpoints.upper_outboard[1]
     && (await hpVal("upper_outboard", 0)) === exCar.front.hardpoints.upper_outboard[0] && /Y left/.test(await text(p, "#hpHint")));
-  await p.evaluate(() => { const i = document.querySelector("#in_hardpoints_upper_outboard_1"); i.value = "-570"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
-  const savedY = await p.evaluate(() => JSON.parse(document.querySelector("#jsonBox").value).hardpoints.upper_outboard[1]);
-  check("typing -570 in the ISO frame stores Y = +570 in the solver frame (the files don't change frame)", savedY === 570, savedY);
+  await p.evaluate(() => { const i = document.querySelector("#in_hardpoints_upper_outboard_1"); i.value = "570"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
+  const savedJ = await p.evaluate(() => JSON.parse(document.querySelector("#jsonBox").value));
+  check("typing 570 on screen saves 570 in the file, which says it is in the team frame", savedJ.hardpoints.upper_outboard[1] === 570 && savedJ.frame === "iso8855", JSON.stringify(savedJ.hardpoints.upper_outboard));
+  await p.click("#setClose"); await p.click('#axleSeg [data-ax="rear"]'); await settle(p);
+  check("team frame: the rear corner shows the file's numbers too (X about minus the wheelbase)", (await hpVal("upper_outboard", 0)) === exCar.rear.hardpoints.upper_outboard[0] && exCar.rear.hardpoints.upper_outboard[0] < -1000);
+  await p.click('#axleSeg [data-ax="front"]'); await settle(p); await p.click("#btnSettings"); await settle(p);
   await p.evaluate(() => document.querySelector("#btnUndo").click()); await settle(p);
   await p.selectOption("#setAxes", "sw"); await p.selectOption("#setOrigin", "car"); await settle(p);
   await p.click("#setClose"); await p.click('#axleSeg [data-ax="rear"]'); await settle(p);

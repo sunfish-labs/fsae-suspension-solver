@@ -296,7 +296,8 @@ def cmd_history(a):
 
 
 def cmd_import(a):
-    cfg = T.import_csv(a.csv, a.axle, a.map, a.scale, a.offset, a.name)
+    from susp.frame import raw_to_team
+    cfg = raw_to_team(T.import_csv(a.csv, a.axle, a.map, a.scale, a.offset, a.name), C.DEFAULTS["vehicle"]["wheelbase"])
     txt = json.dumps(cfg, indent=2)
     if a.out:
         with open(a.out, "w") as f:
@@ -305,7 +306,23 @@ def cmd_import(a):
         O.print_warnings(C.load_config(a.out))
     else:
         print(txt)
-    print("check: contact patch must be at Z=0 and Y = half the track; X forward, Y outboard, Z up.", file=sys.stderr)
+    print("check: contact patch must be at Z=0 and Y = half the track; saved in the team frame (ISO 8855, X from the front axle).",
+          file=sys.stderr)
+
+
+def cmd_to_team(a):
+    """An older design or car file (the solver's own frame) rewritten in the team frame: ISO 8855 axes, origin on the
+    ground under the front axle, each corner as the left-hand one. It loads to exactly the same results."""
+    from susp.frame import raw_to_team
+    raw = C._read_json(a.file)
+    out = raw_to_team(raw, C.DEFAULTS["vehicle"]["wheelbase"])
+    if out == raw:
+        print(f"{a.file} is already in the team frame")
+        return
+    dest = a.out or a.file
+    with open(dest, "w") as f:
+        f.write(json.dumps(out, indent=2) + "\n")
+    print(f"wrote {dest} in the team frame (ISO 8855, origin on the ground under the front axle)")
 
 
 def cmd_ui(a):
@@ -384,6 +401,10 @@ def main():
     p.add_argument("config", help="a design or a car file")
     p.add_argument("--thread", default="3/8-24 UNF", choices=["3/8-24 UNF", "5/16-24 UNF", "1/4-28 UNF", "M8x1.25", "M10x1.25", "M10x1.5"])
     p.set_defaults(fn=cmd_setup)
+    p = sub.add_parser("to-team", help="rewrite an older design or car file in the team frame (ISO 8855, origin under the front axle)")
+    p.add_argument("file")
+    p.add_argument("--out", help="write here instead of over the file")
+    p.set_defaults(fn=cmd_to_team)
     p = sub.add_parser("compare", help="side-by-side metrics for two configs")
     p.add_argument("a")
     p.add_argument("b")

@@ -1,4 +1,5 @@
 {
+  "frame": "iso8855",
   "name": "Example front (invented demo geometry)",
   "axle": "front",
   "wheel": {
@@ -95,7 +96,15 @@
     "lltd_front": null
   },
   "members": {
-    "rocker": {"thickness": 6.35, "plates": 2, "pivot_bore": 22.0, "pivot_edge": 20.0, "edge": 12.0, "width": 30.0, "yield": 241.0},
+    "rocker": {
+      "thickness": 6.35,
+      "plates": 2,
+      "pivot_bore": 22.0,
+      "pivot_edge": 20.0,
+      "edge": 12.0,
+      "width": 30.0,
+      "yield": 241.0
+    },
     "material": "4130 chromoly steel, normalized (yield is lower next to welds)",
     "wishbone": [
       15.88,

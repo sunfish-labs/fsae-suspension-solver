@@ -1,4 +1,5 @@
 {
+  "frame": "iso8855",
   "name": "Example rear (invented demo geometry)",
   "axle": "rear",
   "wheel": {
@@ -43,12 +44,12 @@
   "spring": {
     "rod_on": "lower",
     "rod_outboard": [
-      -5.0,
+      -1555.0,
       545.0,
       150.0
     ],
     "rocker_pivot": [
-      -5.0,
+      -1555.0,
       205.0,
       380.0
     ],
@@ -58,17 +59,17 @@
       0.0
     ],
     "rocker_rod": [
-      -5.0,
+      -1555.0,
       246.4,
       427.0
     ],
     "rocker_damper": [
-      -5.0,
+      -1555.0,
       201.5,
       459.7
     ],
     "damper_chassis": [
-      -5.0,
+      -1555.0,
       30.5,
       446.3
     ],
@@ -95,7 +96,15 @@
     "lltd_front": null
   },
   "members": {
-    "rocker": {"thickness": 6.35, "plates": 2, "pivot_bore": 22.0, "pivot_edge": 20.0, "edge": 12.0, "width": 30.0, "yield": 241.0},
+    "rocker": {
+      "thickness": 6.35,
+      "plates": 2,
+      "pivot_bore": 22.0,
+      "pivot_edge": 20.0,
+      "edge": 12.0,
+      "width": 30.0,
+      "yield": 241.0
+    },
     "material": "4130 chromoly steel, normalized (yield is lower next to welds)",
     "wishbone": [
       15.88,
@@ -115,47 +124,47 @@
   },
   "hardpoints": {
     "upper_inboard_front": [
-      -230.0,
+      -1780.0,
       289.2,
       323.4
     ],
     "upper_inboard_rear": [
-      210.0,
+      -1340.0,
       287.7,
       355.0
     ],
     "lower_inboard_front": [
-      -230.0,
+      -1780.0,
       166.6,
       149.2
     ],
     "lower_inboard_rear": [
-      230.0,
+      -1320.0,
       166.1,
       163.5
     ],
     "upper_outboard": [
-      -15.0,
+      -1565.0,
       562.0,
       345.0
     ],
     "lower_outboard": [
-      5.0,
+      -1545.0,
       580.0,
       135.0
     ],
     "trackrod_inboard": [
-      -80.0,
+      -1630.0,
       192.0,
       178.7
     ],
     "trackrod_outboard": [
-      -75.0,
+      -1625.0,
       567.9,
       162.6
     ],
     "contact_patch": [
-      0.0,
+      -1550.0,
       610.0,
       0.0
     ]

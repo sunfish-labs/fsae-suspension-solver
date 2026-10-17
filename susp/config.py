@@ -31,7 +31,10 @@ def deep_merge(base, over):
 
 
 def finish_config(cfg, where="config"):
-    """Normalize a merged config (shared by load_config, selftests and tools)."""
+    """Normalize a merged config (shared by load_config, selftests and tools). A file in the team frame
+    ("frame": "iso8855", see frame.py) is brought into the solver's frame here."""
+    from .frame import corner_in
+    corner_in(cfg, where)
     hp = cfg.get("hardpoints", {})
     missing = [k for k in HP if k not in hp]
     if missing:
@@ -249,11 +252,14 @@ def load_config(path):
 def load_car(path):
     """A car file: {"type": "car", "name", "vehicle", "front": {...}, "rear": {...}, "arb": {"front", "rear"},
     "car_targets": {...}}. Each corner gets the shared vehicle block. Returns (front_cfg, rear_cfg, car_info)."""
+    from .frame import car_in
     raw = _read_json(path)
     if not (isinstance(raw.get("front"), dict) and isinstance(raw.get("rear"), dict) and "hardpoints" in raw["front"] and "hardpoints" in raw["rear"]):
         raise ConfigError(f"{path}: a car file needs a 'front' and a 'rear' corner")
     base = os.path.dirname(os.path.abspath(path))
-    f, r = (normalize(raw[ax], ax, f"{path} ({ax})", base, raw.get("vehicle"), raw.get("targets_file")) for ax in ("front", "rear"))
+    raw = car_in(raw, path)
+    corner = {ax: dict(raw[ax], frame=raw[ax].get("frame", raw.get("frame"))) for ax in ("front", "rear")}
+    f, r = (normalize(corner[ax], ax, f"{path} ({ax})", base, raw.get("vehicle"), raw.get("targets_file")) for ax in ("front", "rear"))
     arb = raw.get("arb") or {}
     info = {"name": raw.get("name") or "car", "arb_f": float(arb.get("front") or 0), "arb_r": float(arb.get("rear") or 0),
             "car_targets": raw.get("car_targets") or {}, "layout": raw.get("layout"), "drivetrain": raw.get("drivetrain")}
@@ -342,10 +348,14 @@ def default_targets(cfg):
 
 
 def cfg_to_json(cfg):
+    """A config as a design file: in the team frame when it came from one (frame.py), else the solver's own."""
+    from .frame import FRAME, corner_out
     keys = ("name", "axle", "wheel", "vehicle", "sweep", "clearance", "rack_direction", "targets_file", "targets",
-            "spring", "loads", "members")
-    out = {k: cfg[k] for k in keys if cfg.get(k) is not None}
-    out["hardpoints"] = {k: cfg["hardpoints"][k] for k in HP}
+            "spring", "loads", "members", "arb", "halfshaft")
+    src = corner_out(cfg) if cfg.get("_frame") == FRAME else cfg
+    out = {"frame": FRAME} if cfg.get("_frame") == FRAME else {}
+    out.update({k: src[k] for k in keys if src.get(k) is not None})
+    out["hardpoints"] = {k: src["hardpoints"][k] for k in HP}
     return out
 
 
