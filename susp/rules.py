@@ -196,14 +196,21 @@ def rule_values(fcfg, fev, rcfg, rev, bal=None, layout=None, cockpit=None, groun
 
 
 def check_rules(ruleset, values):
-    """Rows {id, rule, summary, status (pass | fail | unknown | manual | na), value, limit, note} for each check."""
+    """Rows {id, rule, summary, status (pass | fail | unknown | manual | na), value, limit, note} for each check.
+    A value may be {"na": why} (doesn't apply), {"manual": why} (measured, but a person settles it) or {"v": value,
+    "note": text}. Kinds: min, max, between ([lo, hi]), oneof, double_shear, true, none, manual."""
     rows = []
     for c in ruleset["checks"]:
         k, val = c["kind"], values.get(c.get("value", ""))
         row = dict(id=c["id"], rule=c["rule"], summary=c["summary"], kind=k, value=val, limit=c.get("limit"),
                    unit=c.get("unit", ""), estimate=bool(c.get("estimate")), note="")
+        if isinstance(val, dict) and "v" in val:                       # a value with a note
+            row["note"], val = val.get("note") or "", val["v"]
+            row["value"] = val
         if k == "manual":
             row["status"] = "manual"
+        elif isinstance(val, dict) and "manual" in val:                # measured, but only a person can settle it
+            row["status"], row["note"], row["value"] = "manual", val["manual"], None
         elif isinstance(val, dict) and "na" in val:
             row["status"], row["note"], row["value"] = "na", val["na"], None
         elif val is None:
@@ -212,6 +219,8 @@ def check_rules(ruleset, values):
             row["status"] = "pass" if val >= c["limit"] else "fail"
         elif k == "max":
             row["status"] = "pass" if val <= c["limit"] else "fail"
+        elif k == "between":
+            row["status"] = "pass" if c["limit"][0] <= val <= c["limit"][1] else "fail"
         elif k == "oneof":
             bad = [x for x in val if x not in c["allowed"]]
             row["status"] = "fail" if bad else "pass"

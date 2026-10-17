@@ -3,6 +3,15 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.16.0 - 2026-10-17
+
+- **Frame and harness rules from side-view points** (optional `cockpit` keys, Layout → Driver and roll hoops): the
+  lower side impact member's height (V.1.4.2), the upper side impact member's zone (F.6.4.4 b), the Front Hoop's and
+  Main Hoop's angles (F.5.7.6, F.6.3.5, F.5.8.3), the braces' side and angle (F.5.9.3, F.5.9.5), the lap and
+  shoulder belt angles and spacing (T.2.5.4, T.2.5.5, T.2.6.1, T.2.6.2): 13 more automatic checks, drawn in the side
+  view. The rules engine gains a "between" check and values that carry a note or hand a measured value to a person.
+  Python and browser, hand-checked. The example car passes all of them.
+
 ## 1.15.0 - 2026-10-17
 
 - **Ground clearance rule** (V.1.4.1 / V.1.4.3, now automatic): the car's lowest points (car file `ground_points`, Car

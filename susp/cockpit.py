@@ -13,6 +13,14 @@ on the car's centerline.
     pedal_face_x       rearmost face of the pedals in their most forward position
     wheel_top_z        top of the steering wheel at any angle
     wheel_front_x      forward-most surface of the steering wheel rim, straight ahead
+  optional, for the frame and harness rules:
+    sis_upper_front, sis_upper_rear   top edge of the Upper Side Impact Member at its front and rear ends
+    sis_lower_low      bottom of the Lower Side Impact Member at its lowest point (z = its height above the ground)
+    front_hoop_at_sis  the Front Hoop where the upper side impact member meets it
+    main_hoop_at_sis   the Main Hoop where the upper side impact member attaches
+    main_hoop_bottom   the Main Hoop at its bottom (at the lowest frame member)
+    lap_belt_mount     the lap belt's mounting point; shoulder_belt_mount: the shoulder harness bar (where the belt wraps)
+    shoulder_belt_spacing   mm, center to center of the two shoulder belts (front view)
 The template (F.5.6.5): 200 mm circles at the hip and the shoulders 490 mm apart, a 300 mm head circle 280 mm from
 the shoulders. Its position here follows the seat back; check that the head circle sits within 25 mm of the head
 restraint (F.5.6.6) on the CAD."""
@@ -20,7 +28,13 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
+
 KEYS_PT = ("main_hoop_top", "front_hoop_top", "brace_lower", "brace_upper", "hip")
+# optional frame and harness points in the same side view: the side impact structure, the hoops where the upper side
+# impact member meets them and the main hoop's bottom, the lap and shoulder belt mounts
+KEYS_OPT = ("sis_upper_front", "sis_upper_rear", "sis_lower_low", "front_hoop_at_sis", "main_hoop_at_sis",
+            "main_hoop_bottom", "lap_belt_mount", "shoulder_belt_mount")
 KEYS_NUM = ("back_angle", "neck_angle", "pedal_face_x", "wheel_top_z", "wheel_front_x")
 
 
@@ -73,6 +87,63 @@ def cockpit_values(ck):
     bu = ck.get("brace_upper")
     if bu:
         v["brace_drop"] = mh[1] - bu[1]
+    v.update(frame_values(ck, (hip, sh, head)))
+    return v
+
+
+def _incline(lo, hi):
+    """Angle (deg) from vertical of the line from lo up to hi in side view; positive when hi is behind lo (leans
+    rearward, X forward)."""
+    dx, dz = hi[0] - lo[0], hi[1] - lo[1]
+    return math.degrees(math.atan2(-dx, dz))
+
+
+def frame_values(ck, template_pts):
+    """The frame and harness checks from the optional side-view points (whatever is given)."""
+    v = {}
+    g = ck.get
+    if g("sis_lower_low"):
+        h = float(ck["sis_lower_low"][1])
+        v["lsis_height"] = {"v": h, "note": "should be 75 mm or less" if h > 75 else ""}
+        tops = [ck[k][1] - h for k in ("sis_upper_front", "sis_upper_rear") if g(k)]
+        if tops:
+            v["upper_sis_low"], v["upper_sis_high"] = min(tops), max(tops)
+    fh, mh = ck["front_hoop_top"], ck["main_hoop_top"]
+    if g("front_hoop_at_sis"):
+        inc = _incline(ck["front_hoop_at_sis"], fh)
+        v["front_hoop_incline"] = abs(inc)
+        v["front_hoop_rear_lean"] = ({"na": (f"leans rearward {inc:.1f} deg, 10 or less" if inc > 0 else
+                                             f"leans forward {-inc:.1f} deg")} if inc <= 10 else
+                                     {"manual": f"leans rearward {inc:.1f} deg: needs rearward Front Hoop Braces to a "
+                                                "triangulated node"})
+    if g("main_hoop_at_sis"):
+        inc = _incline(ck["main_hoop_at_sis"], mh)
+        v["main_hoop_incline_above"] = abs(inc)
+        if g("main_hoop_bottom"):
+            v["main_hoop_rear_lean_below"] = max(0.0, _incline(ck["main_hoop_bottom"], ck["main_hoop_at_sis"]))
+        bu, bl = g("brace_upper"), g("brace_lower")
+        if bu and bl:
+            a = np.array(mh, float) - np.array(ck["main_hoop_at_sis"], float)
+            b = np.array(bl, float) - np.array(bu, float)
+            ang = math.degrees(math.acos(abs(a @ b) / (np.linalg.norm(a) * np.linalg.norm(b))))
+            v["brace_angle"] = ang
+            lean = "vertical" if abs(inc) < 0.5 else "rearward" if inc > 0 else "forward"
+            side = "rearward" if bl[0] < bu[0] else "forward"
+            v["brace_side"] = {"v": lean == "vertical" or lean == side,
+                               "note": f"hoop {('leans ' + lean) if lean != 'vertical' else 'vertical'}, braces {side}"}
+    hip, sh, _ = template_pts
+    upright = float(ck["back_angle"]) <= 30
+    if g("lap_belt_mount"):
+        m = ck["lap_belt_mount"]
+        ang = math.degrees(math.atan2(abs(hip[1] - m[1]), abs(hip[0] - m[0])))
+        v["lap_belt_upright"] = ang if upright else {"na": "reclined seat: back over 30 deg"}
+        v["lap_belt_reclined"] = ang if not upright else {"na": "upright seat: back 30 deg or less"}
+    if g("shoulder_belt_mount"):
+        m = ck["shoulder_belt_mount"]
+        top = (sh[0], sh[1] + 100.0)                                # the top of the shoulder circle
+        v["shoulder_belt_angle"] = math.degrees(math.atan2(top[1] - m[1], abs(top[0] - m[0])))   # + below horizontal
+    if g("shoulder_belt_spacing") is not None:
+        v["shoulder_belt_spacing"] = float(ck["shoulder_belt_spacing"])
     return v
 
 
@@ -95,6 +166,12 @@ def check_cockpit(ck, where="cockpit"):
             raise ConfigError(f"{where}: cockpit.{k} needs [x, z] in mm")
     if not isinstance(ck.get("back_angle"), (int, float)) or not 0 <= ck["back_angle"] < 80:
         raise ConfigError(f"{where}: cockpit.back_angle is the seat back's angle from vertical, 0 to 80 deg")
+    for k in KEYS_OPT:
+        p = ck.get(k)
+        if p is not None and not (isinstance(p, list) and len(p) == 2 and all(isinstance(q, (int, float)) for q in p)):
+            raise ConfigError(f"{where}: cockpit.{k} needs [x, z] in mm")
+    if ck.get("shoulder_belt_spacing") is not None and not isinstance(ck["shoulder_belt_spacing"], (int, float)):
+        raise ConfigError(f"{where}: cockpit.shoulder_belt_spacing must be a number (mm)")
     for k in KEYS_NUM[1:]:
         if ck.get(k) is not None and not isinstance(ck[k], (int, float)):
             raise ConfigError(f"{where}: cockpit.{k} must be a number")

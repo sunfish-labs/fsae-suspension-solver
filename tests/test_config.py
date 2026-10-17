@@ -114,6 +114,9 @@ check("a cockpit point with one coordinate -> ConfigError", raises(ConfigError, 
 bad_ck["cockpit"]["hip"] = carL["cockpit"]["hip"]
 bad_ck["cockpit"]["back_angle"] = 95
 check("a seat back angle past 80 deg -> ConfigError", raises(ConfigError, lambda: load_car(write("ck.json", bad_ck))))
+bad_ck["cockpit"]["back_angle"] = 30
+bad_ck["cockpit"]["lap_belt_mount"] = [-870]
+check("a frame point with one coordinate -> ConfigError", raises(ConfigError, lambda: load_car(write("ck.json", bad_ck))))
 bad_gp = json.loads(json.dumps(carL))
 bad_gp["ground_points"] = [{"name": "sump", "at": [0, 85]}]
 check("a ground point with two coordinates -> ConfigError", raises(ConfigError, lambda: load_car(write("gp.json", bad_gp))))

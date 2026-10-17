@@ -370,7 +370,7 @@ function checkList(X) {
           typeof r.value === "number" && r.unit !== undefined
             ? r.id === "track_ratio"
               ? `${fmt(r.value * 100, 1)} % (min ${fmt(r.limit * 100, 0)} %)`
-              : `${fmt(r.value, 1)} ${r.unit} (${r.kind === "max" ? "max" : "min"} ${fmt(r.limit, r.limit % 1 ? 1 : 0)}${r.estimate ? ", estimate" : ""})`
+              : `${fmt(r.value, 1)} ${r.unit} (${r.kind === "between" ? `${fmt(r.limit[0], 0)} to ${fmt(r.limit[1], 0)}` : `${r.kind === "max" ? "max" : "min"} ${fmt(r.limit, r.limit % 1 ? 1 : 0)}`}${r.estimate ? ", estimate" : ""})${r.note ? " · " + r.note : ""}`
             : r.note || (st === "input" ? "An input it needs is missing." : "");
         const g = r.id === "ground" && rvals && rvals._ground;
         if (r.id === "ground")

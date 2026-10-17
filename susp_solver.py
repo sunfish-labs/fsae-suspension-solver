@@ -174,7 +174,8 @@ def cmd_rules(a):
     for row in rows:
         v = row["value"]
         vt = (f"{v * 100:.1f} %" if row["id"] == "track_ratio" else f"{v:.1f} {row['unit']}".rstrip()) if isinstance(v, float) else ""
-        lim = ("" if row.get("limit") is None or row["kind"] not in ("min", "max") else
+        lim = (f" (between {row['limit'][0]:g} and {row['limit'][1]:g} {row['unit']})" if row["kind"] == "between" else
+               "" if row.get("limit") is None or row["kind"] not in ("min", "max") else
                f" (limit {row['limit'] * 100:g} %)" if row["id"] == "track_ratio" else f" (limit {row['limit']:g} {row['unit']})".replace(" )", ")"))
         extra = (("; " if vt else "") + row["note"]) if row["note"] else ""
         est = " (estimate)" if row["estimate"] else ""

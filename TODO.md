@@ -26,7 +26,7 @@ XL 3+ days.
    their catalog ratings, like the rod ends. Needs: part numbers or ratings.
 5. ~~**Ground clearance rule**~~ (done in 1.15.0). No solid part but the tires touches the ground at full bump with braking pitch and
    roll.
-6. **Frame-based rules** (M). Lower side impact structure height and the 5th percentile template, from side-view
+6. ~~**Frame-based rules**~~ (done in 1.16.0: side impact structure, hoop angles, braces, belt angles; the rules have no 5th percentile template to check). Lower side impact structure height and the 5th percentile template, from side-view
    points like the roll hoops. Needs: those points off the frame.
 7. **Anti-roll bar in the cornering loads** (M). The bar's share in the cornering cases, so the tube and tab checks
    aren't optimistic with a bar (the simpler version of the full rolled cases below).
@@ -69,6 +69,7 @@ XL 3+ days.
 
 ## Done recently
 
+- Frame and harness rules from side-view points: 13 more automatic checks (1.16.0)
 - Ground clearance rule over every body position the dampers allow, from the lowest points and the frame model (1.15.0)
 - Design check: every check on the car on one page with why it matters and where to fix it, and a printable
   sign-off report (1.14.0)

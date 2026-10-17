@@ -275,7 +275,7 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
 
   console.log("\nRules check");
   const rb = await text(p, "#rulesBox");
-  check("the Car view checks the car against the FSAE 2027 rules by rule number", /Formula SAE 2027/.test(rb) && /V\.1\.2/.test(rb) && /19 pass/.test(rb) && /Check yourself/.test(rb), rb.slice(0, 200));
+  check("the Car view checks the car against the FSAE 2027 rules by rule number", /Formula SAE 2027/.test(rb) && /V\.1\.2/.test(rb) && /30 pass/.test(rb) && /Check yourself/.test(rb), rb.slice(0, 200));
   await p.evaluate(() => { const i = document.querySelector('#carIn [data-cpath="vehicle.wheelbase"]'); i.value = "1500"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
   check("a 1500 mm wheelbase fails V.1.2 and opens the rules list", /1 fail/.test(await text(p, "#rulesBox")) && (await p.$eval("#rulesBox", d => d.open)));
   await p.click("#btnUndo"); await settle(p);

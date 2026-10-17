@@ -365,6 +365,17 @@ const CK_PTS = [
   ["brace_lower", "Main Hoop Braces, lower end"],
   ["hip", "Template hip circle center (seat back)"],
 ];
+// optional: the side impact structure, the hoops' lower parts and the harness mounts (frame and harness rules)
+const CK_OPT = [
+  ["sis_upper_front", "Upper Side Impact Member, top edge at the front"],
+  ["sis_upper_rear", "Upper Side Impact Member, top edge at the rear"],
+  ["sis_lower_low", "Lower Side Impact Member, bottom at its lowest"],
+  ["front_hoop_at_sis", "Front Hoop where the upper side impact member meets it"],
+  ["main_hoop_at_sis", "Main Hoop where the upper side impact member attaches"],
+  ["main_hoop_bottom", "Main Hoop, bottom"],
+  ["lap_belt_mount", "Lap belt mount"],
+  ["shoulder_belt_mount", "Shoulder harness bar (where the belt wraps)"],
+];
 const CK_NUMS = [
   ["back_angle", "Seat back angle from vertical", "deg"],
   ["neck_angle", "Neck line recline beyond the back", "deg"],
@@ -391,15 +402,19 @@ function cockpitStarter() {
 function cockpitHtml() {
   const ck = car.cockpit;
   if (!ck)
-    return `<p class="note">Seven points off your frame CAD's side view (hoop tops, brace ends, seat hip point and back angle, pedal face, steering wheel) check the 95th percentile driver template and the roll hoops against F.5.6.4 to F.5.9.4: helmet 50 mm under the hoop lines, 915 mm from hip to pedals, the Front Hoop over and near the steering wheel, the braces near the top.</p>
+    return `<p class="note">Seven points off your frame CAD's side view (hoop tops, brace ends, seat hip point and back angle, pedal face, steering wheel) check the 95th percentile driver template and the roll hoops against F.5.6.4 to F.5.9.4: helmet 50 mm under the hoop lines, 915 mm from hip to pedals, the Front Hoop over and near the steering wheel, the braces near the top. Optional frame and harness points add the side impact structure heights, the hoops' angles and the belt angles.</p>
       <div class="laybtns"><button class="btn small" type="button" id="ckStart">Start from the example's points</button></div>`;
   const hn = frameAxes().names,
     vi = ckVi();
-  const rows = CK_PTS.map(([k, lab]) => {
-    const p = ck[k],
-      s = p ? ckShow(p) : ["", ""];
-    return `<tr><td>${lab}</td>${[0, 1].map(j => `<td class="n"><input class="num lnum" type="number" step="5" data-ck="${attr(k)}" data-cj="${j}" value="${attr(p ? +s[j].toFixed(1) : "")}" aria-label="${attr(lab)} ${j ? "height" : "fore-aft"}"></td>`).join("")}</tr>`;
-  }).join("");
+  const rows = [...CK_PTS, ["_opt", ""], ...CK_OPT]
+    .map(([k, lab]) => {
+      if (k === "_opt")
+        return `<tr><td colspan="3" class="muted"><b>Frame and harness</b> (optional, for F.5.7.6 to F.6.4.4, V.1.4.2 and T.2.5 to T.2.6)</td></tr>`;
+      const p = ck[k],
+        s = p ? ckShow(p) : ["", ""];
+      return `<tr><td>${lab}</td>${[0, 1].map(j => `<td class="n"><input class="num lnum" type="number" step="5" data-ck="${attr(k)}" data-cj="${j}" value="${attr(p ? +s[j].toFixed(1) : "")}" aria-label="${attr(lab)} ${j ? "height" : "fore-aft"}"></td>`).join("")}</tr>`;
+    })
+    .join("");
   const xs = CK_X.map(([k, lab]) => {
     const v = ck[k] != null ? dispPt([ck[k], 0, 0], "car")[0] : "";
     return `<div class="field"><label>${lab} <i>${esc(hn[0])}, mm</i></label><input class="num" type="number" step="5" data-ck="${attr(k)}" data-cj="x" value="${attr(v === "" ? "" : +v.toFixed(1))}"></div>`;
@@ -409,7 +424,7 @@ function cockpitHtml() {
       `<div class="field"><label>${lab} <i>${u}</i></label><input class="num" type="number" step="1" data-ck="${attr(k)}" data-cj="n" value="${attr(ck[k] ?? "")}"></div>`
   ).join("");
   return `<div class="tbl-wrap"><table class="data laytab"><thead><tr><th>Point</th><th class="n">${esc(hn[0])}, mm</th><th class="n">${esc(hn[vi])} (height), mm</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <div class="fields">${xs}<div class="field"><label>Steering wheel top, any angle <i>height, mm</i></label><input class="num" type="number" step="5" data-ck="wheel_top_z" data-cj="n" value="${attr(ck.wheel_top_z ?? "")}"></div>${nums}</div>
+    <div class="fields">${xs}<div class="field"><label>Steering wheel top, any angle <i>height, mm</i></label><input class="num" type="number" step="5" data-ck="wheel_top_z" data-cj="n" value="${attr(ck.wheel_top_z ?? "")}"></div>${nums}<div class="field"><label>Shoulder belt mounts, center to center <i>mm</i></label><input class="num" type="number" step="5" data-ck="shoulder_belt_spacing" data-cj="n" value="${attr(ck.shoulder_belt_spacing ?? "")}"></div></div>
     <div id="ckRes">${cockpitResults()}</div>
     <p class="note">Side view on the car's centerline. The template (F.5.6.5): 200 mm hip and shoulder circles 490 mm apart along the seat back, a 300 mm head circle 280 mm on. Place it as F.5.6.6 says (seat rearmost, pedals forward) and check the head sits within 25 mm of the head restraint. ${frameNote("car")}</p>
     <div class="laybtns"><button class="btn small" type="button" id="ckRemove">Remove these points</button></div>`;
@@ -424,7 +439,16 @@ function cockpitResults() {
     return `<div class="banner bad">${esc(e.message)}</div>`;
   }
   const T = v._template,
-    pts = [ck.main_hoop_top, ck.front_hoop_top, ck.brace_lower, ck.brace_upper, T.hip, T.shoulder, T.head].filter(Boolean);
+    pts = [
+      ck.main_hoop_top,
+      ck.front_hoop_top,
+      ck.brace_lower,
+      ck.brace_upper,
+      T.hip,
+      T.shoulder,
+      T.head,
+      ...CK_OPT.map(([k]) => ck[k]),
+    ].filter(Boolean);
   const lo = [Math.min(...pts.map(p => p[0])) - 250, -40],
     hi = [Math.max(...pts.map(p => p[0]), ck.pedal_face_x ?? -1e9) + 150, Math.max(...pts.map(p => p[1])) + 200];
   const W = 560,
@@ -439,8 +463,32 @@ function cockpitResults() {
   const ok = (val, lim, max) => (typeof val !== "number" ? "var(--muted)" : (max ? val <= lim : val >= lim) ? "var(--ok)" : "var(--bad)");
   let s = `<svg viewBox="0 0 ${W} ${H.toFixed(1)}" class="cksvg" role="img" aria-label="Driver template and roll hoops, side view">`;
   s += line([lo[0], 0], [hi[0], 0], "var(--muted)", 1);
-  s += line(ck.main_hoop_top, [ck.main_hoop_top[0], 0], "var(--ink)", 3);
-  s += line(ck.front_hoop_top, [ck.front_hoop_top[0], 0], "var(--ink)", 3);
+  // the hoops: through their side-impact points when given, otherwise straight down
+  const mhLow = ck.main_hoop_at_sis
+      ? [ck.main_hoop_at_sis, ck.main_hoop_bottom || [ck.main_hoop_at_sis[0], 0]]
+      : [[ck.main_hoop_top[0], 0]],
+    fhLow = ck.front_hoop_at_sis ? [ck.front_hoop_at_sis, [ck.front_hoop_at_sis[0], 0]] : [[ck.front_hoop_top[0], 0]];
+  for (const [top, low] of [
+    [ck.main_hoop_top, mhLow],
+    [ck.front_hoop_top, fhLow],
+  ]) {
+    let a = top;
+    for (const b of low) {
+      s += line(a, b, "var(--ink)", 3);
+      a = b;
+    }
+  }
+  if (ck.sis_upper_front && ck.sis_upper_rear)
+    s += line(
+      ck.sis_upper_front,
+      ck.sis_upper_rear,
+      typeof v.upper_sis_low === "number" ? (v.upper_sis_low >= 290 && v.upper_sis_high <= 345 ? "var(--ok)" : "var(--bad)") : "var(--ink)",
+      2.5
+    );
+  if (ck.sis_lower_low)
+    s += `<circle cx="${X(ck.sis_lower_low[0])}" cy="${Y(ck.sis_lower_low[1])}" r="4" fill="${ok(v.lsis_height && v.lsis_height.v, 90, true)}"/>`;
+  if (ck.lap_belt_mount) s += line(ck.lap_belt_mount, T.hip, "#8a5a00", 1.5, "3 3");
+  if (ck.shoulder_belt_mount) s += line(ck.shoulder_belt_mount, [T.shoulder[0], T.shoulder[1] + 100], "#8a5a00", 1.5, "3 3");
   s += line(ck.main_hoop_top, ck.front_hoop_top, ok(v.helmet_front_line, 50), 2, "6 4");
   if (ck.brace_lower)
     s += line(ck.main_hoop_top, ck.brace_lower, typeof v.helmet_brace_line === "number" ? ok(v.helmet_brace_line, 50) : "var(--ink)", 2);
@@ -451,9 +499,19 @@ function cockpitResults() {
     s += `<circle cx="${X(ck.wheel_front_x)}" cy="${Y(ck.wheel_top_z)}" r="4" fill="${ok(v.front_hoop_over_wheel, 0)}"/>`;
   s += `<text x="${X(ck.main_hoop_top[0])}" y="${Y(ck.main_hoop_top[1]) - 6}" font-size="11" text-anchor="middle" fill="var(--muted)">Main Hoop</text><text x="${X(ck.front_hoop_top[0])}" y="${Y(ck.front_hoop_top[1]) - 6}" font-size="11" text-anchor="middle" fill="var(--muted)">Front Hoop</text>`;
   s += `<text x="${X(hi[0]) - 4}" y="${Y(0) - 4}" font-size="11" text-anchor="end" fill="var(--muted)">forward →</text></svg>`;
+  const kvb = (lab, a, b, lo, hi, unit) =>
+    `<div><span>${lab}</span><b class="${a >= lo && b <= hi ? "ok-t" : "bad-t"}">${a === b ? fmt(a, 0) : `${fmt(a, 0)}–${fmt(b, 0)}`} <small>${unit} (${lo} to ${hi})</small></b></div>`;
   const kv = (lab, val, lim, max, unit = "mm") =>
     `<div><span>${lab}</span><b class="${typeof val !== "number" ? "" : (max ? val <= lim : val >= lim) ? "ok-t" : "bad-t"}">${typeof val === "number" ? fmt(val, 0) : "–"} <small>${unit} (${max ? "max" : "min"} ${lim})</small></b></div>`;
-  return `${s}<div class="kv">${kv("Helmet below the hoop line (F.5.6.4 a)", v.helmet_front_line, 50)}${typeof v.helmet_brace_line === "number" ? kv("Helmet from the brace line (F.5.6.4 b)", v.helmet_brace_line, 50) : ""}${typeof v.helmet_behind_hoop === "number" ? kv("Helmet ahead of the Main Hoop (F.5.6.4 c)", v.helmet_behind_hoop, 0) : ""}${kv("Hip to pedals (F.5.6.6)", v.hip_to_pedals, 915)}${kv("Front Hoop over the wheel (F.5.7.4)", v.front_hoop_over_wheel, 0)}${kv("Front Hoop ahead of the wheel (F.5.7.5)", v.front_hoop_ahead_of_wheel, 250, true)}${kv("Brace attachment below the top (F.5.9.4)", v.brace_drop, 160, true)}</div>`;
+  return `${s}<div class="kv">${kv("Helmet below the hoop line (F.5.6.4 a)", v.helmet_front_line, 50)}${typeof v.helmet_brace_line === "number" ? kv("Helmet from the brace line (F.5.6.4 b)", v.helmet_brace_line, 50) : ""}${typeof v.helmet_behind_hoop === "number" ? kv("Helmet ahead of the Main Hoop (F.5.6.4 c)", v.helmet_behind_hoop, 0) : ""}${kv("Hip to pedals (F.5.6.6)", v.hip_to_pedals, 915)}${kv("Front Hoop over the wheel (F.5.7.4)", v.front_hoop_over_wheel, 0)}${kv("Front Hoop ahead of the wheel (F.5.7.5)", v.front_hoop_ahead_of_wheel, 250, true)}${kv("Brace attachment below the top (F.5.9.4)", v.brace_drop, 160, true)}${
+    v.lsis_height ? kv("Lower side impact member above the ground (V.1.4.2)", v.lsis_height.v, 90, true) : ""
+  }${typeof v.upper_sis_low === "number" ? kvb("Upper side impact member above it (F.6.4.4 b)", v.upper_sis_low, v.upper_sis_high, 290, 345, "mm") : ""}${
+    typeof v.front_hoop_incline === "number" ? kv("Front Hoop from vertical, above (F.5.7.6)", v.front_hoop_incline, 20, true, "°") : ""
+  }${typeof v.main_hoop_incline_above === "number" ? kv("Main Hoop from vertical, above (F.5.8.3)", v.main_hoop_incline_above, 10, true, "°") : ""}${
+    typeof v.brace_angle === "number" ? kv("Hoop to brace angle (F.5.9.5)", v.brace_angle, 30, false, "°") : ""
+  }${typeof v.lap_belt_upright === "number" ? kvb("Lap belt angle (T.2.5.4)", v.lap_belt_upright, v.lap_belt_upright, 45, 65, "°") : ""}${
+    typeof v.lap_belt_reclined === "number" ? kvb("Lap belt angle (T.2.5.5)", v.lap_belt_reclined, v.lap_belt_reclined, 60, 80, "°") : ""
+  }${typeof v.shoulder_belt_angle === "number" ? kvb("Shoulder belt below horizontal (T.2.6.1)", v.shoulder_belt_angle, v.shoulder_belt_angle, -10, 20, "°") : ""}</div>`;
 }
 document.addEventListener("click", e => {
   const t = e.target;
@@ -475,7 +533,7 @@ document.addEventListener("input", e => {
     j = el.dataset.cj,
     v = +el.value;
   if (el.value === "" || !Number.isFinite(v)) {
-    if (el.value === "" && (j === "x" || j === "n" || k.startsWith("brace"))) {
+    if (el.value === "" && (j === "x" || j === "n" || k.startsWith("brace") || CK_OPT.some(([q]) => q === k))) {
       delete car.cockpit[k];
       schedule();
     }

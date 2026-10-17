@@ -115,6 +115,73 @@ function cockpitValues(ck) {
   if (ck.wheel_top_z != null) v.front_hoop_over_wheel = fh[1] - +ck.wheel_top_z;
   if (ck.wheel_front_x != null) v.front_hoop_ahead_of_wheel = fh[0] - +ck.wheel_front_x;
   if (ck.brace_upper) v.brace_drop = mh[1] - ck.brace_upper[1];
+  Object.assign(v, frameValues(ck, [hip, sh, head]));
+  return v;
+}
+// optional frame and harness points (mirrors cockpit.frame_values)
+const COCKPIT_OPT = [
+  "sis_upper_front",
+  "sis_upper_rear",
+  "sis_lower_low",
+  "front_hoop_at_sis",
+  "main_hoop_at_sis",
+  "main_hoop_bottom",
+  "lap_belt_mount",
+  "shoulder_belt_mount",
+];
+function inclineDeg(lo, hi) {
+  return deg(Math.atan2(-(hi[0] - lo[0]), hi[1] - lo[1]));
+}
+function frameValues(ck, [hip, sh]) {
+  const v = {},
+    fh = ck.front_hoop_top,
+    mh = ck.main_hoop_top;
+  if (ck.sis_lower_low) {
+    const h = +ck.sis_lower_low[1];
+    v.lsis_height = { v: h, note: h > 75 ? "should be 75 mm or less" : "" };
+    const tops = ["sis_upper_front", "sis_upper_rear"].filter(k => ck[k]).map(k => ck[k][1] - h);
+    if (tops.length) [v.upper_sis_low, v.upper_sis_high] = [Math.min(...tops), Math.max(...tops)];
+  }
+  if (ck.front_hoop_at_sis) {
+    const inc = inclineDeg(ck.front_hoop_at_sis, fh);
+    v.front_hoop_incline = Math.abs(inc);
+    v.front_hoop_rear_lean =
+      inc <= 10
+        ? { na: inc > 0 ? `leans rearward ${inc.toFixed(1)} deg, 10 or less` : `leans forward ${(-inc).toFixed(1)} deg` }
+        : { manual: `leans rearward ${inc.toFixed(1)} deg: needs rearward Front Hoop Braces to a triangulated node` };
+  }
+  if (ck.main_hoop_at_sis) {
+    const inc = inclineDeg(ck.main_hoop_at_sis, mh);
+    v.main_hoop_incline_above = Math.abs(inc);
+    if (ck.main_hoop_bottom) v.main_hoop_rear_lean_below = Math.max(0, inclineDeg(ck.main_hoop_bottom, ck.main_hoop_at_sis));
+    const bu = ck.brace_upper,
+      bl = ck.brace_lower;
+    if (bu && bl) {
+      const a = [mh[0] - ck.main_hoop_at_sis[0], mh[1] - ck.main_hoop_at_sis[1]],
+        b = [bl[0] - bu[0], bl[1] - bu[1]],
+        ang = deg(Math.acos(Math.abs(a[0] * b[0] + a[1] * b[1]) / (Math.hypot(...a) * Math.hypot(...b))));
+      v.brace_angle = ang;
+      const lean = Math.abs(inc) < 0.5 ? "vertical" : inc > 0 ? "rearward" : "forward",
+        side = bl[0] < bu[0] ? "rearward" : "forward";
+      v.brace_side = {
+        v: lean === "vertical" || lean === side,
+        note: `hoop ${lean !== "vertical" ? "leans " + lean : "vertical"}, braces ${side}`,
+      };
+    }
+  }
+  const upright = +ck.back_angle <= 30;
+  if (ck.lap_belt_mount) {
+    const m = ck.lap_belt_mount,
+      ang = deg(Math.atan2(Math.abs(hip[1] - m[1]), Math.abs(hip[0] - m[0])));
+    v.lap_belt_upright = upright ? ang : { na: "reclined seat: back over 30 deg" };
+    v.lap_belt_reclined = !upright ? ang : { na: "upright seat: back 30 deg or less" };
+  }
+  if (ck.shoulder_belt_mount) {
+    const m = ck.shoulder_belt_mount,
+      top = [sh[0], sh[1] + 100];
+    v.shoulder_belt_angle = deg(Math.atan2(top[1] - m[1], Math.abs(top[0] - m[0])));
+  }
+  if (ck.shoulder_belt_spacing != null) v.shoulder_belt_spacing = +ck.shoulder_belt_spacing;
   return v;
 }
 function checkCockpit(ck) {
@@ -125,6 +192,13 @@ function checkCockpit(ck) {
     if (!(Array.isArray(p) && p.length === 2 && p.every(q => typeof q === "number" && Number.isFinite(q))))
       throw new SolveError(`cockpit.${k} needs [x, z] in mm`);
   }
+  for (const k of COCKPIT_OPT) {
+    const p = ck[k];
+    if (p != null && !(Array.isArray(p) && p.length === 2 && p.every(q => typeof q === "number" && Number.isFinite(q))))
+      throw new SolveError(`cockpit.${k} needs [x, z] in mm`);
+  }
+  if (ck.shoulder_belt_spacing != null && typeof ck.shoulder_belt_spacing !== "number")
+    throw new SolveError("cockpit.shoulder_belt_spacing must be a number (mm)");
   if (!(typeof ck.back_angle === "number" && ck.back_angle >= 0 && ck.back_angle < 80))
     throw new SolveError("cockpit.back_angle is the seat back's angle from vertical, 0 to 80 deg");
 }
@@ -238,26 +312,37 @@ function ruleValues(fcfg, fev, rcfg, rev, bal = null, layout = null, cockpit = n
 function checkRules(ruleset, values) {
   return ruleset.checks.map(c => {
     const k = c.kind,
-      val = values[c.value || ""],
+      raw = values[c.value || ""],
       row = {
         id: c.id,
         rule: c.rule,
         summary: c.summary,
         kind: k,
-        value: val ?? null,
+        value: raw ?? null,
         limit: c.limit ?? null,
         unit: c.unit || "",
         estimate: !!c.estimate,
         note: "",
       };
+    let val = raw;
+    if (val && typeof val === "object" && !Array.isArray(val) && "v" in val) {
+      row.note = val.note || "";
+      val = val.v;
+      row.value = val;
+    }
     if (k === "manual") row.status = "manual";
-    else if (val && typeof val === "object" && !Array.isArray(val) && "na" in val) {
+    else if (val && typeof val === "object" && !Array.isArray(val) && "manual" in val) {
+      row.status = "manual";
+      row.note = val.manual;
+      row.value = null;
+    } else if (val && typeof val === "object" && !Array.isArray(val) && "na" in val) {
       row.status = "na";
       row.note = val.na;
       row.value = null;
     } else if (val == null) row.status = "unknown";
     else if (k === "min") row.status = val >= c.limit ? "pass" : "fail";
     else if (k === "max") row.status = val <= c.limit ? "pass" : "fail";
+    else if (k === "between") row.status = val >= c.limit[0] && val <= c.limit[1] ? "pass" : "fail";
     else if (k === "oneof") {
       row.status = val.some(x => !c.allowed.includes(x)) ? "fail" : "pass";
       row.note = [...new Set(val)].sort().join(", ");

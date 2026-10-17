@@ -255,6 +255,14 @@ needs and says pass, fail, can't check (an input is missing) or check yourself (
   every vertex of a loaded frame model, at every body position the dampers allow: the body rigid, each corner from
   full droop to full bump (the damper's stroke and length, or the sweep's travel) plus the tire squashing under the
   extra load at full bump, with any pitch and roll in between. The tightest point and the body position are named.
+- the frame and harness in the same side view, from optional `cockpit` points (Layout → Driver and roll hoops → Frame
+  and harness): V.1.4.2 the lower side impact member's lowest point 90 mm or less above the ground (75 recommended);
+  F.6.4.4 b the upper side impact member's top edge 290 to 345 mm above it at both ends; F.5.7.6 the Front Hoop above
+  the side impact structure under 20° from vertical (F.6.3.5: rearward braces if it leans back more than 10°);
+  F.5.8.3 the Main Hoop under 10° from vertical above, not leaning back more than 10° below; F.5.9.3 the braces on
+  the side the hoop leans to; F.5.9.5 30° or more between hoop and braces; T.2.5.4 / T.2.5.5 the lap belt angle to
+  the template's hip (45 to 65°, or 60 to 80° reclined), T.2.6.1 the shoulder belt angle from the top of the
+  shoulder circle (10° up to 20° down) and T.2.6.2 the shoulder belt spacing (175 to 235 mm).
 - a checklist for what it can't measure: open-wheel views, the lower side impact structure height, ground contact,
   visible mounts, fastener locking, steering free play, rack mounting, cockpit shields, mounts on the hoop braces.
 A later rulebook is a new file in `schema/rules/` with the same layout.

@@ -187,6 +187,136 @@
    "unit": "mm"
   },
   {
+   "id": "lsis_height",
+   "rule": "V.1.4.2",
+   "summary": "Lowest point of the Lower Side Impact Structure 90 mm or less above the ground (75 mm or less recommended)",
+   "kind": "max",
+   "value": "lsis_height",
+   "limit": 90,
+   "unit": "mm"
+  },
+  {
+   "id": "upper_sis_low",
+   "rule": "F.6.4.4 b",
+   "summary": "Upper Side Impact Member's top edge at least 290 mm above the lowest point of the Lower Side Impact Member, along its length",
+   "kind": "min",
+   "value": "upper_sis_low",
+   "limit": 290,
+   "unit": "mm"
+  },
+  {
+   "id": "upper_sis_high",
+   "rule": "F.6.4.4 b",
+   "summary": "Upper Side Impact Member's top edge at most 345 mm above the lowest point of the Lower Side Impact Member, along its length",
+   "kind": "max",
+   "value": "upper_sis_high",
+   "limit": 345,
+   "unit": "mm"
+  },
+  {
+   "id": "front_hoop_incline",
+   "rule": "F.5.7.6",
+   "summary": "Front Hoop above the Upper Side Impact Structure less than 20° from vertical (side view)",
+   "kind": "max",
+   "value": "front_hoop_incline",
+   "limit": 20,
+   "unit": "deg"
+  },
+  {
+   "id": "front_hoop_rear_lean",
+   "rule": "F.6.3.5",
+   "summary": "A Front Hoop leaning rearward more than 10° above the Upper Side Impact Structure needs rearward Front Hoop Braces",
+   "kind": "max",
+   "value": "front_hoop_rear_lean",
+   "limit": 10,
+   "unit": "deg"
+  },
+  {
+   "id": "main_hoop_incline_above",
+   "rule": "F.5.8.3 a",
+   "summary": "Main Hoop above the upper side impact attachment less than 10° from vertical (side view)",
+   "kind": "max",
+   "value": "main_hoop_incline_above",
+   "limit": 10,
+   "unit": "deg"
+  },
+  {
+   "id": "main_hoop_rear_lean_below",
+   "rule": "F.5.8.3 b",
+   "summary": "Main Hoop below the upper side impact attachment not leaning rearward more than 10° (forward at any angle)",
+   "kind": "max",
+   "value": "main_hoop_rear_lean_below",
+   "limit": 10,
+   "unit": "deg"
+  },
+  {
+   "id": "brace_side",
+   "rule": "F.5.9.3",
+   "summary": "Main Hoop Braces on the side the Main Hoop leans to (either side if it's vertical)",
+   "kind": "true",
+   "value": "brace_side"
+  },
+  {
+   "id": "brace_angle",
+   "rule": "F.5.9.5",
+   "summary": "Included angle between the Main Hoop and its Braces 30° or more",
+   "kind": "min",
+   "value": "brace_angle",
+   "limit": 30,
+   "unit": "deg"
+  },
+  {
+   "id": "lap_belt_upright",
+   "rule": "T.2.5.4 a",
+   "summary": "Lap belt side view angle between 45° and 65° to the horizontal (upright seat), from its mount to the template's hip",
+   "kind": "between",
+   "value": "lap_belt_upright",
+   "limit": [
+    45,
+    65
+   ],
+   "unit": "deg",
+   "estimate": true
+  },
+  {
+   "id": "lap_belt_reclined",
+   "rule": "T.2.5.5",
+   "summary": "Lap belt side view angle between 60° and 80° to the horizontal (reclined seat), from its mount to the template's hip",
+   "kind": "between",
+   "value": "lap_belt_reclined",
+   "limit": [
+    60,
+    80
+   ],
+   "unit": "deg",
+   "estimate": true
+  },
+  {
+   "id": "shoulder_belt_angle",
+   "rule": "T.2.6.1",
+   "summary": "Shoulder belt from the shoulders back to its mount between 10° above and 20° below horizontal (+ = below)",
+   "kind": "between",
+   "value": "shoulder_belt_angle",
+   "limit": [
+    -10,
+    20
+   ],
+   "unit": "deg",
+   "estimate": true
+  },
+  {
+   "id": "shoulder_belt_spacing",
+   "rule": "T.2.6.2",
+   "summary": "Shoulder belt mounts 175 to 235 mm apart, center to center",
+   "kind": "between",
+   "value": "shoulder_belt_spacing",
+   "limit": [
+    175,
+    235
+   ],
+   "unit": "mm"
+  },
+  {
    "id": "m_open_wheel",
    "rule": "V.1.1 a, b",
    "summary": "Top half of each tire unobstructed seen from above; wheels unobstructed seen from the side",
@@ -194,8 +324,8 @@
   },
   {
    "id": "m_lower_sis",
-   "rule": "V.1.4.2",
-   "summary": "Lowest point of the Lower Side Impact Structure 90 mm or less above the ground (75 mm or less recommended), with an opening to measure it",
+   "rule": "V.1.4.2 a",
+   "summary": "An opening to measure the ride height under the Lower Side Impact Structure without removing aerodynamic devices",
    "kind": "manual"
   },
   {

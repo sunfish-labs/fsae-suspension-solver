@@ -508,7 +508,7 @@ function rulesHtml(F, R, B) {
       ? esc(r.note || "")
       : r.id === "track_ratio"
         ? `${fmt(r.value * 100, 1)} % <span class="muted">(min ${fmt(r.limit * 100, 0)} %)</span>`
-        : `${fmt(r.value, 1)} ${esc(r.unit)} <span class="muted">(${r.kind === "max" ? "max" : "min"} ${fmt(r.limit, r.limit % 1 ? 1 : 0)}${r.estimate ? ", estimate" : ""})</span>${r.note ? " · " + esc(r.note) : ""}`;
+        : `${fmt(r.value, 1)} ${esc(r.unit)} <span class="muted">(${r.kind === "between" ? `${fmt(r.limit[0], 0)} to ${fmt(r.limit[1], 0)}` : `${r.kind === "max" ? "max" : "min"} ${fmt(r.limit, r.limit % 1 ? 1 : 0)}`}${r.estimate ? ", estimate" : ""})</span>${r.note ? " · " + esc(r.note) : ""}`;
   const pill = s =>
     s === "pass"
       ? `<span class="pill ok">Pass</span>`

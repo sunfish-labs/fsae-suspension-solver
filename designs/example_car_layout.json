@@ -772,6 +772,15 @@
   "neck_angle": 0.0,
   "pedal_face_x": 150.0,
   "wheel_top_z": 650.0,
-  "wheel_front_x": -420.0
+  "wheel_front_x": -420.0,
+  "sis_upper_front": [-330, 395],
+  "sis_upper_rear": [-1270, 390],
+  "sis_lower_low": [-800, 75],
+  "front_hoop_at_sis": [-320, 395],
+  "main_hoop_at_sis": [-1280, 390],
+  "main_hoop_bottom": [-1270, 60],
+  "lap_belt_mount": [-870, 100],
+  "shoulder_belt_mount": [-1250, 690],
+  "shoulder_belt_spacing": 200
  }
 }

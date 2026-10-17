@@ -675,6 +675,26 @@ lim16 = corner_limits(f16, fe16)
 check("ground: full bump includes the tire squashing under the extra load, mm", hiF, lim16["bump"] + fe16["metrics"]["wheel_rate"] * lim16["bump"] / f16["spring"]["tire_rate"], 1e-9,
       "wheel rate x bump / tire rate")
 
+# 17. frame and harness rules in side view (F.5.7.6 to F.6.4.4, V.1.4.2, T.2.5, T.2.6)
+from susp.cockpit import frame_values  # noqa: E402
+ck17 = {"main_hoop_top": [0.0, 1000.0], "front_hoop_top": [1000.0, 700.0], "back_angle": 20.0, "hip": [500.0, 200.0],
+        "brace_upper": [0.0, 900.0], "brace_lower": [-400.0, 300.0], "sis_lower_low": [500.0, 80.0],
+        "sis_upper_front": [990.0, 400.0], "sis_upper_rear": [10.0, 380.0], "front_hoop_at_sis": [1000.0 + 300.0 * math.tan(math.radians(15)), 400.0],
+        "main_hoop_at_sis": [10.0, 380.0], "main_hoop_bottom": [40.0, 60.0], "lap_belt_mount": [400.0, 100.0],
+        "shoulder_belt_mount": [0.0, 700.0], "shoulder_belt_spacing": 200.0}
+t17 = template(ck17)
+v17 = frame_values(ck17, t17)
+check("frame: lower side impact member height, mm", v17["lsis_height"]["v"], 80.0, 1e-12, "its bottom's height")
+check("frame: upper side impact member, lowest end above it, mm", v17["upper_sis_low"], 300.0, 1e-12, "380 - 80")
+check("frame: front hoop above the side impact member, deg from vertical", v17["front_hoop_incline"], 15.0, 1e-9, "built at 15 deg, leaning rearward")
+check("frame: main hoop above, deg from vertical", v17["main_hoop_incline_above"], math.degrees(math.atan2(10.0, 620.0)), 1e-9, "10 mm back over 620 mm")
+check("frame: main hoop below leans rearward, deg", v17["main_hoop_rear_lean_below"], math.degrees(math.atan2(30.0, 320.0)), 1e-9, "the upper point 30 mm behind the bottom")
+a17, b17 = np.array([-10.0, 620.0]), np.array([-400.0, -600.0])
+check("frame: hoop to brace included angle, deg", v17["brace_angle"], math.degrees(math.acos(abs(a17 @ b17) / np.linalg.norm(a17) / np.linalg.norm(b17))), 1e-9, "acute angle between the lines")
+check("harness: lap belt angle to the template's hip, deg", v17["lap_belt_upright"], math.degrees(math.atan2(100.0, 100.0)), 1e-9, "mount 100 mm behind and below the hip: 45 deg")
+sh17 = t17[1]
+check("harness: shoulder belt below horizontal from the shoulder's top, deg", v17["shoulder_belt_angle"], math.degrees(math.atan2(sh17[1] + 100 - 700.0, abs(sh17[0]))), 1e-9, "")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)
