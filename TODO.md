@@ -12,8 +12,8 @@ XL 3+ days.
 
 - **Team settings and feature switches** (about a day, M-L). The team lead turns big features on, read-only or
   hidden for the team (hardpoint editing, JSON editor, advanced mode, tabs, exports, sign-off) and locks team
-  values, through an encrypted team file in the public repo, with an admin mode. Waiting on three decisions: see
-  [TEAM_SETTINGS_PLAN.md](TEAM_SETTINGS_PLAN.md).
+  values, through an encrypted team file in the public repo, with an admin mode. About 8-12 hours of work. Waiting
+  on three decisions: see [TEAM_SETTINGS_PLAN.md](TEAM_SETTINGS_PLAN.md).
 
 ## This season: needed for a passing car
 
@@ -45,8 +45,14 @@ XL 3+ days.
 
 9. ~~**Jig and tolerance report**~~ (done in 1.24.0) (M). Which hardpoints need precise fixturing for the team's fabrication tolerance.
 10. ~~**Competition setup sheet**~~ (done in 1.25.0) (M). Alignment, ride height, spring preload and bar setting per corner, printable.
-11. **"Start here" tour** (S). Five minutes on reading the check page and what each area means.
-12. **Housekeeping** (XS, done by hand). Create the missing `v0.9.0` tag on GitHub (Releases -> Draft a new release ->
+11. **Design-justification report in Typst** (M-L, about a day): the design report as a `.typ` file (compile in
+    typst.app or with the typst CLI) with every decision's target, where the design sits and why it matters, the bought
+    parts against their ratings, and a "team rationale" box under each for the design event.
+12. **Handoff before graduation** (S each): move the repo to a team GitHub organization with two admins; a maintainer
+    guide (tests, releases, `private/` rules, where things live); a first-week onboarding path (Learn, the five
+    challenges, the team car, the design check).
+13. **"Start here" tour** (S). Five minutes on reading the check page and what each area means.
+14. **Housekeeping** (XS, done by hand). Create the missing `v0.9.0` tag on GitHub (Releases -> Draft a new release ->
     tag `v0.9.0`, target commit `e3fee2a`); delete the old desktop copy (the GitHub Desktop clone replaces it).
 
 ## Future seasons
@@ -56,7 +62,12 @@ XL 3+ days.
 - **Rolled and combined load cases** (L-XL): the cornering cases solved with the body rolled and the wheel moved, the
   bar's link load and aero.
 - **Frame torsional stiffness from the tube centerlines** (XL): a 3D frame solved in the browser, feeding the LLTD.
-- **Tire model with camber** (M-L): grip that depends on camber, not Pacejka. Needs tire data (TTC).
+- **Tire model with camber** (M-L): grip that depends on camber, not Pacejka. Needs tire data (TTC); until then an
+  approximate tire run across a range of parameters, trusting only comparisons that hold for every tire.
+- **Point-mass lap time simulation** (S-M): mass vs power vs drag vs downforce in event points; needs no tire data.
+- **Steady-state handling** (L) and **lap time with suspension effects** (L): balance, max lateral g and points per
+  change, after the tire model.
+- **Export to Simscape Formula Student** (M): its kinematics test as a cross-check and its transient simulation.
 - **Bill of materials** (M): rod ends, bolts, tube cut lengths, tabs.
 - **Rocker, the next step** (M): an aluminum fatigue screen and the bar link's load when it's driven from the rocker.
 - **Keyboard and screen-reader control of the 3D view** (M); **phone layout** (S).

@@ -310,6 +310,24 @@ def cmd_import(a):
           file=sys.stderr)
 
 
+def cmd_equations(a):
+    """SolidWorks global variables for the hardpoints, in the team frame (susp/output/equations.py)."""
+    from susp.output.equations import equations_text
+    if C.is_car_file(a.config):
+        f, r, info = C.load_car(a.config)
+        cfgs, name = [f, r], info["name"]
+    else:
+        cfgs = [load(a.config, warn=False)]
+        name = cfgs[0].get("name") or "design"
+    txt = equations_text(name, [(c, evaluate(c, pack=False)) for c in cfgs], float(cfgs[0]["vehicle"]["wheelbase"]))
+    if a.out:
+        with open(a.out, "w") as fh:
+            fh.write(txt)
+        print(f"wrote {a.out}: link it in SolidWorks from Tools > Equations > Link to external file")
+    else:
+        print(txt, end="")
+
+
 def cmd_to_team(a):
     """An older design or car file (the solver's own frame) rewritten in the team frame: ISO 8855 axes, origin on the
     ground under the front axle, each corner as the left-hand one. It loads to exactly the same results."""
@@ -401,6 +419,10 @@ def main():
     p.add_argument("config", help="a design or a car file")
     p.add_argument("--thread", default="3/8-24 UNF", choices=["3/8-24 UNF", "5/16-24 UNF", "1/4-28 UNF", "M8x1.25", "M10x1.25", "M10x1.5"])
     p.set_defaults(fn=cmd_setup)
+    p = sub.add_parser("equations", help="SolidWorks global variables (a text file to link in Tools > Equations), team frame")
+    p.add_argument("config", help="a design or a car file")
+    p.add_argument("--out", help="write the .txt here")
+    p.set_defaults(fn=cmd_equations)
     p = sub.add_parser("to-team", help="rewrite an older design or car file in the team frame (ISO 8855, origin under the front axle)")
     p.add_argument("file")
     p.add_argument("--out", help="write here instead of over the file")

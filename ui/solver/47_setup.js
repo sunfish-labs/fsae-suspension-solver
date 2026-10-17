@@ -47,3 +47,33 @@ function setupValues(cfg, ev) {
   }
   return out;
 }
+// mirrors output/equations.py: SolidWorks global variables (Tools > Equations > Link to external file), team frame
+const EQ_SPRING = ["rod_outboard", "rocker_pivot", "rocker_rod", "rocker_damper", "damper_chassis"];
+const eqNum = (v, d = 3) => (Math.round(+v * 10 ** d) / 10 ** d + 0).toFixed(d);
+function equationLines(cfg, ev) {
+  const pre = cfg.axle === "front" ? "F_" : "R_",
+    team = cornerOut(cfg),
+    out = [];
+  for (const k of HP_ORDER) "XYZ".split("").forEach((a, i) => out.push([`${pre}${k}_${a}`, eqNum(team.hardpoints[k][i])]));
+  const sp = team.spring || {};
+  for (const k of EQ_SPRING) if (Array.isArray(sp[k])) "XYZ".split("").forEach((a, i) => out.push([`${pre}${k}_${a}`, eqNum(sp[k][i])]));
+  if (Array.isArray(sp.rocker_axis)) {
+    const n = Math.hypot(...sp.rocker_axis.map(Number)) || 1;
+    "XYZ".split("").forEach((a, i) => out.push([`${pre}rocker_axis_${a}`, eqNum(+sp.rocker_axis[i] / n, 6)]));
+  }
+  const v = setupValues(cfg, ev);
+  out.push([`${pre}tie_rod_length`, eqNum(v.tie_rod_len)]);
+  if (v.pushrod_len != null) out.push([`${pre}pushrod_length`, eqNum(v.pushrod_len)], [`${pre}damper_length`, eqNum(v.damper_len)]);
+  out.push([`${pre}track`, eqNum(ev.susp.track)]);
+  return out;
+}
+function equationsText(name, corners, wheelbase) {
+  const lines = [
+    `' ${name}: suspension points for SolidWorks (Tools > Equations > Link to external file)`,
+    "' ISO 8855 team frame: X forward, Y left, Z up, mm; origin on the ground under the front axle, on the centerline",
+    "' each corner as the left-hand one (Y positive); set the model's units to mm",
+    `"wheelbase"= ${eqNum(wheelbase)}`,
+  ];
+  for (const [cfg, ev] of corners) for (const [n, v] of equationLines(cfg, ev)) lines.push(`"${n}"= ${v}`);
+  return lines.join("\n") + "\n";
+}

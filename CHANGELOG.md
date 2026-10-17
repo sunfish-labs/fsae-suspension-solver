@@ -3,6 +3,12 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.27.0 - 2026-10-17
+
+- **SolidWorks equations export** (Export menu, and `equations car.json`): every hardpoint and spring point as a
+  global variable in the team frame, plus the pushrod, tie rod and damper lengths, tracks and wheelbase, for Tools →
+  Equations → Link to external file. Python and browser give the same text (parity-tested).
+
 ## 1.26.0 - 2026-10-17
 
 - **One team frame for files, the screen and the exports: ISO 8855** (X forward, Y left, Z up, mm) with the origin on

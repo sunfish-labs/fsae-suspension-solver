@@ -51,6 +51,7 @@ root.Susp = {
   gearingSweep,
   tolerance,
   setupValues,
+  equationsText,
   THREADS,
   tolClass,
   TOL_CAP,

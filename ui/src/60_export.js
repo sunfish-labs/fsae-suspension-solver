@@ -739,6 +739,28 @@ function wireExport() {
     ex.open = false;
     download(fileBase(exportScope().name) + "_misalignment.html", new Blob([misalignHtml()], { type: "text/html" }));
   });
+  $("#xEq").addEventListener("click", () => {
+    ex.open = false;
+    try {
+      const X = exportScope(),
+        wb = X.isCar ? car.vehicle.wheelbase : X.corners[0].c.vehicle.wheelbase;
+      download(
+        fileBase(X.name) + "_solidworks_equations.txt",
+        new Blob(
+          [
+            S.equationsText(
+              X.name,
+              X.corners.map(k => [k.e.cfg, k.e]),
+              wb
+            ),
+          ],
+          { type: "text/plain" }
+        )
+      );
+    } catch (x) {
+      $("#errBox").insertAdjacentHTML("afterbegin", `<div class="banner bad">SolidWorks equations failed: ${esc(x.message)}</div>`);
+    }
+  });
   $("#xSetup").addEventListener("click", () => {
     ex.open = false;
     try {

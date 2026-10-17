@@ -441,6 +441,11 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   const tf = path.join(os.tmpdir(), td.suggestedFilename()); await td.saveAs(tf); const tol = fs.readFileSync(tf, "utf8");
   check("Jig and tolerance sheet: every pickup with an allowance per axis and what it needs", /jig and tolerance<\/title>/.test(tol) && /Tie rod/i.test(tol) && /precise jig|jig|shop tolerance/.test(tol) && /Likely miss/.test(tol), td.suggestedFilename());
   await p.click("#exMenu summary"); await settle(p);
+  const [ed] = await Promise.all([p.waitForEvent("download"), p.click("#xEq")]);
+  const ef = path.join(os.tmpdir(), ed.suggestedFilename()); await ed.saveAs(ef); const eqt = fs.readFileSync(ef, "utf8");
+  check("SolidWorks equations: one global variable per coordinate in the team frame, as the JSON holds them", /^"F_upper_outboard_X"= -?\d+\.\d{3}$/m.test(eqt) && /ISO 8855/.test(eqt)
+    && eqt.includes(`"F_upper_outboard_Y"= ${JSON.parse(await p.inputValue("#jsonBox")).hardpoints.upper_outboard[1].toFixed(3)}`), eqt.slice(0, 300));
+  await p.click("#exMenu summary"); await settle(p);
   const [sd] = await Promise.all([p.waitForEvent("download"), p.click("#xSetup")]);
   const sf = path.join(os.tmpdir(), sd.suggestedFilename()); await sd.saveAs(sf); const sup = fs.readFileSync(sf, "utf8");
   check("Setup sheet: what to set, what one turn does, and boxes for the track", /setup sheet<\/title>/.test(sup) && /Toe per turn of a LH\/RH tie rod/.test(sup) && /Damper clicks/.test(sup), sd.suggestedFilename());

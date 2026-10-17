@@ -95,6 +95,8 @@ for f in files:
         rv = rule_values(fc, fe2, rc, re2, cb, info.get("layout"), info.get("cockpit"), info.get("ground"), info.get("brakes"))
         cars[os.path.relpath(f, root)]["rules"] = [[row["id"], row["status"], row["value"] if isinstance(row["value"], (int, float)) and not isinstance(row["value"], bool) else None]
                                                    for row in check_rules(rulesets()["fsae_2027_ic"], rv)]
+        from susp.output.equations import equations_text
+        cars[os.path.relpath(f, root)]["eq"] = equations_text(info["name"], [(fc, evaluate(fc, pack=False)), (rc, evaluate(rc, pack=False))], fc["vehicle"]["wheelbase"])
         if info.get("drivetrain"):
             from susp.layout import accel_run
             ar = accel_run(info["drivetrain"], fc["vehicle"], rc["wheel"]["tire_radius"], fc["vehicle"]["wheelbase"])
@@ -154,6 +156,8 @@ for (const [n, c0] of Object.entries(d.cars || {})) {
     c.layout.forEach((v, q) => { const r = Math.abs(js[q] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-9) bad.push(`${n} layout ${q}: py ${v} js ${js[q]}`); });
     if (c.raw.layout.apply) { fc.vehicle = Susp.applyLayout(fc.vehicle, lr); rc.vehicle = Susp.applyLayout(rc.vehicle, lr); } }
   const fe = Susp.evaluate(fc, { steer: false, pack: false }), re = Susp.evaluate(rc, { steer: false, pack: false });
+  if (c.eq) { const fq = Susp.evaluate(fc, { pack: false }), rq = Susp.evaluate(rc, { pack: false }), t = Susp.equationsText(c.raw.name || "car", [[fq.cfg, fq], [rq.cfg, rq]], fq.cfg.vehicle.wheelbase);
+    if (t !== c.eq) { const a = t.split("\n"), b = c.eq.split("\n"), i = a.findIndex((l, j) => l !== b[j]); bad.push(`${n} SolidWorks equations differ at line ${i}: js ${a[i]} py ${b[i]}`); } }
   if (c.accel) { const ar = Susp.accelRun(c.raw.drivetrain, fe.cfg.vehicle, re.cfg.wheel.tire_radius, fe.cfg.vehicle.wheelbase), sw = Susp.gearingSweep(c.raw.drivetrain, fe.cfg.vehicle, re.cfg.wheel.tire_radius, fe.cfg.vehicle.wheelbase), js = [ar.time, ar.speed, ar.grip_limited_to, ar.top_speed, ...ar.shifts.map(s => s.t), ...sw.rows.flatMap(r => [r.time, r.top_speed]), sw.best.final];
     if (js.length !== c.accel.length) bad.push(`${n} accel shifts: py ${c.accel.length} js ${js.length}`);
     c.accel.forEach((v, q) => { const r = Math.abs(js[q] - v) / Math.max(1, Math.abs(v)); worst = Math.max(worst, r); if (r > 1e-9) bad.push(`${n} accel ${q}: py ${v} js ${js[q]}`); }); }

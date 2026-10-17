@@ -330,6 +330,13 @@ front axle** (the front tires' contact patches at ride height, driver in). A fil
 - **Inside**, the solver keeps its own frame (X forward, Y outboard on the right-hand corner, Z up, each corner from its
   own zero; see Conventions) and converts only when a file is read or written (`susp/frame.py`, `ui/solver/05_frame.js`).
 
+## SolidWorks global variables (`equations car.json`, or Export → SolidWorks equations)
+A text file of `"NAME"= value` lines in the team frame, mm: every hardpoint and spring point as `F_` or `R_` + its key
++ `_X`, `_Y`, `_Z` (e.g. `"F_upper_inboard_front_X"`), the rocker axis, the pushrod, tie rod and damper lengths at
+ride height, the tracks and the wheelbase. In SolidWorks: Tools → Equations → Link to external file, with the model's
+units in mm; dimension a hardpoint layout sketch (from the team-frame coordinate system) to the variables once, and
+re-export and rebuild after a geometry change to move every pickup. The names never change, so sketches stay linked.
+
 ## Settings and coordinates
 **⚙ Settings** (top bar) keeps per-browser choices: the color theme; **coordinates** (axes: the team frame, ISO 8855,
 by default; or the solver's own, SolidWorks with Y up, or X rearward; origin: the ground under the front axle (team
