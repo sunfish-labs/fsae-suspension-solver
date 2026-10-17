@@ -506,6 +506,25 @@ check("rocker forces balance: pushrod + damper + pivot = 0, N",
       max(float(np.linalg.norm(sum(F for _, F in rocker_forces(e11r["susp"], e11r["spring"], r_, _geometry(e11r["susp"], e11r["spring"])).values())))
           for r_ in L11r["results"].values()), 0.0, 1e-9, "")
 
+print("\n11b3. Guardrails: a link layout that can't hold the wheel is refused, not solved into huge forces")
+from susp.loads.statics import cond1, _solve_statics  # noqa: E402
+from susp.kinematics import SolveError as _SE  # noqa: E402
+A11g = np.array([[2.0, 1.0], [1.0, 3.0]])
+check("1-norm condition number of [[2, 1], [1, 3]]", cond1(A11g), 4.0 * (4.0 / 5.0), 1e-12, "||A||1 = 4, ||A^-1||1 = 4/5")
+B11g = np.eye(6)
+B11g[:, 1] = B11g[:, 0]                                           # two links on the same line
+try:
+    _solve_statics(B11g, np.ones(6))
+    g_ok = 0.0
+except _SE as ex:
+    g_ok = 1.0 if "line up" in str(ex) else 0.0
+check("two links on the same line: SolveError that says why", g_ok, 1.0, 0, "both the pushrod-on-arm and pushrod-on-upright paths use it")
+from susp.validate import front_view_swing_arm  # noqa: E402
+from susp.config import HP as _HP  # noqa: E402
+h11g = {_HP[k]: np.array(v, float) for k, v in c11r["hardpoints"].items()}
+check("front-view swing arm from the hardpoints = the solver's at ride height, mm", front_view_swing_arm(h11g), e11r["metrics"]["fvsa"], 1e-6,
+      "used to warn about nearly parallel wishbones")
+
 print("\n11c. Part loads for FEA: every part's forces balance (forces and moments)")
 from susp.loads.parts import part_loads  # noqa: E402
 imb = 0.0

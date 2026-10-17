@@ -65,6 +65,25 @@ def arm_reactions(p1, p2, e1, e2, Fsum, Mext):
     return x[:3], x[3:]
 
 
+SINGULAR = ("The links can't hold the wheel in this position: two or more of them line up (for example the tie rod "
+            "in line with a wishbone leg). Check the hardpoints.")
+
+
+def cond1(A):
+    """1-norm condition number (the browser uses the same measure)."""
+    try:
+        return float(np.linalg.norm(A, 1) * np.linalg.norm(np.linalg.inv(A), 1))
+    except np.linalg.LinAlgError:
+        return float("inf")
+
+
+def _solve_statics(A, b):
+    """A x = b for the link forces, refusing a near-singular layout (it would give huge, meaningless forces)."""
+    if not cond1(A) < 1e12:
+        raise SolveError(SINGULAR)
+    return np.linalg.solve(A, b)
+
+
 def solve_FM(susp, sp, F, M, geom=None):
     """Member forces for a net force F (N) and moment M (N mm, about the origin) on the upright."""
     pts, inb, outb, st = geom or _geometry(susp, sp)
@@ -73,7 +92,7 @@ def solve_FM(susp, sp, F, M, geom=None):
     if sp.on == "upright":
         cols = [np.r_[e[k], np.cross(outb[k], e[k])] for k in MEMBERS]
         A = np.array(cols).T
-        T = np.linalg.solve(A, -np.r_[F, M])
+        T = _solve_statics(A, -np.r_[F, M])
         out = dict(zip(MEMBERS, T))
         out["bending"] = 0.0
     else:
@@ -84,9 +103,7 @@ def solve_FM(susp, sp, F, M, geom=None):
         cols = [np.r_[np.eye(3)[i], np.cross(bj, np.eye(3)[i])] for i in range(3)]
         cols += [np.r_[e[k], np.cross(outb[k], e[k])] for k in unk]
         A = np.array(cols).T
-        if np.linalg.cond(A) > 1e12:
-            raise SolveError("Link layout is singular for statics - check hardpoints.")
-        sol = np.linalg.solve(A, -np.r_[F, M])
+        sol = _solve_statics(A, -np.r_[F, M])
         Fb = sol[:3]                                     # force from the arm on the upright, at the ball joint
         out.update(zip(unk, sol[3:]))
         # arm: -Fb at the ball joint, pushrod T e_p at rod_out, zero moment about the pivot axis

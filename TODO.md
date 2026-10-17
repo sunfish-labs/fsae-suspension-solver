@@ -1,18 +1,61 @@
 # Next to do
 
-Ordered by importance: things that could mislead a student or block the team first, then accuracy of the model,
-then extra features, then housekeeping. Team-specific design fixes live in `private/` (never published).
+The goal for this season: the team designs the car in SolidWorks, and this tool verifies it (suspension geometry,
+clearances, part strength, rules) so the suspension passes, while teaching the newer members a little along the way.
+Designing from scratch in the tool is for future seasons. Team-specific design fixes live in `private/` (never
+published).
 
-1. **Frame torsional stiffness** from the frame's tube centerlines (a 3D frame solved in the browser), and what it
-   does to the LLTD.
-2. **Rocker, the next step:** an aluminum fatigue screen (S-N data for 6061-T6 / 7075-T6), the anti-roll bar link's
-   load when the bar is driven from the rocker, and the pivot bearing's own rating.
-3. **More rules checks** once there is data for them: the lower side impact structure height, the 5th percentile
-   template and cockpit openings (F, T.1 and IN.7) against a loaded frame, ground clearance at full bump and pitch,
-   and the 2027 Q&A.
-4. **Housekeeping.** Create the missing `v0.9.0` tag on GitHub (Releases -> Draft a new release -> tag `v0.9.0`,
-   target commit `e3fee2a`): the tag workflow's token may not tag a commit whose workflow files differ from today's.
-   Empty the `_to_delete/` folder on the desktop copy (old sync bundles only).
+Effort is working time including tests, docs and shipping: XS under 1 h, S 1-3 h, M half a day, L 1-2 days,
+XL 3+ days.
+
+## This season: needed for a passing car
+
+1. ~~**Guardrails**~~ (done in 1.12.0). A clear message when a design can't be solved, including the pushrod-on-upright path; the
+   browser's singular-matrix test as strict as Python's; sweep step counts validated; a warning when the wishbones
+   are nearly parallel (the roll center jumps around); a note when a bump case is skipped because the wheel can't
+   reach that travel; a note that the combined design loads ask for more grip than the tire has, on purpose; the
+   small accessibility fixes (accent contrast, live status and error regions, a mark on failing cells besides color).
+2. **SolidWorks to solver in one step** (M). Paste or upload a points table in the browser (today: command line
+   only), pick the SolidWorks axes, with sanity checks (swapped points, contact patch off the ground, wrong axle) and a
+   one-page how-to for exporting the hardpoints from SolidWorks. Needs: one real export from the team's model.
+3. **Whole-car check page and report** (L). Every check on the car on one page: geometry targets, clearances (links,
+   rim, caliper, frame STL, layout parts), part strength, rules, roll balance; each pass / fail / needs input / check
+   yourself, with one line on why it matters and a link to the glossary. Prints as a sign-off report for design
+   reviews and the design event.
+4. **Bought-part ratings** (S-M). Ball joints, damper eyes, the rocker pivot bearing and spherical bearings against
+   their catalog ratings, like the rod ends. Needs: part numbers or ratings.
+5. **Ground clearance rule** (S-M). No solid part but the tires touches the ground at full bump with braking pitch and
+   roll.
+6. **Frame-based rules** (M). Lower side impact structure height and the 5th percentile template, from side-view
+   points like the roll hoops. Needs: those points off the frame.
+7. **Anti-roll bar in the cornering loads** (M). The bar's share in the cornering cases, so the tube and tab checks
+   aren't optimistic with a bar (the simpler version of the full rolled cases below).
+8. **Frame stiffness input** (S). The frame's torsional stiffness as one number: is it stiff enough for the
+   suspension's roll stiffness, and what it does to the LLTD. Needs: an estimate from SolidWorks Simulation or a rule
+   of thumb.
+
+## This season, if there's time
+
+9. **Jig and tolerance report** (M). Which hardpoints need precise fixturing for the team's fabrication tolerance.
+10. **Competition setup sheet** (M). Alignment, ride height, spring preload and bar setting per corner, printable.
+11. **"Start here" tour** (S). Five minutes on reading the check page and what each area means.
+12. **Housekeeping** (XS, done by hand). Create the missing `v0.9.0` tag on GitHub (Releases -> Draft a new release ->
+    tag `v0.9.0`, target commit `e3fee2a`); delete the old desktop copy (the GitHub Desktop clone replaces it).
+
+## Future seasons
+
+- **Guided design workflow** (L): the steps in design order with live status and a "go there" button, for a team
+  designing in the tool from the start.
+- **Rolled and combined load cases** (L-XL): the cornering cases solved with the body rolled and the wheel moved, the
+  bar's link load and aero.
+- **Frame torsional stiffness from the tube centerlines** (XL): a 3D frame solved in the browser, feeding the LLTD.
+- **Tire model with camber** (M-L): grip that depends on camber, not Pacejka. Needs tire data (TTC).
+- **Bill of materials** (M): rod ends, bolts, tube cut lengths, tabs.
+- **Rocker, the next step** (M): an aluminum fatigue screen and the bar link's load when it's driven from the rocker.
+- **Keyboard and screen-reader control of the 3D view** (M); **phone layout** (S).
+- **Team sharing of private design files** (L): Google Drive sign-in, if passing JSON files around gets painful.
+- **More rules checks** as data arrives: cockpit openings, the 2027 Q&A.
+- **Fatigue from logged loads** (needs a car, see below).
 
 ## When there is a car (or a test corner)
 
@@ -26,6 +69,8 @@ then extra features, then housekeeping. Team-specific design fixes live in `priv
 
 ## Done recently
 
+- Guardrails: singular link layouts refused on both statics paths, sweep steps checked, near-parallel arms
+  warned, skipped bump cases and over-grip design loads noted, accessibility fixes (1.12.0)
 - Rocker strength: pin holes (bearing, tear-out) and arm bending from the plates' sizes and alloy (1.11.0)
 - Driver template and roll hoops in side view: seven more rules checks (F.5.6 to F.5.9) and a drawing (1.10.0)
 - Rules check against the Formula SAE Rules 2027 (IC) by rule number: twelve automatic checks and a checklist (1.9.0)

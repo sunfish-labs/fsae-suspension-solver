@@ -8,6 +8,19 @@ import numpy as np
 from .config import HP, METRICS
 
 
+def front_view_swing_arm(h):
+    """Front-view swing arm at ride height from the hardpoints (mm, inf when the arms are parallel in that view)."""
+    from .kinematics import plane
+    n1, d1 = plane(h["uif"], h["uir"], h["ubj"])
+    n2, d2 = plane(h["lif"], h["lir"], h["lbj"])
+    dv = np.cross(n1, n2)
+    if np.linalg.norm(dv) < 1e-9 or abs(dv[0]) < 1e-9:
+        return float("inf")
+    pt = np.linalg.solve(np.vstack([n1, n2, dv]), [d1, d2, 0.0])
+    q = pt + ((h["cp"][0] - pt[0]) / dv[0]) * dv
+    return float(abs(q[1] - h["cp"][1]))
+
+
 def validate(cfg):
     """Return a list of (level, message). level is 'error' or 'warn'."""
     h = {HP[k]: np.array(v, float) for k, v in cfg["hardpoints"].items()}
@@ -35,6 +48,11 @@ def validate(cfg):
         if abs(u[0]) < 0.5:
             W(f"{arm} wishbone pivot axis is far from fore-aft ({math.degrees(math.acos(min(1, abs(u[0])))):.0f} deg off X). "
               "Unusual - check the pivot coordinates.")
+    fvsa = front_view_swing_arm(h)
+    if fvsa > 15000:
+        W("the wishbones are almost parallel in the front view (front-view swing arm "
+          + ("infinite" if fvsa == float("inf") else f"{fvsa / 1000:.0f} m") + ", 1.5 to 5 m is typical): the roll center "
+          "height then swings a lot with small hardpoint changes or CAD rounding. Fine if intended; otherwise angle the arms.")
     for nm, p in (("upper_outboard", "ubj"), ("lower_outboard", "lbj"), ("trackrod_outboard", "tro")):
         if h[p][1] > h["cp"][1] + 5:
             W(f"{nm} is outboard of the tire center plane (Y {h[p][1]:.0f} > {h['cp'][1]:.0f}). "

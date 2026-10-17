@@ -52,6 +52,23 @@ function solveLinear(A, b) {
   return x;
 }
 
+// 1-norm condition number of a square matrix (Python: statics.cond1), Infinity when singular
+function cond1(A) {
+  const n = A.length,
+    n1 = M => Math.max(...[...Array(n).keys()].map(j => M.reduce((s, r) => s + Math.abs(r[j]), 0)));
+  const inv = [];
+  for (let j = 0; j < n; j++) {
+    const col = solveLinear(
+      A,
+      [...Array(n).keys()].map(i => (i === j ? 1 : 0))
+    );
+    if (!col) return Infinity;
+    inv.push(col);
+  }
+  const invRows = [...Array(n).keys()].map(i => inv.map(c => c[i]));
+  return n1(A) * n1(invRows);
+}
+
 function segDist(p1, q1, p2, q2) {
   const d1 = sub(q1, p1),
     d2 = sub(q2, p2),

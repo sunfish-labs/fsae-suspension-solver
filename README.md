@@ -435,7 +435,8 @@ Member forces: + = tension.
   cases use the ride-height geometry (no body roll or pitch). Impacts are fixed g factors. The tab check is a
   simplified lug (no hole stress concentration) and the fatigue check is a screen at stated cycle counts and the
   design g levels, not a life prediction; weld fatigue classes depend on the weld detail. Inserts and rod-end
-  threads are not checked.
+  threads are not checked. The combined and inner-wheel cases are design loads with margin: they can ask the tire
+  for more grip than `tire_mu` (the Loads tab says so), so don't try to match them to logged data.
 - The pushrod-mount bending check is a simple beam (with a gusset, the tube plus a plate): no stress concentration
   at the mount's own weld, no weld heat-affected zone, and a bracket into the node isn't checked (use the part loads
   in FEA).

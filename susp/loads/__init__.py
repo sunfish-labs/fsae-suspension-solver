@@ -35,7 +35,7 @@ def run_loads(cfg, susp, sp, lltd=None):
     geom0 = _geometry(susp, sp)
     k_w = wheel_rate_at_ride(cfg, susp, sp)
     travel = travel_range(cfg)[1]                       # full bump
-    extra = []
+    extra, skipped = [], []
     for name, forces, d, parts in cases:
         if name in ("bump", "pothole") and k_w > 1e-9:
             Fz = float(sum(f for f, _ in forces)[2])
@@ -50,13 +50,15 @@ def run_loads(cfg, susp, sp, lltd=None):
         try:
             geom = _geometry(susp, sp, dz) if dz else geom0
         except SolveError:
-            continue                                   # the wheel can't reach that travel: keep the ride-height case only
+            skipped.append((name, dz))                 # the wheel can't reach that travel: keep the ride-height case only
+            continue
         res[name] = solve_case(susp, sp, forces, geom)
         desc[name], fz[name] = d, parts
         tire[name] = sum(f for f, _ in forces)
         if dz:
             deflect[name] = dz
     info["wheel_rate"] = k_w
+    info["skipped"] = skipped
     checks = member_checks(cfg, susp, sp, res)
     return dict(results=res, desc=desc, tire=tire, fz_parts=fz, Fz0=info["Fz0"], info=info, deflect=deflect,
                 checks=checks, parts=part_checks(cfg, checks), bending_check=bending_check(cfg, susp, sp, res, deflect),

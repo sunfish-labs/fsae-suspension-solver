@@ -66,12 +66,39 @@ function panelLoads() {
   }</p>
   <h3 class="sub-h">Tire forces on the wheel, N</h3>
   <div class="tbl-wrap"><table class="data"><thead><tr><th>Case</th><th class="n">Fx</th><th class="n">Fy</th><th class="n">Fz</th><th>Fz built from</th></tr></thead><tbody>${ty}</tbody></table></div>
+  ${loadNotesHtml(L, ev)}
   <h3 class="sub-h">Member axial forces, N (+ tension, − compression)</h3>
   <div class="tbl-wrap"><table class="data"><thead><tr><th>Member</th>${names.map(n => `<th class="n">${esc(n)}</th>`).join("")}</tr></thead><tbody>${mr}</tbody></table></div>
   <h3 class="sub-h">Strength check · ${esc(mem.material || "steel")} · E ${fmt(mem.E, 0)} MPa · yield ${fmt(mem.yield, 0)} MPa · required FOS ${fmt(mem.sf_target, 1)}</h3>
   <div class="tbl-wrap"><table class="data"><thead><tr><th>Member</th><th class="n">Tube, mm</th><th class="n">Length</th><th class="n">Worst compression, N</th><th class="n">Buckling load, N</th><th class="n">FOS buckling</th><th class="n">Worst |force|, N</th><th class="n">Yield force, N</th><th class="n">FOS yield</th><th></th></tr></thead><tbody>${ck}</tbody></table></div>
   <p class="note">Buckling load = π²EI/L² with pinned ends. Yield force = yield stress × tube area. Tabs, welds and fatigue: below. Inserts and rod-end threads are not checked.</p>
   ${partsHtml(L, label, mem)}`;
+}
+// notes under the tire forces: a deflected case that couldn't be solved, and design loads beyond the tire's grip
+function loadNotesHtml(L, ev) {
+  const out = [],
+    sk = (L.info && L.info.skipped) || [];
+  if (sk.length)
+    out.push(
+      `<b>Not solved where the wheel would be:</b> ${sk.map(([n, z]) => `${esc(n)} at +${fmt(z, 1)} mm`).join(", ")}. The suspension can't reach that travel (it locks up or a link runs out first), so only the ride-height version of the case is checked. Look at the Motion tab's bump end, or reduce the travel.`
+    );
+  const g = gripAsked(L);
+  const mu = +(ev.cfg.vehicle.tire_mu || 1.5);
+  if (g && g.ratio > mu + 0.05)
+    out.push(
+      `The ${esc(g.case)} case asks the tire for ${fmt(g.ratio, 2)} × its load sideways and fore-aft combined, more than its grip (μ ${fmt(mu, 2)}). That's on purpose: these are design loads with margin, not a corner the car can really take, so don't try to match them to data.`
+    );
+  return out.length ? `<p class="lockmsg">${out.join(" ")}</p>` : "";
+}
+// the driving case asking the most grip: |(Fx, Fy)| / Fz, impacts left out
+function gripAsked(L) {
+  let best = null;
+  for (const [n, f] of Object.entries(L.tire || {})) {
+    if (/pothole|kerb|bump/.test(n) || !(f[2] > 1e-9)) continue;
+    const r = Math.hypot(f[0], f[1]) / f[2];
+    if (!best || r > best.ratio) best = { case: n, ratio: r };
+  }
+  return best;
 }
 function gussetTxt(g) {
   if (!g) return "bare tube";

@@ -65,6 +65,8 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   await p.click("#tab_loads"); await settle(p);
   const ld = await text(p, "#pn_loads");
   check("Loads tab has impact cases, mount bending and rod-end / bolt checks", /pothole/.test(ld) && /kerb strike/.test(ld) && /Pushrod mount bending/.test(ld) && /Rod ends and bolts/.test(ld));
+  check("Loads tab says the design loads ask for more grip than the tire has, on purpose", /more than its grip/.test(ld) && /on purpose/.test(ld));
+  check("the status bar and error box are announced to screen readers", (await p.getAttribute("#status", "role")) === "status" && (await p.getAttribute("#errBox", "role")) === "alert");
   check("Loads tab shows compliance toe and camber per case", /Compliance/.test(ld) && /Toe-in change/.test(ld) && /Worst toe change/.test(ld));
   check("Loads tab shows the pickup tabs and the fatigue screen", /Pickup tabs/.test(ld) && /FOS tear-out/.test(ld) && /Fatigue screen/.test(ld) && /end weld/.test(ld) && /Tab weld/.test(ld), ld.slice(-600));
   const tabFos = async () => p.evaluate(() => [...document.querySelectorAll("#pn_loads h3")].find(h => /Pickup tabs/.test(h.textContent)).nextElementSibling.querySelector("tbody tr").children[2].textContent);

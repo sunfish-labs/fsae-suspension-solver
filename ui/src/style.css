@@ -9,6 +9,7 @@
   --muted: #53565A;
   --line: #dcd9d1;
   --accent: #9E7E38;
+  --accent-text: #7A6129; /* the accent darkened for small text on paper: 5.5:1 */
   --accent-ink: #111111;
   --s1: #2F5D7C;
   --s2: #9E7E38;
@@ -30,14 +31,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #141311; --panel: #1d1c19; --panel-2: #252420; --ink: #ece9e2; --muted: #a8a49b; --line: #34322d;
-    --accent: #CEB888; --accent-ink: #141311; --s1: #8fb8d8; --s2: #CEB888; --s3: #8cc29b; --base: #6f6c66;
+    --accent: #CEB888; --accent-text: #CEB888; --accent-ink: #141311; --s1: #8fb8d8; --s2: #CEB888; --s3: #8cc29b; --base: #6f6c66;
     --ok: #7ed3a0; --ok-bg: #15291d; --bad: #ff8f80; --bad-bg: #3a1a16; --warn: #FDC314; --warn-bg: #30270c;
     --viewer: #181715; --gold: #CEB888; --hi: #FF8A4C; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #141311; --panel: #1d1c19; --panel-2: #252420; --ink: #ece9e2; --muted: #a8a49b; --line: #34322d;
-  --accent: #CEB888; --accent-ink: #141311; --s1: #8fb8d8; --s2: #CEB888; --s3: #8cc29b; --base: #6f6c66;
+  --accent: #CEB888; --accent-text: #CEB888; --accent-ink: #141311; --s1: #8fb8d8; --s2: #CEB888; --s3: #8cc29b; --base: #6f6c66;
   --ok: #7ed3a0; --ok-bg: #15291d; --bad: #ff8f80; --bad-bg: #3a1a16; --warn: #FDC314; --warn-bg: #30270c;
   --viewer: #181715; --gold: #CEB888; --hi: #FF8A4C; color-scheme: dark;
 }
@@ -204,9 +205,10 @@ table.inf th .btn { margin-top: 4px; }
 table.inf td[data-sign="+"] { background: color-mix(in srgb, var(--s1) calc(var(--s) * 38%), transparent); }
 table.inf td[data-sign="-"] { background: color-mix(in srgb, var(--s2) calc(var(--s) * 38%), transparent); }
 table.inf td.brk { outline: 2px solid var(--bad); outline-offset: -2px; }
+table.inf td.brk::after { content: " !"; color: var(--bad); font-weight: 700; } /* not color alone */
 table.inf td:first-child { white-space: normal; }
 .lnk { border: 0; background: none; padding: 0; color: inherit; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; font: inherit; }
-.lnk:hover { text-decoration-color: var(--accent); color: var(--accent); }
+.lnk:hover { text-decoration-color: var(--accent); color: var(--accent-text); }
 .hpbtn { font-size: 12.5px; line-height: 1.2; }
 .vlabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .vlabels svg { position: absolute; inset: 0; width: 100%; height: 100%; }

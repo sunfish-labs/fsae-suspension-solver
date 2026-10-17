@@ -33,6 +33,11 @@ for tag, g in (("gusset", {"thickness": 3.0, "height": 30.0, "length_in": 120.0,
     raw = json.load(open(os.path.join(root, "designs", "example_front.json")))
     raw["members"]["gusset"] = g
     cfgs[f"example_front + {tag}"] = raw
+# the pushrod on the upright (the other statics path)
+raw = json.load(open(os.path.join(root, "designs", "example_front.json")))
+raw["spring"]["rod_on"] = "upright"
+raw["spring"]["rod_outboard"] = [a + b for a, b in zip(raw["hardpoints"]["lower_outboard"], [0.0, -15.0, 40.0])]
+cfgs["example_front + pushrod on the upright"] = raw
 # a one-plate 7075 rocker with its own pin size and default yield left out
 raw = json.load(open(os.path.join(root, "designs", "example_rear.json")))
 raw["members"]["rocker"] = {"thickness": 9.0, "plates": 1, "pivot_bore": 19.0, "pivot_edge": 16.0, "pin_dia": 10.0, "edge": 11.0, "width": 26.0}

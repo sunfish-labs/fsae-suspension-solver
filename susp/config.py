@@ -63,12 +63,20 @@ def _vec3(v):
     return isinstance(v, (list, tuple)) and len(v) == 3 and all(isinstance(c, (int, float)) and not isinstance(c, bool) for c in v)
 
 
+SWEEP_STEPS = {"steps": 5, "roll_steps": 3, "rack_steps": 3, "pack_heave_steps": 2, "pack_rack_steps": 2}
+
+
 def _check_extras(cfg, where):
     """The optional blocks: asymmetric travel, caliper envelope and rear halfshaft."""
     sw = cfg["sweep"]
     for k in ("travel", "droop_travel", "bump_travel"):
         if sw.get(k) is not None and not float(sw[k]) > 0:
             raise ConfigError(f"{where}: sweep.{k} must be a positive distance in mm")
+    for k, lo in SWEEP_STEPS.items():
+        v = sw.get(k)
+        if v is not None and not (isinstance(v, (int, float)) and float(v).is_integer() and lo <= v <= 1001):
+            raise ConfigError(f"{where}: sweep.{k} must be a whole number from {lo} to 1001 (the solver needs at least {lo} "
+                              "positions to work out slopes)")
     mem, lo_ = cfg.get("members") or {}, cfg.get("loads") or {}
     surf = mem.get("surface")
     if surf is not None and surf not in ("ground", "machined", "cold-drawn", "hot-rolled", "as-forged"):

@@ -1,6 +1,6 @@
 [project]
 name = "fsae-suspension-solver"
-version = "1.11.0"
+version = "1.12.0"
 description = "Double-wishbone kinematics, ride, loads and whole-car balance for Formula SAE teams"
 readme = "README.md"
 requires-python = ">=3.11"

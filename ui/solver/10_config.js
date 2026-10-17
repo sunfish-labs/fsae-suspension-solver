@@ -52,6 +52,7 @@ function finishConfig(raw) {
   checkExtras(cfg);
   return cfg;
 }
+const SWEEP_STEPS = { steps: 5, roll_steps: 3, rack_steps: 3, pack_heave_steps: 2, pack_rack_steps: 2 };
 // mirrors config._check_extras: asymmetric travel, caliper envelope and rear halfshaft
 function checkExtras(cfg) {
   const sw = cfg.sweep,
@@ -59,6 +60,11 @@ function checkExtras(cfg) {
     vec3 = v => Array.isArray(v) && v.length === 3 && v.every(num);
   for (const k of ["travel", "droop_travel", "bump_travel"])
     if (sw[k] != null && !(+sw[k] > 0)) throw new SolveError(`sweep.${k} must be a positive distance in mm`);
+  for (const [k, lo] of Object.entries(SWEEP_STEPS))
+    if (sw[k] != null && !(num(sw[k]) && Number.isInteger(sw[k]) && sw[k] >= lo && sw[k] <= 1001))
+      throw new SolveError(
+        `sweep.${k} must be a whole number from ${lo} to 1001 (the solver needs at least ${lo} positions to work out slopes)`
+      );
   const mem = cfg.members || {},
     lo = cfg.loads || {};
   if (mem.surface != null && !["ground", "machined", "cold-drawn", "hot-rolled", "as-forged"].includes(mem.surface))
@@ -244,6 +250,17 @@ function unknownTargetKeys(targets, known = METRICS, what = "target", where = " 
       );
     });
 }
+// front-view swing arm at ride height from the hardpoints (mirrors validate.front_view_swing_arm)
+function frontViewSwingArm(h) {
+  const [n1, d1] = plane(h.uif, h.uir, h.ubj),
+    [n2, d2] = plane(h.lif, h.lir, h.lbj),
+    dv = cross(n1, n2);
+  if (norm(dv) < 1e-9 || Math.abs(dv[0]) < 1e-9) return Infinity;
+  const pt = solveLinear([n1, n2, dv], [d1, d2, 0]);
+  if (!pt) return Infinity;
+  const q = add(pt, mul(dv, (h.cp[0] - pt[0]) / dv[0]));
+  return Math.abs(q[1] - h.cp[1]);
+}
 function validate(cfg) {
   const h = {};
   for (const k of HP_ORDER) h[HP[k]] = cfg.hardpoints[k];
@@ -269,6 +286,11 @@ function validate(cfg) {
         `${arm} wishbone pivot axis is ${deg(Math.acos(Math.min(1, Math.abs(u[0])))).toFixed(0)} deg off fore-aft. Check the pivot coordinates.`
       );
   }
+  const fvsa = frontViewSwingArm(h);
+  if (fvsa > 15000)
+    W(
+      `The wishbones are almost parallel in the front view (front-view swing arm ${fvsa === Infinity ? "infinite" : (fvsa / 1000).toFixed(0) + " m"}, 1.5 to 5 m is typical): the roll center height then swings a lot with small hardpoint changes or CAD rounding. Fine if intended; otherwise angle the arms.`
+    );
   for (const [nm, p] of [
     ["Upper ball joint", "ubj"],
     ["Lower ball joint", "lbj"],

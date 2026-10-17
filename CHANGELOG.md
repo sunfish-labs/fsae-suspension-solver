@@ -3,6 +3,18 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.12.0 - 2026-10-17
+
+- **Guardrails.** A link layout that can't hold the wheel (two links on one line) is refused with a plain message on
+  both statics paths, the pushrod on an arm and on the upright, instead of giving huge forces; the browser now uses
+  the same singularity test as Python (1-norm condition number). Sweep step counts are checked (heave 5 or more, roll
+  and rack 3 or more, whole numbers). A warning when the wishbones are almost parallel in the front view (the roll
+  center swings with tiny changes). The Loads tab and `loads` say when a bump case couldn't be solved where the wheel
+  would be, and that the combined design loads ask for more grip than the tire has, on purpose.
+- Accessibility: darker accent for small text on paper, the status bar and error box announced to screen readers,
+  a "!" on influence cells that break a target (not color alone).
+- `TODO.md` rewritten for this season: verifying a SolidWorks-designed car, with future seasons listed separately.
+
 ## 1.11.0 - 2026-10-16
 
 - **Rocker strength** (`members.rocker`, inputs → Loads & materials → Rocker plates, Loads tab, `loads`): plate

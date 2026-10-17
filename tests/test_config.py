@@ -83,6 +83,14 @@ check("a tab with zero thickness -> ConfigError", raises(ConfigError, lambda: lo
 check("a gusset with no height -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"thickness": 3, "length_in": 50}})))))
 check("a gusset of an unknown type -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"type": "plate"}})))))
 check("a bracket into the node needs no sizes", not raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"gusset": {"type": "to_node"}})))))
+check("a heave sweep of 3 steps -> ConfigError (slopes need 5)", raises(ConfigError, lambda: load_config(write("p.json", dict(front, sweep={"steps": 3})))))
+check("a roll sweep of 1 step -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, sweep={"roll_steps": 1})))))
+check("a fractional step count -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, sweep={"rack_steps": 7.5})))))
+par = json.loads(json.dumps(front))
+for k_ in ("upper_inboard_front", "upper_inboard_rear", "upper_outboard"):
+    par["hardpoints"][k_][2] = par["hardpoints"][k_.replace("upper", "lower")][2] + 200.0
+check("wishbones parallel in the front view -> a warning about the roll center",
+      any("almost parallel" in m for _, m in validate(load_config(write("p.json", par)))))
 rk_ok = {"thickness": 6.35, "pivot_bore": 22, "pivot_edge": 20, "edge": 12, "width": 30}
 check("a rocker with no arm depth -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"rocker": dict(rk_ok, width=None)})))))
 check("a rocker pivot bore wider than its hub -> ConfigError", raises(ConfigError, lambda: load_config(write("p.json", dict(front, members={"rocker": dict(rk_ok, pivot_edge=10)})))))

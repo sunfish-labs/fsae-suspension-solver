@@ -192,17 +192,23 @@ function armReactions(p1, p2, e1, e2, Fsum, Mext) {
   return [x.slice(0, 3), x.slice(3)];
 }
 
+const STATICS_SINGULAR =
+  "The links can't hold the wheel in this position: two or more of them line up (for example the tie rod in line with a wishbone leg). Check the hardpoints.";
 function solveFM(susp, sp, F, M, geom = null) {
   const [pts, inb, outb, st] = geom || loadGeometry(susp, sp);
   const e = {};
   for (const k of MEMBERS) e[k] = unit(sub(inb[k], outb[k]));
   const out = {},
     rhs = F.concat(M).map(v => -v);
-  const colOf = (dir, at) => dir.concat(cross(at, dir));
+  const colOf = (dir, at) => dir.concat(cross(at, dir)),
+    solveStatics = A => {
+      // refuse a near-singular layout, as Python does (it would give huge, meaningless forces)
+      if (!(cond1(A) < 1e12)) throw new SolveError(STATICS_SINGULAR);
+      return solveLinear(A, rhs);
+    };
   const T = cols => [0, 1, 2, 3, 4, 5].map(i => cols.map(c => c[i]));
   if (sp.on === "upright") {
-    const sol = solveLinear(T(MEMBERS.map(k => colOf(e[k], outb[k]))), rhs);
-    if (!sol) throw new SolveError("The link layout is singular for statics. Check the hardpoints.");
+    const sol = solveStatics(T(MEMBERS.map(k => colOf(e[k], outb[k]))));
     MEMBERS.forEach((k, i) => (out[k] = sol[i]));
     out.bending = 0;
   } else {
@@ -217,8 +223,7 @@ function solveFM(susp, sp, F, M, geom = null) {
     ]
       .map(d => colOf(d, bj))
       .concat(unk.map(k => colOf(e[k], outb[k])));
-    const sol = solveLinear(T(cols), rhs);
-    if (!sol) throw new SolveError("The link layout is singular for statics. Check the hardpoints.");
+    const sol = solveStatics(T(cols));
     const Fb = sol.slice(0, 3);
     unk.forEach((k, i) => (out[k] = sol[3 + i]));
     const a = inb[`${arm}_front`],
@@ -276,7 +281,8 @@ function runLoads(cfg, susp, sp, lltd = null) {
     desc = {},
     tire = {},
     fz = {},
-    deflect = {};
+    deflect = {},
+    skipped = [];
   const geom0 = loadGeometry(susp, sp),
     kw = wheelRateAtRide(cfg, susp, sp),
     travel = travelRange(cfg)[1], // full bump
@@ -303,8 +309,9 @@ function runLoads(cfg, susp, sp, lltd = null) {
     try {
       geom = dz ? loadGeometry(susp, sp, dz) : geom0;
     } catch (e) {
-      if (e instanceof SolveError) continue;
-      throw e;
+      if (!(e instanceof SolveError)) throw e;
+      skipped.push([name, dz]); // the wheel can't reach that travel: keep the ride-height case only
+      continue;
     }
     results[name] = solveCase(susp, sp, forces, geom);
     desc[name] = d;
@@ -313,6 +320,7 @@ function runLoads(cfg, susp, sp, lltd = null) {
     if (dz) deflect[name] = dz;
   }
   info.wheel_rate = kw;
+  info.skipped = skipped;
   const mem = cfg.members,
     [, inb, outb] = loadGeometry(susp, sp);
   const size = {

@@ -230,6 +230,18 @@ def write_csv(prefix, ev):
 # --------------------------------------------------------------------------- #
 #  Loads and whole-car output
 # --------------------------------------------------------------------------- #
+def grip_asked(L):
+    """The driving case asking the most grip, |(Fx, Fy)| / Fz (impacts left out): (case, ratio) or None."""
+    best = None
+    for n, f in (L.get("tire") or {}).items():
+        if any(w in n for w in ("pothole", "kerb", "bump")) or not f[2] > 1e-9:
+            continue
+        r = math.hypot(f[0], f[1]) / f[2]
+        if best is None or r > best[1]:
+            best = (n, r)
+    return best
+
+
 def print_loads(cfg, ev, L):
     s = ev["susp"]
     veh, info, mem = cfg["vehicle"], L["info"], cfg["members"]
@@ -256,6 +268,14 @@ def print_loads(cfg, ev, L):
     table(["case", "Fx", "Fy", "Fz", "Fz built from", "description"],
           [[n, f"{L['tire'][n][0]:.0f}", f"{L['tire'][n][1]:.0f}", f"{L['tire'][n][2]:.0f}", L["fz_parts"][n],
             L["desc"][n]] for n in names], left=1)
+    for n, z in info.get("skipped") or []:
+        print(f"  NOT SOLVED where the wheel would be: {n} at +{z:.1f} mm. The suspension can't reach that travel (it locks up\n"
+              "  or a link runs out first), so only the ride-height case is checked. Look at the bump end of the sweep.")
+    g = grip_asked(L)
+    mu = float(veh.get("tire_mu") or 1.5)
+    if g and g[1] > mu + 0.05:
+        print(f"  The {g[0]} case asks the tire for {g[1]:.2f} x its load sideways and fore-aft combined, more than its grip\n"
+              f"  (mu {mu:.2f}). On purpose: design loads with margin, not a corner the car can take.")
     print("\nMember axial forces (N, + = tension, - = compression)")
     rows = []
     for k in MEMBERS:
