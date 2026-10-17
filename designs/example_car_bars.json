@@ -32,6 +32,28 @@
    1.2
   ]
  },
+ "brake_system": {
+  "pedal_ratio": 5.0,
+  "mc_front": 15.9,
+  "mc_rear": 15.9,
+  "bias": 0.56,
+  "bias_range": [
+   0.35,
+   0.65
+  ],
+  "caliper_front": [
+   25.4,
+   25.4
+  ],
+  "caliper_rear": [
+   25.4
+  ],
+  "rotor_front": 90,
+  "rotor_rear": 80,
+  "pad_mu": 0.4,
+  "driver_force": 450,
+  "max_pressure": 350
+ },
  "front": {
   "name": "Example front, bar on the rocker (invented demo geometry)",
   "axle": "front",

@@ -118,6 +118,8 @@ function renderLayoutBox() {
     if (cr && car.cockpit) cr.innerHTML = cockpitResults();
     const gr = $("#gpRes", box);
     if (gr) gr.innerHTML = groundResults();
+    const br = $("#brRes", box);
+    if (br) br.innerHTML = brakeResultsHtml(brakeResult());
     return;
   }
   runAccel();
@@ -133,9 +135,11 @@ function renderLayoutBox() {
       <div class="laybtns"><button class="btn small" type="button" id="layStart">Start from a typical first-year layout</button><button class="btn small" type="button" id="layBlank">Start empty</button></div>`
     }
     <h3 class="sub-h">Drivetrain: gearing and the acceleration run</h3><div id="dtBox">${drivetrainHtml()}</div>
+    <h3 class="sub-h">Brakes: lock-up and balance</h3><div id="brBox">${brakesHtml()}</div>
     <h3 class="sub-h">Driver and roll hoops (side view)</h3><div id="ckBox">${cockpitHtml()}</div>
     <h3 class="sub-h">Lowest points (ground clearance)</h3><div id="gpBox">${groundHtml()}</div>`;
   wireLayout(box);
+  wireBrakes(box);
 }
 function drivetrainResultsOnly() {
   const h = drivetrainHtml(),

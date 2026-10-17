@@ -3,6 +3,16 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.22.0 - 2026-10-17
+
+- **Brake sizing** (`brake_system` in the car file; Car view → Layout → Brakes): whether the driver can lock all
+  four wheels (T.3.1.2 c, the Brake Test IN.14) with the pedal force you design for, which axle locks first, the
+  balance bar setting that locks both together and whether the bar reaches it, the line pressures, the front brake
+  force share the hardware gives, and the pressure with 2000 N on the pedal (T.3.2.2). Four new rule checks, in the
+  rules page and the design check. Python and browser (parity-tested), hand-checked. The example car with bars has a
+  brake system.
+- Undo now keeps the brake system (it covers every Car view block).
+
 ## 1.21.1 - 2026-10-17
 
 - Challenge mode: the influence panel (clicking a joint) stays off for the whole challenge, so the challenge's three

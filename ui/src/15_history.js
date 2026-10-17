@@ -18,6 +18,7 @@ function snapshot() {
           drivetrain: car.drivetrain,
           cockpit: car.cockpit,
           ground_points: car.ground_points,
+          brake_system: car.brake_system,
           src: car.src,
           front: car.front,
           rear: car.rear,
@@ -105,6 +106,7 @@ function recordEdit(e) {
     d.lay !== undefined ||
     d.ck !== undefined ||
     d.gp !== undefined ||
+    d.br !== undefined ||
     t.id === "springOn" ||
     t.id === "rockerOn"
   )

@@ -277,6 +277,16 @@ needs and says pass, fail, can't check (an input is missing) or check yourself (
   the side the hoop leans to; F.5.9.5 30° or more between hoop and braces; T.2.5.4 / T.2.5.5 the lap belt angle to
   the template's hip (45 to 65°, or 60 to 80° reclined), T.2.6.1 the shoulder belt angle from the top of the
   shoulder circle (10° up to 20° down) and T.2.6.2 the shoulder belt spacing (175 to 235 mm).
+- the brakes, from the car file's optional `brake_system` (Car view → Layout → Brakes): T.3.1.2 c and the Brake Test
+  (IN.14) whether the pedal force you design for (`driver_force`, default 450 N) locks all four wheels at the tire's
+  grip, and whether the balance bar reaches the bias that locks both axles together; T.3.1.3 two circuits (a front and
+  a rear master cylinder); T.3.2.2 the line pressure with 2000 N on the pedal against the lowest proof or burst
+  pressure of the parts (`max_pressure`, bar). Inputs: `pedal_ratio`, `mc_front` / `mc_rear` (bores, mm), `bias`
+  (front share of the pedal force), `bias_range`, `caliper_front` / `caliper_rear` (piston diameters on one side of
+  the rotor), `rotor_front` / `rotor_rear` (effective radius), `rear_calipers` (2, or 1 on the differential),
+  `pad_mu` (0.40), `tire_mu` (default the vehicle's). Locking needs each axle's brake force to reach mu x its load in a
+  mu g stop; one caliper gives 2 pad_mu (piston area) (effective radius) of torque per unit pressure. It also shows the
+  front brake force share the hardware gives, for `vehicle.front_brake_share` in the load cases.
 - a checklist for what it can't measure: open-wheel views, the lower side impact structure height, ground contact,
   visible mounts, fastener locking, steering free play, rack mounting, cockpit shields, mounts on the hoop braces.
 A later rulebook is a new file in `schema/rules/` with the same layout.

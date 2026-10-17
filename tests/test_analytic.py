@@ -771,6 +771,26 @@ check("rocker bearing: the worst pivot resultant, FOS = rating / force", B20["ro
       25000.0 / max(abs(r["rocker_pivot"]) for r in L18["results"].values()), 1e-12, "")
 check("no rating -> not checked (sf None)", float(bearing_check(fb18, s18, sp18, L18["results"], L18["tire"])[0]["sf"] is None), 1.0, 0, "")
 
+# 21. brake sizing (susp/brakes.py): lock-up pedal force and the balance bar
+from susp.brakes import brake_sizing  # noqa: E402
+v21 = {"mass": 300.0, "weight_front": 0.5, "cg_height": 300.0, "tire_mu": 1.5}
+b21 = {"pedal_ratio": 5.0, "mc_front": 20.0, "mc_rear": 20.0, "bias": 0.5, "caliper_front": [30.0], "caliper_rear": [30.0],
+       "rotor_front": 100.0, "rotor_rear": 100.0, "pad_mu": 0.4}
+r21 = brake_sizing(b21, v21, 250.0, 1500.0)
+fzf21 = 300 * 9.81 * 0.5 + 300 * 1.5 * 9.81 * 300 / 1500
+check("brakes: front axle load at a mu g stop, N", r21["fz_front"], fzf21, 1e-9, "m g wf + m (mu g) h / L")
+k21 = 2 * 0.4 * math.pi / 4 * 30 ** 2 * 100                          # N mm per MPa, one caliper
+pf21 = 1.5 * fzf21 * 250 / (2 * k21)
+check("brakes: front line pressure that locks the wheels, bar", r21["p_lock_front"], pf21 * 10, 1e-9, "mu Fz R / (2 calipers x 2 pad_mu A r)")
+check("brakes: pedal force that locks the front, N", r21["pedal_lock_front"], pf21 * math.pi / 4 * 20 ** 2 / (0.5 * 5), 1e-9,
+      "p A_mc / (bias x pedal ratio)")
+check("brakes: same hardware front and rear, so the front (more load) sets the lock-up force", float(r21["first_lock"] == "rear"
+      and r21["pedal_lock"] == r21["pedal_lock_front"]), 1.0, 0, "the rear locks first")
+check("brakes: equal hardware -> the ideal balance bar = the front's share of the load at lock-up", r21["bias_ideal"], fzf21 / (300 * 9.81), 1e-12, "")
+r21b = brake_sizing(dict(b21, bias=r21["bias_ideal"]), v21, 250.0, 1500.0)
+check("brakes: at the ideal balance bar both axles lock at the same pedal force, N", r21b["pedal_lock_front"] - r21b["pedal_lock_rear"], 0.0, 1e-9, "")
+check("brakes: line pressure with 2000 N on the pedal, bar", r21["p_2000"], 0.5 * 2000 * 5 / (math.pi / 4 * 20 ** 2) * 10, 1e-9, "the busier master cylinder")
+
 bad = [r for r in results if not r[0]]
 print(f"\n{len(results) - len(bad)} of {len(results)} hand-calculation checks passed")
 sys.exit(1 if bad else 0)

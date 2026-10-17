@@ -292,7 +292,7 @@ function checkGroundPoints(gp) {
       throw new SolveError(`ground_points[${i}] needs at: [x, y, z] in mm`);
   });
 }
-function ruleValues(fcfg, fev, rcfg, rev, bal = null, layout = null, cockpit = null, ground = null) {
+function ruleValues(fcfg, fev, rcfg, rev, bal = null, layout = null, cockpit = null, ground = null, brakes = null) {
   const veh = fcfg.vehicle,
     tf = fev.susp.track,
     tr = rev.susp.track;
@@ -319,6 +319,7 @@ function ruleValues(fcfg, fev, rcfg, rev, bal = null, layout = null, cockpit = n
   const g = ground && ground.length ? groundClearance(ground, groundPlanes(fcfg, fev, rcfg, rev, +veh.wheelbase)[0]) : null;
   v.ground_clearance = g ? g.value : null;
   v._ground = g;
+  Object.assign(v, brakeRuleValues(brakes, fcfg, rcfg));
   return v;
 }
 function checkRules(ruleset, values) {

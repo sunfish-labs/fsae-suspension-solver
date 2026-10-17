@@ -30,7 +30,9 @@ function carFrom(raw) {
     drivetrain: raw.drivetrain ? JSON.parse(JSON.stringify(raw.drivetrain)) : null,
     cockpit: raw.cockpit ? JSON.parse(JSON.stringify(raw.cockpit)) : null,
     ground_points: raw.ground_points ? JSON.parse(JSON.stringify(raw.ground_points)) : null,
+    brake_system: raw.brake_system ? JSON.parse(JSON.stringify(raw.brake_system)) : null,
   };
+  if (c.brake_system) S.checkBrakes(c.brake_system);
   for (const ax of ["front", "rear"]) {
     c[ax] = cornerFrom(Object.assign({}, raw[ax], { axle: ax }));
     c[ax].vehicle = veh;
@@ -74,6 +76,7 @@ function exportCar(local = false) {
     ...(car.drivetrain ? { drivetrain: car.drivetrain } : {}),
     ...(car.cockpit ? { cockpit: car.cockpit } : {}),
     ...(car.ground_points && car.ground_points.length ? { ground_points: car.ground_points } : {}),
+    ...(car.brake_system ? { brake_system: car.brake_system } : {}),
     front: strip(car.front),
     rear: strip(car.rear),
   };
@@ -501,7 +504,10 @@ function rulesHtml(F, R, B) {
   if (!rs) return "";
   let rows;
   try {
-    rows = S.checkRules(rs, S.ruleValues(F.cfg, F, R.cfg, R, B, car.layout || null, car.cockpit || null, groundPointsFor(F, R)));
+    rows = S.checkRules(
+      rs,
+      S.ruleValues(F.cfg, F, R.cfg, R, B, car.layout || null, car.cockpit || null, groundPointsFor(F, R), car.brake_system || null)
+    );
   } catch (e) {
     return `<div class="banner warn">Rules check: ${esc(e.message)}</div>`;
   }

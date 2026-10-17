@@ -273,6 +273,10 @@ def load_car(path):
     info["ground"] = raw.get("ground_points")
     if raw.get("ground_points") is not None:
         check_ground_points(raw["ground_points"], path)
+    info["brakes"] = raw.get("brake_system")
+    if raw.get("brake_system") is not None:
+        from .brakes import check_brakes
+        check_brakes(raw["brake_system"], path)
     if raw.get("drivetrain") is not None:
         from .layout import check_drivetrain
         check_drivetrain(raw["drivetrain"], path)

@@ -168,7 +168,7 @@ def ground_clearance(points, planes):
     return best
 
 
-def rule_values(fcfg, fev, rcfg, rev, bal=None, layout=None, cockpit=None, ground=None):
+def rule_values(fcfg, fev, rcfg, rev, bal=None, layout=None, cockpit=None, ground=None, brakes=None):
     veh = fcfg["vehicle"]
     tf, tr = fev["susp"].track, rev["susp"].track
     v = dict(wheelbase=float(veh["wheelbase"]), track_ratio=min(tf, tr) / max(tf, tr))
@@ -192,6 +192,8 @@ def rule_values(fcfg, fev, rcfg, rev, bal=None, layout=None, cockpit=None, groun
     g = ground_clearance(ground, ground_planes(fcfg, fev, rcfg, rev, float(veh["wheelbase"]))[0]) if ground else None
     v["ground_clearance"] = g["value"] if g else None
     v["_ground"] = g
+    from .brakes import brake_rule_values
+    v.update(brake_rule_values(brakes, fcfg, rcfg))
     return v
 
 

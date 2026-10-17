@@ -167,7 +167,7 @@ def cmd_rules(a):
     f, r, info = C.load_car(a.car)
     fe, re_ = evaluate(f), evaluate(r)
     bal = car_balance(f, fe, r, re_, None, None, info["arb_f"], info["arb_r"]) if fe.get("ride") and re_.get("ride") else None
-    vals = rule_values(f, fe, r, re_, bal, info.get("layout"), info.get("cockpit"), info.get("ground"))
+    vals = rule_values(f, fe, r, re_, bal, info.get("layout"), info.get("cockpit"), info.get("ground"), info.get("brakes"))
     rows = check_rules(rs, vals)
     print(f"{rs['name']} ({rs['version']}): rule numbers and paraphrases; read the rulebook for the exact wording.\n")
     mark = {"pass": "PASS ", "fail": "FAIL ", "unknown": "  ?  ", "manual": "CHECK", "na": " n/a "}

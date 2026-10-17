@@ -122,6 +122,12 @@ check("a frame-only cockpit (no hip, no back angle) loads", not raises(ConfigErr
 bad_ck["cockpit"].update(hip=carL["cockpit"]["hip"], back_angle=30)
 bad_ck["cockpit"]["lap_belt_mount"] = [-870]
 check("a frame point with one coordinate -> ConfigError", raises(ConfigError, lambda: load_car(write("ck.json", bad_ck))))
+bad_br = json.loads(json.dumps(carL))
+bad_br["brake_system"] = {"pedal_ratio": 5, "mc_front": 15.9, "mc_rear": 15.9, "caliper_front": 25.4, "caliper_rear": [25.4],
+                          "rotor_front": 90, "rotor_rear": 80}
+check("brake calipers given as one number, not a list of pistons -> ConfigError", raises(ConfigError, lambda: load_car(write("br.json", bad_br))))
+bad_br["brake_system"].update(caliper_front=[25.4], bias=56)
+check("a balance bar given in % -> ConfigError (it is a fraction)", raises(ConfigError, lambda: load_car(write("br.json", bad_br))))
 bad_gp = json.loads(json.dumps(carL))
 bad_gp["ground_points"] = [{"name": "sump", "at": [0, 85]}]
 check("a ground point with two coordinates -> ConfigError", raises(ConfigError, lambda: load_car(write("gp.json", bad_gp))))

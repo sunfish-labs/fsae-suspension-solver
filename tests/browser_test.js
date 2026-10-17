@@ -288,6 +288,17 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   await p.click("#btnUndo"); await settle(p); await p.click("#btnUndo"); await settle(p);
   check("Undo brings the seat back", /Helmet below the hoop line/.test(await text(p, "#ckBox")));
 
+  await p.click("#brStart"); await settle(p);
+  const brb = (await text(p, "#brBox")).replace(/\s+/g, " ");
+  check("brakes: starting from a typical system shows the lock-up pedal force and the balance bar", /Pedal force that locks all four wheels/.test(brb) && /Balance bar for both axles to lock together/.test(brb), brb.slice(0, 300));
+  check("brakes: the rules check them (T.3.1.2 c, T.3.2.2)", /T\.3\.1\.2 c/.test(await text(p, "#rulesBox")) && /T\.3\.2\.2/.test(await text(p, "#rulesBox")));
+  await p.evaluate(() => { const i = document.querySelector('#brBox [data-br="pedal_ratio"]'); i.value = "2"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
+  check("brakes: a 2:1 pedal can't lock the wheels with 450 N", /bad-t/.test(await p.$eval("#brRes .kv div", d => d.innerHTML)));
+  await p.click("#btnUndo"); await settle(p);
+  check("Undo puts the pedal ratio back", (await p.inputValue('#brBox [data-br="pedal_ratio"]').catch(() => "")) === "5", await p.inputValue('#brBox [data-br="pedal_ratio"]').catch(() => "gone"));
+  await p.click("#brRemove"); await settle(p);
+  check("Remove takes the brake system off", !!(await p.$("#brStart")));
+
   const gpb = await text(p, "#gpBox");
   check("ground clearance: the example's lowest points in motion, the tightest named with the body position", /Tightest point in motion/.test(gpb) && /26\.5/.test(gpb) && /Lower side impact tube/.test(gpb), gpb.slice(0, 300));
   await p.evaluate(() => { const i = document.querySelector('#gpBox [data-gp="2"][data-gj="2"]'); i.value = "20"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
