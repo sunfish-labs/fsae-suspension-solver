@@ -69,8 +69,8 @@ It needs no install, server or internet: three.js, the Excel writer and the font
 - **Start here** card (shown on each visit until "Don't show this again" is ticked): explore the example, open a design, or try a **challenge**. Five guided exercises, each practicing something different: raise the roll center (inboard pivots, front view),
   remove bump steer (tie rod), set the steering axis (ball joints: KPI, scrub, caster, trail), stop the nose dive
   (pivot tilt in side view: anti-dive) and fit a fixed spring with the rocker (motion ratio, ride frequency, damper
-  stroke). Challenge mode is its own state with the helpers off: no "What moves this?", no influence panel until hint 3
-  and no design check; hint 3 (a solver-suggested step) limits the score to 2 stars. Each has live goal meters with expandable curves, locked points, solver-computed hints and a star score. The challenge panel takes the place of the inputs column, and a focus layout shows only the goal curves, so it fits on one laptop screen.
+  stroke). Challenge mode is its own state with the helpers off: no "What moves this?", no influence panel (clicking a
+  joint) and no design check, so the challenge's own hints are the only help; hint 3 (a solver-suggested step) limits the score to 2 stars. Each has live goal meters with expandable curves, locked points, solver-computed hints and a star score. The challenge panel takes the place of the inputs column, and a focus layout shows only the goal curves, so it fits on one laptop screen.
 - **Compare tab:** up to four saved designs next to the live one, kept in this browser. It shows targets and key metrics with the change from a chosen reference, the hardpoints that differ, overlaid curves and 3D ghosts, with a CSV copy.
 - **Undo / Redo** (header, or Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z outside text boxes) covers every change: typed
   values (a burst of typing in one box is one step), targets, car settings, applied moves and opened designs.

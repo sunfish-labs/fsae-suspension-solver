@@ -291,7 +291,7 @@ function openChallenges() {
   $("#crail").innerHTML =
     `<div class="card crail-card"><div class="crhead"><h2>Challenges</h2><button class="btn small" type="button" id="chClose">Close</button></div>
     <p class="note">Short exercises on real geometry. Only the points named in each challenge can move, the goals update live, and hints unlock one at a time. Your current design is put back when you leave.</p>
-    <p class="note"><b>Challenge mode turns the helpers off:</b> no "What moves this?", no influence panel and no design check. The hints are the only help: hint 1 explains the idea, hint 2 shows what each move does, and hint 3 (which also opens the influence panel) suggests a step but limits you to 2 stars.</p>
+    <p class="note"><b>Challenge mode turns the helpers off:</b> no "What moves this?", no influence panel (clicking a joint) and no design check. The hints are the only help: hint 1 explains the idea, hint 2 shows what each move does, and hint 3 suggests a step but limits you to 2 stars.</p>
     ${CHALLENGES.map(d => `<button class="chpick" type="button" data-ch="${attr(d.id)}"><span class="chn">${d.n}</span><span><b>${esc(d.title)}</b><small>${esc(d.stage)}</small></span>${starsHtml(best[d.id] || 0)}</button>`).join("")}
     <p class="note">Stars: ★ goals met · ★ bonus · ★ moved no more than par (the total millimeters of a good solution), without hint 3.</p></div>`;
   $("#chClose").onclick = closeRail;
@@ -664,7 +664,7 @@ function updateRail() {
     $("#chKeep").onclick = () => exitChallenge(true);
   } else $("#chDone").innerHTML = "";
 }
-const influenceAllowed = path => !chal || chal.hint >= 3;
+const influenceAllowed = () => !chal; // in a challenge the hints are the only help
 
 // Hints are computed by the solver from the student's current geometry, so they cannot point the wrong way.
 // 1 = the concept (text checked against the solver) + Show me; 2 = live lever table; 3 = a suggested next step.
@@ -889,13 +889,9 @@ function renderHints() {
   if (chal.hint >= 2) html += `<div class="chint"><b>Hint 2. What each move does right now.</b>${leverTable()}</div>`;
   if (chal.hint >= 3) {
     const sig = chalSig();
-    html += `<div id="chStep">${stepCache.get(sig) || `<button class="btn small primary" type="button" id="chStepGo">Hint 3: suggest a next step from here</button><p class="note">The solver tries every move in the table above, and every pair of them, at 1 to 4 steps either way (416 combinations). It scores how far each goal is from its target and shows the best one. It is a plain search, not AI: the same geometry always gets the same suggestion.</p>`}</div><p class="note">The influence panel is unlocked: click any of your points in the 3D view.</p>`;
+    html += `<div id="chStep">${stepCache.get(sig) || `<button class="btn small primary" type="button" id="chStepGo">Hint 3: suggest a next step from here</button><p class="note">The solver tries every move in the table above, and every pair of them, at 1 to 4 steps either way (416 combinations). It scores how far each goal is from its target and shows the best one. It is a plain search, not AI: the same geometry always gets the same suggestion.</p>`}</div>`;
   }
-  const labels = [
-    "Show hint 1",
-    "Show hint 2: what each move does",
-    "Show hint 3: a suggested next step (also unlocks the influence panel; best score 2 stars)",
-  ];
+  const labels = ["Show hint 1", "Show hint 2: what each move does", "Show hint 3: a suggested next step (best score 2 stars)"];
   if (chal.hint < 3) html += `<button class="btn small" type="button" id="chHint">${labels[chal.hint]}</button>`;
   if (chal.hint === 3 && !stepCache.has(chalSig())) {
     /* step search runs on request */

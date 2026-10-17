@@ -166,6 +166,10 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
       solved = /Solved/.test(await text(p, "#chDone"));
     }
     check(`challenge "${id}" solved from the hints`, solved);
+    if (id === "rc") {
+      await p.click("#crail [data-chhp]"); await settle(p);
+      check("challenge mode: the influence panel stays closed even after hint 3", await p.$eval("#drawer", d => d.hidden) && /off in challenges/.test(await text(p, "#chHints")));
+    }
     if (solved) check(`challenge "${id}": hint 3 caps it at 2 stars`, (await p.$$eval("#chDone .chwinh .stars .on", e => e.length)) <= 2);
     await p.click("#chExit"); await settle(p);
   }

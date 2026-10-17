@@ -3,6 +3,11 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.21.1 - 2026-10-17
+
+- Challenge mode: the influence panel (clicking a joint) stays off for the whole challenge, so the challenge's three
+  hints are the only help. Hint 3 now only suggests a step (with its own Preview); it used to also open the panel.
+
 ## 1.21.0 - 2026-10-17
 
 - **Three new challenges** (five in all), each practicing something the first two don't: **Set the steering axis**

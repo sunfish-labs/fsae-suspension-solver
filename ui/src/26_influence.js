@@ -61,7 +61,7 @@ function openInfluence(path) {
     if (hb) {
       hb.insertAdjacentHTML(
         "afterbegin",
-        `<p class="chint lockmsg">The influence panel unlocks with the last hint. Try reasoning it out first!</p>`
+        `<p class="chint lockmsg">The influence panel is off in challenges: the hints below are your help.</p>`
       );
       hb.scrollIntoView({ block: "nearest" });
     }
