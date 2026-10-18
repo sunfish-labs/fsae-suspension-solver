@@ -3,6 +3,14 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.34.0 - 2026-10-17
+
+- **Engine starting point: 2008 Suzuki GSX-R750 (K8)** in Car view → Drivetrain ("Start from…" when there is no
+  drivetrain, or "use the … numbers" to swap the engine into an existing one, keeping efficiency, drag and the
+  rest). Primary 1.974, six gears 2.786 / 2.053 / 1.714 / 1.500 / 1.348 / 1.20, stock 17 / 45 final, from published
+  specs (check them against the service manual). The torque curve is an **estimate** for a 20 mm restrictor (the stock
+  curve's shape capped by choked flow, about 65 kW at the crank) and says so until it is replaced with dyno data.
+
 ## 1.33.0 - 2026-10-17
 
 - **New header layout.** The header holds only actions: **Check design** (the main button), **Learn ▾** (glossary,

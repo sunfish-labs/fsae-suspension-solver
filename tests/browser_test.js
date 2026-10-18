@@ -271,6 +271,20 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   check("layout: totals match the Python solver (mass, CG height) and the vehicle block takes them",
     lb.includes(pyLay[0].toFixed(1)) && lb.includes(pyLay[1].toFixed(0)) && /from the layout/.test(await text(p, "#carIn")), lb.slice(0, 300));
   check("drivetrain: the 75 m time matches the Python solver", lb.includes(pyLay[2].toFixed(2) + " s") || new RegExp(pyLay[2].toFixed(2) + "\\s*s").test(lb), pyLay[2]);
+  await p.click('#layBox [data-engine="gsxr750_2008"]'); await settle(p);
+  const lbE = await text(p, "#layBox");
+  const engCar = path.join(os.tmpdir(), "susp_engine_car.json");
+  fs.writeFileSync(engCar, await p.evaluate(() => localStorage.getItem("susp.car")));
+  const pyE = JSON.parse(require("child_process").execFileSync("python3", ["-c", `import sys, json; sys.path.insert(0, ${JSON.stringify(ROOT)})
+from susp.config import load_car
+from susp.layout import accel_run
+f, r, i = load_car(${JSON.stringify(engCar)})
+a = accel_run(i["drivetrain"], f["vehicle"], r["wheel"]["tire_radius"], f["vehicle"]["wheelbase"])
+print(json.dumps([len(i["drivetrain"]["gears"]), a["time"]]))`]).toString());
+  check("the GSX-R750 numbers load into the drivetrain: six gears, the estimate flagged, and the same 75 m time as the Python solver",
+    pyE[0] === 6 && /GSX-R750/.test(lbE) && /torque curve is an estimate/i.test(lbE) && new RegExp(pyE[1].toFixed(2) + "\\s*s").test(lbE), `${pyE} | ${lbE.slice(0, 200)}`);
+  await p.click("#btnUndo"); await settle(p);
+  check("Undo puts the example engine back", !/GSX-R750/.test(await p.inputValue('#layBox [data-lay="dt"][data-lk="name"]')) && !/torque curve is an estimate/i.test(await text(p, "#layBox")));
   const massCell = () => p.evaluate(() => document.querySelector('#layBox [data-lay="0"][data-lk="mass"]').value);
   await p.fill('#layBox [data-lay="0"][data-lk="mass"]', "95"); await settle(p); await p.click("#layBox h3"); await settle(p);
   const lb2 = await text(p, "#layBox");

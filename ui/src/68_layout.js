@@ -62,7 +62,11 @@ function layoutTotalsHtml() {
 function drivetrainHtml() {
   const d = car.drivetrain;
   if (!d)
-    return `<p class="note">No drivetrain yet. <button class="btn small" type="button" id="dtStart">Start from the example single-cylinder drivetrain</button></p>`;
+    return `<p class="note">No drivetrain yet. <button class="btn small" type="button" id="dtStart">Start from the example single-cylinder drivetrain</button> ${Object.entries(
+      ENGINES
+    )
+      .map(([id, e]) => `<button class="btn small" type="button" data-engine="${attr(id)}">Start from the ${esc(e.label)}</button>`)
+      .join(" ")}</p>`;
   const f = (lab, unit, k, step = "any", extra = "") =>
     `<div class="field"><label>${lab} <i>${unit}</i></label><input class="num" type="number" step="${attr(step)}" data-lay="dt" data-lk="${attr(k)}" value="${attr(d[k] ?? "")}"${extra} aria-label="${attr(lab)}"></div>`;
   const tc = (d.torque_curve || []).map(p => p.join(", ")).join("\n");
@@ -102,6 +106,14 @@ function drivetrainHtml() {
       ${f("Drivetrain efficiency", "0–1", "efficiency", 0.01)}${f("Shift time", "s", "shift_time", 0.01)}
       ${f("Spinning parts as extra mass", "× mass", "mass_factor", 0.01)}${f("Drag area (Cd × A)", "m²", "drag_area", 0.05)}
       ${f("Rolling resistance", "", "rolling", 0.001)}${f("Top speed the gearing must reach (blank = 105, D.12.2.2)", "km/h", "top_speed_need", 1)}</div>
+    <p class="note">Engine: ${Object.entries(ENGINES)
+      .map(
+        ([id, e]) =>
+          `<button class="lnk" type="button" data-engine="${attr(id)}" title="${attr(e.specs)}">use the ${esc(e.label)} numbers</button>`
+      )
+      .join(
+        " · "
+      )} (replaces the torque curve, gears, primary, final and redline; keeps the rest).${/estimate/i.test(d.name || "") ? ` <b>The torque curve is an estimate:</b> put in your dyno curve when you have one.` : ""}</p>
     <p class="note">Rear-wheel drive from rest, shifting at the redline. Wheel force = torque × primary × gear × final × efficiency ÷ tire radius, capped by the rear tires' grip (μ ${fmt(+(car.vehicle.tire_mu || 1.5), 2)} from Tires at the limit), which grows as the load moves back. Below the launch rpm the clutch slips and the engine gives its torque there. A straight-line estimate: no wheelspin model or tire curve.</p>
     ${res}`;
 }
@@ -210,6 +222,17 @@ function wireLayout(box) {
         car.drivetrain = s ? s.drivetrain : null;
       })
     );
+  $$("[data-engine]", box).forEach(b =>
+    b.addEventListener("click", () =>
+      edit(() => {
+        if (!car.drivetrain) {
+          const s = layoutStarter();
+          car.drivetrain = s && s.drivetrain ? JSON.parse(JSON.stringify(s.drivetrain)) : {};
+        }
+        engineInto(car.drivetrain, b.dataset.engine);
+      })
+    )
+  );
   const rm = $("#layRemove", box);
   if (rm) rm.addEventListener("click", () => edit(() => (car.layout = null)));
   const ap = $("#layApply", box);
