@@ -187,6 +187,58 @@ function carLltdFor(e) {
     return null;
   }
 }
+// the view tabs' counts: car targets met, and each corner's targets met (the corner on screen from its live solve)
+function cornerCount(e) {
+  if (!e) return null;
+  const n = e.checks.filter(c => c.status !== "n/a");
+  return [n.filter(c => c.status === "PASS").length, n.length];
+}
+function carBalanceOf(F, R) {
+  if (!F || !R || !F.ride || !R.ride) return null;
+  const mid = r => (r && r[0] != null && r[1] != null ? (r[0] + r[1]) / 2 : null),
+    t = car.car_targets;
+  try {
+    return S.carBalance(F.cfg, F, R.cfg, R, {
+      arbF: +car.arb.front || 0,
+      arbR: +car.arb.rear || 0,
+      targets: t,
+      targetGrad: mid(t.roll_gradient) || 1,
+      targetLltd: car.vehicle.weight_front + (mid(t.lltd_vs_weight) ?? 5) / 100,
+    });
+  } catch (x) {
+    return null;
+  }
+}
+function renderViewTabs() {
+  const set = (k, c, title) => {
+    const el = $(`#axleSeg [data-cnt="${k}"]`);
+    if (!el) return;
+    el.textContent = c ? `${c[0]}/${c[1]}${c[0] === c[1] ? " ✓" : ""}` : "";
+    el.className = "vtc" + (c ? (c[0] === c[1] ? " ok" : " bad") : "");
+    el.parentElement.title = c ? `${title}: ${c[0]} of ${c[1]} met` : "";
+  };
+  if (!car || chal) {
+    for (const k of ["car", "front", "rear"]) set(k, null);
+    return;
+  }
+  let F, R, B;
+  if (axleView === "car") {
+    const r = carRes || evalCar();
+    F = r.F.ev;
+    R = r.R.ev;
+    B = r.bal;
+  } else {
+    const front = cfg.axle !== "rear",
+      me = err ? null : ev,
+      o = carEvalCorner(front ? car.rear : car.front).ev;
+    F = front ? me : o;
+    R = front ? o : me;
+    B = carBalanceOf(F, R);
+  }
+  set("car", B ? [B.checks.filter(c => c.status === "PASS").length, B.checks.length] : null, "Car targets");
+  set("front", cornerCount(F), "Front corner targets");
+  set("rear", cornerCount(R), "Rear corner targets");
+}
 function evalCar() {
   if (!car) return null;
   syncLayout();
@@ -328,7 +380,7 @@ function cornerChecksHtml(F, R) {
       <div class="ctabs"><span class="muted">Open the ${ax} details:</span>${CORNER_TABS.map(([t, lab]) => `<button class="btn small" type="button" data-goto="${attr(ax)}" data-tab-to="${attr(t)}">${lab}</button>`).join("")}</div></div>`;
   };
   return `<h3 class="sub-h">Corner checks</h3><div class="ccards">${card("front", F)}${card("rear", R)}</div>
-    <p class="note">Curves, loads, packaging, joint misalignment and the influence tools are in the <b>Front</b> and <b>Rear</b> views (top right, or the buttons above).</p>`;
+    <p class="note">Curves, loads, packaging, joint misalignment and the influence tools are in the <b>Front</b> and <b>Rear</b> corner tabs (above the inputs, or the buttons here).</p>`;
 }
 function wireCornerChecks(box) {
   $$("[data-goto]", box).forEach(b =>
@@ -355,13 +407,9 @@ function renderCarBox() {
     const n = e.checks.filter(c => c.status !== "n/a");
     return `${n.filter(c => c.status === "PASS").length}/${n.length}`;
   };
-  const cm = B ? B.checks.filter(c => c.status === "PASS").length : 0;
-  $("#status").innerHTML =
-    (B ? `<span class="pill ${cm === 3 ? "ok" : "bad"}"><span class="big">${cm}/3</span> car targets</span>` : "") +
-    `<span class="pill neutral">Front ${met(F)}</span><span class="pill neutral">Rear ${met(R)}</span>` +
-    (B
-      ? `<span class="pill neutral">Roll ${fmt(B.grad, 2)} deg/g</span><span class="pill neutral">Front LLTD ${fmt(B.lltd * 100, 1)} %</span>`
-      : "");
+  $("#status").innerHTML = B
+    ? `<span class="pill neutral">Roll ${fmt(B.grad, 2)} deg/g</span><span class="pill neutral">Front LLTD ${fmt(B.lltd * 100, 1)} %</span>`
+    : "";
   if (!F || !R) {
     box.innerHTML = `<div class="banner bad">${!F ? "The front" : "The rear"} corner does not solve: ${esc((!F ? r.F : r.R).err || "")}</div>`;
     return;

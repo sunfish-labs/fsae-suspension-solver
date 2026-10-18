@@ -89,8 +89,8 @@ function redo() {
 function syncUndoButtons() {
   const u = $("#btnUndo"),
     r = $("#btnRedo");
-  if (u) u.hidden = !hist.undo.length;
-  if (r) r.hidden = !hist.redo.length;
+  if (u) u.disabled = !hist.undo.length;
+  if (r) r.disabled = !hist.redo.length;
 }
 // record before any model-bound field changes (capture phase runs before the field's own handler)
 function recordEdit(e) {

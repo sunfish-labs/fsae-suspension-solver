@@ -43,14 +43,15 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   check("welcome card shows on first visit", await p.$eval("#welcome", d => !d.hidden));
   await closeWelcome(p);
   check("car view is the default", (await pressed(p)) === "car");
-  check("example car meets its car targets", /3\/3 car targets/.test(await text(p, "#status")), await text(p, "#status"));
-  check("front and rear corners meet all targets", /Front (\d+)\/\1/.test(await text(p, "#status")) && /Rear (\d+)\/\1/.test(await text(p, "#status")), await text(p, "#status"));
+  check("example car meets its car targets (count on the Car tab)", /^3\/3 ✓$/.test(await text(p, '#axleSeg [data-cnt="car"]')), await text(p, "#axleSeg"));
+  check("front and rear corners meet all targets (counts on their tabs)", /Front corner\s*(\d+)\/\1 ✓/.test(await text(p, "#axleSeg")) && /Rear corner\s*(\d+)\/\1 ✓/.test(await text(p, "#axleSeg")), await text(p, "#axleSeg"));
+  check("the header holds only actions; the view tabs sit on the work area", !(await p.$("header #axleSeg")) && (await p.$eval("#axleSeg", e => e.nextElementSibling.classList.contains("bench"))));
   check("the Car view summarizes each corner's checks", (await p.$$("#carBox .ccard")).length === 2 && /Every target is met/.test(await text(p, "#carBox")), await text(p, "#carBox"));
   await p.click('#carBox [data-goto="rear"][data-tab-to="pack"]'); await settle(p);
   check("a corner button opens that corner on the chosen tab", (await pressed(p)) === "rear" && (await p.getAttribute("#tab_pack", "aria-selected")) === "true" && /misalignment/.test(await text(p, "#pn_pack")));
   await p.click('#axleSeg [data-ax="car"]'); await settle(p);
   await p.fill('[data-cpath="arb.front"]', "0"); await settle(p);
-  check("removing the front bar breaks the LLTD target", /2\/3 car targets/.test(await text(p, "#status")));
+  check("removing the front bar breaks the LLTD target (the Car tab turns red)", /^2\/3$/.test(await text(p, '#axleSeg [data-cnt="car"]')) && (await p.$eval('#axleSeg [data-cnt="car"]', e => e.classList.contains("bad"))));
   await p.fill('[data-cpath="arb.front"]', "200"); await p.fill('[data-cpath="vehicle.mass"]', "300"); await settle(p);
   await p.click('#axleSeg [data-ax="rear"]'); await settle(p);
   check("vehicle settings are shared by both corners", (await p.inputValue("#in_vehicle_mass")) === "300");
@@ -123,7 +124,7 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   await p.click("#drawer [data-pv]"); await settle(p);
   check("preview shows a summary bar", await p.$eval("#pvbar", d => !d.hidden));
   await p.click("#pvApply"); await settle(p);
-  check("apply enables undo", await p.$eval("#btnUndo", b => !b.hidden));
+  check("apply enables undo", await p.$eval("#btnUndo", b => !b.disabled));
   await p.click("#btnUndo"); await settle(p); await p.click("#drClose");
   const shows = await p.$$eval("#showSel option", o => o.map(x => x.value).filter(Boolean));
   for (const id of shows) { await p.selectOption("#showSel", id); await settle(p); }
@@ -132,7 +133,7 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   await p.fill("#poseZo", "12"); await p.dispatchEvent("#poseZo", "change"); await settle(p);
   check("typed travel moves the slider", (await p.inputValue("#poseZ")) === "12");
   await p.click("#poseZ0");
-  await p.click("#btnLearn"); await settle(p);
+  await p.click("#learnMenu summary"); await p.click("#btnLearn"); await settle(p);
   check("Learn opens the glossary", (await p.$$eval("#pn_learn .term", a => a.length)) >= 40);
 
   console.log("\nUndo and redo for every edit");
@@ -154,11 +155,11 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
 
   console.log("\nChallenges solved by following the hints only");
   for (const id of ["rc", "bs", "axis", "dive", "rocker"]) {
-    await p.click("#btnStart"); await p.click("#wChal"); await p.click(`[data-ch="${id}"]`); await settle(p);
+    await p.click("#learnMenu summary"); await p.click("#btnStart"); await p.click("#wChal"); await p.click(`[data-ch="${id}"]`); await settle(p);
     check(`challenge "${id}" starts with goals to fix`, /✗/.test(await text(p, "#chGoals")) && !/Solved/.test(await text(p, "#chDone")), (await text(p, "#chGoals")).slice(0, 200));
     if (id === "rc") {
       check("challenge mode: no design check button and no \"What moves this?\" in Targets", !(await p.isVisible("#btnCheck")) && !(await p.$("#pn_checks [data-fixgo]")));
-      await p.click("#btnLearn"); await settle(p);
+      await p.click("#learnMenu summary"); await p.click("#btnLearn"); await settle(p);
       check("challenge mode: Learn opens the glossary below the goals, without the fix buttons", (await p.isVisible("#pn_learn")) && (await p.isVisible("#chGoals")) && !(await p.$("#pn_learn [data-fixkey]")) && !(await p.$("#learnChal")) && (await p.$$("#pn_learn .term")).length > 20);
       await p.click("#fbToggle"); await settle(p);
       check("and Back to focus view hides it again", !(await p.isVisible("#pn_learn")) && (await p.isVisible("#fbLearn")));
@@ -725,7 +726,7 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
     check("a wrong passphrase does not open it", !(await p.$("#btnSettings")));
     await p.fill("#pass", "gate-pass-789"); await p.click("#go");
     await p.waitForSelector("#btnSettings", { timeout: 30000 }); await settle(p);
-    check("the right passphrase opens the full app", /car targets/.test(await text(p, "#status")), await text(p, "#status"));
+    check("the right passphrase opens the full app", /Car\s*3\/3/.test(await text(p, "#axleSeg")), await text(p, "#axleSeg"));
     await p.reload(); await p.waitForSelector("#btnSettings", { timeout: 30000 }); await settle(p);
     check("the browser remembers it: the next visit opens straight away", (await p.evaluate(() => localStorage.getItem("susp.teampass"))) === "gate-pass-789");
     check("no script errors in the locked page", p.errors.length === 0, p.errors.slice(0, 5).join(" | "));

@@ -12,11 +12,14 @@
   <div class="toprow">
     <div class="brand"><h1>Wake Forest FSAE</h1><span>Vehicle Dynamics Workbench</span></div>
     <div class="toolbar">
-      <div class="seg axseg" id="axleSeg" role="group" aria-label="Which part of the car"><button type="button" data-ax="front" aria-pressed="false">Front</button><button type="button" data-ax="rear" aria-pressed="false">Rear</button><button type="button" data-ax="car" aria-pressed="false">Car</button></div>
-      <button class="btn small" id="btnCheck" type="button" title="Every check on the car on one page, and a sign-off report">✓ Check</button>
-      <button class="btn small" id="btnLearn" type="button">Learn</button>
-      <button class="btn small" id="btnSettings" type="button" title="Theme, coordinates, which inputs and tabs show, 3D quality">⚙ Settings</button>
-      <button class="btn small" id="btnStart" type="button">Start here</button></div>
+      <button class="btn primary" id="btnCheck" type="button" title="Every check on the car on one page, and a sign-off report">✓ Check design</button>
+      <details class="xmenu" id="learnMenu"><summary class="btn">Learn ▾</summary>
+        <div class="xpop" role="menu">
+          <button type="button" role="menuitem" id="btnLearn"><b>Glossary</b><span>Every term with this design's value, a drawing on the 3D corner, and what moves it.</span></button>
+          <button type="button" role="menuitem" id="btnChal"><b>Challenges</b><span>Five short exercises with live goals and hints.</span></button>
+          <a class="mi" role="menuitem" href="/*GUIDE_URL*/" target="_blank" rel="noopener"><b>Guide &amp; case study</b><span>Using the workbench, and a worked front-end design.</span></a>
+          <button type="button" role="menuitem" id="btnStart"><b>Welcome screen</b><span>Where to start: the example car, your design or a challenge.</span></button></div></details>
+      <button class="btn icon gear" id="btnSettings" type="button" title="Settings: theme, coordinates, inputs, tabs, 3D view, team" aria-label="Settings">⚙</button></div>
   </div>
   <div class="toprow">
     <div class="toolbar">
@@ -37,13 +40,13 @@
           <button type="button" role="menuitem" id="xSetup"><b>Setup sheet</b><span>What to set each corner to (camber, toe, corner weights, damper, pushrod and tie rod lengths), what one turn of each adjuster does, and boxes to fill in at the track. Print it.</span></button>
           <button type="button" role="menuitem" id="xTol"><b>Jig and tolerance sheet</b><span>Which pickups need precise fixturing: how far each may be off (mm, per axis) before a target is lost. Open it and print for the jig builders.</span></button>
           <button type="button" role="menuitem" id="xXlsx"><b>Excel workbook (.xlsx)</b><span>Targets, hardpoints, sweep data and loads, one sheet each.</span></button></div></details>
+      <span class="tbsep" aria-hidden="true"></span>
+      <button class="btn icon" id="btnUndo" type="button" disabled title="Undo the last change (Cmd/Ctrl+Z)" aria-label="Undo">↶</button>
+      <button class="btn icon" id="btnRedo" type="button" disabled title="Redo (Shift+Cmd/Ctrl+Z)" aria-label="Redo">↷</button>
+      <span class="tbsep" aria-hidden="true"></span>
       <span class="curname" id="curName"></span>
       <select id="preset" class="sel" hidden aria-hidden="true" tabindex="-1"></select>
       <input id="fileIn" type="file" accept=".json,application/json" hidden>
-    </div>
-    <div class="toolbar tb-right">
-      <button class="btn" id="btnUndo" type="button" hidden title="Undo the last change (Cmd/Ctrl+Z)">↶ Undo</button>
-      <button class="btn" id="btnRedo" type="button" hidden title="Redo (Shift+Cmd/Ctrl+Z)">↷ Redo</button>
     </div>
   </div>
 </header>
@@ -225,6 +228,11 @@
   </div>
 </div>
 
+<div class="viewtabs" id="axleSeg" role="group" aria-label="Which part of the car">
+  <button type="button" data-ax="car" aria-pressed="false"><b>Car</b><span class="vtc" data-cnt="car"></span></button>
+  <button type="button" data-ax="front" aria-pressed="false"><b>Front corner</b><span class="vtc" data-cnt="front"></span></button>
+  <button type="button" data-ax="rear" aria-pressed="false"><b>Rear corner</b><span class="vtc" data-cnt="rear"></span></button>
+</div>
 <div class="bench">
   <!-- ================= INPUTS ================= -->
   <section class="inputs" id="cardsIn" aria-label="Inputs">

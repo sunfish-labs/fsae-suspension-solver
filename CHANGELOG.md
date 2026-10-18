@@ -3,6 +3,16 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.33.0 - 2026-10-17
+
+- **New header layout.** The header holds only actions: **Check design** (the main button), **Learn ▾** (glossary,
+  challenges, guide, welcome screen; replaces Learn and Start here) and a ⚙ gear. Open, Save, Export and ↶ ↷ undo /
+  redo sit together on the second row with the design's name; undo and redo stay in place, greyed out when there is
+  nothing to undo.
+- **Car | Front corner | Rear corner are tabs on the work area**, each with its count of targets met (green with ✓
+  when all pass, red otherwise), so you can see which part needs work without switching to it. The counts replace
+  the target pills in the status bar.
+
 ## 1.32.0 - 2026-10-17
 
 - **The passphrase page in the team's black and old gold**, with the workbench's condensed headings (the font is

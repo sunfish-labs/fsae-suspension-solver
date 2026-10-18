@@ -203,7 +203,18 @@ function closeWelcome() {
   store.set("susp.hideWelcome", $("#wHide").checked ? "1" : "0");
   $("#welcome").hidden = true;
 }
-$("#btnStart").addEventListener("click", openWelcome);
+$("#btnStart").addEventListener("click", () => {
+  $("#learnMenu").open = false;
+  openWelcome();
+});
+$("#btnChal").addEventListener("click", () => {
+  $("#learnMenu").open = false;
+  openChallenges();
+});
+document.addEventListener("click", e => {
+  const m = $("#learnMenu");
+  if (m.open && !m.contains(e.target)) m.open = false;
+});
 function openLearn() {
   if (chal) {
     // in a challenge the glossary opens below the goals; the focus view steps aside for it
@@ -215,7 +226,10 @@ function openLearn() {
   showPanel();
   $("#tabs").scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
 }
-$("#btnLearn").addEventListener("click", openLearn);
+$("#btnLearn").addEventListener("click", () => {
+  $("#learnMenu").open = false;
+  openLearn();
+});
 $("#wClose").addEventListener("click", closeWelcome);
 $("#welcome").addEventListener("click", e => {
   if (e.target.id === "welcome") closeWelcome();

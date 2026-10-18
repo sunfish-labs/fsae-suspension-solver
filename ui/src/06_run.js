@@ -46,6 +46,7 @@ function run() {
     renderCarBox();
     renderLayoutBox();
   }
+  renderViewTabs();
   updateScene();
 }
 function showCurName() {

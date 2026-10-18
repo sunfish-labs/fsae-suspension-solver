@@ -54,7 +54,7 @@ It needs no install, server or internet: three.js, the Excel writer and the font
   **Display ▾** shows the roll-center construction, the other side of the car and joint names; **Show me** draws a term.
 - **Results update live** in six tabs: Targets (ranges are editable, click a row for an explanation), Motion (Heave, Roll,
   Steering), Spring & damper (rocker plane view, motion ratio, damper length against its limits), Loads (wheel loads,
-  member forces, FOS), Packaging and Compare. **Learn** (glossary) is next to Start here.
+  member forces, FOS), Packaging and Compare. **Learn ▾** (top right) holds the glossary, the challenges, this guide and the welcome screen.
 - **Learning tools for new members:**
   - **Show me** draws a term on the 3D corner, such as the steering axis, the instant center or the roll-center construction, or animates bump.
   - **Names** labels every hardpoint.
@@ -63,7 +63,7 @@ It needs no install, server or internet: three.js, the Excel writer and the font
   - **Preview / Apply / Undo:** moves show as a ghost first, and Apply pins the old design as the baseline.
   - Ball joints, contact patch and rocker pivot stay locked unless you unlock them.
   - The glossary text is in `ui/glossary.js` and is inlined by `ui/build.py`.
-- **Front | Rear | Car** switch (top right). Front and Rear edit one corner as before. The Car view (the default) shows
+- **Car | Front corner | Rear corner** tabs above the work area, each with its count of targets met. Front and Rear edit one corner as before. The Car view (the default) shows
   all four corners, the roll axis and CG in 3D, the shared vehicle settings, anti-roll bar rates, car targets (roll
   gradient, front LLTD vs front weight, rear/front ride-frequency ratio), a front-vs-rear table and charts, and the
   bar rates needed for your roll and balance targets. Click a corner in 3D to edit it. In the Car view, Save JSON writes
@@ -72,7 +72,7 @@ It needs no install, server or internet: three.js, the Excel writer and the font
 - **Export ▾** gives a printable **design report** (HTML; open it and print to PDF) and an **Excel workbook**
   (targets, hardpoints, heave/roll/steering sweeps, member loads; for the whole car it adds a summary sheet with the
   car targets and roll balance), and the **3D for CAD** files below. In the Car view they cover both corners, otherwise the corner on screen.
-- **Start here** card (shown on each visit until "Don't show this again" is ticked): explore the example, open a design, or try a **challenge**. Five guided exercises, each practicing something different: raise the roll center (inboard pivots, front view),
+- **Welcome** card (Learn ▾ → Welcome screen; shown on each visit until "Don't show this again" is ticked): explore the example, open a design, or try a **challenge**. Five guided exercises, each practicing something different: raise the roll center (inboard pivots, front view),
   remove bump steer (tie rod), set the steering axis (ball joints: KPI, scrub, caster, trail), stop the nose dive
   (pivot tilt in side view: anti-dive) and fit a fixed spring with the rocker (motion ratio, ride frequency, damper
   stroke). Challenge mode is its own state with the helpers off: no "What moves this?", no influence panel (clicking a

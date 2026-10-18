@@ -77,7 +77,9 @@ function renderAll(ms) {
   const m = ev.metrics;
   const minFos = loads ? Math.min(...loads.checks.map(c => Math.min(c.sf_buckle, c.sf_yield))) : null;
   $("#status").innerHTML =
-    `<span class="pill ${np === n.length ? "ok" : "bad"}"><span class="big">${np}/${n.length}</span> targets met</span>` +
+    (chal || !car
+      ? `<span class="pill ${np === n.length ? "ok" : "bad"}"><span class="big">${np}/${n.length}</span> targets met</span>`
+      : "") +
     (m.ride_freq != null ? `<span class="pill neutral">Ride ${fmt(m.ride_freq, 2)} Hz</span>` : "") +
     (m.motion_ratio != null ? `<span class="pill neutral">MR ${fmt(m.motion_ratio, 3)}</span>` : "") +
     (minFos != null ? `<span class="pill ${minFos >= ev.cfg.members.sf_target ? "ok" : "bad"}">Min FOS ${fmt(minFos, 2)}</span>` : "") +
