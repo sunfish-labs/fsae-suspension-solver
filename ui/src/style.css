@@ -307,7 +307,8 @@ table.lvt th.lv-focus { color: var(--ink); } table.lvt td.lv-focus { box-shadow:
 body.chal .rk, body.chal #btnCheck { display: none; }
 body.chal.focus #status, body.chal.focus #errBox, body.chal.focus #tabs, body.chal.focus #panels { display: none; }
 .focusbox { display: flex; flex-direction: column; gap: 8px; }
-.focushd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.focushd { display: flex; align-items: center; gap: 8px; }
+.focushd > :first-child { margin-right: auto; }
 .focushd h3 { font-size: 17px; text-transform: uppercase; letter-spacing: .03em; }
 /* compare */
 .cmpbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

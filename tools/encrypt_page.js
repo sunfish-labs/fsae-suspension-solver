@@ -53,7 +53,11 @@ async function key(salt, use) {
     iv = webcrypto.getRandomValues(new Uint8Array(12));
   const ct = new Uint8Array(await subtle.encrypt({ name: "AES-GCM", iv }, await key(salt, "encrypt"), gz));
   const payload = JSON.stringify({ iter: ITER, salt: b64(salt), iv: b64(iv), ct: b64(ct) });
-  const gate = fs.readFileSync(path.join(__dirname, "gate.html"), "utf8").replace("/*PAYLOAD*/null", () => payload);
+  const font = fs.readFileSync(path.join(__dirname, "..", "ui", "vendor", "fonts", "barlow-condensed-latin-600-normal.woff2")).toString("base64");
+  const gate = fs
+    .readFileSync(path.join(__dirname, "gate.html"), "utf8")
+    .replace("/*FONT_B64*/", () => font)
+    .replace("/*PAYLOAD*/null", () => payload);
   fs.mkdirSync(path.dirname(dst), { recursive: true });
   fs.writeFileSync(dst, gate);
   console.log(`wrote ${dst} (${Math.round(gate.length / 1024)} KB, encrypted from ${Math.round(html.length / 1024)} KB)`);

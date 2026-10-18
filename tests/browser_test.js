@@ -158,6 +158,10 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
     check(`challenge "${id}" starts with goals to fix`, /✗/.test(await text(p, "#chGoals")) && !/Solved/.test(await text(p, "#chDone")), (await text(p, "#chGoals")).slice(0, 200));
     if (id === "rc") {
       check("challenge mode: no design check button and no \"What moves this?\" in Targets", !(await p.isVisible("#btnCheck")) && !(await p.$("#pn_checks [data-fixgo]")));
+      await p.click("#btnLearn"); await settle(p);
+      check("challenge mode: Learn opens the glossary below the goals, without the fix buttons", (await p.isVisible("#pn_learn")) && (await p.isVisible("#chGoals")) && !(await p.$("#pn_learn [data-fixkey]")) && !(await p.$("#learnChal")) && (await p.$$("#pn_learn .term")).length > 20);
+      await p.click("#fbToggle"); await settle(p);
+      check("and Back to focus view hides it again", !(await p.isVisible("#pn_learn")) && (await p.isVisible("#fbLearn")));
     }
     for (let i = 0; i < 3; i++) await p.click("#chHint");
     let solved = false;

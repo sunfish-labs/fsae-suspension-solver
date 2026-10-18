@@ -205,8 +205,11 @@ function closeWelcome() {
 }
 $("#btnStart").addEventListener("click", openWelcome);
 function openLearn() {
-  if (chal) return;
-  if (axleView === "car") setView("front");
+  if (chal) {
+    // in a challenge the glossary opens below the goals; the focus view steps aside for it
+    document.body.classList.remove("focus");
+    renderFocus();
+  } else if (axleView === "car") setView("front");
   tab = "learn";
   renderTabs();
   showPanel();

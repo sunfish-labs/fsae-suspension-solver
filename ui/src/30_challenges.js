@@ -584,15 +584,16 @@ function renderFocus() {
     focus = document.body.classList.contains("focus");
   fb.hidden = false;
   if (!focus) {
-    fb.innerHTML = `<div class="focushd"><span class="note">Showing all results.</span><button class="btn small" type="button" id="fbToggle">Back to focus view</button></div>`;
+    fb.innerHTML = `<div class="focushd"><span class="note">Showing all results.</span><button class="btn small" type="button" id="fbLearn">Glossary</button><button class="btn small" type="button" id="fbToggle">Back to focus view</button></div>`;
   } else
-    fb.innerHTML = `<div class="focushd"><h3>Your goals as curves</h3><button class="btn small" type="button" id="fbToggle">Show full results</button></div>
+    fb.innerHTML = `<div class="focushd"><h3>Your goals as curves</h3><button class="btn small" type="button" id="fbLearn">Glossary</button><button class="btn small" type="button" id="fbToggle">Show full results</button></div>
     <div class="charts">${chal.def.goals
       .concat(chal.def.bonus.key ? [chal.def.bonus.key] : [])
       .filter((k, i, a) => meterChart(k, true) && !(k === "bump_steer" && a.includes("bump_steer_max")) && k !== "damper_topout")
       .map(k => meterChart(k))
       .join("")}</div>
     <p class="note">Dashed = where you started. Drag the Travel slider to see the corner move along these curves.</p>`;
+  $("#fbLearn").onclick = openLearn;
   $("#fbToggle").onclick = () => {
     document.body.classList.toggle("focus");
     renderFocus();

@@ -6,27 +6,41 @@
 <meta name="robots" content="noindex">
 <title>Wake Forest FSAE</title>
 <style>
-:root { color-scheme: light dark; --bg: #f4f5f7; --panel: #fff; --ink: #1d2730; --muted: #5a6876; --line: #d9dee3; --accent: #1f6feb; --bad: #b3261e; }
-@media (prefers-color-scheme: dark) { :root { --bg: #14181d; --panel: #1d232a; --ink: #e6eaee; --muted: #9aa6b2; --line: #2e3740; --accent: #4c8dff; --bad: #ff8a80; } }
-body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-form { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px; width: min(360px, calc(100vw - 32px)); box-sizing: border-box; }
-h1 { font-size: 19px; margin: 0 0 6px; }
-p { margin: 0 0 14px; color: var(--muted); font-size: 13.5px; }
-label { display: block; font-size: 13px; margin-bottom: 4px; }
-input { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
-button { margin-top: 12px; width: 100%; font: inherit; font-weight: 600; padding: 9px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; }
-button:disabled { opacity: .6; cursor: wait; }
-#msg { color: var(--bad); min-height: 1.2em; margin: 10px 0 0; font-size: 13px; }
+@font-face { font-family: "Barlow Condensed"; font-weight: 600; font-display: swap; src: url(data:font/woff2;base64,/*FONT_B64*/) format("woff2"); }
+:root { color-scheme: dark; --gold: #9e7e38; --gold-hi: #c9a85a; --black: #0b0b0b; --panel: #151515; --ink: #f2efe8; --muted: #a9a294; --line: #2e2a22; --bad: #ff9b8f; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--black) repeating-linear-gradient(135deg, transparent 0 22px, rgba(158,126,56,.06) 22px 23px); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: 6px; background: var(--gold); }
+form { width: min(380px, 100%); background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--gold); border-radius: 4px; padding: 30px 28px 24px; box-shadow: 0 24px 60px rgba(0,0,0,.55); }
+.eyebrow { margin: 0 0 6px; font: 600 13px/1 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .18em; text-transform: uppercase; color: var(--gold-hi); }
+h1 { margin: 0; font: 600 38px/1 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .02em; text-transform: uppercase; }
+.rule { width: 48px; height: 3px; background: var(--gold); margin: 14px 0 16px; }
+p { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+label { display: block; font: 600 13px/1 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+input { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid #3a352b; border-radius: 3px; background: #0e0e0e; color: var(--ink); }
+input:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: var(--gold); }
+button { margin-top: 14px; width: 100%; padding: 11px; border: 0; border-radius: 3px; background: var(--gold); color: #0b0b0b; cursor: pointer;
+  font: 600 18px/1 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+button:hover { background: var(--gold-hi); }
+button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+button:disabled { opacity: .65; cursor: wait; }
+#msg { color: var(--bad); min-height: 1.3em; margin: 12px 0 0; font-size: 13px; }
+.foot { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12px; color: #7d776b; }
 </style>
 </head>
 <body>
 <form id="gate" hidden>
+  <p class="eyebrow">Vehicle Dynamics Workbench</p>
   <h1>Wake Forest FSAE</h1>
+  <div class="rule"></div>
   <p>Enter the team passphrase here; your browser will remember next time you visit.</p>
   <label for="pass">Team passphrase</label>
   <input id="pass" type="password" autocomplete="current-password" required>
   <button id="go" type="submit">Open</button>
   <p id="msg" role="alert"></p>
+  <p class="foot">Team members only. Ask your team lead for the passphrase.</p>
 </form>
 <script>
 (function () {

@@ -3,6 +3,13 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.32.0 - 2026-10-17
+
+- **The passphrase page in the team's black and old gold**, with the workbench's condensed headings (the font is
+  built into the page, so it still works offline).
+- **The glossary works in challenges:** Learn (or the new Glossary button above the goal curves) opens it below the
+  goals, with Show me but without the fix buttons; Back to focus view hides it again.
+
 ## 1.31.0 - 2026-10-17
 
 - **Settings → 3D view:** turn off the name tags in the 3D view (FRONT / REAR, CG, roll axis, a picked joint's

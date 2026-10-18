@@ -16,7 +16,7 @@ function termValue(t) {
 function panelLearn() {
   const cats = [...new Set(TERMS.map(t => t.cat))];
   return `<div class="learnbar"><input id="learnQ" class="num learnq" type="search" placeholder="Search terms, e.g. scrub, roll center, motion ratio" aria-label="Search the glossary" value="${esc(learnQ)}">
-    <span class="note"><button class="lnk" type="button" id="learnChal">Ready to practice? Try a challenge.</button> Every "Show me" draws the idea on the 3D corner above. Click any joint in the 3D view to see what moving it does.</span></div>
+    <span class="note">${chal ? "" : `<button class="lnk" type="button" id="learnChal">Ready to practice? Try a challenge.</button> `}Every "Show me" draws the idea on the 3D corner above. Click any joint in the 3D view to see what moving it does.</span></div>
     <nav class="catnav">${cats.map(c => `<a href="#cat_${c.replace(/\W+/g, "_")}">${esc(c)}</a>`).join("")}</nav>
     ${cats
       .map(
