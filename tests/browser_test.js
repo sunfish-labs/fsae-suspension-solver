@@ -43,6 +43,7 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   check("welcome card shows on first visit", await p.$eval("#welcome", d => !d.hidden));
   await closeWelcome(p);
   check("car view is the default", (await pressed(p)) === "car");
+  check("Learn menu has a Send feedback link to the feedback form, opening in a new tab", await p.$eval("#lnkFeedback", a => /^https:\/\/docs\.google\.com\/forms\//.test(a.href) && a.target === "_blank" && /noopener/.test(a.rel)));
   check("example car meets its car targets (count on the Car tab)", /^3\/3 ✓$/.test(await text(p, '#axleSeg [data-cnt="car"]')), await text(p, "#axleSeg"));
   check("front and rear corners meet all targets (counts on their tabs)", /Front corner\s*(\d+)\/\1 ✓/.test(await text(p, "#axleSeg")) && /Rear corner\s*(\d+)\/\1 ✓/.test(await text(p, "#axleSeg")), await text(p, "#axleSeg"));
   check("the header holds only actions; the view tabs sit on the work area", !(await p.$("header #axleSeg")) && (await p.$eval("#axleSeg", e => e.nextElementSibling.classList.contains("bench"))));

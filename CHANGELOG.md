@@ -3,6 +3,10 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.40.1 - 2026-10-18
+
+- **Send feedback:** a link to the team's feedback form in the Learn menu and on the welcome card.
+
 ## 1.40.0 - 2026-10-18
 
 - **Bill of materials, phase 2: rows the design fills in.** "Fill from the design" adds the rows the corner files
