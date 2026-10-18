@@ -707,7 +707,7 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
     await p.waitForSelector("#gate:not([hidden])");
     check("the locked page asks for the passphrase and shows no app", !(await p.$("#btnSettings")));
     await p.fill("#pass", "wrong-wrong-1"); await p.click("#go");
-    await p.waitForFunction(() => /doesn't open/.test(document.getElementById("msg").textContent));
+    await p.waitForFunction(() => /Incorrect passphrase/.test(document.getElementById("msg").textContent));
     check("a wrong passphrase does not open it", !(await p.$("#btnSettings")));
     await p.fill("#pass", "gate-pass-789"); await p.click("#go");
     await p.waitForSelector("#btnSettings", { timeout: 30000 }); await settle(p);

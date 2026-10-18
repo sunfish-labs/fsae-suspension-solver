@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>FSAE Suspension Solver</title>
+<title>Wake Forest FSAE</title>
 <style>
 :root { color-scheme: light dark; --bg: #f4f5f7; --panel: #fff; --ink: #1d2730; --muted: #5a6876; --line: #d9dee3; --accent: #1f6feb; --bad: #b3261e; }
 @media (prefers-color-scheme: dark) { :root { --bg: #14181d; --panel: #1d232a; --ink: #e6eaee; --muted: #9aa6b2; --line: #2e3740; --accent: #4c8dff; --bad: #ff8a80; } }
@@ -21,8 +21,8 @@ button:disabled { opacity: .6; cursor: wait; }
 </head>
 <body>
 <form id="gate" hidden>
-  <h1>FSAE Suspension Solver</h1>
-  <p>This copy is for the team. Enter the team passphrase; this browser remembers it.</p>
+  <h1>Wake Forest FSAE</h1>
+  <p>Enter the team passphrase here; your browser will remember next time you visit.</p>
   <label for="pass">Team passphrase</label>
   <input id="pass" type="password" autocomplete="current-password" required>
   <button id="go" type="submit">Open</button>
@@ -55,21 +55,23 @@ button:disabled { opacity: .6; cursor: wait; }
     document.getElementById("pass").focus();
   }
   if (!window.crypto || !crypto.subtle || typeof DecompressionStream === "undefined") {
-    ask("This browser is too old to open the app: use a current Chrome, Edge, Firefox or Safari.");
+    ask("This browser is not supported. Please use a current version of Chrome, Edge, Firefox or Safari.");
     go.disabled = true;
     return;
   }
   form.addEventListener("submit", e => {
     e.preventDefault();
     go.disabled = true;
-    msg.textContent = "Opening…";
+    msg.textContent = "";
+    go.textContent = "Opening…";
     open(document.getElementById("pass").value).catch(() => {
       go.disabled = false;
-      msg.textContent = "That passphrase doesn't open it. Ask your team lead.";
+      go.textContent = "Open";
+      msg.textContent = "Incorrect passphrase. Please try again.";
     });
   });
   const saved = store.get("susp.teampass");
-  if (saved) open(saved).catch(() => ask("The team passphrase has changed: enter the new one."));
+  if (saved) open(saved).catch(() => ask("The team passphrase has changed. Please enter the new passphrase."));
   else ask();
 })();
 </script>
