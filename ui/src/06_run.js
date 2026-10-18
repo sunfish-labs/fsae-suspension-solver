@@ -45,6 +45,7 @@ function run() {
     renderCarIn();
     renderCarBox();
     renderLayoutBox();
+    renderBom();
   }
   renderViewTabs();
   updateScene();

@@ -13,6 +13,11 @@ XL 3+ days.
 - Nothing on hold. (Team settings shipped in 1.28.0: learning mode, released designs, banner; see
   [TEAM_SETTINGS_PLAN.md](TEAM_SETTINGS_PLAN.md).)
 
+## Bill of materials
+
+- Phases 2–5 in [BOM_PLAN.md](BOM_PLAN.md): rows the design fills in, a parts catalog to explore cost vs FOS,
+  BOM in the reports and CLI, order tracking. Phase 1 (manual BOM with totals and CSV) is done.
+
 ## This season: needed for a passing car
 
 1. ~~**Guardrails**~~ (done in 1.12.0). A clear message when a design can't be solved, including the pushrod-on-upright path; the

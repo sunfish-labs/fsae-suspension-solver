@@ -531,3 +531,10 @@ body.nohud #hud, body.nohud #vaxkey { display: none !important; }
   .viewtabs button b { font-size: 13px; }
   .vtc { font-size: 11px; padding: 3px 5px; }
 }
+/* bill of materials (69_bom.js) */
+#bomSec > summary { display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; }
+#bomSec > summary::-webkit-details-marker { display: none; }
+#bomSec > summary::after { content: "▸"; margin-left: auto; color: var(--muted); }
+#bomSec[open] > summary::after { content: "▾"; }
+.bomtab select, .bomtab .ltext { width: 100%; min-width: 7em; }
+.bomtab .lnum { width: 5.5em; }

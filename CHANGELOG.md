@@ -3,6 +3,12 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.35.0 - 2026-10-17
+
+- **Bill of materials, phase 1** (Car view → Bill of materials): one row per part with system, part number,
+  quantity, unit cost, source and status (planned / ordered / received); totals overall, by status and by system;
+  CSV download; undo; saved in the car file as `bom`. The plan for the next phases is in BOM_PLAN.md.
+
 ## 1.34.0 - 2026-10-17
 
 - **Engine starting point: 2008 Suzuki GSX-R750 (K8)** in Car view → Drivetrain ("Start from…" when there is no
