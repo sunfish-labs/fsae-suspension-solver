@@ -3,6 +3,17 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.37.0 - 2026-10-17
+
+- **Tracker fills in from the workbench:** each item the workbench measures shows its verdict from the car open now
+  (pass, fail, needs input, check by hand; hover for the rules behind it), updating as the design changes. The
+  admin's "Set statuses from the workbench" marks passing items done and failing ones in progress.
+- **Cost report starter** (Bill of materials): a CSV by FSAE cost-report system (BR, EN, FR, EL, ST, SU, WT, MS) with
+  subtotals and made / bought totals; rows now have Make / buy. Purchase prices, not the rules' cost tables.
+- **Design justification** (Export menu), for the design event: every car and corner target with its value, range and
+  status, why it matters and what sets it, the lowest link FOS and the rules summary, with an "our reasoning" column
+  for the team. A printable page and Typst source (.typ) that compiles as is.
+
 ## 1.36.0 - 2026-10-17
 
 - **Tech inspection tracker on the site** (Tracker in the header, team only): every area the inspectors check, with

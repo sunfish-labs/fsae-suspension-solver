@@ -17,6 +17,17 @@ const BOM_STATUS = [
   ["ordered", "Ordered"],
   ["received", "Received"],
 ];
+// the FSAE cost report's systems, by their two-letter codes
+const BOM_CODES = {
+  Brakes: "BR",
+  "Engine & drivetrain": "EN",
+  "Frame & body": "FR",
+  Electrical: "EL",
+  Steering: "ST",
+  Suspension: "SU",
+  "Wheels & tires": "WT",
+  Miscellaneous: "MS",
+};
 let bomOpen = false;
 const bomCost = r => (+r.qty || 0) * (+r.unit_cost || 0);
 const money = v => "$" + (Math.round(v * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -96,6 +107,30 @@ function bomFromCsv(txt) {
     note: g(r, "note"),
   }));
 }
+// a cost report starter: the BOM by FSAE system, made or bought, with subtotals; purchase prices, not the cost tables
+function costReportCsv(rows) {
+  const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`,
+    f = v => (Math.round(v * 100) / 100).toFixed(2),
+    out = [["System code", "System", "Part", "Part number", "Make / buy", "Qty", "Unit cost", "Extended cost"].join(",")];
+  let made = 0,
+    bought = 0;
+  for (const sys of BOM_SYSTEMS) {
+    const L = rows.filter(r => r.system === sys);
+    if (!L.length) continue;
+    for (const r of L) {
+      out.push(
+        [BOM_CODES[sys], sys, r.part, r.pn, r.mb === "make" ? "Make" : "Buy", r.qty, f(+r.unit_cost || 0), f(bomCost(r))].map(q).join(",")
+      );
+      if (r.mb === "make") made += bomCost(r);
+      else bought += bomCost(r);
+    }
+    out.push(["", `${sys} subtotal`, "", "", "", "", "", f(L.reduce((a, r) => a + bomCost(r), 0))].map(q).join(","));
+  }
+  out.push(["", "Total", "", "", "", "", "", f(made + bought)].map(q).join(","));
+  out.push(["", "of which made", "", "", "", "", "", f(made)].map(q).join(","));
+  out.push(["", "of which bought", "", "", "", "", "", f(bought)].map(q).join(","));
+  return out.join("\n") + "\n";
+}
 function renderBom() {
   const box = $("#bomBox");
   if (!box || !car || chal) return;
@@ -115,7 +150,15 @@ function renderBom() {
         BOM_SYSTEMS.map(s => [s, s]),
         r.system
       )}</td><td>${inp(i, "part", r.part)}</td><td>${inp(i, "pn", r.pn, false, "9em")}</td><td>${inp(i, "qty", r.qty, true)}</td><td>${inp(i, "unit_cost", r.unit_cost, true)}</td>
-      <td class="n">${money(bomCost(r))}</td><td>${inp(i, "source", r.source, false, "9em")}</td><td>${sel(i, "status", BOM_STATUS, r.status || "planned")}</td>
+      <td class="n">${money(bomCost(r))}</td><td>${sel(
+        i,
+        "mb",
+        [
+          ["buy", "Buy"],
+          ["make", "Make"],
+        ],
+        r.mb || "buy"
+      )}</td><td>${inp(i, "source", r.source, false, "9em")}</td><td>${sel(i, "status", BOM_STATUS, r.status || "planned")}</td>
       <td><button class="btn small icon" type="button" data-bomdel="${i}" aria-label="Remove this row" title="Remove this row">✕</button></td></tr>`
     )
     .join("");
@@ -128,10 +171,10 @@ function renderBom() {
       rows.length
         ? `<div class="kv"><div><span>Total</span><b>${money(T.total)}</b></div>${BOM_STATUS.map(([k, t]) => `<div><span>${t}</span><b>${money(T.status[k])}</b></div>`).join("")}</div>
       ${sys ? `<h4>By system</h4><div class="kv">${sys}</div>` : ""}
-      <div class="tbl-wrap"><table class="data bomtab"><thead><tr><th>System</th><th>Part</th><th>Part no.</th><th class="n">Qty</th><th class="n">Unit $</th><th class="n">Total</th><th>Source</th><th>Status</th><th></th></tr></thead><tbody>${body}</tbody></table></div>`
+      <div class="tbl-wrap"><table class="data bomtab"><thead><tr><th>System</th><th>Part</th><th>Part no.</th><th class="n">Qty</th><th class="n">Unit $</th><th class="n">Total</th><th>Make / buy</th><th>Source</th><th>Status</th><th></th></tr></thead><tbody>${body}</tbody></table></div>`
         : `<p class="note">No parts yet.</p>`
     }
-    <div class="laybtns"><button class="btn small" type="button" id="bomAdd">Add a part</button><button class="btn small" type="button" id="bomImp">Import a CSV…</button><input type="file" id="bomFile" accept=".csv,text/csv" hidden>${rows.length ? `<button class="btn small" type="button" id="bomCsv">Download CSV</button>` : ""}</div></details>`;
+    <div class="laybtns"><button class="btn small" type="button" id="bomAdd">Add a part</button><button class="btn small" type="button" id="bomImp">Import a CSV…</button><input type="file" id="bomFile" accept=".csv,text/csv" hidden>${rows.length ? `<button class="btn small" type="button" id="bomCsv">Download CSV</button><button class="btn small" type="button" id="bomCost" title="By FSAE cost-report system, make / buy, with subtotals">Cost report starter (CSV)</button>` : ""}</div></details>`;
   wireBom(box);
 }
 function wireBom(box) {
@@ -160,6 +203,11 @@ function wireBom(box) {
       box.insertAdjacentHTML("afterbegin", `<div class="banner bad">That CSV doesn't load: ${esc(x.message)}</div>`);
     }
   });
+  const cr = $("#bomCost", box);
+  if (cr)
+    cr.addEventListener("click", () =>
+      download(fileBase(car.name) + "_cost_report.csv", new Blob([costReportCsv(car.bom || [])], { type: "text/csv" }))
+    );
   const csv = $("#bomCsv", box);
   if (csv)
     csv.addEventListener("click", () => download(fileBase(car.name) + "_bom.csv", new Blob([bomCsv(car.bom || [])], { type: "text/csv" })));

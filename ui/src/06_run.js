@@ -48,6 +48,7 @@ function run() {
     renderBom();
   }
   renderViewTabs();
+  if (!$("#trkDlg").hidden) renderTracker();
   updateScene();
 }
 function showCurName() {

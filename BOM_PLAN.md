@@ -21,6 +21,7 @@ ignores the block until phase 4.
 3. **Explore:** a parts catalog (`private/parts_catalog.json`: part, rating, mass, cost, source) so picking a cheaper
    rod end updates the BOM and re-runs the strength checks in one go; cost vs FOS side by side. Import the team's
    existing list (`private/parts_list_cheapest_2026-10-17.csv`) as the first catalog.
+3b. **Cost report starter (done, 1.37.0):** CSV by FSAE system with make / buy and subtotals.
 4. **Reports:** BOM sheet in the Excel export and the design report; Python `bom car.json` for the CLI; FSAE cost
    report categories and its make/buy split.
 5. **Tracking extras:** order date, vendor, lead time, and a link from each row to its tech-inspection tracker item.
