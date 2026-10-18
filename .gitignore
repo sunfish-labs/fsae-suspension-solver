@@ -1,5 +1,6 @@
 # Team design files and anything derived from them never go in this public repo
 private/
+private
 old/
 *.csv
 reports/
