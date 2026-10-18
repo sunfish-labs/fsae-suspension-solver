@@ -129,6 +129,7 @@ function applyTeam() {
   }
   teamCheck();
   renderTeamSec();
+  if ($("#trkDlg") && !$("#trkDlg").hidden) renderTracker();
 }
 // after every solve: is the design on screen a released one?
 function teamCheck() {

@@ -42,6 +42,60 @@ function bomCsv(rows) {
     "\n"
   );
 }
+// a CSV from a spreadsheet or this page's own download: columns found by their headers (Part, Part number or Choice,
+// Qty, Unit cost or Unit price, Source or Link, Status, Note or Notes, System)
+function csvRows(txt) {
+  const out = [];
+  let row = [],
+    cur = "",
+    q = false;
+  for (let i = 0; i < txt.length; i++) {
+    const c = txt[i];
+    if (q) {
+      if (c === '"' && txt[i + 1] === '"') ((cur += '"'), i++);
+      else if (c === '"') q = false;
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") (row.push(cur), (cur = ""));
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && txt[i + 1] === "\n") i++;
+      row.push(cur);
+      if (row.some(v => v.trim())) out.push(row);
+      ((row = []), (cur = ""));
+    } else cur += c;
+  }
+  row.push(cur);
+  if (row.some(v => v.trim())) out.push(row);
+  return out;
+}
+function bomFromCsv(txt) {
+  const [head, ...rows] = csvRows(txt),
+    h = head.map(x => x.trim().toLowerCase()),
+    col = (...names) => h.findIndex(x => names.some(n => x.startsWith(n)));
+  const c = {
+    system: col("system"),
+    part: col("part"),
+    pn: col("part number", "part no", "choice", "pn"),
+    qty: col("qty", "quantity"),
+    unit: col("unit cost", "unit price", "price", "cost"),
+    source: col("source", "link", "vendor"),
+    status: col("status"),
+    note: col("note"),
+  };
+  if (c.part < 0 || c.qty < 0) throw new Error("the first line needs at least Part and Qty columns");
+  const num = v => +String(v || "").replace(/[$,\s]/g, "") || 0,
+    g = (r, k) => (c[k] >= 0 ? (r[c[k]] || "").trim() : "");
+  return rows.map(r => ({
+    system: BOM_SYSTEMS.includes(g(r, "system")) ? g(r, "system") : "Suspension",
+    part: g(r, "part"),
+    pn: g(r, "pn"),
+    qty: num(g(r, "qty")),
+    unit_cost: num(g(r, "unit")),
+    source: g(r, "source"),
+    status: BOM_STATUS.some(s => s[0] === g(r, "status").toLowerCase()) ? g(r, "status").toLowerCase() : "planned",
+    note: g(r, "note"),
+  }));
+}
 function renderBom() {
   const box = $("#bomBox");
   if (!box || !car || chal) return;
@@ -77,7 +131,7 @@ function renderBom() {
       <div class="tbl-wrap"><table class="data bomtab"><thead><tr><th>System</th><th>Part</th><th>Part no.</th><th class="n">Qty</th><th class="n">Unit $</th><th class="n">Total</th><th>Source</th><th>Status</th><th></th></tr></thead><tbody>${body}</tbody></table></div>`
         : `<p class="note">No parts yet.</p>`
     }
-    <div class="laybtns"><button class="btn small" type="button" id="bomAdd">Add a part</button>${rows.length ? `<button class="btn small" type="button" id="bomCsv">Download CSV</button>` : ""}</div></details>`;
+    <div class="laybtns"><button class="btn small" type="button" id="bomAdd">Add a part</button><button class="btn small" type="button" id="bomImp">Import a CSV…</button><input type="file" id="bomFile" accept=".csv,text/csv" hidden>${rows.length ? `<button class="btn small" type="button" id="bomCsv">Download CSV</button>` : ""}</div></details>`;
   wireBom(box);
 }
 function wireBom(box) {
@@ -96,6 +150,16 @@ function wireBom(box) {
         ]))
     )
   );
+  $("#bomImp", box).addEventListener("click", () => $("#bomFile", box).click());
+  $("#bomFile", box).addEventListener("change", async e => {
+    try {
+      const add = bomFromCsv(await e.target.files[0].text());
+      edit(() => (car.bom = (car.bom || []).concat(add)));
+      flash(`Added ${add.length} parts from the CSV`);
+    } catch (x) {
+      box.insertAdjacentHTML("afterbegin", `<div class="banner bad">That CSV doesn't load: ${esc(x.message)}</div>`);
+    }
+  });
   const csv = $("#bomCsv", box);
   if (csv)
     csv.addEventListener("click", () => download(fileBase(car.name) + "_bom.csv", new Blob([bomCsv(car.bom || [])], { type: "text/csv" })));

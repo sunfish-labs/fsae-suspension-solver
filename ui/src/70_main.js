@@ -301,6 +301,7 @@ $("#dmChassis").addEventListener("click", () => {
   });
 }
 wireSettings();
+wireTrackerDlg();
 teamBoot();
 // boot: the saved car if there is one; else an old single-corner draft inside the example car; else the example car
 {

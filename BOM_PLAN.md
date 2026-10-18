@@ -17,6 +17,7 @@ ignores the block until phase 4.
    with cut lengths (from the hardpoints), rod ends and ball joints (count and rating from `members`), bolts, tabs,
    dampers and springs, brake parts from `brake_system`, engine from the drivetrain. Quantities update when the design
    changes; costs stay. A "what changed since last order" note when a quantity moves.
+2b. **CSV import (done, 1.36.0):** Bill of materials → Import a CSV.
 3. **Explore:** a parts catalog (`private/parts_catalog.json`: part, rating, mass, cost, source) so picking a cheaper
    rod end updates the BOM and re-runs the strength checks in one go; cost vs FOS side by side. Import the team's
    existing list (`private/parts_list_cheapest_2026-10-17.csv`) as the first catalog.

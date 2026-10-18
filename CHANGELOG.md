@@ -3,6 +3,15 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.36.0 - 2026-10-17
+
+- **Tech inspection tracker on the site** (Tracker in the header, team only): every area the inspectors check, with
+  owners, status and notes, overall and per-area percent done, search and a status filter. It lives in the encrypted
+  team settings: the team sees it read-only, the admin edits it (start from the FSAE 2027 checklist in
+  `schema/tracker_seed.json`, or import a tracker file) and commits a new settings.enc to publish.
+- **BOM: Import a CSV** from a spreadsheet (columns found by their headers: Part, Part number or Choice, Qty, Unit cost
+  or Unit price, Source or Link, Status, Notes, System; quoted commas and $ signs handled).
+
 ## 1.35.0 - 2026-10-17
 
 - **Bill of materials, phase 1** (Car view → Bill of materials): one row per part with system, part number,

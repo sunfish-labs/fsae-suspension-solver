@@ -13,6 +13,7 @@
     <div class="brand"><h1>Wake Forest FSAE</h1><span>Vehicle Dynamics Workbench</span></div>
     <div class="toolbar">
       <button class="btn primary" id="btnCheck" type="button" title="Every check on the car on one page, and a sign-off report">✓ Check design</button>
+      <button class="btn" id="btnTracker" type="button" title="Tech inspection tracker: every area the inspectors check, with owners, status and percent done">Tracker</button>
       <details class="xmenu" id="learnMenu"><summary class="btn">Learn ▾</summary>
         <div class="xpop" role="menu">
           <button type="button" role="menuitem" id="btnLearn"><b>Glossary</b><span>Every term with this design's value, a drawing on the 3D corner, and what moves it.</span></button>
@@ -152,6 +153,13 @@
   </div>
 </div>
 
+<div class="welcome" id="trkDlg" hidden>
+  <div class="wcard trkcard" role="dialog" aria-modal="true" aria-labelledby="trkTitle">
+    <button class="btn small wclose" type="button" id="trkClose" aria-label="Close">✕</button>
+    <h2 id="trkTitle">Tech inspection tracker</h2>
+    <div id="trkBody"></div>
+  </div>
+</div>
 <div class="welcome" id="chkDlg" hidden>
   <div class="wcard chkcard" role="dialog" aria-modal="true" aria-labelledby="chkTitle">
     <button class="btn small wclose" type="button" id="chkClose" aria-label="Close">✕</button>

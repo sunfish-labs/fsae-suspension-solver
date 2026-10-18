@@ -538,3 +538,26 @@ body.nohud #hud, body.nohud #vaxkey { display: none !important; }
 #bomSec[open] > summary::after { content: "▾"; }
 .bomtab select, .bomtab .ltext { width: 100%; min-width: 7em; }
 .bomtab .lnum { width: 5.5em; }
+
+/* tech inspection tracker (04_tracker.js): team only */
+body:not(.team) #btnTracker { display: none; }
+.trkcard { width: min(1040px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto; }
+.trksum { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 16px; margin: 6px 0 12px; }
+.trkpct { font: 600 38px/1 var(--f-display); } .trkpct small { font: 500 13px var(--f-body); color: var(--muted); }
+.trkbar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--panel-2); margin: 6px 0; }
+.trkbar span { height: 100%; } .trkbar .s-done { background: var(--ok); } .trkbar .s-doing { background: var(--gold); } .trkbar .s-na { background: var(--muted); opacity: .4; }
+.trkareas { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 4px 14px; font-size: 12.5px; }
+.trkareas .al { display: flex; justify-content: space-between; gap: 6px; } .trkareas .trkbar { height: 5px; margin: 3px 0 6px; }
+.trktools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
+.trktools input[type=search] { flex: 1 1 220px; }
+.trkarea h3 { font: 600 16px/1.2 var(--f-display); text-transform: uppercase; letter-spacing: .03em; border-bottom: 2px solid var(--ink); padding-bottom: 3px; margin: 14px 0 0; }
+.trkrow { display: grid; grid-template-columns: 96px minmax(0, 1fr) 150px 230px; gap: 8px 12px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.trkrow p { margin: 0 0 3px; } .trkrow[data-status="done"] .trkwhat > p { color: var(--muted); } .trkrow[data-status="na"] { opacity: .6; }
+.trkrule { font: 500 12px/1.5 var(--f-mono); color: var(--accent-text); }
+.trkrow input[type=text] { width: 100%; }
+.trktag { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; margin-right: 4px; color: var(--muted); }
+.trktag.sol { border-color: var(--gold); color: var(--gold); }
+.trkseg { display: grid; grid-template-columns: repeat(4, 1fr); }
+.trkseg button[aria-pressed="true"].done { background: var(--ok-bg); color: var(--ok); }
+.trkseg button[aria-pressed="true"].doing { background: var(--warn-bg); color: var(--ink); }
+.trkseg button:disabled { cursor: default; }

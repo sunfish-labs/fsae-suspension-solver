@@ -1,0 +1,566 @@
+{
+ "_doc": "Tech inspection checklist for the team tracker (Tracker in the app): FSAE 2027 IC, paraphrased by rule number; read the rulebook for the exact wording. how: solver = the workbench measures it, car, cad, docs = paperwork.",
+ "areas": [
+  "Paperwork",
+  "Vehicle and suspension",
+  "Frame",
+  "Cockpit and driver",
+  "Brakes",
+  "Powertrain and fuel",
+  "Electrical and shutdown",
+  "Fasteners",
+  "Equipment and markings",
+  "Inspection tests"
+ ],
+ "items": [
+  {
+   "id": "i01",
+   "area": "Paperwork",
+   "rule": "F.2.1",
+   "item": "Structural Equivalency Spreadsheet (SES) submitted and approved before the deadline",
+   "how": [
+    "docs"
+   ]
+  },
+  {
+   "id": "i02",
+   "area": "Paperwork",
+   "rule": "F.8.8",
+   "item": "Impact Attenuator Data report submitted (standard attenuator or test data)",
+   "how": [
+    "docs"
+   ]
+  },
+  {
+   "id": "i03",
+   "area": "Paperwork",
+   "rule": "IC.4.2",
+   "item": "Electronic throttle documentation submitted, if the car uses electronic throttle (otherwise doesn't apply)",
+   "how": [
+    "docs"
+   ]
+  },
+  {
+   "id": "i04",
+   "area": "Paperwork",
+   "rule": "IN.3",
+   "item": "Team has read the inspection sheet and pre-inspected the car against it",
+   "how": [
+    "docs",
+    "car"
+   ]
+  },
+  {
+   "id": "i05",
+   "area": "Vehicle and suspension",
+   "rule": "V.1.1",
+   "item": "Open wheels: nothing in the tire keep-out zones, top half of the tires clear from above",
+   "how": [
+    "solver",
+    "car"
+   ]
+  },
+  {
+   "id": "i06",
+   "area": "Vehicle and suspension",
+   "rule": "V.1.2, V.1.3",
+   "item": "Wheelbase at least 1525 mm; smaller track at least 75 % of the larger",
+   "how": [
+    "solver"
+   ]
+  },
+  {
+   "id": "i07",
+   "area": "Vehicle and suspension",
+   "rule": "V.1.4",
+   "item": "Ground clearance in motion and lower side impact structure height",
+   "how": [
+    "solver"
+   ]
+  },
+  {
+   "id": "i08",
+   "area": "Vehicle and suspension",
+   "rule": "V.3.1",
+   "item": "Usable wheel travel at least 50 mm with the driver seated; suspension mounts visible",
+   "how": [
+    "solver",
+    "car"
+   ]
+  },
+  {
+   "id": "i09",
+   "area": "Vehicle and suspension",
+   "rule": "V.3.2",
+   "item": "Steering: stops before lock-up, under 7° free play, rack mechanically attached",
+   "how": [
+    "solver",
+    "car"
+   ]
+  },
+  {
+   "id": "i10",
+   "area": "Vehicle and suspension",
+   "rule": "V.4",
+   "item": "Wheels at least 8 in; single-nut wheels have positive retention",
+   "how": [
+    "solver",
+    "car"
+   ]
+  },
+  {
+   "id": "i11",
+   "area": "Vehicle and suspension",
+   "rule": "F.5.11.4",
+   "item": "Suspension mounts not on the span of the Main Hoop or its braces away from the nodes",
+   "how": [
+    "cad"
+   ]
+  },
+  {
+   "id": "i12",
+   "area": "Vehicle and suspension",
+   "rule": "—",
+   "item": "Pickups land on the frame (frame changes list, 7 items)",
+   "how": [
+    "cad",
+    "solver"
+   ]
+  },
+  {
+   "id": "i13",
+   "area": "Frame",
+   "rule": "F.3",
+   "item": "Tube sizes and material match the SES",
+   "how": [
+    "cad",
+    "docs"
+   ]
+  },
+  {
+   "id": "i14",
+   "area": "Frame",
+   "rule": "F.5.6",
+   "item": "Driver template: 95th percentile helmet 50 mm under the hoop lines, 915 mm to the pedals",
+   "how": [
+    "solver"
+   ]
+  },
+  {
+   "id": "i15",
+   "area": "Frame",
+   "rule": "F.5.7, F.5.8",
+   "item": "Front and Main Hoop angles and heights; Front Hoop over the steering wheel",
+   "how": [
+    "solver",
+    "cad"
+   ]
+  },
+  {
+   "id": "i16",
+   "area": "Frame",
+   "rule": "F.5.9",
+   "item": "Main Hoop braces: attached within 160 mm of the top, 30° or more to the hoop",
+   "how": [
+    "solver"
+   ]
+  },
+  {
+   "id": "i17",
+   "area": "Frame",
+   "rule": "F.5.14",
+   "item": "Steering protection",
+   "how": [
+    "cad"
+   ]
+  },
+  {
+   "id": "i18",
+   "area": "Frame",
+   "rule": "F.6.1, F.6.2",
+   "item": "Front bulkhead and its support",
+   "how": [
+    "cad"
+   ]
+  },
+  {
+   "id": "i19",
+   "area": "Frame",
+   "rule": "F.6.4",
+   "item": "Side Impact Structure, upper member 290-345 mm above the lower one's lowest point",
+   "how": [
+    "solver",
+    "cad"
+   ]
+  },
+  {
+   "id": "i20",
+   "area": "Frame",
+   "rule": "F.6.5",
+   "item": "Shoulder harness mounting bar",
+   "how": [
+    "cad"
+   ]
+  },
+  {
+   "id": "i21",
+   "area": "Frame",
+   "rule": "F.8",
+   "item": "Anti Intrusion Plate and Impact Attenuator fitted as documented",
+   "how": [
+    "car",
+    "docs"
+   ]
+  },
+  {
+   "id": "i22",
+   "area": "Frame",
+   "rule": "F.9",
+   "item": "Fuel system location and protection",
+   "how": [
+    "cad"
+   ]
+  },
+  {
+   "id": "i23",
+   "area": "Cockpit and driver",
+   "rule": "T.1.1, IN.8",
+   "item": "Cockpit opening and internal cross section pass the templates",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i24",
+   "area": "Cockpit and driver",
+   "rule": "T.1.3",
+   "item": "Moving suspension and steering parts in the cockpit covered by a solid shield",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i25",
+   "area": "Cockpit and driver",
+   "rule": "T.1.7, T.1.8",
+   "item": "Floor closeout and firewall",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i26",
+   "area": "Cockpit and driver",
+   "rule": "T.2.2, T.2.3",
+   "item": "Harness meets the spec and is in date",
+   "how": [
+    "car",
+    "docs"
+   ]
+  },
+  {
+   "id": "i27",
+   "area": "Cockpit and driver",
+   "rule": "T.2.5, T.2.6",
+   "item": "Lap and shoulder belt angles and shoulder belt spacing",
+   "how": [
+    "solver",
+    "car"
+   ]
+  },
+  {
+   "id": "i28",
+   "area": "Cockpit and driver",
+   "rule": "T.2.7",
+   "item": "Anti-submarine belt mounting",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i29",
+   "area": "Cockpit and driver",
+   "rule": "T.2.8, T.2.9",
+   "item": "Head restraint; roll bar padding",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i30",
+   "area": "Cockpit and driver",
+   "rule": "V.2.2",
+   "item": "Driver visibility (mirrors)",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i31",
+   "area": "Cockpit and driver",
+   "rule": "IN.9",
+   "item": "Egress test: every driver out in time",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i32",
+   "area": "Brakes",
+   "rule": "T.3.1.2 c, IN.14",
+   "item": "Brakes can lock all four wheels with a design pedal force",
+   "how": [
+    "solver"
+   ]
+  },
+  {
+   "id": "i33",
+   "area": "Brakes",
+   "rule": "T.3.1.3, T.3.1.4",
+   "item": "Two independent hydraulic circuits with separate reservoirs",
+   "how": [
+    "solver",
+    "car"
+   ]
+  },
+  {
+   "id": "i34",
+   "area": "Brakes",
+   "rule": "T.3.2.2",
+   "item": "Pedal and system take 2000 N",
+   "how": [
+    "solver",
+    "car"
+   ]
+  },
+  {
+   "id": "i35",
+   "area": "Brakes",
+   "rule": "T.3.3",
+   "item": "Brake Over Travel Switch",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i36",
+   "area": "Brakes",
+   "rule": "T.3.4",
+   "item": "Brake light visible in bright sunlight",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i37",
+   "area": "Powertrain and fuel",
+   "rule": "T.5",
+   "item": "Drive chain or belt guards and scatter shields",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i38",
+   "area": "Powertrain and fuel",
+   "rule": "T.5.4",
+   "item": "Coolant (water only)",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i39",
+   "area": "Powertrain and fuel",
+   "rule": "T.5.5, T.5.6",
+   "item": "Systems sealed; catch cans",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i40",
+   "area": "Powertrain and fuel",
+   "rule": "IC.1",
+   "item": "Engine within the limits",
+   "how": [
+    "car",
+    "docs"
+   ]
+  },
+  {
+   "id": "i41",
+   "area": "Powertrain and fuel",
+   "rule": "IC.2",
+   "item": "Intake: location, mounting and restrictor",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i42",
+   "area": "Powertrain and fuel",
+   "rule": "IC.3",
+   "item": "Throttle and return springs",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i43",
+   "area": "Powertrain and fuel",
+   "rule": "IC.5",
+   "item": "Fuel tank, filler neck and sight tube, venting, fuel lines",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i44",
+   "area": "Powertrain and fuel",
+   "rule": "IC.7, IN.12",
+   "item": "Exhaust protection and the noise test",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i45",
+   "area": "Powertrain and fuel",
+   "rule": "—",
+   "item": "Final drive chosen (Car view, Drivetrain: final drive sweep)",
+   "how": [
+    "solver"
+   ]
+  },
+  {
+   "id": "i46",
+   "area": "Electrical and shutdown",
+   "rule": "IC.8",
+   "item": "Starter, batteries, voltage limit",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i47",
+   "area": "Electrical and shutdown",
+   "rule": "IC.9",
+   "item": "Shutdown circuit, primary master switch, cockpit main switch",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i48",
+   "area": "Electrical and shutdown",
+   "rule": "T.9.2, T.9.4",
+   "item": "Low voltage battery mounting; inertia switch",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i49",
+   "area": "Electrical and shutdown",
+   "rule": "IC.4",
+   "item": "Electronic throttle checks and BSPD, if the car uses electronic throttle",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i50",
+   "area": "Fasteners",
+   "rule": "T.8.2",
+   "item": "Critical fasteners: grade, head type, threads past the nut",
+   "how": [
+    "solver",
+    "car"
+   ]
+  },
+  {
+   "id": "i51",
+   "area": "Fasteners",
+   "rule": "T.8.3",
+   "item": "Positive locking on every critical fastener (nyloc only below 80 °C)",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i52",
+   "area": "Fasteners",
+   "rule": "V.3.1.5",
+   "item": "Rod ends and spherical bearings in double shear or captured",
+   "how": [
+    "solver",
+    "car"
+   ]
+  },
+  {
+   "id": "i53",
+   "area": "Equipment and markings",
+   "rule": "VE.1",
+   "item": "Car numbers, school name, SAE logo, transponder",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i54",
+   "area": "Equipment and markings",
+   "rule": "VE.2.1, VE.2.2",
+   "item": "Jacking point and push bar",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i55",
+   "area": "Equipment and markings",
+   "rule": "VE.2.3",
+   "item": "Fire extinguishers",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i56",
+   "area": "Equipment and markings",
+   "rule": "VE.3",
+   "item": "Driver equipment: helmet, suit, gloves, shoes, balaclava",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i57",
+   "area": "Inspection tests",
+   "rule": "IN.11",
+   "item": "Tilt test",
+   "how": [
+    "solver",
+    "car"
+   ]
+  },
+  {
+   "id": "i58",
+   "area": "Inspection tests",
+   "rule": "IN.7",
+   "item": "Driver template clearance on the car",
+   "how": [
+    "car"
+   ]
+  },
+  {
+   "id": "i59",
+   "area": "Inspection tests",
+   "rule": "IN.14",
+   "item": "Brake test at the event",
+   "how": [
+    "car"
+   ]
+  }
+ ]
+}

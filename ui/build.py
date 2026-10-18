@@ -31,7 +31,7 @@ html = html.replace("/*CSS*/", css.rstrip("\n"), 1).replace("/*APP_JS*/", app_js
 glossary = open(os.path.join(here, "glossary.js")).read()
 cad = open(os.path.join(here, "cad.js")).read()
 # the shared schema (schema/*.json, also read by the Python solver), as window.SUSP_SCHEMA for susp.js
-schema = {n: json.load(open(os.path.join(root, "schema", n + ".json"))) for n in ("defaults", "metrics", "targets", "points", "moves")}
+schema = {n: json.load(open(os.path.join(root, "schema", n + ".json"))) for n in ("defaults", "metrics", "targets", "points", "moves", "tracker_seed")}
 schema["rules"] = {f[:-5]: json.load(open(os.path.join(root, "schema", "rules", f))) for f in sorted(os.listdir(os.path.join(root, "schema", "rules"))) if f.endswith(".json")}
 # the solver: ui/solver/*.js, in file-name order, inside one closure (the same shape as ui/src/). Also written to
 # ui/susp.js (generated, not committed) for the Node tests and anyone who wants the solver on its own.
