@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>FSAE Suspension Solver</title>
+<style>
+:root { color-scheme: light dark; --bg: #f4f5f7; --panel: #fff; --ink: #1d2730; --muted: #5a6876; --line: #d9dee3; --accent: #1f6feb; --bad: #b3261e; }
+@media (prefers-color-scheme: dark) { :root { --bg: #14181d; --panel: #1d232a; --ink: #e6eaee; --muted: #9aa6b2; --line: #2e3740; --accent: #4c8dff; --bad: #ff8a80; } }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+form { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px; width: min(360px, calc(100vw - 32px)); box-sizing: border-box; }
+h1 { font-size: 19px; margin: 0 0 6px; }
+p { margin: 0 0 14px; color: var(--muted); font-size: 13.5px; }
+label { display: block; font-size: 13px; margin-bottom: 4px; }
+input { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+button { margin-top: 12px; width: 100%; font: inherit; font-weight: 600; padding: 9px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; }
+button:disabled { opacity: .6; cursor: wait; }
+#msg { color: var(--bad); min-height: 1.2em; margin: 10px 0 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<form id="gate" hidden>
+  <h1>FSAE Suspension Solver</h1>
+  <p>This copy is for the team. Enter the team passphrase; this browser remembers it.</p>
+  <label for="pass">Team passphrase</label>
+  <input id="pass" type="password" autocomplete="current-password" required>
+  <button id="go" type="submit">Open</button>
+  <p id="msg" role="alert"></p>
+</form>
+<script>
+(function () {
+  "use strict";
+  const P = /*PAYLOAD*/null;
+  const u8 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const store = {
+    get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* storage blocked */ } },
+  };
+  async function open(pass) {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveBits"]);
+    const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: u8(P.salt), iterations: P.iter }, base, 256);
+    const key = await crypto.subtle.importKey("raw", bits, "AES-GCM", false, ["decrypt"]);
+    const gz = await crypto.subtle.decrypt({ name: "AES-GCM", iv: u8(P.iv) }, key, u8(P.ct));
+    const html = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    store.set("susp.teampass", pass);
+    document.open();
+    document.write(html);
+    document.close();
+  }
+  const form = document.getElementById("gate"), msg = document.getElementById("msg"), go = document.getElementById("go");
+  function ask(text) {
+    form.hidden = false;
+    msg.textContent = text || "";
+    document.getElementById("pass").focus();
+  }
+  if (!window.crypto || !crypto.subtle || typeof DecompressionStream === "undefined") {
+    ask("This browser is too old to open the app: use a current Chrome, Edge, Firefox or Safari.");
+    go.disabled = true;
+    return;
+  }
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    go.disabled = true;
+    msg.textContent = "Opening…";
+    open(document.getElementById("pass").value).catch(() => {
+      go.disabled = false;
+      msg.textContent = "That passphrase doesn't open it. Ask your team lead.";
+    });
+  });
+  const saved = store.get("susp.teampass");
+  if (saved) open(saved).catch(() => ask("The team passphrase has changed: enter the new one."));
+  else ask();
+})();
+</script>
+</body>
+</html>

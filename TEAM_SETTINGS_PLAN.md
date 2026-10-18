@@ -34,8 +34,15 @@ accident. The full switchboard below was the first proposal; only the parts mark
 - Code: `ui/src/03_team.js` (and the CSS at the end of `ui/src/style.css`). Tests: "Team settings" in
   `tests/browser_test.js`.
 
-**Limit:** this is a guardrail, not security. The code is public: someone can skip the passphrase, clear their
-browser or use the developer tools. It keeps the team's own copy calm and the official design safe from slips.
+**The published site is encrypted (1.29.0).** The pages workflow encrypts the built app with the team passphrase
+(repository secret `TEAM_PASSPHRASE`; `tools/encrypt_page.js` and the passphrase page `tools/gate.html`): gzip,
+then AES-GCM under a PBKDF2-SHA256 key (200,000 rounds). Without the passphrase the site shows only the passphrase
+box, and browser tools can't help, because the app isn't there to unhide. The build checks that the secret opens
+`team/settings.enc` and stops if it is missing or wrong, so an open copy is never published.
+
+**Limits:** once the app is open, someone who edits the running page with browser tools can turn learning mode or a
+release lock off for themselves. The source code is public, so anyone can build the plain, unlocked tool from the
+repo (without the team settings, and without any team design: those were never in the repo).
 
 ## The original proposal (not built)
 

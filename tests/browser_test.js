@@ -27,7 +27,7 @@ async function newPage(browser, opts = {}) {
   p.errors = [];
   p.on("pageerror", e => p.errors.push("pageerror: " + e.message));
   p.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|net::|Failed to load resource/.test(m.text())) p.errors.push("console: " + m.text()); });
-  await p.goto(PAGE); await p.evaluate(() => localStorage.clear()); await p.reload(); await settle(p);
+  await p.goto(opts.page || PAGE); await p.evaluate(() => localStorage.clear()); await p.reload(); await settle(p);
   return p;
 }
 const closeWelcome = async (p) => { if (await p.$("#welcome:not([hidden])")) await p.click("#wClose"); };
@@ -639,7 +639,11 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   await p.context().close();
 
   console.log("\nTeam settings");
-  p = await newPage(browser); await closeWelcome(p);
+  // a copy of the page without the repo's own team/settings.enc, so the test sets up its own
+  const plainPage = path.join(os.tmpdir(), "susp_noteam", "index.html");
+  fs.mkdirSync(path.dirname(plainPage), { recursive: true });
+  fs.writeFileSync(plainPage, fs.readFileSync(path.join(ROOT, "ui", "index.html"), "utf8").replace(/const TEAM_ENC = \{[^\n]*\};/, "const TEAM_ENC = null;"));
+  p = await newPage(browser, { page: "file://" + plainPage }); await closeWelcome(p);
   const dl = async (fn) => { const [d] = await Promise.all([p.waitForEvent("download"), fn()]); const f = path.join(os.tmpdir(), "susp_" + d.suggestedFilename()); await d.saveAs(f); return { name: d.suggestedFilename(), body: fs.readFileSync(f, "utf8") }; };
   const isShown = (sel) => p.evaluate(s => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== "none"; }, sel);
   await p.evaluate(() => document.body.insertAdjacentHTML("beforeend", '<div class="pvbtns" id="tApplyBox"><button data-apply="0" id="tApply">Apply</button><button data-preview="0" id="tPreview">Preview</button></div>'));
@@ -684,6 +688,35 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   check("the team passphrase unlocks and the admin passphrase signs in", /Admin/.test(await text(p, "#teamBody")) && !(await p.evaluate(() => document.body.classList.contains("learning"))));
   check("no script errors in the team settings pass", p.errors.length === 0, p.errors.slice(0, 5).join(" | "));
   await p.context().close();
+
+  console.log("\nLocked site (the published page, encrypted behind the team passphrase)");
+  {
+    const { execFileSync } = require("child_process");
+    const locked = path.join(os.tmpdir(), "susp_locked", "index.html");
+    execFileSync("node", [path.join(ROOT, "tools", "encrypt_page.js"), path.join(ROOT, "ui", "index.html"), locked, "--no-check"], { env: { ...process.env, TEAM_PASSPHRASE: "gate-pass-789" } });
+    const html = fs.readFileSync(locked, "utf8");
+    check("the published page holds nothing readable", !/Double wishbone|Susp\.|three|PRESETS/.test(html) && html.length < 2.2e6, `${html.length} bytes`);
+    let refused = false;
+    try { execFileSync("node", [path.join(ROOT, "tools", "encrypt_page.js"), path.join(ROOT, "ui", "index.html"), locked + ".x"], { env: { ...process.env, TEAM_PASSPHRASE: "" }, stdio: "pipe" }); } catch (e) { refused = true; }
+    check("without the passphrase secret the build refuses to publish", refused && !fs.existsSync(locked + ".x"));
+    const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
+    p = await ctx.newPage(); p.errors = [];
+    p.on("pageerror", e => p.errors.push("pageerror: " + e.message));
+    await p.route(/^https?:/, r => r.abort());
+    await p.goto("file://" + locked); await p.evaluate(() => localStorage.clear()); await p.reload();
+    await p.waitForSelector("#gate:not([hidden])");
+    check("the locked page asks for the passphrase and shows no app", !(await p.$("#btnSettings")));
+    await p.fill("#pass", "wrong-wrong-1"); await p.click("#go");
+    await p.waitForFunction(() => /doesn't open/.test(document.getElementById("msg").textContent));
+    check("a wrong passphrase does not open it", !(await p.$("#btnSettings")));
+    await p.fill("#pass", "gate-pass-789"); await p.click("#go");
+    await p.waitForSelector("#btnSettings", { timeout: 30000 }); await settle(p);
+    check("the right passphrase opens the full app", /car targets/.test(await text(p, "#status")), await text(p, "#status"));
+    await p.reload(); await p.waitForSelector("#btnSettings", { timeout: 30000 }); await settle(p);
+    check("the browser remembers it: the next visit opens straight away", (await p.evaluate(() => localStorage.getItem("susp.teampass"))) === "gate-pass-789");
+    check("no script errors in the locked page", p.errors.length === 0, p.errors.slice(0, 5).join(" | "));
+    await ctx.close();
+  }
 
   console.log("\nPhone width");
   p = await newPage(browser, { viewport: { width: 400, height: 850 } }); await closeWelcome(p);

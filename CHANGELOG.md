@@ -3,6 +3,14 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.29.0 - 2026-10-17
+
+- **The published site is locked with the team passphrase.** The pages workflow encrypts the app (gzip, then
+  AES-GCM with a PBKDF2 key; `tools/encrypt_page.js`): the site asks for the passphrase, and without it the page holds
+  nothing readable. One entry opens the app and the team settings, and the browser remembers it. The passphrase is
+  the repository secret `TEAM_PASSPHRASE`; the build refuses to publish if it is missing or doesn't open
+  `team/settings.enc`.
+
 ## 1.28.0 - 2026-10-17
 
 - **Team settings** (⚙ Settings → Team), set by the team's admin and stored encrypted in the repo

@@ -349,8 +349,15 @@ The team's admin can set, in ⚙ Settings → Team:
 The settings are encrypted with a team passphrase and committed as `team/settings.enc`, so the public site carries
 them but other teams can't read them; without the passphrase the app works as normal. Setting up (admin): ⚙ Settings
 → Team → Create team settings, then Download settings.enc, put it at `team/settings.enc`, commit and push. Teammates
-enter the team passphrase once. It is a guardrail against slips, not security: see
-[TEAM_SETTINGS_PLAN.md](TEAM_SETTINGS_PLAN.md).
+enter the team passphrase once. See [TEAM_SETTINGS_PLAN.md](TEAM_SETTINGS_PLAN.md).
+
+**The published site is locked.** The app on GitHub Pages is encrypted with the team passphrase
+(`tools/encrypt_page.js`, run by the pages workflow): it asks for the passphrase first, and without it the page holds
+nothing readable. One entry opens both the app and the team settings, and the browser remembers it. The passphrase is
+the repository secret `TEAM_PASSPHRASE` (Settings → Secrets and variables → Actions); the build stops rather than
+publish an open copy if it is missing or doesn't open `team/settings.enc`. When you change the team passphrase,
+update the secret and commit the new `settings.enc` together. The source code in this repo stays public, and
+`ui/index.html` built from it is unlocked.
 
 ## Settings and coordinates
 **⚙ Settings** (top bar) keeps per-browser choices: the color theme; **coordinates** (axes: the team frame, ISO 8855,
