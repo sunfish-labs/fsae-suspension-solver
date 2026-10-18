@@ -348,6 +348,10 @@ def print_loads(cfg, ev, L):
         rows += [[f"{hn[k]} arm, {v['length']:.0f} mm", f"{v['across']:.0f} across ({v['case']})",
                   f"{v['moment'] / 1000:.1f} N m -> {v['stress']:.0f}", f_num(v["sf"], 2), "OK" if v["sf"] >= mem["sf_target"] else "BELOW FOS"]
                  for k, v in rc["arms"].items()]
+        pp = rc.get("pivot_pin")
+        if pp:
+            rows.append([f"Pivot bolt {pp['d']:g} mm, double shear", f"{pp['peak']:.0f} ({pp['case']})", f"capacity {pp['capacity']:.0f} N",
+                         f_num(pp["sf"], 2), "OK" if pp["sf"] >= mem["sf_target"] else "BELOW FOS"])
         table(["where", "force N", "stress MPa", "FOS", ""], rows)
         if rc["out_of_plane"] > 0.1:
             print(f"  {rc['out_of_plane'] * 100:.0f} % of a pin force runs along the rocker's axis ({rc['oop_case']}): that bends the plates "

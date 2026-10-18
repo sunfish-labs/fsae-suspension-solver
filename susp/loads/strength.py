@@ -242,14 +242,17 @@ def rocker_of(cfg):
     """members.rocker, the rocker's plates, or None (not checked):
       thickness (each plate), plates (default 2, joined by spacers), pivot_bore (the bearing or bushing's outside
       diameter), pivot_edge (pivot center to the plate's edge around the hub), pin_dia (the pushrod and damper bolts,
-      default members.bolt_dia), edge (those holes' centers to the plate's edge), width (the narrowest depth of each
+      default members.bolt_dia), pivot_pin_dia (the bolt through the pivot, default pin_dia; checked in double shear),
+      edge (those holes' centers to the plate's edge), width (the narrowest depth of each
       arm between the hub and its end), yield (MPa, default 6061-T6)."""
     rk = (cfg.get("members") or {}).get("rocker")
     if not rk:
         return None
     mem = cfg["members"]
+    pin_d = float(rk.get("pin_dia") or mem.get("bolt_dia") or 8.0)
+    piv_pin_d = float(rk.get("pivot_pin_dia") or pin_d)
     return dict(thickness=float(rk["thickness"]), plates=int(rk.get("plates") or 2), pivot_bore=float(rk["pivot_bore"]),
-                pivot_edge=float(rk["pivot_edge"]), pin_dia=float(rk.get("pin_dia") or mem.get("bolt_dia") or 8.0),
+                pivot_edge=float(rk["pivot_edge"]), pin_dia=pin_d, pivot_pin_dia=piv_pin_d,
                 edge=float(rk["edge"]), width=float(rk["width"]), yield_=float(rk.get("yield") or ROCKER_YIELD))
 
 
@@ -334,5 +337,14 @@ def rocker_check(cfg, susp, sp, results, deflect=None, arb=None):
     sfs = [v["sf"] for v in holes.values()] + [v["sf"] for v in arms.values()]
     rows = [(f"hole:{k}", v["sf"]) for k, v in holes.items()] + [(f"arm:{k}", v["sf"]) for k, v in arms.items()]
     gov = min(rows, key=lambda x: x[1])[0] if rows else None
-    return dict(rocker=dict(rk, **{"yield": sy}), holes=holes, arms=arms, out_of_plane=oop[0], oop_case=oop[1],
-                sf=min(sfs) if sfs else float("inf"), governs=gov)
+    # the pivot bolt in double shear (the bearing itself: bearing_check, members.rocker_bearing_rating)
+    mem = cfg.get("members") or {}
+    d_pin, uts = rk["pivot_pin_dia"], BOLT_UTS.get(str(mem.get("bolt_grade")), 0.0)
+    pivot_pin = None
+    if uts and "pivot" in holes:
+        cap_pin = 2.0 * math.pi / 4 * d_pin ** 2 * 0.6 * uts
+        pk = holes["pivot"]["force"]
+        pivot_pin = dict(d=d_pin, peak=pk, case=holes["pivot"]["case"], capacity=cap_pin,
+                         sf=cap_pin / pk if pk > 1e-6 else float("inf"))
+    return dict(rocker=dict(rk, **{"yield": sy}), holes=holes, arms=arms, pivot_pin=pivot_pin,
+                out_of_plane=oop[0], oop_case=oop[1], sf=min(sfs) if sfs else float("inf"), governs=gov)

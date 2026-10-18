@@ -204,7 +204,10 @@ function rockerHtml(L, mem) {
         ([k, v]) =>
           `<tr><td>${RK_END[k]} arm, ${fmt(v.length, 0)} mm</td><td class="n">${fmt(v.across, 0)} across <span class="muted">(${esc(v.case)})</span></td><td class="n">${fmt(v.moment / 1000, 1)} N m → ${fmt(v.stress, 0)}</td>${c(v.sf)}<td class="muted">bending + axial</td></tr>`
       )
-      .join("");
+      .join("") +
+    (R.pivot_pin
+      ? `<tr><td>Pivot pin (${fmt(R.pivot_pin.d, 1)} mm, double shear)</td><td class="n">${fmt(R.pivot_pin.peak, 0)} <span class="muted">(${esc(R.pivot_pin.case)})</span></td><td class="n">cap ${fmt(R.pivot_pin.capacity, 0)} N</td>${c(R.pivot_pin.sf)}<td class="muted">pin shear</td></tr>`
+      : "");
   return `<h3 class="sub-h">Rocker · ${rk.plates} × ${fmt(rk.thickness, 2)} mm plate${rk.plates > 1 ? "s" : ""} · yield ${fmt(rk.yield, 0)} MPa · FOS <span class="${attr(R.sf >= need ? "ok-t" : "bad-t")}">${fmt(R.sf, 2)}</span></h3>
     <div class="tbl-wrap"><table class="data"><thead><tr><th>Where</th><th class="n">Force in its plane, N</th><th class="n">Stress, MPa</th><th class="n">FOS</th><th>Governs</th></tr></thead><tbody>${rows}</tbody></table></div>
     <p class="note">Each hole like a lug: bearing F/(n·t·d) against yield, tear-out F/(2·n·t·(e − d/2)) against 0.577 × yield, e from the hole's center to the plate's edge. Each arm as a beam built in at the hub's edge (${fmt(rk.pivot_edge, 0)} mm from the pivot), the pin force across it bending it: 6M/(n·t·w²) + axial/(n·t·w), w the arm's narrowest depth (${fmt(rk.width, 0)} mm). The worst case for each; forces in the rocker's plane.

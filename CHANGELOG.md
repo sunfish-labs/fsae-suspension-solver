@@ -3,6 +3,21 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.39.0 - 2026-10-18
+
+Started by another assistant (Google Antigravity) in the owner's copy; finished, reviewed and tested here.
+- **Brakes: master cylinder stroke, balance bar tilt and pedal travel at lock-up** (estimates: running clearance
+  0.15 mm per pad, 0.0025 mm of caliper give per bar, 1 mm dead stroke). Three new rules rows: the master cylinders
+  don't bottom out, the balance bar doesn't tilt past its limit, and the pedal has room to the floor. New inputs:
+  rated stroke, balance bar pushrod spacing and tilt limit, pedal travel room.
+- **Rocker: the pivot bolt in double shear** (members.rocker.pivot_pin_dia, default the pin holes), in the Loads tab
+  and the CLI.
+- **Tech inspection package** (Export menu): every rule the workbench checks with this car's value, status and an
+  evidence column; the items to check by hand; and the suspension fastener schedule (bolt, grade, shear, worst load,
+  bolt FOS, plus grip length, locking and washer to fill in).
+- Fix: the final-drive sweep's finals are no longer rounded to 4 decimals, which Python and the browser did
+  differently at exact halves (a 1e-5 parity difference on six-speed gearboxes).
+
 ## 1.38.0 - 2026-10-17
 
 - **Design justification:** a **Key calculations** section works the main numbers by hand with the design's values

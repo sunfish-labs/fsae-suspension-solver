@@ -738,12 +738,14 @@ const ROCKER_YIELD = 241.0;
 function rockerOf(cfg) {
   const rk = (cfg.members || {}).rocker;
   if (!rk) return null;
+  const pinD = +(rk.pin_dia || cfg.members.bolt_dia || 8.0);
   return {
     thickness: +rk.thickness,
     plates: Math.trunc(+rk.plates || 2),
     pivot_bore: +rk.pivot_bore,
     pivot_edge: +rk.pivot_edge,
-    pin_dia: +(rk.pin_dia || cfg.members.bolt_dia || 8.0),
+    pin_dia: pinD,
+    pivot_pin_dia: +(rk.pivot_pin_dia || pinD),
     edge: +rk.edge,
     width: +rk.width,
     yield_: +(rk.yield || ROCKER_YIELD),
@@ -815,10 +817,20 @@ function rockerCheck(cfg, susp, sp, results, deflect = {}, arb = null) {
   }
   const rows = [...Object.entries(holes).map(([k, v]) => [`hole:${k}`, v.sf]), ...Object.entries(arms).map(([k, v]) => [`arm:${k}`, v.sf])];
   const govRow = rows.reduce((b, x) => (b === null || x[1] < b[1] ? x : b), null);
+  // the pivot bolt in double shear (the bearing itself: bearingCheck, members.rocker_bearing_rating)
+  const dPin = rk.pivot_pin_dia,
+    uts = BOLT_UTS[String((cfg.members || {}).bolt_grade)] || 0;
+  let pivotPin = null;
+  if (uts && holes.pivot) {
+    const capPin = 2 * (Math.PI / 4) * dPin * dPin * 0.6 * uts,
+      pk = holes.pivot.force;
+    pivotPin = { d: dPin, peak: pk, case: holes.pivot.case, capacity: capPin, sf: pk > 1e-6 ? capPin / pk : Infinity };
+  }
   return {
     rocker: Object.assign({}, rk, { yield: sy }),
     holes,
     arms,
+    pivot_pin: pivotPin,
     out_of_plane: oop[0],
     oop_case: oop[1],
     sf: rows.length ? Math.min(...rows.map(x => x[1])) : Infinity,

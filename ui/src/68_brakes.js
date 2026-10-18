@@ -28,6 +28,10 @@ const BR_FIELDS = [
   ["tire_mu", "Tire grip for the lock-up (blank = Tires at the limit)", "μ", 0.05],
   ["driver_force", "Pedal force you design the lock-up for", "N", 10],
   ["max_pressure", "Lowest pressure the master cylinders, calipers and lines take without failing (proof or burst)", "bar", 5],
+  ["mc_stroke", "Master cylinder rated stroke (blank = 25.4 mm / 1 in)", "mm", 1],
+  ["bar_width", "Balance bar pushrod spacing (blank = 63.5 mm / 2.5 in)", "mm", 1],
+  ["bar_max_angle", "Balance bar max tilt before binding (blank = 10°)", "°", 1],
+  ["pedal_max_travel", "Max pedal pad travel before floor (blank = 75 mm)", "mm", 1],
 ];
 function brakeResult() {
   const b = car.brake_system;
@@ -51,6 +55,9 @@ function brakeResultsHtml(r) {
       <div><span>Balance bar for both axles to lock together</span><b class="${ok(r.bias_ok)}">${pct(r.bias_ideal)} <small>% front (set ${pct(r.bias)}, reaches ${pct(r.bias_range[0])}–${pct(r.bias_range[1])})</small></b></div>
       <div><span>Pedal force then</span><b>${fmt(r.pedal_lock_ideal, 0)} <small>N</small></b></div>
       <div><span>Brake force on the front, this setting / ideal</span><b>${pct(r.installed_front_share)} / ${pct(r.ideal_front_share)} <small>%</small></b></div>
+      <div><span>Master cylinder stroke at lock-up, front / rear</span><b class="${ok(r.stroke_ok)}">${fmt(r.stroke_front, 1)} / ${fmt(r.stroke_rear, 1)} <small>mm (max ${fmt(r.stroke_max, 1)})</small></b></div>
+      <div><span>Balance bar tilt at lock-up</span><b class="${ok(r.bar_tilt_ok)}">${fmt(r.bar_tilt_deg, 1)} <small>° (limit ${fmt(r.bar_max_angle, 1)}°)</small></b></div>
+      <div><span>Pedal pad travel to lock all four</span><b class="${ok(r.pedal_travel_ok)}">${fmt(r.pedal_travel, 0)} <small>mm (room ${fmt(r.pedal_max_travel, 0)})</small></b></div>
       <div><span>Line pressure with 2000 N on the pedal (T.3.2.2)</span><b class="${r.max_pressure ? ok(r.pressure_margin >= 0) : ""}">${fmt(r.p_2000, 0)} <small>bar${r.max_pressure ? ` (parts take ${fmt(r.max_pressure, 0)})` : ""}</small></b></div></div>
     <p class="note">Braking at the tire's grip (μ ${fmt(r.tire_mu, 2)}, ${fmt(r.decel_g, 2)} g) moves load forward: front ${fmt(r.fz_front, 0)} N, rear ${fmt(r.fz_rear, 0)} N. Each axle locks when its brake force reaches μ × its load. A higher μ needs more pedal force, so check with your grippiest tire. The load cases use <i>Brake share to the front</i> (${pct(+(car.vehicle.front_brake_share || 0))} %): set it to the brake force on the front above so the braking loads match this hardware.</p>`;
 }
@@ -92,7 +99,21 @@ function wireBrakes(box) {
         if (d.length && d.every(v => Number.isFinite(v) && v > 0)) b[k] = d;
         else return;
       } else if (el.value === "") {
-        if (["tire_mu", "max_pressure", "pad_mu", "driver_force", "bias", "rear_calipers"].includes(k)) delete b[k];
+        if (
+          [
+            "tire_mu",
+            "max_pressure",
+            "pad_mu",
+            "driver_force",
+            "bias",
+            "rear_calipers",
+            "mc_stroke",
+            "bar_width",
+            "bar_max_angle",
+            "pedal_max_travel",
+          ].includes(k)
+        )
+          delete b[k];
         else return;
       } else if (Number.isFinite(+el.value)) b[k] = +el.value;
       else return;

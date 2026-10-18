@@ -41,7 +41,7 @@ def check_brakes(b, where="brake_system"):
         v = b.get(k)
         if not (isinstance(v, list) and v and all(isinstance(d, (int, float)) and d > 0 for d in v)):
             raise ConfigError(f"{where}: brake_system.{k} must list the piston diameters on one side of the rotor (mm)")
-    for k in ("pad_mu", "tire_mu", "driver_force", "max_pressure"):
+    for k in ("pad_mu", "tire_mu", "driver_force", "max_pressure", "mc_stroke", "bar_width", "bar_max_angle", "pedal_max_travel"):
         v = b.get(k)
         if v is not None and not (isinstance(v, (int, float)) and v > 0):
             raise ConfigError(f"{where}: brake_system.{k} must be a positive number")
@@ -74,6 +74,9 @@ def brake_sizing(b, veh, tire_radius, wheelbase):
     out = dict(tire_mu=mu, decel_g=mu, fz_front=fz_f, fz_rear=fz_r, ideal_front_share=fz_f / W)
     lock_push = {}                                       # pushrod force on each master cylinder that locks the axle, N
     k_ax = {}
+    pad_clearance = 0.15                                # mm, running clearance per pad
+    caliper_compliance = 0.0025                         # mm piston displacement per bar of line pressure
+    s_dead = 1.0                                        # mm, master cylinder cutoff port travel
     for ax, n in (("front", 2), ("rear", int(b["rear_calipers"]))):
         a_pist = sum(_area(d) for d in b[f"caliper_{ax}"])
         k = 2 * float(b["pad_mu"]) * a_pist * float(b[f"rotor_{ax}"])          # N mm per MPa, one caliper
@@ -82,7 +85,11 @@ def brake_sizing(b, veh, tire_radius, wheelbase):
         a_mc = _area(float(b[f"mc_{ax}"]))
         lock_push[ax] = p * a_mc
         k_ax[ax] = n * k / a_mc / R            # axle brake force (N) per N of pushrod force on that master cylinder
-        out[f"p_lock_{ax}"] = p * 10.0                                          # bar
+        p_bar = p * 10.0
+        out[f"p_lock_{ax}"] = p_bar                                            # bar
+        # master cylinder stroke to displace fluid for pad clearance and pressure compliance
+        v_fluid = n * a_pist * (pad_clearance + caliper_compliance * p_bar)
+        out[f"stroke_{ax}"] = v_fluid / a_mc + s_dead
     bias = float(b["bias"])
     f_f, f_r = lock_push["front"] / (bias * ratio), lock_push["rear"] / ((1 - bias) * ratio)
     out.update(bias=bias, pedal_lock_front=f_f, pedal_lock_rear=f_r, pedal_lock=max(f_f, f_r),
@@ -96,6 +103,20 @@ def brake_sizing(b, veh, tire_radius, wheelbase):
     out["installed_front_share"] = bf / (bf + br)
     out["driver_force"] = float(b["driver_force"])
     out["lock_margin"] = out["driver_force"] - out["pedal_lock"]
+    # stroke, balance-bar tilt angle and pedal travel
+    mc_stroke = float(b.get("mc_stroke") or 25.4)
+    bar_w = float(b.get("bar_width") or 63.5)
+    bar_max_deg = float(b.get("bar_max_angle") or 10.0)
+    pedal_max_tr = float(b.get("pedal_max_travel") or 75.0)
+    sf, sr = out["stroke_front"], out["stroke_rear"]
+    s_used = max(sf, sr)
+    tilt_deg = math.degrees(math.atan(abs(sf - sr) / bar_w))
+    ped_travel = ratio * (bias * sf + (1.0 - bias) * sr)
+    out.update(stroke_max=mc_stroke, stroke_margin=mc_stroke - s_used, stroke_ok=s_used <= mc_stroke,
+               bar_width=bar_w, bar_tilt_deg=tilt_deg, bar_max_angle=bar_max_deg,
+               bar_tilt_margin=bar_max_deg - tilt_deg, bar_tilt_ok=tilt_deg <= bar_max_deg,
+               pedal_travel=ped_travel, pedal_max_travel=pedal_max_tr,
+               pedal_travel_margin=pedal_max_tr - ped_travel, pedal_travel_ok=ped_travel <= pedal_max_tr)
     # T.3.2.2: line pressure with 2000 N on the pedal (the busier master cylinder)
     p2000 = max(bias / _area(float(b["mc_front"])), (1 - bias) / _area(float(b["mc_rear"]))) * PEDAL_RULE_FORCE * ratio * 10.0
     out["p_2000"] = p2000
@@ -107,15 +128,20 @@ def brake_sizing(b, veh, tire_radius, wheelbase):
 def brake_rule_values(b, fcfg, rcfg):
     """Values for the rules engine from a car's brake_system block (None without one)."""
     if not b:
-        return dict(brake_lock_margin=None, brake_bias_ok=None, brake_circuits=None, brake_pressure_margin=None, _brakes=None)
+        return dict(brake_lock_margin=None, brake_bias_ok=None, brake_circuits=None, brake_pressure_margin=None,
+                    brake_stroke_margin=None, brake_bar_tilt_ok=None, brake_pedal_travel=None, _brakes=None)
     veh = fcfg["vehicle"]
     r = brake_sizing(b, veh, float(rcfg["wheel"]["tire_radius"]), float(veh["wheelbase"]))
     lock = {"v": r["lock_margin"], "note": f"{r['pedal_lock']:.0f} N on the pedal locks all four at mu {r['tire_mu']:g} "
             f"({r['first_lock']} first), against {r['driver_force']:.0f} N"}
     bias = {"v": r["bias_ok"], "note": f"locks both axles together at {r['bias_ideal'] * 100:.0f} % front; the bar reaches "
             f"{r['bias_range'][0] * 100:.0f}-{r['bias_range'][1] * 100:.0f} %"}
+    stroke = {"v": r["stroke_margin"], "note": f"front {r['stroke_front']:.1f} mm, rear {r['stroke_rear']:.1f} mm (limit {r['stroke_max']:.1f} mm)"}
+    tilt = {"v": r["bar_tilt_ok"], "note": f"{r['bar_tilt_deg']:.1f}° tilt (limit {r['bar_max_angle']:.1f}°)"}
+    ptravel = {"v": r["pedal_travel_margin"], "note": f"{r['pedal_travel']:.0f} mm at the pedal pad (room {r['pedal_max_travel']:.0f} mm)"}
     press = ({"v": r["pressure_margin"], "note": f"{r['p_2000']:.0f} bar at 2000 N, parts take {r['max_pressure']:.0f} bar"}
              if r["max_pressure"] else {"manual": f"{r['p_2000']:.0f} bar in the lines at 2000 N on the pedal: enter "
                                                     "brake_system.max_pressure, the lowest proof or burst pressure of the master cylinders, calipers and lines"})
     return dict(brake_lock_margin=lock, brake_bias_ok=bias, brake_circuits={"v": True, "note": "a front and a rear master cylinder"},
+                brake_stroke_margin=stroke, brake_bar_tilt_ok=tilt, brake_pedal_travel=ptravel,
                 brake_pressure_margin=press, _brakes=r)

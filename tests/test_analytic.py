@@ -790,6 +790,11 @@ check("brakes: equal hardware -> the ideal balance bar = the front's share of th
 r21b = brake_sizing(dict(b21, bias=r21["bias_ideal"]), v21, 250.0, 1500.0)
 check("brakes: at the ideal balance bar both axles lock at the same pedal force, N", r21b["pedal_lock_front"] - r21b["pedal_lock_rear"], 0.0, 1e-9, "")
 check("brakes: line pressure with 2000 N on the pedal, bar", r21["p_2000"], 0.5 * 2000 * 5 / (math.pi / 4 * 20 ** 2) * 10, 1e-9, "the busier master cylinder")
+v_fluid_f = 2 * (math.pi / 4 * 30 ** 2) * (0.15 + 0.0025 * pf21 * 10)
+sf21 = v_fluid_f / (math.pi / 4 * 20 ** 2) + 1.0
+check("brakes: front master cylinder stroke at lock-up, mm", r21["stroke_front"], sf21, 1e-9, "fluid displacement / A_mc + 1 mm dead stroke")
+tilt21 = math.degrees(math.atan(abs(r21["stroke_front"] - r21["stroke_rear"]) / 63.5))
+check("brakes: balance bar tilt angle at lock-up, deg", r21["bar_tilt_deg"], tilt21, 1e-9, "atan(delta_stroke / bar_width)")
 
 # 22. the final-drive sweep (layout.gearing_sweep)
 from susp.layout import accel_run, gearing_sweep  # noqa: E402

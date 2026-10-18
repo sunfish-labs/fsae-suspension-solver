@@ -221,7 +221,7 @@ def gearing_sweep(d, veh, tire_radius, wheelbase, finals=None, need_kph=None):
     drivetrain.top_speed_need or 105 km/h, the endurance course's design top speed, D.12.2.2): a final whose top speed
     falls short of it would hit the rev limiter on the course. best: the quickest final that reaches it."""
     base = float(d["final"])
-    finals = finals or [round(base * (0.75 + 0.05 * i), 4) for i in range(11)]
+    finals = finals or [base * (0.75 + 0.05 * i) for i in range(11)]   # unrounded: Python and JS round halves differently
     need = float(need_kph or d.get("top_speed_need") or TOP_SPEED_NEED)
     rows = []
     for f in finals:

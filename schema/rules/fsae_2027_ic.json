@@ -157,6 +157,33 @@
    "unit": "bar"
   },
   {
+   "id": "brake_stroke",
+   "rule": "T.3.1.2 c, IN.14",
+   "summary": "Master cylinder stroke does not bottom out before all four wheels lock",
+   "kind": "min",
+   "value": "brake_stroke_margin",
+   "limit": 0,
+   "unit": "mm",
+   "estimate": true
+  },
+  {
+   "id": "brake_bar_tilt",
+   "rule": "T.3.1.2 c, IN.14",
+   "summary": "Balance bar does not bind against its sleeve at lock-up",
+   "kind": "true",
+   "value": "brake_bar_tilt_ok"
+  },
+  {
+   "id": "brake_pedal_travel",
+   "rule": "T.3.1.2 c, IN.14",
+   "summary": "Pedal pad travel to lock-up leaves room to the cockpit floor or bulkhead",
+   "kind": "min",
+   "value": "brake_pedal_travel",
+   "limit": 0,
+   "unit": "mm",
+   "estimate": true
+  },
+  {
    "id": "hip_to_pedals",
    "rule": "F.5.6.6",
    "summary": "Driver template's hip circle at least 915 mm behind the rearmost pedal face (seat back, pedals forward)",

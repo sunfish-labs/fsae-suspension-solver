@@ -241,7 +241,7 @@ function accelRun(dIn, veh, tireRadius, wheelbase, dt = 1e-3) {
 const TOP_SPEED_NEED = 105; // km/h, D.12.2.2
 function gearingSweep(d, veh, tireRadius, wheelbase, finals = null, needKph = null) {
   const base = +d.final;
-  finals = finals || Array.from({ length: 11 }, (_, i) => Math.round(base * (0.75 + 0.05 * i) * 1e4) / 1e4);
+  finals = finals || Array.from({ length: 11 }, (_, i) => base * (0.75 + 0.05 * i));
   const need = +(needKph || d.top_speed_need || TOP_SPEED_NEED);
   const rows = finals.map(f => {
     const r = accelRun({ ...d, final: f }, veh, tireRadius, wheelbase);

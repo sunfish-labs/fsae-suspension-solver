@@ -203,6 +203,7 @@ function buildForm() {
     field("Pivot bore (bearing or bushing OD)", "mm", "members.rocker.pivot_bore", { step: 0.5 }),
     field("Pivot center to the hub's edge", "mm", "members.rocker.pivot_edge", { step: 0.5 }),
     field("Pin holes (blank = bolt diameter)", "mm", "members.rocker.pin_dia", { step: 0.1, opt: 1 }),
+    field("Pivot bolt (blank = pin holes)", "mm", "members.rocker.pivot_pin_dia", { step: 0.1, opt: 1 }),
     field("Pin hole center to the edge", "mm", "members.rocker.edge", { step: 0.5 }),
     field("Arm depth (narrowest)", "mm", "members.rocker.width", { step: 0.5 }),
     field("Plate yield (6061-T6 241, 7075-T6 460)", "MPa", "members.rocker.yield", { step: 5, opt: 1 }),
