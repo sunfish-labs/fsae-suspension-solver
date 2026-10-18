@@ -163,7 +163,7 @@ def cmd_layout(a):
 
 
 def cmd_rules(a):
-    """The car against a rulebook (schema/rules/*.json): pass / fail / can't check / check yourself, by rule number."""
+    """The car against a rulebook (schema/rules/*.json): pass / fail / needs input / check by hand, by rule number."""
     from susp.car import car_balance
     from susp.rules import check_rules, rule_values, rulesets
     sets = rulesets()
@@ -197,7 +197,7 @@ def cmd_rules(a):
         print(f"\n  Ground clearance: the tightest point is {g['point']} ({g['value']:.1f} mm), with the body down {g['drop']:.1f} mm "
               f"there ({st}).")
     n = {s: sum(r_["status"] == s for r_ in rows) for s in mark}
-    print(f"\n{n['pass']} pass, {n['fail']} fail, {n['unknown']} can't check (missing inputs), {n['manual']} to check yourself"
+    print(f"\n{n['pass']} pass, {n['fail']} fail, {n['unknown']} need input, {n['manual']} to check by hand"
           + (f", {n['na']} don't apply" if n["na"] else ""))
 
 

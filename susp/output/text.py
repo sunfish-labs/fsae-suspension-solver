@@ -234,7 +234,7 @@ def grip_asked(L):
     """The driving case asking the most grip, |(Fx, Fy)| / Fz (impacts left out): (case, ratio) or None."""
     best = None
     for n, f in (L.get("tire") or {}).items():
-        if any(w in n for w in ("pothole", "kerb", "bump")) or not f[2] > 1e-9:
+        if any(w in n for w in ("pothole", "curb", "bump")) or not f[2] > 1e-9:
             continue
         r = math.hypot(f[0], f[1]) / f[2]
         if best is None or r > best[1]:

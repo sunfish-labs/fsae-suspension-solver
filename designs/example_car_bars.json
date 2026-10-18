@@ -1,7 +1,7 @@
 {
  "frame": "iso8855",
  "type": "car",
- "name": "Example car with bar linkages, bump stops and tire load sensitivity (invented demo geometry)",
+ "name": "Example car with bar linkages, bump stops and tire load sensitivity",
  "vehicle": {
   "wheelbase": 1550.0,
   "track": null,
@@ -56,7 +56,7 @@
   "max_pressure": 350
  },
  "front": {
-  "name": "Example front, bar on the rocker (invented demo geometry)",
+  "name": "Example front, bar on the rocker",
   "axle": "front",
   "wheel": {
    "camber_deg": -1.5,
@@ -159,7 +159,10 @@
    ],
    "E": 205000.0,
    "yield": 435.0,
-   "sf_target": 2.0
+   "sf_target": 2.0,
+   "gusset": {
+    "type": "to_node"
+   }
   },
   "hardpoints": {
    "upper_inboard_front": [
@@ -295,7 +298,7 @@
   }
  },
  "rear": {
-  "name": "Example rear, bar on the lower wishbone, dual-rate spring (invented demo geometry)",
+  "name": "Example rear, bar on the lower wishbone, dual-rate spring",
   "axle": "rear",
   "wheel": {
    "camber_deg": -1.0,
@@ -400,7 +403,10 @@
    ],
    "E": 205000.0,
    "yield": 435.0,
-   "sf_target": 2.0
+   "sf_target": 2.0,
+   "gusset": {
+    "type": "to_node"
+   }
   },
   "hardpoints": {
    "upper_inboard_front": [

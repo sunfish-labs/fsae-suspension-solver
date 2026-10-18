@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Suspension Solver Guide</title>
-<meta name="description" content="How to use the FSAE Suspension Solver and get a good double-wishbone design, with a worked case study.">
+<title>Vehicle Dynamics Workbench Guide</title>
+<meta name="description" content="How to use the FSAE Vehicle Dynamics Workbench and get a good double-wishbone design, with a worked case study.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -77,7 +77,7 @@ footer { margin-top: 48px; color: var(--muted); font-size: 14px; border-top: 1px
 <body>
 <div class="wrap">
 <header class="top">
-  <div class="brand"><h1>Suspension Solver Guide</h1><span>Using the app, and a worked FSAE front-end design</span></div>
+  <div class="brand"><h1>Vehicle Dynamics Workbench Guide</h1><span>Using the app, and a worked FSAE front-end design</span></div>
   <a class="btn primary" href="index.html">Open the app</a>
   <a class="btn" href="https://github.com/sunfish-labs/fsae-suspension-solver">Code on GitHub</a>
 </header>
@@ -92,7 +92,7 @@ Every number updates as you type.</p>
 
 <h2 id="start">Five-minute start</h2>
 <ol class="steps">
-  <li><b>Open the app</b> and leave the design menu on <i>Example front</i>. It is an invented demo car that passes every target.</li>
+  <li><b>Open the app</b> and leave the design menu on <i>Example front</i>. It is an invented demo car that meets every target.</li>
   <li><b>Read the summary strip:</b> targets met, ride frequency, motion ratio and the lowest strength FOS. Anything failing is listed red in the <b>Targets</b> tab, and clicking a row explains the number.</li>
   <li><b>Drag the Travel and Rack sliders</b> (or type a value, or press <b>▶ Play</b>). The 3D corner moves, the readout shows camber, toe and roll-center height at that position, and the gold marker moves along every chart.</li>
   <li><b>Click Pin as baseline</b> (under the sliders), <b>then change one coordinate.</b> Every target gains a <i>Baseline</i> and <i>Change</i> column, and the charts show the old curve dashed. That is how you learn what each hardpoint does.</li>
@@ -146,7 +146,7 @@ browser and sends nothing anywhere. The only designs built into the site are the
 <tbody>
 <tr><td>0. Package the wheel</td><td>Ball joints, contact patch, tie-rod outer</td><td>Caster, KPI, scrub, trail, steering arm. Fixed early by the upright and wheel; the solver only checks them.</td></tr>
 <tr><td>1. Inboard pivots</td><td>Upper and lower inboard Y and Z</td><td>Roll-center height and movement, camber gain, anti-dive or anti-squat</td></tr>
-<tr><td>2. Tie rod</td><td>Trackrod inboard Y, Z and outboard Y, Z</td><td>Bump steer (height = slope, length = curve), Ackermann</td></tr>
+<tr><td>2. Tie rod</td><td>Tie rod inner end Y, Z and outer end Y, Z</td><td>Bump steer (height = slope, length = curve), Ackermann</td></tr>
 <tr><td>3. Pushrod, rocker, damper</td><td>Rocker points, damper mount</td><td>Motion ratio, ride frequency, damper stroke use, packaging</td></tr>
 <tr><td>4. Loads and whole car</td><td>Tube sizes, springs, anti-roll bar</td><td>FOS of every member, rod-end loads, roll gradient and balance</td></tr>
 </tbody></table></div>
@@ -205,8 +205,8 @@ before touching the tie rod, because moving the arms changes bump steer (here 1.
 <h3>Step 3 · Tie rod <span class="tag">19 of 20 pass</span></h3>
 <p>Goals for this pass: zero bump-steer slope, zero bump-steer curve, Ackermann near 18 %. We moved only the tie-rod ends:</p>
 <div class="tbl-wrap"><table><thead><tr><th>Point</th><th class="n">Change</th></tr></thead><tbody>
-<tr><td>Trackrod inboard Z / outboard Z</td><td class="n">+5.8 / +8.3 mm</td></tr>
-<tr><td>Trackrod inboard Y / outboard Y</td><td class="n">−17.0 / +7.1 mm</td></tr>
+<tr><td>Tie rod inner / outer end Z</td><td class="n">+5.8 / +8.3 mm</td></tr>
+<tr><td>Tie rod inner / outer end Y</td><td class="n">−17.0 / +7.1 mm</td></tr>
 </tbody></table></div>
 <p>Bump steer went from 0.094 deg/in to 0.000, with under 0.001° of toe change over ±30 mm. Ackermann fell from 33 % to 18 %, and the
 outer wheel's turning radius at full rack is 3.49 m.</p>
@@ -240,10 +240,11 @@ pivot at X = −230 takes 1936 N of compression in braking plus cornering agains
 part is the pushrod: 4.0 kN in a 4 g pothole, buckling FOS 3.6 against the required 2.0. Pick rod ends rated well above the "worst |force|"
 column. A 3 g bump would push this wheel past full bump on its spring, so the bump and pothole cases are also solved at full bump, where
 the arms sit at a different angle; both results count.</p>
-<p><b>Impacts and the pushrod mount.</b> Two more cases, a 4 g pothole and a 2 g kerb strike, show how much harder an impact is on the
+<p><b>Impacts and the pushrod mount.</b> Two more cases, a 4 g pothole and a 2 g curb strike, show how much harder an impact is on the
 parts than normal driving. Below the table, <i>Pushrod mount bending</i> checks the wishbone leg the pushrod sits on: the pushrod lands
 17 mm off that leg's centerline, so the leg bends like a beam. In the pothole case the bare tube would reach about 720 MPa, FOS 0.60.
-The fix is a gusset or bracket that carries the pushrod into the ball-joint node, not a bigger tube. <i>Rod ends and bolts</i> then
+The fix is a gusset or bracket that carries the pushrod into the ball-joint node, not a bigger tube, so the final design uses a bracket into
+the node (Loads &amp; materials → Pushrod mount): FOS 5.8. Check that bracket in FEA with Export → Part loads for FEA. <i>Rod ends and bolts</i> then
 compares each member's worst force with your rod end's catalog rating and the bolt's shear capacity.</p>
 <p><b>Compliance.</b> Last on the Loads tab: every link stretches a little under load (rod ends, tube and chassis tab in series, about
 6.5–7 kN/mm each here). In 1.6 g braking the front wheel toes out 0.12°, inside the 0.15° limit; a softer chassis tab would push it over.
@@ -294,10 +295,13 @@ own team's goals as in the case study above.</p>
 
 <h2 id="mistakes">Common first-year mistakes</h2>
 <div class="grid2">
-<div><h3>Axes from CAD</h3><p>The solver wants X forward, Y outboard on the right wheel, Z up, ground at Z = 0. If the input checks complain about
-ball joints or the contact patch, your CAD axes are mapped wrongly. The command-line <code>import --map</code> option fixes that.</p></div>
-<div><h3>"Front" and "rear" pivots</h3><p>Following KineSolver, the pivot labeled "front" is the one with the <i>smaller</i> X. With X
-forward, that is physically the rear pivot. The app labels each one "smaller-X pivot" to avoid confusion.</p></div>
+<div><h3>Axes from CAD</h3><p>The team frame is ISO 8855: X forward, Y left, Z up, in mm from the ground under the front axle, on the
+centerline, with each corner entered as the left-hand one (Y positive). Build the CAD model around a coordinate system placed the same way.
+If the input checks complain about the ball joints or the contact patch, the axes are mapped wrongly: Points from CAD (or the command-line
+<code>import --map</code> option) fixes that.</p></div>
+<div><h3>"Front" and "rear" pivots</h3><p>The app names each inboard pivot by where it sits on the car (front = larger X). The JSON keys
+follow KineSolver, where <code>upper_inboard_front</code> is the pivot with the <i>smaller</i> X: physically the rear one. This only matters
+when editing a JSON file by hand.</p></div>
 <div><h3>Fixing bump steer too early</h3><p>Every change to the wishbones changes bump steer. Tune the pivots first, then the tie rod, then check again.</p></div>
 <div><h3>Checking clearance only at ride height</h3><p>Links usually collide at full droop with full lock. The Packaging tab checks every
 combination of full droop, ride height and full bump with full left lock, center and full right lock.</p></div>
@@ -335,7 +339,7 @@ lay out the rocker.</p></div>
   <li>Always confirm the final design in CAD.</li>
 </ul>
 
-<footer>FSAE Suspension Solver · <a href="index.html">Open the app</a> · <a href="https://github.com/sunfish-labs/fsae-suspension-solver">Source and command-line tool</a>.
+<footer>FSAE Vehicle Dynamics Workbench · <a href="index.html">Open the app</a> · <a href="https://github.com/sunfish-labs/fsae-suspension-solver">Source and command-line tool</a>.
 The example and case-study hardpoints are invented and do not describe any real team's car.</footer>
 </div>
 </body>

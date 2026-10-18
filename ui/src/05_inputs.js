@@ -131,7 +131,7 @@ function buildForm() {
     field("Brake + corner", "g", "loads.combined_g", { step: 0.1 }),
     field("Acceleration (rear)", "g", "loads.accel_g", { step: 0.1 }),
     field("Pothole impact (vertical)", "g", "loads.pothole_g", { step: 0.5, opt: 1 }),
-    field("Kerb strike (sideways)", "g", "loads.kerb_g", { step: 0.5, opt: 1 }),
+    field("Curb strike (sideways)", "g", "loads.kerb_g", { step: 0.5, opt: 1 }),
     field("Braking force split", "", "loads.brake_split", {
       options: [
         ["bias", "By brake bias (front share)"],
@@ -279,8 +279,16 @@ function syncLegLabels() {
       if (!btn) continue;
       btn.textContent = `${arm === "upper" ? "Upper" : "Lower"} ${isFront ? "front" : "rear"} pivot`;
       btn.dataset.leg = isFront ? "front" : "rear";
-      btn.title = `JSON key: ${key} (KineSolver "${key.endsWith("front") ? "front" : "rear"}" = ${key.endsWith("front") ? "smaller" : "larger"} X) · click: what does moving this point do?`;
+      btn.title = `JSON key: ${key} · click: what does moving this point do?`;
     }
+  }
+  // the rear corner's tie rod is a fixed toe link
+  for (const [key, end] of [
+    ["trackrod_inboard", "inner"],
+    ["trackrod_outboard", "outer"],
+  ]) {
+    const btn = $(`#hpTable [data-hp="hardpoints.${key}"]`);
+    if (btn) btn.textContent = `${cfg.axle === "rear" ? "Toe link" : "Tie rod"} ${end} end`;
   }
 }
 function fillForm() {

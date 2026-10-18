@@ -1,6 +1,6 @@
 {
   "frame": "iso8855",
-  "name": "Example rear (invented demo geometry)",
+  "name": "Example rear",
   "axle": "rear",
   "wheel": {
     "camber_deg": -1.0,

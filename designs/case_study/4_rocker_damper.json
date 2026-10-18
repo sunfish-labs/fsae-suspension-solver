@@ -104,7 +104,10 @@
     ],
     "E": 205000.0,
     "yield": 435.0,
-    "sf_target": 2.0
+    "sf_target": 2.0,
+    "gusset": {
+      "type": "to_node"
+    }
   },
   "hardpoints": {
     "upper_inboard_front": [

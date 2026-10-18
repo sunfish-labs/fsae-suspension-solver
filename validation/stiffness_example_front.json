@@ -1,5 +1,5 @@
 {
- "name": "Example front (invented demo geometry): member forces by a stiffness model",
+ "name": "Example front: member forces by a stiffness model",
  "source": "validation/tools/stiffness_model.py, displacement method (rigid bodies on stiff joints), no solver statics code",
  "design": "designs/example_front.json",
  "loads": {
@@ -185,7 +185,7 @@
     0.002984311
    ]
   },
-  "kerb strike": {
+  "curb strike": {
    "upper_front": [
     505.393001,
     0.001

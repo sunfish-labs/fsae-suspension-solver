@@ -105,7 +105,7 @@ function loadCases(cfg, susp, lltdCar = null) {
     ]);
   if (L.kerb_g)
     cases.push([
-      "kerb strike",
+      "curb strike",
       [
         [[0, 0, info.Fz0], "cp"],
         [[0, -L.kerb_g * info.Fz0, 0], "cp"],
@@ -380,7 +380,7 @@ function runLoads(cfg, susp, sp, lltd = null) {
   };
 }
 // mirrors loads.link_stiffness / loads.compliance (unit-load method)
-const IMPACT_CASES = ["bump", "pothole", "kerb strike", "bump (deflected)", "pothole (deflected)"];
+const IMPACT_CASES = ["bump", "pothole", "curb strike", "bump (deflected)", "pothole (deflected)"];
 function linkStiffness(cfg, k, length) {
   const mem = cfg.members,
     size = /^(upper|lower)/.test(k) ? "wishbone" : k,
@@ -981,7 +981,7 @@ function durability(cfg, susp, sp, results, info, deflect = {}) {
     const gov = Object.keys(fos).reduce((g, k) => (fos[k] < fos[g] ? k : g));
     return { member: key, force: F, case: kase, stress: st, fos, governs: gov, sf: fos[gov] };
   });
-  let cyc = Object.keys(results).filter(nm => !nm.startsWith("pothole") && !nm.startsWith("kerb strike"));
+  let cyc = Object.keys(results).filter(nm => !nm.startsWith("pothole") && !nm.startsWith("curb strike"));
   if (cyc.includes("bump (deflected)")) cyc = cyc.filter(nm => nm !== "bump");
   // each driving case from rest and back, then the swings between opposite cases (mirrors durability.swings)
   const REST = "at rest",

@@ -5,7 +5,7 @@ const CHK = {
   warn: ["!", "Look at it", "warn"],
   input: ["?", "Needs input", "neutral"],
   notrun: ["…", "Not run yet", "neutral"],
-  manual: ["☐", "Check yourself", "neutral"],
+  manual: ["☐", "Check by hand", "neutral"],
   pass: ["✓", "Pass", "ok"],
 };
 const CHK_ORDER = Object.keys(CHK);
@@ -506,7 +506,7 @@ function checkList(X) {
     );
   // ---- things only CAD, FEA or the car can answer
   add(
-    "Check yourself",
+    "Check by hand",
     "Car",
     "FEA of the upright, wishbone brackets and rocker",
     "manual",
@@ -515,7 +515,7 @@ function checkList(X) {
     null
   );
   add(
-    "Check yourself",
+    "Check by hand",
     "Car",
     "Other bought parts against their catalog ratings",
     "manual",
@@ -642,11 +642,11 @@ function checkReportHtml() {
     n = chkCounts(items),
     when = new Date().toLocaleString();
   const st = s => `<span class="${s === "pass" ? "ok" : s === "fail" ? "bad" : ""}">${CHK[s][0]} ${CHK[s][1]}</span>`;
-  let body = `<header><h1>${esc(X.name)}</h1><p>Design check · ${esc(when)} · Suspension Solver ${esc(APP_VERSION)}</p></header>
+  let body = `<header><h1>${esc(X.name)}</h1><p>Design check · ${esc(when)} · Wake Forest FSAE Vehicle Dynamics Workbench ${esc(APP_VERSION)}</p></header>
     <p class="pills">${CHK_ORDER.filter(s => n[s])
       .map(s => `<span class="pill ${s === "pass" ? "okb" : s === "fail" ? "badb" : ""}">${n[s]} ${CHK[s][1].toLowerCase()}</span>`)
       .join(" ")}</p>
-    <p class="note">${X.isCar ? "The whole car: both corners, the roll balance and the rules." : `One corner (${esc(X.corners[0].ax)}); the roll balance and the rules need a car file.`} Needs input = the check couldn't run without a number you haven't entered. Check yourself = outside what this tool can measure.</p>`;
+    <p class="note">${X.isCar ? "The whole car: both corners, the roll balance and the rules." : `One corner (${esc(X.corners[0].ax)}); the roll balance and the rules need a car file.`} Needs input = the check couldn't run without a number you haven't entered. Check by hand = outside what this tool can measure.</p>`;
   for (const g of [...new Set(items.map(i => i.group))]) {
     const gi = items.filter(i => i.group === g).sort((a, b) => CHK_ORDER.indexOf(a.status) - CHK_ORDER.indexOf(b.status));
     body += `<h2>${esc(g)}</h2><table><thead><tr><th>Status</th><th>Check</th><th>Result</th></tr></thead><tbody>${gi

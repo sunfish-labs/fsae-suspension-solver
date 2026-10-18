@@ -77,7 +77,7 @@ def load_cases(cfg, susp, lltd=None):
     if pg:
         cases.append(("pothole", [(np.array([0, 0, pg * Fz0]), cp)], f"{pg:g} x static wheel load, impact", f"{pg:g} x {Fz0:.0f} static"))
     if kg:
-        cases.append(("kerb strike", [(np.array([0, 0, Fz0]), cp), (np.array([0, -kg * Fz0, 0]), cp)],
+        cases.append(("curb strike", [(np.array([0, 0, Fz0]), cp), (np.array([0, -kg * Fz0, 0]), cp)],
                       f"{kg:g} x static wheel load sideways (wheel pushed inboard) + static load, impact", f"{Fz0:.0f} static"))
     if not front:
         ax = L["accel_g"]

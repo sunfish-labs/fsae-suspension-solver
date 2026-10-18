@@ -28,26 +28,26 @@
   {
    "key": "upper_outboard",
    "short": "ubj",
-   "label": "Upper outboard",
-   "hint": "upper ball joint"
+   "label": "Upper ball joint",
+   "hint": "upper outboard point, on the upright"
   },
   {
    "key": "lower_outboard",
    "short": "lbj",
-   "label": "Lower outboard",
-   "hint": "lower ball joint"
+   "label": "Lower ball joint",
+   "hint": "lower outboard point, on the upright"
   },
   {
    "key": "trackrod_inboard",
    "short": "tri",
-   "label": "Trackrod inboard",
-   "hint": "rack end"
+   "label": "Tie rod inner end",
+   "hint": "at the rack (front) or the chassis (rear)"
   },
   {
    "key": "trackrod_outboard",
    "short": "tro",
-   "label": "Trackrod outboard",
-   "hint": "steering arm"
+   "label": "Tie rod outer end",
+   "hint": "on the upright's steering arm"
   },
   {
    "key": "contact_patch",

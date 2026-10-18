@@ -1,5 +1,5 @@
 {
- "name": "Example car (invented demo geometry): roll gradient and load transfer by a full-car stiffness model (bars 400 / 120 Nm/deg)",
+ "name": "Example car: roll gradient and load transfer by a full-car stiffness model (bars 400 / 120 Nm/deg)",
  "source": "validation/tools/full_car_model.py: springs-and-masses matrix model, no car.py code",
  "car": "designs/example_car.json",
  "arb": [

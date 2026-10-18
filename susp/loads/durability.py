@@ -13,7 +13,7 @@ Fatigue (a screen at a stated number of cycles, not a life prediction): each dri
 repeats, from the car at rest (static corner weight, ride height) to that case and back, loads.fatigue_cycles times
 (default 100,000: a season has roughly 10,000 hard corners and stops; this covers about three seasons with margin).
 The bump case uses its deflected geometry when there is one and repeats loads.fatigue_bump_cycles times (default
-10,000); the impact cases (pothole, kerb strike) are one-offs and are left out. The swings between opposite cases are
+10,000); the impact cases (pothole, curb strike) are one-offs and are left out. The swings between opposite cases are
 counted too, loads.fatigue_cycles times each: a wheel is the outer one in a left turn and the inner one in a right turn
 (corner outer ↔ inner, brake+corner outer ↔ inner), and the rear goes from braking to accelerating.
   - tube (base metal away from welds): modified Goodman, 1 / n = s_a / S_f + s_m / S_ut (s_m < 0: n = S_f / s_a).
@@ -39,7 +39,7 @@ from .strength import gusset_of, leg_stress, rod_leg, tube_props
 SURFACE = {"ground": (1.58, -0.085), "machined": (4.51, -0.265), "cold-drawn": (4.51, -0.265),
            "hot-rolled": (57.7, -0.718), "as-forged": (272.0, -0.995)}
 TAB_DEFAULT = {"thickness": 3.175, "width": 25.4, "edge": 12.7, "weld_leg": 3.0, "weld_length": 50.0, "count": 2}
-IMPACT = ("pothole", "kerb strike")
+IMPACT = ("pothole", "curb strike")
 CAFL = (2e6 / 1e7) ** (1 / 3)          # IIW: constant-amplitude fatigue limit at 1e7 cycles, as a fraction of FAT
 SIZE = {"upper_front": "wishbone", "upper_rear": "wishbone", "lower_front": "wishbone", "lower_rear": "wishbone",
         "tie_rod": "tie_rod", "pushrod": "pushrod"}

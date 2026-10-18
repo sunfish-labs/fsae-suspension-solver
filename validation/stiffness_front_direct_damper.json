@@ -2,6 +2,7 @@
  "name": "Example front, damper acting directly on the lower wishbone: member forces by a stiffness model",
  "source": "validation/tools/stiffness_model.py, displacement method (rigid bodies on stiff joints), no solver statics code",
  "config": {
+  "frame": "iso8855",
   "name": "Example front, damper acting directly on the lower wishbone",
   "axle": "front",
   "wheel": {
@@ -82,6 +83,15 @@
    "lltd_front": null
   },
   "members": {
+   "rocker": {
+    "thickness": 6.35,
+    "plates": 2,
+    "pivot_bore": 22.0,
+    "pivot_edge": 20.0,
+    "edge": 12.0,
+    "width": 30.0,
+    "yield": 241.0
+   },
    "material": "4130 chromoly steel, normalized (yield is lower next to welds)",
    "wishbone": [
     15.88,
@@ -97,7 +107,10 @@
    ],
    "E": 205000.0,
    "yield": 435.0,
-   "sf_target": 2.0
+   "sf_target": 2.0,
+   "gusset": {
+    "type": "to_node"
+   }
   },
   "hardpoints": {
    "upper_inboard_front": [
@@ -360,7 +373,7 @@
     0.004420148
    ]
   },
-  "kerb strike": {
+  "curb strike": {
    "upper_front": [
     505.393001,
     0.001

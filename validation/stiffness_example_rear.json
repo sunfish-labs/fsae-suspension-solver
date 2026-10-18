@@ -1,5 +1,5 @@
 {
- "name": "Example rear (invented demo geometry): member forces by a stiffness model",
+ "name": "Example rear: member forces by a stiffness model",
  "source": "validation/tools/stiffness_model.py, displacement method (rigid bodies on stiff joints), no solver statics code",
  "design": "designs/example_rear.json",
  "loads": {
@@ -185,7 +185,7 @@
     0.003508379
    ]
   },
-  "kerb strike": {
+  "curb strike": {
    "upper_front": [
     564.216918,
     0.001

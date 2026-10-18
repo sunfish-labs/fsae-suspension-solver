@@ -2,8 +2,8 @@
 
 A rules file lists checks, each with its rule number, a short paraphrase (never the rulebook's text: read the book for
 the exact wording), what kind of check it is and its limit. This module works out the value each check needs from
-the car (two evaluated corners, the car balance and the layout) and says pass, fail, can't check (the input is
-missing) or check yourself (a rule the solver can't measure).
+the car (two evaluated corners, the car balance and the layout) and says pass, fail, needs input (the input is
+missing) or check by hand (a rule the solver can't measure).
 
 Values:
     wheelbase, track_ratio (smaller / larger track)

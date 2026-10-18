@@ -3,6 +3,18 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.30.0 - 2026-10-17
+
+- **New name in the app: Wake Forest FSAE, Vehicle Dynamics Workbench** (header, welcome card, report footers). The
+  public guide and README say "FSAE Vehicle Dynamics Workbench".
+- **Wording pass:** the Learn panel's coordinates match the team frame (it still said Y outboard); "Ball joint" and
+  "Tie rod inner / outer end" in the hardpoint table ("Toe link" on the rear); rules and checks say "needs input" and
+  "check by hand"; American spelling (curb strike, millimeter); the KineSolver key note moved to the guide; the LLTD
+  entry points to the Car view, not the command line; "(invented demo geometry)" dropped from every example name.
+- Long notes in the result panels open with two lines and a **More** link.
+- The examples and case study 4 carry the pushrod into the ball-joint node with a bracket, so they pass the mount
+  bending check they used to fail (FOS 0.60 → 5.8); the guide's case study explains the change.
+
 ## 1.29.0 - 2026-10-17
 
 - **The published site is locked with the team passphrase.** The pages workflow encrypts the app (gzip, then

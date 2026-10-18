@@ -1,4 +1,4 @@
-<title>FSAE Suspension Solver</title>
+<title>Wake Forest FSAE · Vehicle Dynamics Workbench</title>
 <script>try { const t = localStorage.getItem("susp.theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) { /* storage blocked */ }</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
@@ -10,7 +10,7 @@
 
 <header class="top">
   <div class="toprow">
-    <div class="brand"><h1>Suspension Solver</h1><span>FSAE double wishbone · rigid links</span></div>
+    <div class="brand"><h1>Wake Forest FSAE</h1><span>Vehicle Dynamics Workbench</span></div>
     <div class="toolbar">
       <div class="seg axseg" id="axleSeg" role="group" aria-label="Which part of the car"><button type="button" data-ax="front" aria-pressed="false">Front</button><button type="button" data-ax="rear" aria-pressed="false">Rear</button><button type="button" data-ax="car" aria-pressed="false">Car</button></div>
       <button class="btn small" id="btnCheck" type="button" title="Every check on the car on one page, and a sign-off report">✓ Check</button>
@@ -53,7 +53,7 @@
 <div class="welcome" id="welcome" hidden>
   <div class="wcard" role="dialog" aria-modal="true" aria-labelledby="wTitle">
     <button class="btn small wclose" type="button" id="wClose" aria-label="Close">✕</button>
-    <h2 id="wTitle">FSAE Suspension Solver</h2>
+    <h2 id="wTitle">Wake Forest FSAE</h2><p class="wsub">Vehicle Dynamics Workbench</p>
     <p>Design and check a double-wishbone corner: move the hardpoints, watch the corner move in 3D, and see every target pass or fail as you type.</p>
     <div class="wgrid">
       <button class="wbig" type="button" id="wExplore"><b>Explore the example car</b><span>An invented car, front and rear, that meets every target. Click a corner to edit it; drag the sliders.</span></button>
@@ -216,7 +216,7 @@
         <li><b>CSV:</b> one row per named point, then one row per link (both ends), in the units and axes above.</li>
         <li><b>STL:</b> round tubes at your tube ODs, for clearance checks. STL has no units: choose the same units when you import it.</li>
       </ul>
-      <p class="note"><b>Part loads for FEA:</b> one row per force: the axle, the load case, the part (upright, upper / lower wishbone, rocker), the point it acts at (ball joint, pivot, pushrod mount, tire contact patch…) and the force in N, in the same axes, origin and units as the geometry, so each point sits on the joint of a model built from the STEP export. In SolidWorks Simulation, fix the part at its pivots (or the ball joints, for the upright) and add each other row as a <i>Remote Load</i> at its X Y Z; in Onshape or Fusion, apply each force to the bore or face at that joint. Pick the worst cases (bump, pothole, kerb strike, the cornering cases) rather than all of them. The forces on each part balance, so a fixed support should carry close to nothing: a quick check that the loads went in right.</p>
+      <p class="note"><b>Part loads for FEA:</b> one row per force: the axle, the load case, the part (upright, upper / lower wishbone, rocker), the point it acts at (ball joint, pivot, pushrod mount, tire contact patch…) and the force in N, in the same axes, origin and units as the geometry, so each point sits on the joint of a model built from the STEP export. In SolidWorks Simulation, fix the part at its pivots (or the ball joints, for the upright) and add each other row as a <i>Remote Load</i> at its X Y Z; in Onshape or Fusion, apply each force to the bore or face at that joint. Pick the worst cases (bump, pothole, curb strike, the cornering cases) rather than all of them. The forces on each part balance, so a fixed support should carry close to nothing: a quick check that the loads went in right.</p>
       <p class="note">Corners are named FR, FL, RR, RL; the layers (IGES levels, STEP curve sets) are each corner at each pose. Blue = ride height, red = bump, green = droop, magenta / cyan = full rack either way. In a car file the rear corner is placed one wheelbase behind the front contact patch.</p>
     </details>
   </div>
@@ -230,7 +230,7 @@
       <div class="body">
         <div class="field"><label for="in_name">Design name</label><input id="in_name" class="num" style="text-align:left;font-family:var(--f-body)" data-path="name" data-type="text"></div>
         <table class="pt" id="hpTable"><thead><tr><th>Hardpoint</th><th class="x">X</th><th class="y">Y</th><th class="z">Z</th></tr></thead><tbody></tbody></table>
-        <p class="note">Names say which pivot is physically at the front (the larger X), with the same blue / gold as the arm legs in 3D. The JSON keys keep KineSolver's names, where "front" means the smaller X; hover a name to see its key.</p>
+        <p class="note">"Front" and "rear" pivots are named by where they sit on the car (front = larger X), in the same blue / gold as the arm legs in 3D. Click a name to see what moving that point does.</p>
       </div>
     </details>
 
@@ -351,7 +351,7 @@
         <div class="vhint" id="vhint" hidden>Tip: click any joint to see what moving it does</div>
         <div class="hud" id="hud"></div>
         <div class="vtip" id="vtip" hidden></div>
-        <div class="vaxkey" id="vaxkey" title="The solver's axes: X forward, Y to the right (outboard on the right wheels), Z up, ground at Z = 0, car centerline at Y = 0, all in mm. Hover over any joint or the chassis to read its coordinates.">X forward · Y right · Z up</div>
+        <div class="vaxkey" id="vaxkey" title="The team frame: X forward, Y left, Z up, in mm from the ground under the front axle, on the centerline. Hover over any joint or the chassis to read its coordinates.">X forward · Y right · Z up</div>
         <div class="v-msg" id="vmsg" hidden></div>
       </div>
       <aside class="drawer" id="drawer" hidden aria-label="What moving this point does"></aside>
@@ -380,7 +380,7 @@
     </div>
   </section>
 </div>
-<p class="foot">Results match the Python <span class="mono">susp_solver.py</span> to machine precision. The solver is quasi-static with rigid links and no tire model, so confirm the final design in CAD.</p>
+<p class="foot">Checked against hand calculations and KineSolver. The model is quasi-static, with rigid links and no tire model: confirm the final design in CAD and on the car.</p>
 
 <script>
 /*THREE_JS*/

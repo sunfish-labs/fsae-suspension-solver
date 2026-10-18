@@ -24,7 +24,7 @@ car, see **[MEASURING.md](MEASURING.md)**: five shop-tool tests and a script tha
 - `planar_fourbar.json`: a double wishbone whose upright moves only in the front-view plane, solved as a 2D
   four-bar linkage in closed form. Camber, contact-patch position and toe are compared every 5 mm from -30 to
   +30 mm; they agree to about 1e-10.
-- `loads_handcalc.json`: member forces in the bump, cornering (outer and inner), pothole and kerb cases for a
+- `loads_handcalc.json`: member forces in the bump, cornering (outer and inner), pothole and curb cases for a
   corner with horizontal arms and a vertical damper, worked by hand statics. Every member agrees to 1e-6 relative.
 - `stiffness_*.json` (5 corners: the example front and rear, and the front with the rod on the upright, a pullrod
   on the upper wishbone, and a damper acting directly on the wishbone): member forces in every load case,

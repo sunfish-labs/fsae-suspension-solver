@@ -547,16 +547,16 @@ function rulesHtml(F, R, B) {
         : s === "na"
           ? `<span class="pill neutral" title="This rule doesn't apply to this car">Doesn't apply</span>`
           : s === "unknown"
-            ? `<span class="pill neutral" title="An input this check needs is missing">Can't check</span>`
-            : `<span class="pill neutral" title="The solver can't measure this: check it on the car or the CAD">Check yourself</span>`;
+            ? `<span class="pill neutral" title="An input this check needs is missing: fill it in to run the check">Needs input</span>`
+            : `<span class="pill neutral" title="The workbench can't measure this: check it on the car or in CAD">Check by hand</span>`;
   const auto = rows.filter(r => r.status !== "manual"),
     man = rows.filter(r => r.status === "manual");
   const tr = r =>
     `<tr><td class="nowrap"><b>${esc(r.rule)}</b></td><td>${esc(r.summary)}</td><td>${val(r)}</td><td>${pill(r.status)}</td></tr>`;
   return `<details class="rulesbox" id="rulesBox"${rulesOpen || fail ? " open" : ""}><summary><h3 class="sub-h">Rules: ${esc(rs.name)}</h3>
-      <span class="pill ${fail ? "bad" : "ok"}">${n("pass")} pass${fail ? ` · ${fail} fail` : ""}</span>${n("unknown") ? `<span class="pill neutral">${n("unknown")} can't check</span>` : ""}<span class="pill neutral">${man.length} to check yourself</span></summary>
+      <span class="pill ${fail ? "bad" : "ok"}">${n("pass")} pass${fail ? ` · ${fail} fail` : ""}</span>${n("unknown") ? `<span class="pill neutral">${n("unknown")} need input</span>` : ""}<span class="pill neutral">${man.length} to check by hand</span></summary>
     <div class="tbl-wrap"><table class="data rtab"><thead><tr><th>Rule</th><th>What it asks</th><th>This car</th><th></th></tr></thead><tbody>${auto.map(tr).join("")}</tbody></table></div>
-    <p class="note">The solver can't measure these; check them on the car or in CAD:</p>
+    <p class="note">The workbench can't measure these; check them on the car or in CAD:</p>
     <div class="tbl-wrap"><table class="data rtab"><tbody>${man.map(tr).join("")}</tbody></table></div>
     <p class="note">${esc(rs.version)}. Rule numbers with short paraphrases: read the rulebook for the exact wording, and check later versions and the official Q&amp;A. The tilt is a static estimate from the CG (use the tallest driver and full fluids in the layout). Usable travel comes from the damper's stroke and length. The keep-out check needs a layout, and the hoop and driver-template checks need the side-view points (Layout → Driver and roll hoops); tires against the chassis model come from the clearance check.</p></details>`;
 }

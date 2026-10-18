@@ -50,7 +50,7 @@ cases = {
     "corner outer": members(Fz0 + CORNER_G * lat_per_g, -CORNER_G * (Fz0 + CORNER_G * lat_per_g)),
     "corner inner": members(Fz0 - CORNER_G * lat_per_g, CORNER_G * (Fz0 - CORNER_G * lat_per_g)),
     "pothole": members(POTHOLE_G * Fz0, 0.0),
-    "kerb strike": members(Fz0, -KERB_G * Fz0),
+    "curb strike": members(Fz0, -KERB_G * Fz0),
 }
 hp = {"upper_inboard_front": [-LEG_X, Y_IN, Z_U], "upper_inboard_rear": [LEG_X, Y_IN, Z_U],
       "lower_inboard_front": [-LEG_X, Y_IN, Z_L], "lower_inboard_rear": [LEG_X, Y_IN, Z_L],

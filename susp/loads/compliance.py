@@ -38,7 +38,7 @@ def steering_stiffness(cfg):
     return out
 
 
-IMPACT_CASES = ("bump", "pothole", "kerb strike", "bump (deflected)", "pothole (deflected)")
+IMPACT_CASES = ("bump", "pothole", "curb strike", "bump (deflected)", "pothole (deflected)")
 
 
 def compliance(cfg, susp, sp, results):

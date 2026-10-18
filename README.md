@@ -1,9 +1,13 @@
-# FSAE Suspension Solver
+# FSAE Vehicle Dynamics Workbench
 
-**Open the web app: https://sunfish-labs.github.io/fsae-suspension-solver/** (nothing to install)
+(It began as a suspension solver, hence the repo's name.)
+
+**Open the web app: https://sunfish-labs.github.io/fsae-suspension-solver/** (nothing to install; the published copy asks
+for the team passphrase)
 **Guide and worked case study: https://sunfish-labs.github.io/fsae-suspension-solver/ui/guide.html**
 
-A double-wishbone kinematics, ride and loads tool for Formula SAE teams, with a KineSolver-style browser
+A double-wishbone kinematics, ride and loads tool for Formula SAE teams, grown into a whole-car workbench (roll
+balance, brakes, gearing, layout, driver and roll hoops, rules, CAD and setup exports), with a KineSolver-style browser
 interface and a Python command-line version. The hardpoints in `designs/` are an **invented example car**.
 They are not any real team's design.
 
@@ -269,7 +273,7 @@ still reaches the balance. The anti-roll bar sizes it suggests still assume a ri
 ## Rules check (Car view → Rules, or `rules car.json`)
 `schema/rules/fsae_2027_ic.json` holds each check's rule number (Formula SAE Rules 2027, V1.0), a short paraphrase
 (not the rulebook's text: read the book for the exact wording) and its limit. The solver works out what each check
-needs and says pass, fail, can't check (an input is missing) or check yourself (it can't measure that rule):
+needs and says pass, fail, needs input (an input is missing) or check by hand (it can't measure that rule):
 - V.1.2 wheelbase; V.1.3.2 track ratio; V.4.1 wheel diameter
 - V.1.3.1 / IN.11.2.2 the 60° tilt test, estimated: atan((half track at the CG − body lean) / CG height), the body
   leaning by the roll gradient at the tilt's sideways 0.87 g. Put the tallest driver and full fluids in the layout.
@@ -393,7 +397,7 @@ the other way, which can put a different leg into compression. `loads car.json` 
    **Yield FOS** = (yield stress x tube area) / worst axial force. Both are compared with `members.sf_target` (default 2).
    Default tubes are 5/8 in x 0.035 in (15.875 x 0.889 mm) 4130 steel, E 205 GPa, yield 435 MPa. Set your real
    tubes under `members`.
-6. **Impacts:** a pothole case (`pothole_g`, default 4 g vertical on the wheel) and a kerb strike (`kerb_g`, default 2 g
+6. **Impacts:** a pothole case (`pothole_g`, default 4 g vertical on the wheel) and a curb strike (`kerb_g`, default 2 g
    sideways into the wheel plus static load) sit beside the driving cases. They are rough design-load factors, not a
    crash simulation; set them to your team's numbers.
 7. **Pushrod mount bending:** the pushrod rarely lands exactly on a wishbone leg's centerline. The leg is treated as a

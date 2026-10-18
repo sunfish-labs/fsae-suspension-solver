@@ -1,7 +1,7 @@
 {
  "frame": "iso8855",
  "type": "car",
- "name": "Example car with a layout and drivetrain (invented demo geometry and masses)",
+ "name": "Example car with a layout and drivetrain",
  "vehicle": {
   "wheelbase": 1550.0,
   "frame_k": 3000,
@@ -33,7 +33,7 @@
   ]
  },
  "front": {
-  "name": "Example front (invented demo geometry)",
+  "name": "Example front",
   "axle": "front",
   "wheel": {
    "camber_deg": -1.5,
@@ -142,7 +142,10 @@
    ],
    "E": 205000.0,
    "yield": 435.0,
-   "sf_target": 2.0
+   "sf_target": 2.0,
+   "gusset": {
+    "type": "to_node"
+   }
   },
   "hardpoints": {
    "upper_inboard_front": [
@@ -251,7 +254,7 @@
   }
  },
  "rear": {
-  "name": "Example rear (invented demo geometry)",
+  "name": "Example rear",
   "axle": "rear",
   "wheel": {
    "camber_deg": -1.0,
@@ -360,7 +363,10 @@
    ],
    "E": 205000.0,
    "yield": 435.0,
-   "sf_target": 2.0
+   "sf_target": 2.0,
+   "gusset": {
+    "type": "to_node"
+   }
   },
   "hardpoints": {
    "upper_inboard_front": [

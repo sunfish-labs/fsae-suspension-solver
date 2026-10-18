@@ -94,7 +94,7 @@ function loadNotesHtml(L, ev) {
 function gripAsked(L) {
   let best = null;
   for (const [n, f] of Object.entries(L.tire || {})) {
-    if (/pothole|kerb|bump/.test(n) || !(f[2] > 1e-9)) continue;
+    if (/pothole|curb|bump/.test(n) || !(f[2] > 1e-9)) continue;
     const r = Math.hypot(f[0], f[1]) / f[2];
     if (!best || r > best.ratio) best = { case: n, ratio: r };
   }

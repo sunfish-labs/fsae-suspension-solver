@@ -65,7 +65,7 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   check("Spring & damper tab shows damping ratios and critical damping", /Damping ratio/.test(sp) && /Critical damping at the wheel/.test(sp) && /Damper force vs shaft speed/.test(sp));
   await p.click("#tab_loads"); await settle(p);
   const ld = await text(p, "#pn_loads");
-  check("Loads tab has impact cases, mount bending and rod-end / bolt checks", /pothole/.test(ld) && /kerb strike/.test(ld) && /Pushrod mount bending/.test(ld) && /Rod ends and bolts/.test(ld));
+  check("Loads tab has impact cases, mount bending and rod-end / bolt checks", /pothole/.test(ld) && /curb strike/.test(ld) && /Pushrod mount bending/.test(ld) && /Rod ends and bolts/.test(ld));
   check("Loads tab lists the ball joints and damper eyes, asking for their ratings", /Ball joints, damper eyes and rocker bearing/.test(ld) && /Upper ball joint/.test(ld) && /Damper eye bearings/.test(ld) && /enter rating/.test(ld));
   await p.evaluate(() => { const i = document.querySelector("#in_members_ball_joint_rating"); i.value = "100"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
   const bjRow = await p.evaluate(() => [...document.querySelectorAll("#pn_loads tr")].find(r => /^Upper ball joint/.test(r.textContent)).innerHTML);
@@ -84,8 +84,11 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   check("Undo restores the tab", Math.abs(parseFloat(await tabFos()) - fos0) < 0.05);
   // pushrod mount: a gusset along the leg, then a bracket into the node
   const bendFos = async () => p.evaluate(() => [...document.querySelectorAll("#pn_loads .kv div")].find(d => /FOS \(bending/.test(d.textContent)).querySelector("b").textContent);
-  const bare = parseFloat(await bendFos());
+  const node0 = parseFloat(await bendFos()); // the example carries the pushrod into the node with a bracket
   const pickMount = v => p.evaluate(v => { const s = document.querySelector("#in_members_gusset_type"); s.value = v; s.dispatchEvent(new Event("input", { bubbles: true })); s.dispatchEvent(new Event("change", { bubbles: true })); }, v);
+  await pickMount("none"); await settle(p);
+  const bare = parseFloat(await bendFos());
+  check("the example's bracket into the node beats the bare tube", node0 > bare, `${node0} vs ${bare}`);
   await pickMount("along_leg"); await settle(p);
   const gus = parseFloat(await bendFos()), gtxt = await text(p, "#pn_loads");
   check("a gusset along the leg raises the mount's bending FOS and says where the peak moved", gus > bare && /gusset 3(\.0)? × 30 mm/.test(gtxt) && /weld where the gusset ends/.test(gtxt)
@@ -94,7 +97,7 @@ const pressed = (p) => p.$eval("#axleSeg [aria-pressed=\"true\"]", b => b.datase
   check("a bracket into the node: no bending, and it points to the FEA export", parseFloat(await bendFos()) > gus && /Part loads for FEA/.test(await text(p, "#pn_loads"))
     && (await p.$eval("#in_members_gusset_height", el => el.closest(".field").hidden)));
   await p.click("#btnUndo"); await settle(p); // both picks in one burst on the same box: one Undo
-  check("Undo goes back to the bare tube", Math.abs(parseFloat(await bendFos()) - bare) < 0.005 && (await p.inputValue("#in_members_gusset_type")) === "none");
+  check("Undo goes back to the example's bracket", Math.abs(parseFloat(await bendFos()) - node0) < 0.005 && (await p.inputValue("#in_members_gusset_type")) === "to_node");
   // the rocker's plates: off, then on with the starting sizes, then thinner plates
   check("without rocker sizes the Loads tab says the rocker isn't checked", /Rocker\s*Not checked/.test(await text(p, "#pn_loads")));
   const rkPick = v => p.evaluate(v => { const s = document.querySelector("#in_members_rocker_on"); s.value = v; s.dispatchEvent(new Event("input", { bubbles: true })); s.dispatchEvent(new Event("change", { bubbles: true })); }, v);
@@ -311,7 +314,7 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
 
   console.log("\nRules check");
   const rb = await text(p, "#rulesBox");
-  check("the Car view checks the car against the FSAE 2027 rules by rule number", /Formula SAE 2027/.test(rb) && /V\.1\.2/.test(rb) && /30 pass/.test(rb) && /Check yourself/.test(rb), rb.slice(0, 200));
+  check("the Car view checks the car against the FSAE 2027 rules by rule number", /Formula SAE 2027/.test(rb) && /V\.1\.2/.test(rb) && /30 pass/.test(rb) && /Check by hand/.test(rb), rb.slice(0, 200));
   await p.evaluate(() => { const i = document.querySelector('#carIn [data-cpath="vehicle.wheelbase"]'); i.value = "1500"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await settle(p);
   check("a 1500 mm wheelbase fails V.1.2 and opens the rules list", /1 fail/.test(await text(p, "#rulesBox")) && (await p.$eval("#rulesBox", d => d.open)));
   await p.click("#btnUndo"); await settle(p);
@@ -365,14 +368,14 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   await p.setInputFiles("#fileIn", path.join(ROOT, "designs", "example_car_layout.json")); await settle(p);
   await p.click("#btnCheck"); await p.waitForFunction(() => /pass/.test(document.querySelector("#chkBody").textContent), null, { timeout: 30000 });
   const ck1 = await text(p, "#chkBody");
-  check("the design check covers setup, geometry, packaging, strength, balance and rules for the whole car", ["Setup", "Geometry", "Packaging", "Strength", "Car balance", "Rules", "Check yourself"].every(g => new RegExp(g, "i").test(ck1)) && /The whole car/.test(ck1), ck1.slice(0, 300));
+  check("the design check covers setup, geometry, packaging, strength, balance and rules for the whole car", ["Setup", "Geometry", "Packaging", "Strength", "Car balance", "Rules", "Check by hand"].every(g => new RegExp(g, "i").test(ck1)) && /The whole car/.test(ck1), ck1.slice(0, 300));
   check("it lists what needs input with why it matters (rod-end rating, default tabs)", /Rod ends against their rating/.test(ck1) && /Ball joints, damper eyes and rocker bearing against their ratings/.test(ck1) && /no rating for the upper ball joint/.test(ck1) && /catalog rating/.test(ck1) && /default 1\/8 in tab/.test(ck1));
   await p.click("#chkRunClear"); await p.waitForFunction(() => !/Not run yet/.test(document.querySelector("#chkBody").textContent), null, { timeout: 60000 });
   await p.uncheck("#chkOnly"); await settle(p);
   check("the frame and parts clearance runs from the check and fills its row", /clear the frame and parts/.test(await text(p, "#chkBody")) && /Closest:/.test(await text(p, "#chkBody")));
   const [ckDl] = await Promise.all([p.waitForEvent("download"), p.click("#chkReport")]);
   const ckRep = fs.readFileSync(await ckDl.path(), "utf8");
-  check("the sign-off report has every check, passes included, and lines to sign", /Sign-off/.test(ckRep) && /Checked by/.test(ckRep) && /✓ Pass/.test(ckRep) && /Suspension Solver \d+\.\d+\.\d+/.test(ckRep));
+  check("the sign-off report has every check, passes included, and lines to sign", /Sign-off/.test(ckRep) && /Checked by/.test(ckRep) && /✓ Pass/.test(ckRep) && /Vehicle Dynamics Workbench \d+\.\d+\.\d+/.test(ckRep));
   await p.check("#chkOnly"); await settle(p);
   await p.click('#chkBody [data-chk-go]'); await settle(p);
   check("Go there closes the check and opens that place", (await p.$eval("#chkDlg", d => d.hidden)));
