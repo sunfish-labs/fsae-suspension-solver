@@ -1,7 +1,8 @@
 // 69_bom.js - Bill of materials with costs (Car view → Bill of materials), saved in the car file as "bom".
-// Phase 1: rows typed by the team, totals by system and by status, CSV export. Planned next: rows the design
-// fills in itself (tubes, rod ends, bolts, tabs, dampers from the corner files), and the FSAE cost-report categories.
-// Row: {system, part, pn, qty, unit_cost, source, status: "planned" | "ordered" | "received", note}
+// Phase 1: rows typed by the team, totals by system and by status, CSV export. Phase 2: rows the design fills in
+// itself (tubes with cut lengths, rod ends, ball joints, rockers, dampers, springs, bolts from the corner files).
+// Row: {system, part, pn, qty, unit_cost, source, status: "planned" | "ordered" | "received", note, mb,
+//       auto?, key?, design_note?, ordered_qty?}   auto rows take qty from the design; the cost stays as typed
 const BOM_SYSTEMS = [
   "Brakes",
   "Engine & drivetrain",
@@ -48,7 +49,21 @@ function bomCsv(rows) {
     ["System", "Part", "Part number", "Qty", "Unit cost", "Total", "Source", "Status", "Note"].join(",") +
     "\n" +
     rows
-      .map(r => [r.system, r.part, r.pn, r.qty, r.unit_cost, bomCost(r).toFixed(2), r.source, r.status, r.note].map(q).join(","))
+      .map(r =>
+        [
+          r.system,
+          r.part,
+          r.pn,
+          r.qty,
+          r.unit_cost,
+          bomCost(r).toFixed(2),
+          r.source,
+          r.status,
+          [r.note, r.design_note].filter(Boolean).join(" | "),
+        ]
+          .map(q)
+          .join(",")
+      )
       .join("\n") +
     "\n"
   );
@@ -131,6 +146,168 @@ function costReportCsv(rows) {
   out.push(["", "of which bought", "", "", "", "", "", f(bought)].map(q).join(","));
   return out.join("\n") + "\n";
 }
+// ---- rows the design fills in (auto: true, key): quantities come from the corner files, costs are typed once.
+// The files hold the left-hand corner, so every count is doubled for the right side. Tube cuts are joint to joint
+// (the length between the hardpoints); trim them for the bungs and rod ends. A 6 ft stick with a 3 mm saw kerf.
+const BOM_STOCK = 1829,
+  BOM_KERF = 3;
+const bomDist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+function bomTubeLabel(od, wall, material) {
+  const oi = od / 25.4,
+    n = Math.round(oi * 16),
+    g = (a, b) => (b ? g(b, a % b) : a),
+    d = g(n, 16),
+    odTxt = Math.abs(oi - n / 16) < 1 / 500 ? (d === 16 ? String(n / 16) : `${n / d}/${16 / d}`) : oi.toFixed(3),
+    wallTxt = (wall / 25.4).toFixed(3).replace(/^0/, "");
+  return `${/4130/.test(material || "") ? "4130 " : ""}${odTxt} x ${wallTxt}`;
+}
+// sticks needed for the pieces: longest first, each into the first stick with room
+function bomSticks(lens) {
+  const used = [];
+  for (const L of lens.slice().sort((a, b) => b - a)) {
+    const i = used.findIndex(u => u + L + BOM_KERF <= BOM_STOCK);
+    if (i < 0) used.push(L + BOM_KERF);
+    else used[i] += L + BOM_KERF;
+  }
+  return used.length;
+}
+// what the design needs: Map key -> {part, pn, mb, qty, note}
+function bomDesign() {
+  const want = new Map(),
+    tubes = new Map();
+  const add = (key, ax, qty, o) => {
+    if (!want.has(key)) want.set(key, { part: o.part, pn: o.pn || "", mb: o.mb || "buy", qty: 0, by: {}, per: o.per });
+    const w = want.get(key);
+    w.qty += qty;
+    w.by[ax] = (w.by[ax] || 0) + qty;
+  };
+  for (const ax of ["front", "rear"]) {
+    const c = car[ax];
+    if (!c || !c.hardpoints) continue;
+    const h = c.hardpoints,
+      m = c.members || {},
+      sp = c.spring || {},
+      cut = (size, name, a, b) => {
+        if (!size || !a || !b) return;
+        const k = size.join("x");
+        if (!tubes.has(k)) tubes.set(k, { size, pieces: [] });
+        for (let s = 0; s < 2; s++) tubes.get(k).pieces.push({ name: `${ax} ${name}`, len: bomDist(a, b) });
+      };
+    cut(m.wishbone, "upper leg, front", h.upper_inboard_front, h.upper_outboard);
+    cut(m.wishbone, "upper leg, rear", h.upper_inboard_rear, h.upper_outboard);
+    cut(m.wishbone, "lower leg, front", h.lower_inboard_front, h.lower_outboard);
+    cut(m.wishbone, "lower leg, rear", h.lower_inboard_rear, h.lower_outboard);
+    cut(m.tie_rod, "tie rod", h.trackrod_inboard, h.trackrod_outboard);
+    const push = !!(sp.rod_outboard && sp.rocker_rod);
+    if (push) cut(m.pushrod, "pushrod", sp.rod_outboard, sp.rocker_rod);
+    const wb = 4,
+      tie = 2,
+      pr = push ? 2 : 0,
+      damper = sp.spring_rate != null ? 1 : 0,
+      rocker = sp.rocker_pivot ? 1 : 0;
+    add("rodend_wb", ax, wb * 2, { part: "Rod ends", per: "wishbone inboard ends" });
+    add("rodend_tie", ax, tie * 2, { part: "Rod ends, tie rods", per: "tie rod ends" });
+    add("rodend_push", ax, pr * 2, { part: "Rod ends, pushrods", per: "pushrod ends" });
+    add("balljoint", ax, 4, { part: "Ball joint inserts", per: "upper and lower outboard joints" });
+    add("weldcup", ax, 4, { part: "Weld cups", mb: "make", per: "one per ball joint" });
+    add("bung", ax, (wb + tie + pr) * 2, { part: "Weld bungs", mb: "make", per: "one per rod end" });
+    add("damper", ax, damper * 2, { part: "Dampers", per: "one per corner" });
+    add("spring", ax, damper * 2, { part: "Springs", per: "one per corner" });
+    add("rocker", ax, rocker * 2, { part: "Rockers", mb: "make", per: "one per corner" });
+    add("rbearing", ax, rocker * 2, { part: "Rocker pivot bearings", per: "one per rocker" });
+    add("bolt", ax, (wb + tie + pr + 2 + damper * 2 + rocker) * 2, {
+      part: "Bolts",
+      per: "one per rod end and ball joint, two per damper, one per rocker pivot",
+    });
+    add("nut", ax, (wb + tie + pr + 2 + damper * 2 + rocker) * 2, { part: "Nyloc nuts", per: "one per bolt" });
+  }
+  for (const [k, t] of want) {
+    const by = Object.entries(t.by).filter(([, n]) => n);
+    t.note = `${by.map(([a, n]) => `${a} ${n}`).join(", ")} (${t.per})`;
+    if (!t.qty) want.delete(k);
+  }
+  const mat = ((car.front || car.rear || {}).members || {}).material;
+  for (const [k, t] of tubes) {
+    const label = bomTubeLabel(t.size[0], t.size[1], mat),
+      groups = new Map();
+    for (const p of t.pieces) {
+      const g = `${p.name}|${Math.round(p.len)}`;
+      groups.set(g, (groups.get(g) || 0) + 1);
+    }
+    const sticks = bomSticks(t.pieces.map(p => p.len)),
+      long = t.pieces.filter(p => p.len + BOM_KERF > BOM_STOCK).length;
+    const cuts = [...groups].map(([g, n]) => `${n}× ${g.split("|")[1]} mm ${g.split("|")[0]}`).join("; ");
+    want.set("tube:" + k, {
+      part: `Suspension tube ${label}`,
+      pn: `${label}, 6 ft stick`,
+      mb: "buy",
+      qty: sticks,
+      note: `6 ft sticks for ${t.pieces.length} pieces, joint to joint, trim for ends and bungs: ${cuts}${long ? `. ${long} piece(s) are longer than a stick` : ""}`,
+    });
+  }
+  return want;
+}
+// the names a typed row can have to be taken over by the design's row
+const BOM_ALIAS = {
+  rodend_wb: ["rod ends"],
+  balljoint: ["ball joint inserts", "ball joints"],
+  weldcup: ["weld cups"],
+  bung: ["weld bungs"],
+  damper: ["dampers"],
+  spring: ["springs"],
+  bolt: ["bolts"],
+  nut: ["nyloc nuts"],
+  rocker: ["rockers"],
+  rbearing: ["rocker pivot bearings"],
+};
+// adds the design's rows that are missing; a typed row with the same name becomes the design's row and keeps its cost
+function bomFill(rows, want) {
+  const out = rows.slice();
+  for (const [key, w] of want) {
+    let r = out.find(x => x.auto && x.key === key);
+    if (!r) {
+      const names = BOM_ALIAS[key] || [];
+      r = out.find(x => !x.auto && x.system === "Suspension" && names.includes(String(x.part).trim().toLowerCase()));
+      if (r) {
+        if (r.status && r.status !== "planned") r.ordered_qty = +r.qty || 0;
+        r.auto = true;
+        r.key = key;
+      }
+    }
+    if (!r)
+      out.push({
+        system: "Suspension",
+        part: w.part,
+        pn: w.pn,
+        qty: w.qty,
+        unit_cost: 0,
+        source: "",
+        status: "planned",
+        note: "",
+        mb: w.mb,
+        auto: true,
+        key,
+      });
+  }
+  return out;
+}
+// called from run(): the design's rows follow the design, costs and notes stay
+function syncBom() {
+  if (!car || chal || !Array.isArray(car.bom) || !car.bom.some(r => r.auto)) return;
+  let want;
+  try {
+    want = bomDesign();
+  } catch (e) {
+    return;
+  }
+  for (const r of car.bom) {
+    if (!r.auto) continue;
+    const w = want.get(r.key);
+    r.qty = w ? w.qty : 0;
+    r.design_note = w ? w.note : "Not in this design any more";
+  }
+}
+const bomMoved = r => r.auto && r.ordered_qty != null && r.status !== "planned" && +r.ordered_qty !== +r.qty;
 function renderBom() {
   const box = $("#bomBox");
   if (!box || !car || chal) return;
@@ -143,13 +320,17 @@ function renderBom() {
     `<input class="${num ? "num lnum" : "ltext"}" ${num ? 'type="number" step="any" min="0"' : 'type="text"'} data-bom="${i}" data-bk="${k}" value="${attr(v ?? "")}" aria-label="${attr(k)}"${w ? ` style="width:${w}"` : ""}>`;
   const body = rows
     .map(
-      (r, i) => `<tr>
+      (r, i) => `<tr${r.auto ? ' class="bomauto"' : ""}>
       <td>${sel(
         i,
         "system",
         BOM_SYSTEMS.map(s => [s, s]),
         r.system
-      )}</td><td>${inp(i, "part", r.part)}</td><td>${inp(i, "pn", r.pn, false, "9em")}</td><td>${inp(i, "qty", r.qty, true)}</td><td>${inp(i, "unit_cost", r.unit_cost, true)}</td>
+      )}</td><td>${inp(i, "part", r.part)}${r.auto ? `<br><small class="note" title="Set by the design. Costs and notes stay.">${esc(r.design_note || "from the design")}</small>` : ""}</td><td>${inp(i, "pn", r.pn, false, "9em")}</td><td>${
+        r.auto
+          ? `<input class="num lnum" type="number" value="${attr(r.qty)}" readonly aria-label="Quantity, set by the design" title="Set by the design">${bomMoved(r) ? `<br><span class="pill warn">ordered ${esc(r.ordered_qty)}</span> <button class="btn small" type="button" data-bomack="${i}" title="Note that you know the design needs ${esc(r.qty)} now">Got it</button>` : ""}`
+          : inp(i, "qty", r.qty, true)
+      }</td><td>${inp(i, "unit_cost", r.unit_cost, true)}</td>
       <td class="n">${money(bomCost(r))}</td><td>${sel(
         i,
         "mb",
@@ -159,14 +340,18 @@ function renderBom() {
         ],
         r.mb || "buy"
       )}</td><td>${inp(i, "source", r.source, false, "9em")}</td><td>${sel(i, "status", BOM_STATUS, r.status || "planned")}</td>
-      <td><button class="btn small icon" type="button" data-bomdel="${i}" aria-label="Remove this row" title="Remove this row">✕</button></td></tr>`
+      <td><button class="btn small icon" type="button" data-bomdel="${i}" aria-label="Remove this row" title="Remove this row">✕</button>${r.auto ? ` <button class="btn small" type="button" data-bomown="${i}" title="Stop following the design: keep this quantity and type it yourself">Type it</button>` : ""}</td></tr>`
     )
     .join("");
+  const nMoved = rows.filter(bomMoved).length,
+    nNoCost = rows.filter(r => r.auto && !(+r.unit_cost > 0) && +r.qty > 0).length;
   const sys = BOM_SYSTEMS.filter(s => T.system[s] > 0)
     .map(s => `<div><span>${esc(s)}</span><b>${money(T.system[s])}</b></div>`)
     .join("");
-  box.innerHTML = `<details class="laysec" id="bomSec"${bomOpen ? " open" : ""}><summary><h3 class="sub-h">Bill of materials</h3><span class="pill neutral">${rows.length} part${rows.length === 1 ? "" : "s"} · ${money(T.total)}</span></summary>
-    <p class="note">What the car costs to build: one row per part, with quantity and unit cost, saved in the car file. Totals update as you type. Status tracks what is planned, ordered and received.</p>
+  box.innerHTML = `<details class="laysec" id="bomSec"${bomOpen ? " open" : ""}><summary><h3 class="sub-h">Bill of materials</h3><span class="pill neutral">${rows.length} part${rows.length === 1 ? "" : "s"} · ${money(T.total)}</span>${nMoved ? `<span class="pill warn">${nMoved} changed since ordered</span>` : ""}</summary>
+    <p class="note">What the car costs to build: one row per part, with quantity and unit cost, saved in the car file. Totals update as you type. Status tracks what is planned, ordered and received. <b>Fill from the design</b> adds the rows the design decides (tubes with cut lengths, rod ends, ball joints, rockers, dampers, springs, bolts). Their quantities follow the design from then on. Type each cost once.</p>
+    ${nNoCost ? `<div class="banner warn">${nNoCost} design row${nNoCost === 1 ? " needs" : "s need"} a unit cost.</div>` : ""}
+
     ${
       rows.length
         ? `<div class="kv"><div><span>Total</span><b>${money(T.total)}</b></div>${BOM_STATUS.map(([k, t]) => `<div><span>${t}</span><b>${money(T.status[k])}</b></div>`).join("")}</div>
@@ -174,7 +359,7 @@ function renderBom() {
       <div class="tbl-wrap"><table class="data bomtab"><thead><tr><th>System</th><th>Part</th><th>Part no.</th><th class="n">Qty</th><th class="n">Unit $</th><th class="n">Total</th><th>Make / buy</th><th>Source</th><th>Status</th><th></th></tr></thead><tbody>${body}</tbody></table></div>`
         : `<p class="note">No parts yet.</p>`
     }
-    <div class="laybtns"><button class="btn small" type="button" id="bomAdd">Add a part</button><button class="btn small" type="button" id="bomImp">Import a CSV…</button><input type="file" id="bomFile" accept=".csv,text/csv" hidden>${rows.length ? `<button class="btn small" type="button" id="bomCsv">Download CSV</button><button class="btn small" type="button" id="bomCost" title="By FSAE cost-report system, make / buy, with subtotals">Cost report starter (CSV)</button>` : ""}</div></details>`;
+    <div class="laybtns"><button class="btn small" type="button" id="bomFill" title="Add the rows the design decides: tubes with cut lengths, rod ends, ball joints, rockers, dampers, springs, bolts. Typed rows with the same name are taken over and keep their cost.">Fill from the design</button><button class="btn small" type="button" id="bomAdd">Add a part</button><button class="btn small" type="button" id="bomImp">Import a CSV…</button><input type="file" id="bomFile" accept=".csv,text/csv" hidden>${rows.length ? `<button class="btn small" type="button" id="bomCsv">Download CSV</button><button class="btn small" type="button" id="bomCost" title="By FSAE cost-report system, make / buy, with subtotals">Cost report starter (CSV)</button>` : ""}</div></details>`;
   wireBom(box);
 }
 function wireBom(box) {
@@ -185,6 +370,27 @@ function wireBom(box) {
     run();
   };
   $("#bomSec", box).addEventListener("toggle", e => (bomOpen = e.target.open));
+  $("#bomFill", box).addEventListener("click", () =>
+    edit(() => {
+      const before = (car.bom || []).length;
+      car.bom = bomFill(car.bom || [], bomDesign());
+      flash(`Added ${car.bom.length - before} rows from the design`);
+    })
+  );
+  $$("[data-bomown]", box).forEach(b =>
+    b.addEventListener("click", () =>
+      edit(() => {
+        const r = car.bom[+b.dataset.bomown];
+        delete r.auto;
+        delete r.key;
+        delete r.design_note;
+        delete r.ordered_qty;
+      })
+    )
+  );
+  $$("[data-bomack]", box).forEach(b =>
+    b.addEventListener("click", () => edit(() => (car.bom[+b.dataset.bomack].ordered_qty = car.bom[+b.dataset.bomack].qty)))
+  );
   $("#bomAdd", box).addEventListener("click", () =>
     edit(
       () =>
@@ -218,6 +424,10 @@ function wireBom(box) {
         const r = car.bom[+el.dataset.bom],
           k = el.dataset.bk;
         r[k] = el.type === "number" ? (el.value === "" ? 0 : Math.max(0, +el.value)) : el.value;
+        if (k === "status" && r.auto) {
+          if (r.status === "planned") delete r.ordered_qty;
+          else if (r.ordered_qty == null) r.ordered_qty = r.qty;
+        }
       })
     )
   );

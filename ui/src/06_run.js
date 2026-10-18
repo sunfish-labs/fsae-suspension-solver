@@ -10,6 +10,7 @@ function run() {
   timer = null;
   const t0 = performance.now();
   syncCar();
+  syncBom();
   try {
     ev = S.evaluate(cfg);
     loads = ev.spring ? S.runLoads(ev.cfg, ev.susp, ev.spring, carLltdFor(ev)) : null;

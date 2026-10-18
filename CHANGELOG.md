@@ -3,6 +3,16 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.40.0 - 2026-10-18
+
+- **Bill of materials, phase 2: rows the design fills in.** "Fill from the design" adds the rows the corner files
+  decide: suspension tubes by size with a cut list (joint-to-joint lengths from the hardpoints, packed into 6 ft
+  sticks), rod ends (wishbone, tie rod, pushrod), ball joint inserts and weld cups, weld bungs, rockers and their
+  bearings, dampers, springs, bolts and nuts. A typed row with the same name is taken over and keeps its cost. The
+  quantities follow the design from then on; costs and notes stay. A design row without a cost is flagged, a row
+  that was ordered and then changed in the design shows "ordered N" with a "Got it" button, and "Type it" takes a
+  row back to typing. Tabs, brakes and the engine are still typed.
+
 ## 1.39.0 - 2026-10-18
 
 Started by another assistant (Google Antigravity) in the owner's copy; finished, reviewed and tested here.

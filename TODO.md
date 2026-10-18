@@ -15,7 +15,8 @@ XL 3+ days.
 
 ## Bill of materials
 
-- Phases 2–5 in [BOM_PLAN.md](BOM_PLAN.md): rows the design fills in, a parts catalog to explore cost vs FOS,
+- Phase 2 (rows the design fills in) is done for the suspension (1.40.0); tabs, brakes and engine rows are left.
+  Phases 3–5 in [BOM_PLAN.md](BOM_PLAN.md): a parts catalog to explore cost vs FOS,
   BOM in the reports and CLI, order tracking. Phase 1 (manual BOM with totals and CSV) is done.
 
 ## This season: needed for a passing car

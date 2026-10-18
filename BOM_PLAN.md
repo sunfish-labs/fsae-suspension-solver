@@ -13,7 +13,7 @@ ignores the block until phase 4.
 ## Phases
 1. **Manual BOM (done, 1.35.0).** Car view → Bill of materials: rows typed by the team, quantity × unit cost,
    totals overall, by status and by system, CSV download, undo, saved in the car file. `ui/src/69_bom.js`.
-2. **Rows the design fills in** (`auto: true`, quantity from the design, cost typed once): suspension tubes by size
+2. **Rows the design fills in (done, 1.40.0: tubes with cut lists, rod ends, ball joints, rockers, dampers, springs, bolts; tabs, brakes and engine still to do)** (`auto: true`, quantity from the design, cost typed once): suspension tubes by size
    with cut lengths (from the hardpoints), rod ends and ball joints (count and rating from `members`), bolts, tabs,
    dampers and springs, brake parts from `brake_system`, engine from the drivetrain. Quantities update when the design
    changes; costs stay. A "what changed since last order" note when a quantity moves.
