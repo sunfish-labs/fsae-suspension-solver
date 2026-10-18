@@ -338,7 +338,7 @@ function drawLayout(group, dx = 0) {
     const D = drawKit(group, themeColors(), true),
       cg = [layRes.cg[0] + dx, layRes.cg[1], layRes.cg[2]];
     D.dot(cg, "#d1342f", 16);
-    D.label([cg[0], cg[1], cg[2] + 90], "layout CG", "#d1342f");
+    if (SET.tags) D.label([cg[0], cg[1], cg[2] + 90], "layout CG", "#d1342f");
   }
 }
 // triangles of the layout boxes, for the clearance check: [Float32Array of triangles, owner name per triangle]

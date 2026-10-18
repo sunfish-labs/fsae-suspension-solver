@@ -632,6 +632,13 @@ print(json.dumps([i["layout_res"]["mass"], i["layout_res"]["cg_height"], a["time
   await p.uncheck('[data-settab="compare"]'); await settle(p);
   check("a result tab can be hidden", !(await p.$("#tab_compare")));
   await p.check('[data-settab="compare"]'); await settle(p);
+  const tagCount = () => p.evaluate(() => { let n = 0; window.__suspView().three.scene.traverse(o => { if (o.isSprite && o.material.sizeAttenuation === false) n++; }); return n; });
+  await p.click("#setClose"); await p.click('#axleSeg [data-ax="car"]'); await settle(p);
+  const tags0 = await tagCount();
+  await p.click("#btnSettings"); await p.uncheck("#setTags"); await p.uncheck("#setHud"); await settle(p);
+  check("the 3D name tags (FRONT, REAR, CG, roll axis) and the readout bar can be turned off", tags0 >= 4 && (await tagCount()) === 0 && !(await p.isVisible("#hud")), `${tags0} tags`);
+  await p.check("#setTags"); await p.check("#setHud"); await settle(p);
+  check("and back on", (await tagCount()) === tags0 && (await p.isVisible("#hud")));
   console.log("\nTheme");
   await p.click('#setDlg [data-theme-set="dark"]'); await settle(p);
   await p.reload(); await settle(p);

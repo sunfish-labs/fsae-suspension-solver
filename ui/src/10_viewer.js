@@ -822,7 +822,7 @@ function drawHighlight(D, hl, o, sst, col) {
       ];
   for (const [d, lab, c] of dirs) {
     D.arrow(pt, d, 110, c || col.accent);
-    if (lab) D.label(V.add(pt, V.mul(d, 135)), lab, c);
+    if (lab && SET.tags) D.label(V.add(pt, V.mul(d, 135)), lab, c);
   }
 }
 function livePoint(path, o, sst) {

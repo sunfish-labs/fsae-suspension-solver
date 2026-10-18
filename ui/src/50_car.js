@@ -660,16 +660,18 @@ function updateCarScene() {
     DT.line([V.add(a, V.mul(u, 350)), V.sub(b, V.mul(u, 350))], col.accent, false);
     DT.dot(a, col.accent, 12);
     DT.dot(b, col.accent, 12);
-    DT.label(V.add(b, V.mul(u, -380)), "roll axis", col.accent);
+    if (SET.tags) DT.label(V.add(b, V.mul(u, -380)), "roll axis", col.accent);
   }
   const wf = car.vehicle.weight_front,
     cgx = xf - (xf - xr) * (1 - wf),
     cg = [cgx, 0, car.vehicle.cg_height];
   DT.dot(cg, col.ink, 14);
   DT.line([cg, [cgx, 0, 0]], col.muted, true);
-  DT.label(V.add(cg, [0, 0, 70]), "CG", col.ink);
-  DT.label([xf, half + 260, 40], "FRONT", col.s1);
-  DT.label([xr, half + 260, 40], "REAR", col.s2);
+  if (SET.tags) {
+    DT.label(V.add(cg, [0, 0, 70]), "CG", col.ink);
+    DT.label([xf, half + 260, 40], "FRONT", col.s1);
+    DT.label([xr, half + 260, 40], "REAR", col.s2);
+  }
   if (!view.target) {
     view.target = toT([(xf + xr) / 2, 0, 120]);
     view.r = fitR(Math.abs(xf - xr) + 700, 900);

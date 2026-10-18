@@ -14,6 +14,8 @@ const SET_DEFAULTS = {
   tabs: { motion: true, spring: true, loads: true, pack: true, compare: true },
   quality: "high",
   tips: true,
+  tags: true,
+  hud: true,
 };
 const SET = (() => {
   let s = {};

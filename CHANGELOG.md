@@ -3,6 +3,12 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.31.0 - 2026-10-17
+
+- **Settings → 3D view:** turn off the name tags in the 3D view (FRONT / REAR, CG, roll axis, a picked joint's
+  directions) and the readout bar with the axis key, for a clean view or a screenshot. "Show me…" drawings keep
+  their labels.
+
 ## 1.30.0 - 2026-10-17
 
 - **New name in the app: Wake Forest FSAE, Vehicle Dynamics Workbench** (header, welcome card, report footers). The

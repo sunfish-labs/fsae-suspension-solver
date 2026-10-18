@@ -369,7 +369,7 @@ by default; or the solver's own, SolidWorks with Y up, or X rearward; origin: th
 frame), or each axle from its own zero) used by the hardpoint tables, the layout, the 3D axes and the hover readout; whether the
 **detailed inputs** show (first visits start without damping, spring-as-fitted, bar linkage, tabs, fatigue,
 compliance, clearance margins, sweep ranges and the JSON box); which **result tabs** show; **3D quality** for slow
-laptops; and hover readouts. Files are always saved in the team frame; picking other axes here changes only what this
+laptops; hover readouts; and whether the 3D view shows its name tags (FRONT / REAR, CG, roll axis) and the readout bar. Files are always saved in the team frame; picking other axes here changes only what this
 browser shows. The 3D-for-CAD and FEA exports have their own axes choice (the team frame by default).
 
 ## How loads are calculated (`loads`)

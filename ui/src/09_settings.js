@@ -12,10 +12,13 @@ function syncSettingsForm() {
   $$("#setDlg [data-settab]").forEach(c => (c.checked = SET.tabs[c.dataset.settab] !== false));
   $("#setQuality").value = SET.quality;
   $("#setTips").checked = !!SET.tips;
+  $("#setTags").checked = SET.tags !== false;
+  $("#setHud").checked = SET.hud !== false;
 }
 // apply the settings to the page; rerun when the coordinates changed (the tables and the 3D axes follow)
 function applySettings({ rerun = true } = {}) {
   document.body.classList.toggle("simple", !SET.advanced);
+  document.body.classList.toggle("nohud", SET.hud === false);
   $("#advHint").hidden = !!SET.advanced;
   $("#hpHint").textContent = "mm · " + frameShort() + (frameIsTeam() ? " · as in the files" : " · this screen only (files: ISO 8855)");
   const k = $("#vaxkey");
@@ -82,6 +85,8 @@ function wireSettings() {
   $$("#setDlg [data-settab]").forEach(c => c.addEventListener("change", () => setSetting(() => (SET.tabs[c.dataset.settab] = c.checked))));
   $("#setQuality").addEventListener("change", e => setSetting(() => (SET.quality = e.target.value)));
   $("#setTips").addEventListener("change", e => setSetting(() => (SET.tips = e.target.checked)));
+  $("#setTags").addEventListener("change", e => setSetting(() => (SET.tags = e.target.checked)));
+  $("#setHud").addEventListener("change", e => setSetting(() => (SET.hud = e.target.checked)));
   $("#setReset").addEventListener("click", () =>
     setSetting(() => {
       Object.assign(SET, JSON.parse(JSON.stringify(SET_DEFAULTS)), { advanced: true });
