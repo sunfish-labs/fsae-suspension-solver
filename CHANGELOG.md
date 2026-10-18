@@ -3,6 +3,13 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.38.0 - 2026-10-17
+
+- **Design justification:** a **Key calculations** section works the main numbers by hand with the design's values
+  (wheel rate, ride rate, corner sprung mass, ride frequency, buckling of the most loaded link, roll gradient); and the
+  team's reasoning fills the "our reasoning" column from the car file's `justification` block
+  (`{"summary": …, "car.<metric>": …, "front.<metric>": …, "rear.<metric>": …}`).
+
 ## 1.37.0 - 2026-10-17
 
 - **Tracker fills in from the workbench:** each item the workbench measures shows its verdict from the car open now

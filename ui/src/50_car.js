@@ -36,6 +36,7 @@ function carFrom(raw0) {
     ground_points: raw.ground_points ? JSON.parse(JSON.stringify(raw.ground_points)) : null,
     brake_system: raw.brake_system ? JSON.parse(JSON.stringify(raw.brake_system)) : null,
     bom: Array.isArray(raw.bom) ? JSON.parse(JSON.stringify(raw.bom)) : null,
+    justification: raw.justification && typeof raw.justification === "object" ? JSON.parse(JSON.stringify(raw.justification)) : null,
   };
   if (c.brake_system) S.checkBrakes(c.brake_system);
   c._frame = fileFrame ? S.FRAME : raw._frame || null;
@@ -97,6 +98,7 @@ function exportCar(local = false) {
     ...(car.ground_points && car.ground_points.length ? { ground_points: pts.ground_points } : {}),
     ...(car.brake_system ? { brake_system: car.brake_system } : {}),
     ...(car.bom && car.bom.length ? { bom: car.bom } : {}),
+    ...(car.justification ? { justification: car.justification } : {}),
     front: strip(team(car.front)),
     rear: strip(team(car.rear)),
   };

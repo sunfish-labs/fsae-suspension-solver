@@ -20,6 +20,7 @@ function snapshot() {
           ground_points: car.ground_points,
           brake_system: car.brake_system,
           bom: car.bom,
+          justification: car.justification,
           _frame: car._frame,
           src: car.src,
           front: car.front,

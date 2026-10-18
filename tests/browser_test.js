@@ -685,7 +685,7 @@ print(json.dumps([len(i["drivetrain"]["gears"]), a["time"]]))`]).toString());
   await p.waitForFunction(() => true); await new Promise(r => setTimeout(r, 1500));
   const jHtml = jDls.find(d => /justification\.html$/.test(d.suggestedFilename())), jTyp = jDls.find(d => /justification\.typ$/.test(d.suggestedFilename()));
   const jh = jHtml ? fs.readFileSync(await jHtml.path(), "utf8") : "", jTxt = jTyp ? fs.readFileSync(await jTyp.path(), "utf8") : "";
-  check("Design justification: a page with every target, why it matters and a reasoning column, plus Typst source", /Our reasoning/.test(jh) && /Roll center height/.test(jh) && /Rules \(FSAE 2027 IC\)/.test(jh) && /#table\(columns/.test(jTxt) && /= .*design justification/.test(jTxt), `${jDls.map(d => d.suggestedFilename())}`);
+  check("Design justification: a page with every target, why it matters and a reasoning column, plus Typst source", /Our reasoning/.test(jh) && /Roll center height/.test(jh) && /Rules \(FSAE 2027 IC\)/.test(jh) && /Key calculations/.test(jh) && /ride frequency/i.test(jh) && /P_"cr"/.test(jTxt) && /#table\(columns/.test(jTxt) && /= .*design justification/.test(jTxt), `${jDls.map(d => d.suggestedFilename())}`);
   if (jTxt) fs.writeFileSync(path.join(os.tmpdir(), "susp_just.typ"), jTxt);
   await p.click("#btnSettings");
   console.log("\nTheme");
