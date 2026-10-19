@@ -17,7 +17,7 @@ p { margin: 0 0 16px; color: var(--muted); }
 a.btn { display: block; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
 a.btn b { display: block; font-size: 17px; }
 a.btn span { font-size: 14px; color: var(--muted); }
-a.btn.primary { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+a.btn.primary { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); }
 a.btn:hover, a.btn:focus-visible { border-color: var(--accent); }
 footer { margin-top: 18px; font-size: 13px; color: var(--muted); }
 footer a { color: inherit; }
@@ -29,7 +29,7 @@ footer a { color: inherit; }
   <p>Design and check a Formula SAE double-wishbone suspension in the browser: kinematics, springs and roll balance, member loads and part sizing, the rules, and the reports for the design event.</p>
   <div class="go">
     <a class="btn primary" href="demo/"><b>Try the demo</b><span>The example car, every view and tab. No sign-up.</span></a>
-    <a class="btn" href="ui/"><b>Team sign-in</b><span>Wake Forest FSAE members: the full workbench, with the team passphrase.</span></a>
+    <a class="btn" href="ui/"><b>Team sign-in</b><span>Wake Forest FSAE members only.</span></a>
   </div>
   <footer><a href="ui/guide.html">Guide &amp; case study</a> · <a href="https://github.com/sunfish-labs/fsae-suspension-solver">Source on GitHub</a></footer>
 </main>

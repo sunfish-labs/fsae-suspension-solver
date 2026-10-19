@@ -3,6 +3,12 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.43.1 - 2026-10-19
+
+- Front page: the demo button's border is even, and the team button reads "Wake Forest FSAE members only." The
+  passphrase page links to the demo ("Not on the team? Try the demo"), so a visitor who lands on `ui/` (an old link
+  or bookmark) still finds it.
+
 ## 1.43.0 - 2026-10-19
 
 - **Lap time, point mass.** Car view → Lap time: a quick quasi-steady point-mass simulation. Grip from the tire μ

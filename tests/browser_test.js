@@ -883,6 +883,7 @@ print(json.dumps([len(i["drivetrain"]["gears"]), a["time"]]))`]).toString());
     await p.route(/^https?:/, r => r.abort());
     await p.goto("file://" + locked); await p.evaluate(() => localStorage.clear()); await p.reload();
     await p.waitForSelector("#gate:not([hidden])");
+    check("the passphrase page links visitors to the public demo", (await p.getAttribute(".foot a", "href")) === "../demo/");
     check("the locked page asks for the passphrase and shows no app", !(await p.$("#btnSettings")));
     await p.fill("#pass", "wrong-wrong-1"); await p.click("#go");
     await p.waitForFunction(() => /Incorrect passphrase/.test(document.getElementById("msg").textContent));

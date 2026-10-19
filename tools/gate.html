@@ -27,6 +27,7 @@ button:hover { background: var(--gold-hi); }
 button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 button:disabled { opacity: .65; cursor: wait; }
 #msg { color: var(--bad); min-height: 1.3em; margin: 12px 0 0; font-size: 13px; }
+.foot a { color: var(--gold-hi); }
 .foot { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12px; color: #7d776b; }
 </style>
 </head>
@@ -40,7 +41,7 @@ button:disabled { opacity: .65; cursor: wait; }
   <input id="pass" type="password" autocomplete="current-password" required>
   <button id="go" type="submit">Open</button>
   <p id="msg" role="alert"></p>
-  <p class="foot">Team members only. Ask your team lead for the passphrase.</p>
+  <p class="foot">Team members only. Ask your team lead for the passphrase. Not on the team? <a href="../demo/">Try the demo</a>.</p>
 </form>
 <script>
 (function () {
