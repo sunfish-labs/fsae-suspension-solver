@@ -566,3 +566,14 @@ body:not(.team) #btnTracker { display: none; }
 .trkseg button[aria-pressed="true"].done { background: var(--ok-bg); color: var(--ok); }
 .trkseg button[aria-pressed="true"].doing { background: var(--warn-bg); color: var(--ink); }
 .trkseg button:disabled { cursor: default; }
+/* ---- the public demo (01_demo.js) */
+.demobar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 16px; background: var(--warn-bg); color: var(--ink); font-size: 13px; border-bottom: 1px solid var(--line); }
+.demobar span { flex: 1 1 320px; }
+body.demo [data-locked] { opacity: .45; cursor: not-allowed; }
+body.demo [data-locked]:is(button, a, summary, .wbig)::after { content: " 🔒"; font-size: 11px; }
+body.demo #teamSec[data-locked]::after { content: none; }
+.demodlg form { display: flex; flex-direction: column; gap: 6px; }
+.demodlg .dlab { font-weight: 600; font-size: 13px; margin-top: 4px; }
+.demodlg input, .demodlg select { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.demodlg #demoGo { margin-top: 8px; align-self: flex-start; }
+.demohp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }

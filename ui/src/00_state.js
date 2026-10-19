@@ -37,8 +37,11 @@ let pose = { dz: 0, rack: 0 },
   savedSpring = null,
   savedRocker = null,
   tab = "checks";
+// the public demo (DEMO, 01_demo.js) keeps nothing between visits: its storage is this page's memory
+const demoMem = new Map();
 const store = {
   get(k) {
+    if (DEMO) return demoMem.has(k) ? demoMem.get(k) : null;
     try {
       return localStorage.getItem(k);
     } catch (e) {
@@ -46,6 +49,7 @@ const store = {
     }
   },
   set(k, v) {
+    if (DEMO) return void demoMem.set(k, String(v));
     try {
       localStorage.setItem(k, v);
     } catch (e) {

@@ -1,6 +1,7 @@
 # Builds the web app (ui/build.py) and publishes the site with GitHub Pages on every push to main
 # (repo Settings -> Pages -> Source: "GitHub Actions"). ui/index.html is built here, not committed.
-# The published app is encrypted behind the team passphrase (tools/encrypt_page.js): set it as the repository secret
+# The front page offers the public demo (demo/, ui/demo.html: example cars only, no team settings, see
+# ui/src/01_demo.js) and the team's app (ui/). The team's app is encrypted behind the team passphrase (tools/encrypt_page.js): set it as the repository secret
 # TEAM_PASSPHRASE (Settings -> Secrets and variables -> Actions). Without it the build stops rather than publish an
 # open copy.
 name: pages
@@ -31,6 +32,8 @@ jobs:
           mkdir -p _site/ui
           cp index.html _site/
           cp ui/guide.html _site/ui/
+          mkdir -p _site/demo
+          cp ui/demo.html _site/demo/index.html
       - name: Encrypt the app behind the team passphrase
         env:
           TEAM_PASSPHRASE: ${{ secrets.TEAM_PASSPHRASE }}

@@ -3,6 +3,18 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.42.0 - 2026-10-19
+
+- **Public demo with a waitlist** (`DEMO_PLAN.md`). The site's front page now offers **Try the demo** (`demo/`) and
+  **Team sign-in** (`ui/`, the encrypted team app, unchanged). `ui/build.py` also writes `ui/demo.html`: no team
+  settings, the public example designs only, settings from `schema/demo.json`. In the demo every view, tab, chart and
+  the 3D view work and the numbers can be edited, but nothing is kept (its storage lives in memory, so a reload starts
+  fresh). Opening files, saving, every export, the sign-off report, one-click fixes, the catalog's Use, BOM and
+  catalog imports and downloads, challenges, the tracker and team settings are grayed out with a lock; clicking one
+  (or dropping a file) opens "Join the waitlist" with email, team and role, naming the feature. With a waitlist
+  Google Form in `schema/demo.json` the sign-up is sent from the page; until then the feedback form opens with the
+  sign-up filled in. A hidden field drops bot sign-ups. `ui/src/01_demo.js`; tests in "Public demo".
+
 ## 1.41.0 - 2026-10-19
 
 - **Parts catalog (bill of materials, phase 3).** Car view → Parts catalog: the bought parts the team could use,

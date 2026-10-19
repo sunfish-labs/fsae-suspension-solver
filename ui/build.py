@@ -45,7 +45,7 @@ solver = ('/* susp.js - FSAE double-wishbone solver (browser port of the Python 
 with open(os.path.join(here, "susp.js"), "w") as f:
     f.write(solver)
 js = "window.SUSP_SCHEMA = " + json.dumps(schema, ensure_ascii=False, separators=(",", ":")) + ";\n" + solver
-html = html.replace("/*SUSP_JS*/", js).replace("/*CAD_JS*/", cad).replace("/*GLOSSARY_JS*/", glossary).replace("/*PRESETS*/", json.dumps(presets)).replace("/*APP_VERSION*/", json.dumps(re.search(r'^version = "([^"]+)"', open(os.path.join(root, "pyproject.toml")).read(), re.M).group(1))).replace("/*TEAM_ENC*/", team_enc).replace("/*SW_MACRO*/", json.dumps(open(os.path.join(root, "tools", "solidworks", "ExportHardpoints.bas"), encoding="utf-8").read()).replace("</", "<\\/"))
+html = html.replace("/*SUSP_JS*/", js).replace("/*CAD_JS*/", cad).replace("/*GLOSSARY_JS*/", glossary).replace("/*PRESETS*/", json.dumps(presets)).replace("/*APP_VERSION*/", json.dumps(re.search(r'^version = "([^"]+)"', open(os.path.join(root, "pyproject.toml")).read(), re.M).group(1))).replace("/*SW_MACRO*/", json.dumps(open(os.path.join(root, "tools", "solidworks", "ExportHardpoints.bas"), encoding="utf-8").read()).replace("</", "<\\/"))
 # third-party code and fonts, built in so the page works offline (from a USB stick): ui/vendor/ (see its README)
 import base64  # noqa: E402
 vend = os.path.join(here, "vendor")
@@ -66,13 +66,27 @@ html = html.replace("/*FONTS_CSS*/", fonts_css.rstrip("\n"), 1).replace("/*THREE
 SITE = "https://sunfish-labs.github.io/fsae-suspension-solver/ui/"
 local_html = html.replace("/*GUIDE_URL*/", "guide.html")
 html = html.replace("/*GUIDE_URL*/", SITE + "guide.html")   # the hosted Claude page links to the public guide
+
+
+def page(body, team, demo):
+    return body.replace("/*TEAM_ENC*/", team).replace("/*DEMO*/", demo)
+
+
+def full_doc(body):
+    return ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+            '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+            '<style>body{margin:0}</style>\n</head>\n<body>\n' + body + '\n</body>\n</html>\n')
+
+
 # artifact version: page content only (the publisher adds the document skeleton)
 with open(os.path.join(here, "artifact.html"), "w") as f:
-    f.write(html)
+    f.write(page(html, team_enc, "null"))
 # standalone version for double-clicking from the folder: full HTML document
-doc = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
-       '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-       '<style>body{margin:0}</style>\n</head>\n<body>\n' + local_html + '\n</body>\n</html>\n')
 with open(os.path.join(here, "index.html"), "w") as f:
-    f.write(doc)
-print(f"wrote ui/index.html and ui/artifact.html ({len(html) // 1024} KB)")
+    f.write(full_doc(page(local_html, team_enc, "null")))
+# the public demo (published at /demo/, see ui/src/01_demo.js): no team settings, example designs only (the presets
+# are the public designs/ files in every build), its settings from schema/demo.json
+demo_cfg = json.dumps(json.load(open(os.path.join(root, "schema", "demo.json"))), separators=(",", ":")).replace("</", "<\\/")
+with open(os.path.join(here, "demo.html"), "w") as f:
+    f.write(full_doc(page(html, "null", demo_cfg)))
+print(f"wrote ui/index.html, ui/artifact.html and ui/demo.html ({len(html) // 1024} KB)")

@@ -2,9 +2,36 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FSAE Vehicle Dynamics Workbench</title>
-<meta http-equiv="refresh" content="0; url=ui/">
-<link rel="canonical" href="ui/">
+<meta name="description" content="Design and check a Formula SAE suspension in the browser: kinematics, loads, parts and rules.">
+<style>
+:root { --bg: #f1f0ec; --panel: #fff; --ink: #1d1c19; --muted: #6b675f; --accent: #9e7e38; --line: #dcd9d1; }
+@media (prefers-color-scheme: dark) { :root { --bg: #141311; --panel: #1d1c19; --ink: #ece9e2; --muted: #a8a49b; --accent: #d2ad5c; --line: #34322d; } }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { width: min(560px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px 24px; }
+h1 { margin: 0 0 4px; font-size: 28px; line-height: 1.15; }
+p { margin: 0 0 16px; color: var(--muted); }
+.go { display: grid; gap: 10px; margin-top: 20px; }
+a.btn { display: block; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+a.btn b { display: block; font-size: 17px; }
+a.btn span { font-size: 14px; color: var(--muted); }
+a.btn.primary { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+a.btn:hover, a.btn:focus-visible { border-color: var(--accent); }
+footer { margin-top: 18px; font-size: 13px; color: var(--muted); }
+footer a { color: inherit; }
+</style>
 </head>
-<body><p><a href="ui/">Open the FSAE Vehicle Dynamics Workbench</a></p></body>
+<body>
+<main>
+  <h1>FSAE Vehicle Dynamics Workbench</h1>
+  <p>Design and check a Formula SAE double-wishbone suspension in the browser: kinematics, springs and roll balance, member loads and part sizing, the rules, and the reports for the design event.</p>
+  <div class="go">
+    <a class="btn primary" href="demo/"><b>Try the demo</b><span>The example car, every view and tab. No sign-up.</span></a>
+    <a class="btn" href="ui/"><b>Team sign-in</b><span>Wake Forest FSAE members: the full workbench, with the team passphrase.</span></a>
+  </div>
+  <footer><a href="ui/guide.html">Guide &amp; case study</a> · <a href="https://github.com/sunfish-labs/fsae-suspension-solver">Source on GitHub</a></footer>
+</main>
+</body>
 </html>

@@ -753,6 +753,41 @@ print(json.dumps([len(i["drivetrain"]["gears"]), a["time"]]))`]).toString());
   check("the 3D view runs with the built-in three.js", await p.evaluate(() => typeof THREE !== "undefined" && !!document.querySelector("canvas")));
   await p.context().close();
 
+  console.log("\nPublic demo");
+  p = await newPage(browser, { page: "file://" + path.join(ROOT, "ui", "demo.html") }); await closeWelcome(p);
+  await p.click('#axleSeg [data-ax="car"]'); await settle(p);
+  check("demo: the demo bar shows, there are no team settings, the example car solves", (await p.isVisible("#demoBar")) && (await p.evaluate("TEAM_ENC === null && !!DEMO")) && /Demo/.test(await text(p, "#demoBar")) && !(await p.isVisible("#errBox .banner")));
+  for (const ax of ["front", "rear", "car"]) { await p.click(`#axleSeg [data-ax="${ax}"]`); await settle(p); }
+  check("demo: every view opens", (await pressed(p)) === "car");
+  const mass0 = await p.inputValue('[data-cpath="vehicle.mass"]');
+  await p.fill('[data-cpath="vehicle.mass"]', "333"); await p.press('[data-cpath="vehicle.mass"]', "Tab"); await settle(p);
+  check("demo: the numbers can be edited, and nothing is written to the browser's storage", (await p.inputValue('[data-cpath="vehicle.mass"]')) === "333" && (await p.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith("susp.") && k !== "susp.theme").length === 0)));
+  await p.click("#exMenu summary"); await settle(p);
+  check("demo: the exports are grayed out with a lock", await p.$eval("#xReport", e => e.dataset.locked === "1" && getComputedStyle(e).opacity < 0.6));
+  let demoDl = false; p.once("download", () => (demoDl = true));
+  await p.click("#xReport", { force: true }); await p.waitForTimeout(500);
+  check("demo: clicking a locked export downloads nothing and opens the waitlist, naming it", !demoDl && (await p.isVisible("#demoDlg")) && /Exports/.test(await text(p, "#demoWant")));
+  await p.click("#demoGo"); await settle(p);
+  check("demo: the waitlist asks for an email", /email address/.test(await text(p, "#demoMsg")));
+  await p.evaluate(() => { window.__opened = []; window.open = u => window.__opened.push(u); });
+  await p.fill("#demoEmail", "test@example.edu"); await p.fill("#demoTeam", "Test U"); await p.selectOption("#demoRole", "Student"); await p.click("#demoGo"); await settle(p);
+  const opened = await p.evaluate(() => window.__opened);
+  check("demo: with no waitlist form yet, the feedback form opens with the sign-up filled in", opened.length === 1 && /entry\.349499540=Waitlist/.test(opened[0]) && /test%40example\.edu/.test(opened[0]) && /Exports/.test(decodeURIComponent(opened[0])) && /Almost there/.test(await text(p, "#demoDone")), opened[0]);
+  await p.click("#demoOk");
+  let posted = null;
+  await p.route("https://forms.example.com/**", r => { posted = r.request().postData(); r.fulfill({ status: 200, body: "" }); });
+  await p.evaluate('Object.assign(DEMO.waitlist, { form: "https://forms.example.com/formResponse", email: "entry.11", want: "entry.22" })');
+  await p.click("#openMenu summary"); await settle(p); await p.click("#omFile", { force: true }); await settle(p);
+  check("demo: opening your own file is locked too", (await p.isVisible("#demoDlg")) && /your own design/.test(await text(p, "#demoWant")));
+  await p.fill("#demoEmail", "test2@example.edu"); await p.click("#demoGo"); await p.waitForTimeout(500);
+  check("demo: with a waitlist form set, the sign-up is sent from the page", !!posted && /entry\.11=test2%40example\.edu/.test(posted) && /entry\.22=/.test(posted) && /on the list/.test(await text(p, "#demoDone")), posted);
+  await p.click("#demoOk");
+  check("demo: the one-click fixes, challenges and tracker are locked", (await p.$$eval("#btnChal, #btnTracker", els => els.every(e => e.dataset.locked === "1"))));
+  await p.reload(); await settle(p); await closeWelcome(p); await p.click('#axleSeg [data-ax="car"]'); await settle(p);
+  check("demo: a reload starts fresh", (await p.inputValue('[data-cpath="vehicle.mass"]')) === mass0, mass0);
+  check("no script errors in the demo", p.errors.length === 0, p.errors.slice(0, 5).join(" | "));
+  await p.context().close();
+
   console.log("\nTeam settings");
   // a copy of the page without the repo's own team/settings.enc, so the test sets up its own
   const plainPage = path.join(os.tmpdir(), "susp_noteam", "index.html");

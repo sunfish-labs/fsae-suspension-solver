@@ -300,6 +300,7 @@ $("#dmChassis").addEventListener("click", () => {
     if (dm.open && !dm.contains(e.target)) dm.open = false;
   });
 }
+demoBoot();
 wireSettings();
 wireTrackerDlg();
 teamBoot();

@@ -6,6 +6,7 @@ old/
 reports/
 ui/artifact.html
 ui/index.html
+ui/demo.html
 # keep the public examples
 !designs/*.json
 __pycache__/

@@ -1,0 +1,17 @@
+{
+ "_note": "Settings for the public demo (ui/demo.html, published at /demo/; see ui/src/01_demo.js and DEMO_PLAN.md). waitlist: a Google Form for sign-ups: form = its address ending in /formResponse (the /viewform address with viewform replaced), and the entry ids of its questions (entry.NNN; find them with the form's 'Get pre-filled link'). Until waitlist.form is set, the feedback form below opens with the sign-up filled into its suggestions box.",
+ "brand": null,
+ "repo": "https://github.com/sunfish-labs/fsae-suspension-solver",
+ "waitlist": {
+  "form": null,
+  "email": null,
+  "team": null,
+  "role": null,
+  "want": null
+ },
+ "feedback": {
+  "form": "https://docs.google.com/forms/d/e/1FAIpQLSdr9L4eE2ed5GTKLsqqsinu55N6eludFQw0q78PBKTN70Zj_w/viewform",
+  "suggestions": "entry.349499540",
+  "name": "entry.1223500353"
+ }
+}
