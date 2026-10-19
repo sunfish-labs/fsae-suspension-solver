@@ -68,7 +68,7 @@ XL 3+ days.
 - **Frame torsional stiffness from the tube centerlines** (XL): a 3D frame solved in the browser, feeding the LLTD.
 - **Tire model with camber** (M-L): grip that depends on camber, not Pacejka. Needs tire data (TTC); until then an
   approximate tire run across a range of parameters, trusting only comparisons that hold for every tire.
-- **Point-mass lap time simulation** (S-M): mass vs power vs drag vs downforce in event points; needs no tire data.
+- ~~**Point-mass lap time simulation**~~ (done in 1.43.0 as times and what-ifs; event points still to add): mass vs power vs drag vs downforce; needs no tire data.
 - **Steady-state handling** (L) and **lap time with suspension effects** (L): balance, max lateral g and points per
   change, after the tire model.
 - **Export to Simscape Formula Student** (M): its kinematics test as a cross-check and its transient simulation.

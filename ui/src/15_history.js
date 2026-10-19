@@ -21,6 +21,7 @@ function snapshot() {
           brake_system: car.brake_system,
           bom: car.bom,
           catalog: car.catalog,
+          lapsim: car.lapsim,
           justification: car.justification,
           _frame: car._frame,
           src: car.src,

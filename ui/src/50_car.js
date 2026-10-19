@@ -37,6 +37,7 @@ function carFrom(raw0) {
     brake_system: raw.brake_system ? JSON.parse(JSON.stringify(raw.brake_system)) : null,
     bom: Array.isArray(raw.bom) ? JSON.parse(JSON.stringify(raw.bom)) : null,
     catalog: Array.isArray(raw.catalog) ? JSON.parse(JSON.stringify(raw.catalog)) : null,
+    lapsim: raw.lapsim && typeof raw.lapsim === "object" ? JSON.parse(JSON.stringify(raw.lapsim)) : null,
     justification: raw.justification && typeof raw.justification === "object" ? JSON.parse(JSON.stringify(raw.justification)) : null,
   };
   if (c.brake_system) S.checkBrakes(c.brake_system);
@@ -100,6 +101,7 @@ function exportCar(local = false) {
     ...(car.brake_system ? { brake_system: car.brake_system } : {}),
     ...(car.bom && car.bom.length ? { bom: car.bom } : {}),
     ...(car.catalog && car.catalog.length ? { catalog: car.catalog } : {}),
+    ...(car.lapsim ? { lapsim: car.lapsim } : {}),
     ...(car.justification ? { justification: car.justification } : {}),
     front: strip(team(car.front)),
     rear: strip(team(car.rear)),
@@ -160,6 +162,7 @@ function applyViewClasses() {
   $("#layBox").hidden = axleView !== "car" || !!chal;
   $("#bomBox").hidden = axleView !== "car" || !!chal;
   $("#catBox").hidden = axleView !== "car" || !!chal;
+  $("#lapBox").hidden = axleView !== "car" || !!chal;
   if (axleView === "car") {
     $("#cardsIn").hidden = true;
   } else if (!chal && $("#crail").hidden) $("#cardsIn").hidden = false;

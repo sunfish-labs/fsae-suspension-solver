@@ -48,6 +48,7 @@ function run() {
     renderLayoutBox();
     renderBom();
     renderCatalog();
+    renderLapsim();
   }
   renderViewTabs();
   if (!$("#trkDlg").hidden) renderTracker();

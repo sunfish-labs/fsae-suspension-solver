@@ -3,6 +3,17 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.43.0 - 2026-10-19
+
+- **Lap time, point mass.** Car view → Lap time: a quick quasi-steady point-mass simulation. Grip from the tire μ
+  (plus downforce, Cl·A), the engine from the drivetrain's torque curve and gears (or a power figure when the car
+  file has no drivetrain), drag and rolling resistance; corners cap the speed and the car accelerates and brakes
+  with the grip the corner leaves (friction circle), traction from the rear axle's share. Times for acceleration
+  (the drivetrain's own run), one skidpad lap, an invented example autocross-style lap and ~22 km of endurance, and
+  a table of what each change is worth: 10 kg, 10 % power, 0.1 μ, 1 m² of Cl·A, 0.2 m² of Cd·A. With a tire load
+  sensitivity set, a lighter car gets the grip that comes with it. Meant for comparing changes, not predicting a
+  lap. Saved in the car file as `lapsim`. App-side only (`ui/src/69_lapsim.js`).
+
 ## 1.42.0 - 2026-10-19
 
 - **Public demo with a waitlist** (`DEMO_PLAN.md`). The site's front page now offers **Try the demo** (`demo/`) and

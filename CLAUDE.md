@@ -44,7 +44,7 @@ Prettier formats `ui/src`: run it with `--write` after editing JS.
 
 ## Where things are
 - Car view panels: `50_car.js` (balance, rules), `68_layout.js` (layout, drivetrain, engines in `68_engines.js`),
-  `68_brakes.js`, `69_bom.js` (bill of materials), `69_catalog.js` (parts catalog). Exports: `60_export.js`, `61_justify.js` (design justification,
+  `68_brakes.js`, `69_bom.js` (bill of materials), `69_catalog.js` (parts catalog), `69_lapsim.js` (point-mass lap time). Exports: `60_export.js`, `61_justify.js` (design justification,
   HTML + Typst), `65_cad.js`. Public demo `01_demo.js` (`ui/demo.html`, settings `schema/demo.json`, `DEMO_PLAN.md`). Team settings `03_team.js`, tracker `04_tracker.js` (seed `schema/tracker_seed.json`).
 - Plans and backlog: `TODO.md`, `BOM_PLAN.md`, `DEMO_PLAN.md`, `TEAM_SETTINGS_PLAN.md`, `ACTION_PLAN.md`. Start from `TODO.md`.
 
