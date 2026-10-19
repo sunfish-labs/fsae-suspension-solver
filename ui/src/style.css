@@ -485,7 +485,7 @@ body.simple .adv { display: none !important; }
 .chkpill { min-width: 7.5em; }
 
 /* ---- team settings (03_team.js): learning mode, released designs, banner */
-body.learning:not(.chal) [data-apply], body.learning:not(.chal) [data-apply-spring], body.learning:not(.chal) #pvApply { display: none !important; }
+body.learning:not(.chal) [data-apply], body.learning:not(.chal) [data-apply-spring], body.learning:not(.chal) #pvApply, body.learning:not(.chal) [data-catuse] { display: none !important; }
 body.learning:not(.chal) .pvbtns::before { content: "Learning mode: to keep it, type the change into the table"; font-size: 12px; color: var(--muted); margin-right: 6px; }
 body.rel-lock [data-apply], body.rel-lock [data-apply-spring], body.rel-lock #pvApply, body.rel-lock #btnApplyJson { display: none !important; }
 body.rel-lock #cardsIn, body.rel-lock #carIn, body.rel-lock #layBox { opacity: .72; }
@@ -538,6 +538,11 @@ body.nohud #hud, body.nohud #vaxkey { display: none !important; }
 #bomSec[open] > summary::after { content: "▾"; }
 .bomtab select, .bomtab .ltext { width: 100%; min-width: 7em; }
 .bomtab .lnum { width: 5.5em; }
+.cattab td { vertical-align: top; }
+.cattab .pill { white-space: nowrap; }
+.catedit { margin: 8px 0; }
+.cathead { margin: 4px 0 8px; padding-left: 18px; font-size: 13px; }
+.catedit > summary { cursor: pointer; font-weight: 600; }
 
 /* tech inspection tracker (04_tracker.js): team only */
 body:not(.team) #btnTracker { display: none; }

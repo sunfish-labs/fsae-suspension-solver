@@ -87,6 +87,7 @@ function designHash() {
   if (chal || !car) return null;
   const d = exportCar();
   delete d.name;
+  delete d.catalog; // options to choose from, not the design
   for (const ax of ["front", "rear"]) if (d[ax]) delete d[ax].name;
   return hash53(canon(d));
 }

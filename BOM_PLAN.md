@@ -18,7 +18,7 @@ ignores the block until phase 4.
    dampers and springs, brake parts from `brake_system`, engine from the drivetrain. Quantities update when the design
    changes; costs stay. A "what changed since last order" note when a quantity moves.
 2b. **CSV import (done, 1.36.0):** Bill of materials → Import a CSV.
-3. **Explore:** a parts catalog (`private/parts_catalog.json`: part, rating, mass, cost, source) so picking a cheaper
+3. **Explore (done, 1.41.0: Car view → Parts catalog, saved in the car file as `catalog`; CSV in and out):** a parts catalog (`private/parts_catalog.json`: part, rating, mass, cost, source) so picking a cheaper
    rod end updates the BOM and re-runs the strength checks in one go; cost vs FOS side by side. Import the team's
    existing list (`private/parts_list_cheapest_2026-10-17.csv`) as the first catalog.
 3b. **Cost report starter (done, 1.37.0):** CSV by FSAE system with make / buy and subtotals.

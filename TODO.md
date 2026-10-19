@@ -16,8 +16,8 @@ XL 3+ days.
 ## Bill of materials
 
 - Phase 2 (rows the design fills in) is done for the suspension (1.40.0); tabs, brakes and engine rows are left.
-  Phases 3–5 in [BOM_PLAN.md](BOM_PLAN.md): a parts catalog to explore cost vs FOS,
-  BOM in the reports and CLI, order tracking. Phase 1 (manual BOM with totals and CSV) is done.
+  Phase 3 (parts catalog: cost vs FOS, spring rates vs ride frequency, Use) is done (1.41.0). Phases 4–5 in
+  [BOM_PLAN.md](BOM_PLAN.md): BOM in the reports and CLI, order tracking. Phase 1 (manual BOM with totals and CSV) is done.
 
 ## This season: needed for a passing car
 
@@ -91,6 +91,8 @@ XL 3+ days.
 
 ## Done recently
 
+- Parts catalog: options side by side with cost for the car and worst FOS (springs: ride frequency per axle), Use puts
+  the part in the design and the BOM (1.41.0)
 - Frame stiffness in the car balance: LLTD with a twisting frame, stiffness ratio, bar effect (1.18.0)
 - Anti-roll bar in the cornering loads: its share, drop link, twist, and the rocker with it (1.17.0)
 - Frame and harness rules from side-view points: 13 more automatic checks (1.16.0)

@@ -47,6 +47,7 @@ function run() {
     renderCarBox();
     renderLayoutBox();
     renderBom();
+    renderCatalog();
   }
   renderViewTabs();
   if (!$("#trkDlg").hidden) renderTracker();

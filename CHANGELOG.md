@@ -3,6 +3,20 @@
 Versions follow [semantic versioning](https://semver.org/). Each release is a git tag (`v1.0.0`); the version is
 also in `pyproject.toml`.
 
+## 1.41.0 - 2026-10-19
+
+- **Parts catalog (bill of materials, phase 3).** Car view → Parts catalog: the bought parts the team could use,
+  with the maker's rating and the price, saved in the car file as `catalog`. For rod ends, ball joints, rocker pivot
+  bearings and damper eyes it shows each option's cost for the whole car and its worst safety factor over every load
+  case on both axles, the worst load and the rating it needs, and marks the cheapest option that passes. For springs
+  it shows the ride frequency each rate gives on each axle and the rate the target frequency needs, so a rate nobody
+  makes is caught before the design depends on it. **Use** puts the part in the design (the rating on both corners,
+  or the spring rate on one axle) and in the BOM rows (part number, unit cost, source), and every check runs again.
+  Two bearings per joint (a rocker) count twice. Start from "Add the parts the design uses now", add parts by hand
+  or import a CSV (Role, Part, Part number, Rating (lbf), Rate (lb/in), ID (mm), Per joint, Unit cost, Source,
+  Note); Download CSV writes the same columns. Hidden in learning mode like the other one-click changes; disabled
+  on a released design. The catalog isn't part of a release's fingerprint.
+
 ## 1.40.1 - 2026-10-18
 
 - **Send feedback:** a link to the team's feedback form in the Learn menu and on the welcome card.
